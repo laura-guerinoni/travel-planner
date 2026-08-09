@@ -88,14 +88,15 @@
   .total { text-align:center; }
   .total { margin:14px auto 0; width:max-content; border:1px solid var(--line); background:var(--card);
     border-radius:999px; padding:8px 16px; font-size:14px; font-weight:700; }
-  .grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
   .heads { margin-bottom:8px; }
   .week { margin-bottom:8px; align-items:start; }
   .banner-row { margin-bottom:6px; }
   .banner { background:rgba(var(--secondary-rgb),.16); color:var(--secondary); border:1px solid rgba(var(--secondary-rgb),.4);
     border-radius:999px; padding:4px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
   .wdhead { text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
-  .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px; }
+  .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
+    min-width:0; overflow-wrap:anywhere; }
   .cell.empty { background:transparent; border:none; min-height:0; }
   /* Opaque white backing behind the tint so the page texture never shows
      through a holiday cell that has no other content sitting on top of it. */
@@ -106,7 +107,8 @@
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
   .wd { font-size:11px; color:var(--muted); }
-  .loc { margin:6px 0; font-size:12px; font-weight:700; }
+  .loc { margin:6px 0; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
+    word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   .acts li { font-size:11px; }
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; }
@@ -886,6 +888,64 @@
   document.addEventListener('focusout', function(e){
     if(e.target.matches && e.target.matches(EDITABLE_SEL)) tryApplyPendingRemoteUpdate();
   });
+
+  // Paste is always plain text: pasting from Word/Docs/web pages otherwise
+  // drags in fonts, colors, links and nested markup that break the calendar's
+  // own styling. We take text/plain (falling back to stripping tags out of
+  // text/html), collapse newlines, and insert it as a bare text node.
+  function plainTextFromPaste(e){
+    var dt = e.clipboardData || window.clipboardData;
+    if(!dt) return '';
+    var txt = dt.getData('text/plain');
+    if(!txt){
+      var html = dt.getData('text/html');
+      if(html){
+        var tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        txt = tmp.textContent || '';
+      }
+    }
+    return String(txt || '').replace(/\r\n?/g, '\n').replace(/\s*\n\s*/g, ' ').trim();
+  }
+
+  document.addEventListener('paste', function(e){
+    var el = e.target;
+    if(!el || !el.closest) return;
+    var field = el.closest('[contenteditable="true"]');
+    if(!field) return;
+    e.preventDefault();
+    var text = plainTextFromPaste(e);
+    if(!text) return;
+    var sel = window.getSelection();
+    if(sel && sel.rangeCount){
+      var range = sel.getRangeAt(0);
+      range.deleteContents();
+      var node = document.createTextNode(text);
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.setEndAfter(node);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      field.textContent = (field.textContent || '') + text;
+    }
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  }, true);
+
+  // Same rule for drag-and-dropped content into an editable field.
+  document.addEventListener('drop', function(e){
+    var el = e.target;
+    if(!el || !el.closest) return;
+    var field = el.closest('[contenteditable="true"]');
+    if(!field) return;
+    var dt = e.dataTransfer;
+    if(!dt) return;
+    var txt = dt.getData('text/plain');
+    if(!txt) return;
+    e.preventDefault();
+    field.textContent = String(txt).replace(/\s+/g, ' ').trim();
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  }, true);
 
   function parseMoney(str){
     var s = String(str).replace(',', '.');
