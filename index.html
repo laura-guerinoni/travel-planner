@@ -840,7 +840,7 @@
   function makeEditable(el){ el.contentEditable = 'true'; }
 
   // ---- pill / panel switching (event delegation so new pills just work) ----
-  document.querySelector('.pills').addEventListener('click', function(e){
+  document.addEventListener('click', function(e){
     if(suppressNextPillClick){ suppressNextPillClick = false; return; }
     var btn = e.target.closest('.pill');
     if(!btn || btn.id === 'addOptionBtn') return;
@@ -862,7 +862,7 @@
   // navigates instead) — enter edit mode and select the existing text so
   // typing immediately replaces it, then drop back out of edit mode on
   // blur so a later single click goes back to navigating.
-  document.querySelector('.pills').addEventListener('dblclick', function(e){
+  document.addEventListener('dblclick', function(e){
     var nameEl = e.target.closest('.pill-name');
     if(!nameEl) return;
     nameEl.contentEditable = 'true';
@@ -873,8 +873,9 @@
     sel.removeAllRanges();
     sel.addRange(range);
   });
-  document.querySelector('.pills').addEventListener('focusout', function(e){
+  document.addEventListener('focusout', function(e){
     if(e.target.classList && e.target.classList.contains('pill-name')) e.target.contentEditable = 'false';
+    if(!(e.target.closest && e.target.closest('.pills'))) return;
     tryApplyPendingRemoteUpdate();
   });
   // Every other EDITABLE_SEL field is permanently contenteditable (unlike
@@ -1906,7 +1907,7 @@
   // along with them so the whole UI stays visually consistent) ----
   var pillDrag = null;
   var suppressNextPillClick = false;
-  document.querySelector('.pills').addEventListener('pointerdown', function(e){
+  document.addEventListener('pointerdown', function(e){
     var pill = e.target.closest('.pill[data-opt]');
     if(!pill) return;
     var nameHitPd = e.target.closest('.pill-name');
@@ -2089,16 +2090,21 @@
     openPop = pop;
   }
 
-  document.querySelector('.pills').addEventListener('contextmenu', function(e){
+  document.addEventListener('contextmenu', function(e){
     var pill = e.target.closest('.pill[data-opt]');
     if(!pill) return;
     e.preventDefault();
     openPillContextMenu(pill, e.clientX, e.clientY);
   });
 
-  var addOptionBtn = document.getElementById('addOptionBtn');
-  if(addOptionBtn){
-    addOptionBtn.addEventListener('click', function(e){
+  // Delegated (was bound once to the #addOptionBtn node captured at load):
+  // every wholesale content replacement — a remote sync snapshot, an
+  // undo/redo restore — creates a brand-new button, and the old binding
+  // pointed at the detached one, which is why adding an option silently
+  // stopped working after the first sync.
+  document.addEventListener('click', function(e){
+    var addOptionBtn = e.target.closest('#addOptionBtn');
+    if(addOptionBtn){
       e.stopPropagation();
       closePop();
       var pop = document.createElement('div');
@@ -2124,8 +2130,8 @@
         if(activePanel) addHolidayToPanel(activePanel);
       });
       positionPopover(pop, addOptionBtn);
-    });
-  }
+    }
+  });
 
   // ---- month sidebar: one segment per distinct year/month in use across
   // all options, each with its own color, hover-to-reveal "+" (add another
@@ -2558,12 +2564,12 @@
   // reason to additionally clone the *whole document* on every autosave.
   function buildBackendPayload(){
     var snap = captureUndoSnapshot();
-    return { wrapHtml: snap.wrap, tagDataJson: snap.tagData };
+    return { contentJson: snap.content, tagDataJson: snap.tagData };
   }
   function saveToBackend(payload){
     if(!planRef) return Promise.resolve(false);
     var write = planRef.set({
-      wrapHtml: payload.wrapHtml,
+      contentJson: payload.contentJson,
       tagDataJson: payload.tagDataJson,
       updatedAt: firebase.database.ServerValue.TIMESTAMP,
       updatedBy: CLIENT_ID
@@ -2702,40 +2708,251 @@
   // re-running reattachAll(). Simpler and more robust than tracking
   // per-action diffs, at the cost of undo granularity being "a batch of
   // changes that happened close together in time" rather than per-keystroke.
+
+  // ---- compact JSON content model ------------------------------------
+  // The plan used to be stored (and undo-snapshotted) as the full rendered
+  // .wrap HTML: every wrapper element, every runtime-added control, and —
+  // worst of all — a repeated inline `style="background:...;color:..."` on
+  // every single activity chip, even though that color is already defined
+  // once per tag in #tagData and is fully derivable from the tag name.
+  // What actually IS content is small: which options exist, their month,
+  // holiday periods, and per day a location plus a list of activities.
+  // Everything else (the calendar grid, chip colors, day totals, option
+  // totals, holiday banners, ghost rows for multi-day activities) is
+  // derived and re-rendered from that on load. Roughly 80% smaller
+  // payloads, and — because prices/grids are recomputed rather than
+  // transported — no more cross-browser byte differences that used to make
+  // identical content look like a change.
+  function tagStyleFor(icon, name){
+    var i;
+    for(i = 0; i < TAGS.length; i++){ if(TAGS[i].icon === icon && TAGS[i].name === name) return TAGS[i]; }
+    for(i = 0; i < TAGS.length; i++){ if(TAGS[i].name === name) return TAGS[i]; }
+    return { icon: icon, name: name, bg: '#e8e3d5', fg: '#3a3a46' };
+  }
+
+  function extractActivity(li){
+    var a = {};
+    var chip = li.querySelector(':scope > .chip');
+    if(chip){ a.i = chip.getAttribute('data-icon') || ''; a.n = chip.getAttribute('data-name') || ''; }
+    var t = li.querySelector(':scope > .title');
+    if(t) a.t = t.textContent;
+    var lines = [];
+    li.querySelectorAll(':scope > .line').forEach(function(l){ lines.push(l.textContent); });
+    if(lines.length) a.l = lines;
+    var pv = li.querySelector(':scope > .price > .price-val');
+    if(pv) a.p = pv.textContent;
+    var pn = li.querySelector(':scope > .price > .price-note');
+    if(pn) a.pn = pn.textContent;
+    var links = getLinks(li);
+    if(links.length) a.u = links;
+    var img = li.getAttribute('data-img');
+    if(img) a.g = img;
+    return a;
+  }
+
+  // root defaults to the live document, but can be a DOMParser document —
+  // used by the one-time localStorage migration seed, which has to read a
+  // saved full-HTML copy that was never in the page.
+  function extractContentModel(root){
+    var doc = root || document;
+    if(doc === document) persistTags();
+    var model = { v: 2, options: [] };
+    doc.querySelectorAll('.pill[data-opt]').forEach(function(pill){
+      var opt = pill.getAttribute('data-opt');
+      var panel = doc.querySelector('#panel-' + opt);
+      if(!panel) return;
+      var d = getPanelDate(panel);
+      var nameEl = pill.querySelector('.pill-name');
+      var o = { id: opt, nm: nameEl ? nameEl.textContent : '', y: d.year, m: d.month };
+      if(panel.classList.contains('on')) o.on = 1;
+      var hol = getHolidays(panel);
+      if(hol.length) o.h = hol;
+      var bn = doc.querySelector('.budget li[data-opt="' + opt + '"] .budget-name');
+      if(bn && bn.textContent !== o.nm) o.bn = bn.textContent;
+      var days = {}, hasDay = false;
+      panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
+        var dn = dayNumOfCell(cell);
+        if(dn === null) return;
+        var loc = cell.querySelector(':scope > .loc');
+        var acts = [];
+        // .act-span-ghost rows are generated echoes of a multi-day activity
+        // living on another day — derived, never stored.
+        cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)').forEach(function(li){
+          acts.push(extractActivity(li));
+        });
+        if(!loc && !acts.length) return;
+        var day = {};
+        if(loc) day.loc = loc.textContent;
+        if(acts.length) day.a = acts;
+        days[dn] = day;
+        hasDay = true;
+      });
+      if(hasDay) o.d = days;
+      model.options.push(o);
+    });
+    return model;
+  }
+
+  function buildActivityLi(a){
+    var li = document.createElement('li');
+    if(a.i || a.n){
+      var st = tagStyleFor(a.i || '', a.n || '');
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.setAttribute('data-icon', a.i || '');
+      chip.setAttribute('data-name', a.n || '');
+      // Presentation, re-derived from the tag list on render instead of
+      // being carried along inside the stored content.
+      chip.style.background = st.bg;
+      chip.style.color = st.fg;
+      chip.textContent = (a.i || '') + ' ' + (a.n || '');
+      li.appendChild(chip);
+    }
+    var title = document.createElement('span');
+    title.className = 'title';
+    title.textContent = a.t || '';
+    li.appendChild(title);
+    var lines = a.l || [];
+    lines.forEach(function(txt){
+      var sp = document.createElement('span');
+      sp.className = 'line';
+      sp.textContent = txt;
+      li.appendChild(sp);
+    });
+    if(a.p != null || a.pn != null){
+      var price = document.createElement('span');
+      price.className = 'price';
+      var pv = document.createElement('span');
+      pv.className = 'price-val';
+      pv.textContent = a.p == null ? '' : a.p;
+      price.appendChild(pv);
+      if(a.pn != null){
+        price.appendChild(document.createTextNode(' '));
+        var em = document.createElement('em');
+        em.className = 'price-note';
+        em.textContent = a.pn;
+        price.appendChild(em);
+      }
+      li.appendChild(price);
+    }
+    if(a.u && a.u.length) li.setAttribute('data-links', JSON.stringify(a.u));
+    if(a.g) li.setAttribute('data-img', a.g);
+    var span = lines.length ? parseSpanFromLine(lines[0]) : null;
+    if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
+    return li;
+  }
+
+  // The "· August 12 – 25, 2026" note next to a budget row used to be baked
+  // into the saved markup; it's just the option's holiday span, so it's
+  // recomputed here instead of stored.
+  function holidayRangeText(hol, year, month){
+    if(!hol || !hol.length) return '';
+    var s = hol[0].start, e = hol[0].end;
+    hol.forEach(function(h){ if(h.start < s) s = h.start; if(h.end > e) e = h.end; });
+    if(!s || !e) return '';
+    return '· ' + MONTH_FULL[month - 1] + ' ' + s + ' – ' + e + ', ' + year;
+  }
+
+  function applyContentModel(model){
+    if(!model || !Array.isArray(model.options) || !model.options.length) return false;
+    var wrap = document.querySelector('.wrap');
+    var pillsWrap = document.querySelector('.pills');
+    var budgetList = document.querySelector('.budget ul');
+    var addOptBtn = document.getElementById('addOptionBtn');
+    var h2 = wrap.querySelector(':scope > h2');
+    if(!wrap || !pillsWrap || !budgetList) return false;
+
+    wrap.querySelectorAll(':scope > .panel').forEach(function(p){ p.remove(); });
+    pillsWrap.querySelectorAll('.pill[data-opt]').forEach(function(p){ p.remove(); });
+    budgetList.innerHTML = '';
+
+    var anyOn = model.options.some(function(o){ return !!o.on; });
+
+    model.options.forEach(function(o, idx){
+      var on = o.on ? true : (!anyOn && idx === 0);
+      // Keep the global option-id counter ahead of anything a remote client
+      // created, or the next locally added option would reuse an id.
+      var m = /^option-(\d+)$/.exec(o.id || '');
+      if(m) nextOptionN = Math.max(nextOptionN, parseInt(m[1], 10));
+
+      var panel = document.createElement('section');
+      panel.className = 'panel' + (on ? ' on' : '');
+      panel.id = 'panel-' + o.id;
+      setPanelDate(panel, o.y, o.m);
+      if(o.h && o.h.length) setHolidays(panel, o.h);
+      if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
+      buildCalendarGrid(panel);
+
+      var days = o.d || {};
+      Object.keys(days).forEach(function(key){
+        var dn = parseInt(key, 10);
+        var cell = null;
+        panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){
+          if(dayNumOfCell(c) === dn) cell = c;
+        });
+        if(!cell) return;
+        var day = days[key] || {};
+        var anchor = cell.querySelector(':scope > .cleardaybtn') ||
+                     cell.querySelector(':scope > .addloc') ||
+                     cell.querySelector(':scope > .addact') || null;
+        if(day.loc != null){
+          var loc = document.createElement('p');
+          loc.className = 'loc';
+          loc.textContent = day.loc;
+          cell.insertBefore(loc, anchor);
+          cell.classList.add('active');
+        }
+        if(day.a && day.a.length){
+          var ul = document.createElement('ul');
+          ul.className = 'acts';
+          day.a.forEach(function(a){ ul.appendChild(buildActivityLi(a)); });
+          cell.insertBefore(ul, anchor);
+          cell.classList.add('active');
+        }
+      });
+
+      var pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'pill' + (on ? ' on' : '');
+      pill.setAttribute('data-opt', o.id);
+      pill.innerHTML = '<span class="pill-name"></span> <span class="pill-price">\u20ac0</span>' +
+        '<span class="pill-remove" title="Remove option">&times;</span>';
+      pill.querySelector('.pill-name').textContent = o.nm || '';
+      if(addOptBtn) pillsWrap.insertBefore(pill, addOptBtn); else pillsWrap.appendChild(pill);
+
+      var li = document.createElement('li');
+      li.setAttribute('data-opt', o.id);
+      li.innerHTML = '<span><span class="budget-name"></span></span><strong>\u20ac0</strong>';
+      var wrapSpan = li.querySelector(':scope > span');
+      wrapSpan.querySelector('.budget-name').textContent = (o.bn != null ? o.bn : (o.nm || ''));
+      var rangeText = holidayRangeText(o.h, o.y, o.m);
+      if(rangeText){
+        wrapSpan.appendChild(document.createTextNode(' '));
+        var em2 = document.createElement('em');
+        em2.textContent = rangeText;
+        wrapSpan.appendChild(em2);
+      }
+      budgetList.appendChild(li);
+    });
+
+    reattachAll();
+    // Day totals and per-option totals are derived, so they're recomputed
+    // here rather than transported.
+    document.querySelectorAll('.grid .cell:not(.empty)').forEach(function(c){
+      if(c.querySelector(':scope > .acts')) recomputeCell(c);
+    });
+    document.querySelectorAll('.panel').forEach(recomputePanel);
+    return true;
+  }
+
   function captureUndoSnapshot(){
     persistTags();
-    var wrapClone = document.querySelector('.wrap').cloneNode(true);
-    wrapClone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
-    wrapClone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
-    wrapClone.querySelectorAll(STRIP_CONTENTEDITABLE_SEL).forEach(function(el){ el.removeAttribute('contenteditable'); });
-    // .wrap's own top padding and .pills' own top offset are pure runtime
-    // layout output from syncBarLayout() — recomputed fresh from scratch by
-    // reattachAll() every time content loads, never actual plan content.
-    // They also vary slightly between browsers (font metrics, sidebar
-    // state), so leaving them in made every save/compare see a "change"
-    // that wasn't one: constant saves, constant downloads by every other
-    // open tab, and a tab-to-tab feedback loop when two browsers were open
-    // at once (each kept "correcting" the other's padding back to its own).
-    // Stripping them keeps the saved/compared HTML identical across
-    // browsers and viewports whenever the actual plan hasn't changed.
-    wrapClone.style.removeProperty('padding-top');
-    var pillsClone = wrapClone.querySelector('.pills');
-    if(pillsClone) pillsClone.style.removeProperty('top');
-    // Blank the transient "Editing…/Saved ✓" indicator — same as buildSaveHtml()
-    // — so its own lifecycle never registers as a real content change and
-    // pollutes the undo history with phantom no-op checkpoints.
-    var st = wrapClone.querySelector('#saveStatus');
-    if(st) st.textContent = '';
-    return { wrap: wrapClone.outerHTML, tagData: TAGDATA_EL.textContent };
+    return { content: JSON.stringify(extractContentModel()), tagData: TAGDATA_EL.textContent };
   }
   function restoreUndoSnapshot(entry){
-    var parsed = new DOMParser().parseFromString(entry.wrap, 'text/html');
-    var newWrap = parsed.querySelector('.wrap');
-    var curWrap = document.querySelector('.wrap');
-    if(newWrap && curWrap) curWrap.replaceWith(newWrap);
     TAGDATA_EL.textContent = entry.tagData;
     try { TAGS = JSON.parse(entry.tagData); } catch(e){ TAGS = []; }
-    reattachAll();
+    try { applyContentModel(JSON.parse(entry.content)); } catch(e){}
   }
 
   var undoStack = [];
@@ -2748,7 +2965,7 @@
   function pushUndoIfChanged(){
     if(restoringHistory) return;
     var snap = captureUndoSnapshot();
-    if(snap.wrap === lastSnapshot.wrap && snap.tagData === lastSnapshot.tagData) return;
+    if(snap.content === lastSnapshot.content && snap.tagData === lastSnapshot.tagData) return;
     undoStack.push(lastSnapshot);
     if(undoStack.length > UNDO_MAX) undoStack.shift();
     lastSnapshot = snap;
@@ -2764,7 +2981,11 @@
     if(!mod || e.key.toLowerCase() !== 'z') return;
     e.preventDefault();
     clearTimeout(undoTimer);
-    pushUndoIfChanged();
+    // Only flush pending edits before an UNDO. Doing it before a redo made
+    // pushUndoIfChanged() see the post-undo state as a brand-new edit, which
+    // unconditionally clears redoStack — so redo popped an empty stack and
+    // silently did nothing.
+    if(!e.shiftKey) pushUndoIfChanged();
     withHistoryRestoreGuard(function(){
       if(e.shiftKey){
         if(redoStack.length){
@@ -2881,16 +3102,28 @@
   setInterval(tryApplyPendingRemoteUpdate, 500);
 
   function applyRemoteSnapshot(val){
-    var parsed = new DOMParser().parseFromString(val.wrapHtml, 'text/html');
-    var newWrap = parsed.querySelector('.wrap');
-    if(!newWrap) return;
+    var model = null;
+    if(val.contentJson){
+      try { model = JSON.parse(val.contentJson); } catch(err){ model = null; }
+    }
+    var legacyWrap = null;
+    if(!model && val.wrapHtml){
+      // Data written by an older version of this file: still a full .wrap
+      // HTML blob. Applied as before, then re-saved in the new compact
+      // shape by the self-heal below.
+      var parsed = new DOMParser().parseFromString(val.wrapHtml, 'text/html');
+      legacyWrap = parsed.querySelector('.wrap');
+    }
+    if(!model && !legacyWrap) return;
     withHistoryRestoreGuard(function(){
-      document.querySelector('.wrap').replaceWith(newWrap);
+      // Tags first: chip colors are looked up from this list while the
+      // content is being rendered.
       if(val.tagDataJson){
         TAGDATA_EL.textContent = val.tagDataJson;
         try { TAGS = JSON.parse(val.tagDataJson); } catch(err){ TAGS = []; }
       }
-      reattachAll();
+      if(model) applyContentModel(model);
+      else { document.querySelector('.wrap').replaceWith(legacyWrap); reattachAll(); }
       lastSnapshot = captureUndoSnapshot();
     });
     setStatus('Synced ✓', true);
@@ -2910,7 +3143,7 @@
           var parsed = new DOMParser().parseFromString(html, 'text/html');
           var wrap = parsed.querySelector('.wrap');
           var tagData = parsed.getElementById('tagData');
-          if(wrap) return { wrapHtml: wrap.outerHTML, tagDataJson: tagData ? tagData.textContent : TAGDATA_EL.textContent };
+          if(wrap) return { contentJson: JSON.stringify(extractContentModel(parsed)), tagDataJson: tagData ? tagData.textContent : TAGDATA_EL.textContent };
         }
       }
     } catch(e){}
@@ -2937,7 +3170,7 @@
       var val = snapshot.val();
       if(!firstLoadDone){
         firstLoadDone = true;
-        if(val && val.wrapHtml){
+        if(val && (val.contentJson || val.wrapHtml)){
           if(val.updatedAt) lastSeenUpdatedAt = val.updatedAt;
           applyRemoteSnapshot(val);
           mergeDefaultTags();
@@ -2950,14 +3183,17 @@
           // bloated data sitting in Firebase until someone happens to make
           // an unrelated edit.
           var cleaned = captureUndoSnapshot();
-          if(cleaned.wrap !== val.wrapHtml) saveToBackend({ wrapHtml: cleaned.wrap, tagDataJson: cleaned.tagData });
+          // Also upgrades old full-HTML data to the compact JSON model on
+          // the first load that sees it, rather than leaving the bloated
+          // blob in place until someone happens to make an edit.
+          if(cleaned.content !== val.contentJson) saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
         } else {
           saveToBackend(getMigrationSeedPayload());
         }
         document.documentElement.style.visibility = '';
         return;
       }
-      if(!val || !val.wrapHtml) return;
+      if(!val || !(val.contentJson || val.wrapHtml)) return;
       // A write older than the newest one we've already incorporated is
       // stale no matter who sent it — ignore it outright rather than let it
       // clobber more-current content with a rewind.
@@ -2974,7 +3210,7 @@
       // above even for our own echo, so it keeps acting as an accurate
       // floor for the next incoming write.)
       if(val.updatedBy === CLIENT_ID) return;
-      if(val.wrapHtml === lastSnapshot.wrap) return;
+      if(val.contentJson && val.contentJson === lastSnapshot.content) return;
       if(isLocallyBusy()){ pendingRemoteUpdate = val; return; }
       applyRemoteSnapshot(val);
     });
