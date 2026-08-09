@@ -1,0 +1,2907 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>
+(function(){
+  try {
+    // Hidden unconditionally while hosted — with a shared backend as the
+    // source of truth, we can no longer tell synchronously whether there's
+    // real content coming, so always hide first and let the Firebase
+    // listener (or the failsafe below, if it never fires) reveal the page.
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+      document.documentElement.style.visibility = 'hidden';
+      setTimeout(function(){ document.documentElement.style.visibility = ''; }, 2500);
+    }
+  } catch(e){}
+  // Applied here, before first paint, so switching color mode never
+  // flashes the other palette on the next load — same reasoning as the
+  // visibility hide above, just for the theme instead of the content.
+  try {
+    var savedTheme = localStorage.getItem('travelPlannerTheme');
+    if (savedTheme === 'classic') document.documentElement.setAttribute('data-theme', 'classic');
+  } catch(e){}
+})();
+</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Travel Planner</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27><rect x=%272%27 y=%272%27 width=%2728%27 height=%2728%27 rx=%278%27 fill=%27%23f7f1ea%27/><path d=%27M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z%27 fill=%27%23ef9a5c%27/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Vivid/joyful palette — pink, mint, and warm coral lifted from a kawaii-style
+     reference — is now the main default. Plain-weave grid texture kept very
+     faint (low opacity) so it stays a soft hint rather than visible lines. */
+  :root { --bg:#f6f1fb; --card:#ffffff; --ink:#3d3568; --muted:#9b8fc0; --line:#ecdff5;
+    --primary:#ec6a9c; --primary-rgb:236,106,156; --secondary:#3fbf94; --secondary-rgb:63,191,148; --accent:#f2884d; --accent-rgb:242,136,77;
+    --texture: repeating-linear-gradient(0deg, rgba(61,53,104,.016) 0, rgba(61,53,104,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(61,53,104,.016) 0, rgba(61,53,104,.016) 1px, transparent 1px, transparent 5px); }
+  /* The original classic teal/mint/orange palette is now the secondary
+     option, swapped in wholesale via [data-theme] rather than touching any
+     component's own CSS, since every component already reads its colors
+     from these same custom properties. */
+  :root[data-theme="classic"] { --bg:#f7f1ea; --card:#ffffff; --ink:#1c3438; --muted:#9c8b86; --line:#e8dcd5; --primary:#1c6672; --primary-rgb:28,102,114; --secondary:#1fa896; --secondary-rgb:31,168,150; --accent:#ef9a5c; --accent-rgb:239,154,92;
+    --texture: repeating-linear-gradient(0deg, rgba(28,52,56,.016) 0, rgba(28,52,56,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(28,52,56,.016) 0, rgba(28,52,56,.016) 1px, transparent 1px, transparent 5px); }
+  * { box-sizing:border-box; }
+  /* A very faint woven-linen crosshatch under the flat page background —
+     just enough to hint at fabric/embroidery without ever competing with
+     the actual content sitting on top of it. Shared via --texture so the
+     fixed bars (pills, month sidebar) that sit on top of the page can
+     carry it too — otherwise their own flat fill reads as a seam/gap at
+     the very top instead of a continuation of the same background. */
+  body { margin:0; padding:32px 16px 32px 56px; background-color:var(--bg); color:var(--ink);
+    background-image: var(--texture);
+    font-family:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  button, input, textarea, select { font-family:inherit; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  header { text-align:center; margin-bottom:20px; }
+  h1 { margin:0 0 10px; font-size:34px; }
+  /* Flush to the very top of the viewport, same as the sidebar is flush
+     to the left — .wrap's padding-top is kept in sync with this bar's
+     real (dynamic) height via JS, since pills can wrap to more than one
+     row as options are added. */
+  .pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    position:fixed; top:0; left:46px; right:16px; z-index:40;
+    background-color:var(--bg); background-image:var(--texture); padding:0 8px 14px; }
+  /* Second-tier bookmarks: same tab-hanging-off-an-edge idea as the month
+     sidebar, just smaller and hanging off the TOP edge instead of the
+     left — rounded only at the bottom (the edge pointing away from what
+     they're attached to). Flat, no shadow, so the hierarchy (sidebar =
+     month, pills = option within it) reads through scale/color alone. */
+  .pill { cursor:pointer; font:inherit; font-size:14px; font-weight:600; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:9px 16px 11px; }
+  .pill span { opacity:.7; font-weight:700; }
+  .pill.on { background:var(--primary); border-color:var(--primary); color:#fff; }
+  /* the selected option's stitch — open on top, since that's the edge
+     it's "hanging" from, mirroring the sidebar's own current-tab treatment */
+  .pill.on::after {
+    content:''; position:absolute; left:4px; right:4px; bottom:4px; top:0; pointer-events:none;
+    border-radius:0 0 9px 9px;
+    border:2px dashed rgba(255,255,255,.85); border-top:none;
+  }
+  .panel { display:none; }
+  .panel.on { display:block; }
+  .kicker { text-transform:uppercase; letter-spacing:.14em; font-size:12px; color:var(--muted); margin:20px 0 0; text-align:center; }
+  .sub { color:var(--muted); margin:6px 0 0; text-align:center; }
+  .total { text-align:center; }
+  .total { margin:14px auto 0; width:max-content; border:1px solid var(--line); background:var(--card);
+    border-radius:999px; padding:8px 16px; font-size:14px; font-weight:700; }
+  .grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .heads { margin-bottom:8px; }
+  .week { margin-bottom:8px; align-items:start; }
+  .banner-row { margin-bottom:6px; }
+  .banner { background:rgba(var(--secondary-rgb),.16); color:var(--secondary); border:1px solid rgba(var(--secondary-rgb),.4);
+    border-radius:999px; padding:4px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+  .wdhead { text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px; }
+  .cell.empty { background:transparent; border:none; min-height:0; }
+  /* Opaque white backing behind the tint so the page texture never shows
+     through a holiday cell that has no other content sitting on top of it. */
+  .cell.holi { background-color:var(--card);
+    background-image:linear-gradient(rgba(var(--secondary-rgb),.08), rgba(var(--secondary-rgb),.08));
+    border-color:rgba(var(--secondary-rgb),.28); }
+  .cell.active { border-color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .cellhead { display:flex; align-items:baseline; gap:6px; }
+  .daynum { font-weight:700; font-size:15px; }
+  .wd { font-size:11px; color:var(--muted); }
+  .loc { margin:6px 0; font-size:12px; font-weight:700; }
+  .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .acts li { font-size:11px; }
+  .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; }
+  .title { display:block; font-weight:600; }
+  .line { display:block; color:var(--muted); }
+
+  /* a multi-day activity's read-only echo on the days after its start —
+     the real, editable copy only lives on the start day */
+  .act-span-ghost { opacity:.6; border:1px dashed var(--line); border-radius:8px; padding:4px 6px; cursor:default; }
+  .act-span-ghost .line { font-style:italic; }
+  .price { display:block; font-weight:700; }
+  .price em { font-style:normal; font-weight:400; color:var(--muted); }
+  .cost { margin:8px 0 0; padding-top:6px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
+  h2 { margin:26px 0 12px; font-size:20px; }
+  /* padding-top is 8px, not 16px — each row already carries its own 8px
+     top padding, so 16px there (on top of that) read as a bigger gap above
+     the first row than the 16px flat margin on the left/right/bottom. */
+  .budget { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:8px 16px 16px; }
+  .budget ul { margin:0; padding:0; list-style:none; }
+  .budget li { display:flex; justify-content:space-between; gap:12px; font-size:14px;
+    padding:8px 0; border-bottom:1px solid var(--line); }
+  .budget li:last-child { border-bottom:none; }
+  /* Rows can be hidden (not removed) by the month filter, so the DOM's
+     actual last child isn't always the last one on screen — this catches
+     whichever visible row is really last, so a divider never dangles
+     under it with nothing left below to separate from. */
+  .budget li:not(.budget-filtered-out):not(:has(~ li:not(.budget-filtered-out))) { border-bottom:none; }
+  .budget em { color:var(--muted); font-style:normal; }
+  .budget strong { color:var(--primary); }
+  .fine { color:var(--muted); font-size:12px; margin:10px 0 0; }
+  footer { margin-top:28px; text-align:center; color:var(--muted); font-size:13px; }
+  @media print { body { background:#fff; padding:0; } .panel { display:block !important; } .pills { display:none; } }
+  /* Styled like the little fabric/paper page-marker tabs that stick out
+     from the edge of a book — separate rounded tabs with a gap of page
+     showing between them. Flat, no drop shadow. */
+  .month-sidebar { position:fixed; left:0; top:28px; width:46px; z-index:30; display:flex;
+    flex-direction:column; gap:14px; height:calc(100vh - 56px); }
+  .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
+    align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
+    border-radius:0 16px 16px 0; }
+  /* the segment matching whichever option is currently on screen — left
+     edge stays flush with the others (no horizontal shift); a running
+     stitch traced just inside the edge (like hand-sewing around a fabric
+     patch) marks it as "in use" instead. */
+  .month-segment.current { z-index:1; }
+  .month-segment.current::before {
+    content:''; position:absolute; top:5px; right:5px; bottom:5px; left:0; pointer-events:none;
+    border-radius:0 12px 12px 0;
+    border:2px dashed rgba(255,255,255,.85);
+    border-left:none;
+  }
+  .seg-label { color:#fff; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
+    font-weight:800; font-size:14px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
+  .seg-add, .seg-remove { display:none; position:absolute; left:50%; transform:translateX(-50%); width:18px; height:18px;
+    border-radius:50%; border:none; background:rgba(255,255,255,.9); color:var(--ink); font-weight:800; font-size:12px;
+    line-height:18px; padding:0; cursor:pointer; }
+  .seg-add { top:4px; }
+  .seg-remove { bottom:4px; color:#d9534f; }
+  .month-segment:hover .seg-add, .month-segment:hover .seg-remove { display:block; }
+
+  /* !important because a later, equal-or-higher-specificity rule (.pill's
+     own display:inline-flex, .budget li's own display:flex) would
+     otherwise silently win by source order/specificity and undo the hide
+     — exactly what was happening: the filter classes were being applied
+     correctly the whole time, CSS was just never actually hiding anything. */
+  .pill-filtered-out { display:none !important; }
+  .budget-filtered-out { display:none !important; }
+
+  .monthpop { display:block; position:absolute; z-index:50; background:var(--card); border:1px solid var(--line);
+    border-radius:10px; padding:8px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px; width:170px; }
+  .monthpop select, .monthpop input[type="number"] { width:100%; box-sizing:border-box; font:inherit; font-size:12px;
+    padding:5px 8px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; }
+  .monthpop .addbtn { width:100%; border:none; background:var(--primary); color:#fff; border-radius:6px;
+    padding:7px; font:inherit; font-weight:700; cursor:pointer; }
+
+  .cellhead-draggable { cursor:grab; touch-action:none; }
+  .cell-dragging { opacity:.45; }
+  .cell-dragover { outline:2px dashed var(--primary); outline-offset:2px; }
+  .item-grip { border:none; background:var(--line); color:var(--ink); border-radius:6px; font-size:10px;
+    width:16px; height:18px; line-height:18px; padding:0; cursor:grab; }
+  .act-dragging { opacity:.45; }
+
+  .icontoolbar { position:fixed; top:14px; right:16px; z-index:70; display:flex; flex-direction:column;
+    align-items:flex-end; gap:4px; }
+  .icon-btn { width:28px; height:28px; border-radius:50%; border:none; background:var(--card);
+    color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    padding:0; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+  .icon-btn svg { width:15px; height:15px; }
+  .icon-btn:hover { opacity:.7; }
+  .save-status { font-size:11px; color:var(--muted); text-align:right; max-width:160px; min-height:14px; }
+  .save-status.changelink { text-decoration:underline; cursor:pointer; }
+
+  .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; touch-action:none; }
+  .pill.dragging { opacity:.55; cursor:grabbing; }
+  .pill-name { outline:none; }
+  .pill-remove { display:none; font-size:13px; line-height:1; opacity:.75; padding:0 2px; border-radius:4px; }
+  .pill-remove:hover { opacity:1; background:rgba(0,0,0,.12); }
+  .pill:hover .pill-remove { display:inline-block; }
+  /* Plain icon, no bubble/background — same weight as the calendar's own
+     day numbers (var(--ink)), since this is a secondary action next to the
+     pills, not another pill-like choice competing with them. */
+  .pill.add { width:28px; height:28px; padding:0; border:none; background:none;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:20px; color:var(--ink); cursor:pointer; }
+  .pill.add:hover { opacity:.6; }
+
+  .budget-name { outline:none; }
+
+  .cell { position:relative; }
+
+  .itemctl { display:none; float:right; }
+  li:hover .itemctl, li:focus-within .itemctl { display:inline-flex; }
+  .itemmenu-btn { border:none; background:var(--line); color:var(--ink); border-radius:6px; font-size:12px;
+    font-weight:800; width:20px; height:18px; line-height:18px; padding:0; cursor:pointer; }
+  .itemmenu-btn:hover { background:var(--primary); color:#fff; }
+
+  .itemmenu { position:absolute; z-index:55; background:var(--card); border:1px solid var(--line);
+    border-radius:10px; padding:4px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px; width:160px; }
+  .itemmenu-row { padding:6px 8px; border-radius:6px; cursor:pointer; white-space:nowrap; }
+  .itemmenu-row:hover { background:var(--bg); }
+  .itemmenu-row.danger { color:#d9534f; }
+  .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
+
+  .addact, .addloc { display:none; width:100%; margin-top:6px; border:1px dashed var(--line); background:transparent;
+    color:var(--muted); border-radius:8px; padding:4px; font-size:11px; font-weight:700; cursor:pointer; }
+  .cell:hover .addact, .cell:focus-within .addact { display:block; }
+  .cell:hover .addloc, .cell:focus-within .addloc { display:block; }
+  .cell:has(> .loc) .addloc { display:none; }
+  .cleardaybtn { display:none; position:absolute; top:4px; right:6px; border:none; background:transparent;
+    color:var(--muted); font-size:11px; cursor:pointer; }
+  .cleardaybtn.has-content { display:none; }
+  .cell:hover .cleardaybtn.has-content { display:inline-block; }
+
+  [contenteditable="true"] { border-radius:4px; }
+  [contenteditable="true"]:hover { background:rgba(217,102,63,.06); }
+  [contenteditable="true"]:focus { outline:1px solid var(--primary); background:#fff; color:var(--ink); }
+
+  .acts li { position:relative; }
+  .acts li:hover .photopreview { display:block; }
+
+  .linkicons { display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle; }
+  .linkarrow { text-decoration:none; font-size:11px; line-height:1; color:var(--primary); cursor:pointer; }
+  .linkarrow:hover { text-decoration:underline; }
+  .linkadd { font-size:10px; color:var(--muted); cursor:pointer; border:1px dashed var(--line); border-radius:4px;
+    padding:0 3px; line-height:14px; }
+  .linkadd:hover { color:var(--primary); border-color:var(--primary); }
+
+  .photoicon { position:relative; display:inline-block; margin-left:4px; font-size:11px; cursor:pointer; }
+  .photoicon .photopreview { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
+    top:100%; margin-top:6px; width:220px; max-width:60vw; max-height:260px; object-fit:cover; border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25); border:2px solid var(--card); background:#fff; }
+
+  .banner { position:relative; overflow:visible; }
+  .handle { position:absolute; top:1px; bottom:1px; width:14px; cursor:ew-resize; border-radius:4px;
+    background:transparent; }
+  .handle:hover { background:rgba(255,255,255,.25); }
+  .handle-left { left:1px; }
+  .handle-right { right:1px; }
+  .banner-label { cursor:text; border-radius:3px; }
+  .banner-label:hover { background:rgba(255,255,255,.35); }
+  .banner-label:focus { outline:1px solid rgba(255,255,255,.8); background:rgba(255,255,255,.4); }
+  .banner-remove { border:none; background:rgba(255,255,255,.4); color:var(--secondary); border-radius:50%;
+    width:14px; height:14px; font-size:8px; line-height:14px; padding:0; cursor:pointer; vertical-align:middle; }
+  .banner-remove:hover { background:#fff; }
+  .addholiday { display:inline-block; width:auto; margin:0 0 8px; border:1px dashed var(--secondary); background:transparent;
+    color:var(--secondary); border-radius:999px; padding:3px 10px; font-size:10px; font-weight:700; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.04em; opacity:.75; }
+  .addholiday:hover { background:rgba(var(--secondary-rgb),.08); opacity:1; }
+
+  .tagpop { display:block; position:absolute; z-index:50; background:var(--card); border:1px solid var(--line);
+    border-radius:10px; padding:6px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px; width:190px; }
+  .tagpop-row { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer;
+    white-space:nowrap; }
+  .tagpop-row:hover { background:var(--bg); }
+  .tagpop-swatch { display:inline-block; width:14px; height:14px; border-radius:4px; flex:none; }
+  .tagpop-rowtext { flex:1; overflow:hidden; text-overflow:ellipsis; }
+  .tagpop-edit { display:none; flex:none; border:none; background:transparent; color:var(--muted);
+    border-radius:5px; width:20px; height:20px; font-size:12px; cursor:pointer; margin-left:auto; }
+  .tagpop-edit:hover { background:var(--line); color:var(--ink); }
+  .tagpop-row:hover .tagpop-edit { display:inline-block; }
+  .tagpop hr { border:none; border-top:1px solid var(--line); margin:6px 2px; }
+  .tagpop input[type="text"] { width:100%; box-sizing:border-box; font:inherit; font-size:12px; padding:5px 8px;
+    border:1px solid var(--line); border-radius:6px; margin-bottom:5px; }
+  .tagpop input[type="color"] { width:100%; margin-bottom:5px; border:1px solid var(--line); border-radius:6px;
+    height:28px; padding:2px; box-sizing:border-box; }
+  .tagpop .newbtn { padding:6px 8px; text-align:left; font-weight:700; color:var(--primary); cursor:pointer;
+    border-radius:6px; }
+  .tagpop .newbtn:hover { background:var(--bg); }
+  .tagpop .formwrap { padding:2px 6px 4px; }
+  .tagpop .addbtn { width:100%; margin-top:2px; border:none; background:var(--primary); color:#fff; border-radius:6px;
+    padding:7px; font:inherit; font-weight:700; cursor:pointer; }
+
+  .linkpop { display:block; position:absolute; z-index:50; background:var(--card); border:1px solid var(--line);
+    border-radius:10px; padding:8px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:12px; width:220px; }
+  .linkpop-row { display:flex; align-items:center; gap:6px; padding:4px 2px; }
+  .linkpop-row a { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink);
+    text-decoration:none; }
+  .linkpop-row a:hover { text-decoration:underline; }
+  .linkpop-row button { border:none; background:var(--line); color:var(--ink); border-radius:5px; font-size:10px;
+    width:16px; height:16px; line-height:16px; padding:0; cursor:pointer; flex:none; }
+  .linkpop .addrow { display:flex; gap:4px; margin-top:6px; }
+  .linkpop .addrow input { flex:1; font:inherit; font-size:12px; padding:4px 6px; border:1px solid var(--line);
+    border-radius:6px; }
+  .linkpop .addrow button { border:none; background:var(--primary); color:#fff; border-radius:6px; padding:0 8px;
+    font:inherit; font-weight:700; cursor:pointer; }
+
+  /* ---- mobile: a real day-by-day agenda list (day 12, then 13, then 14, ...)
+     instead of a shrunk-down or sideways-scrolling week grid. Each .grid.week
+     already contains its 7 days Mon->Sun in document order, and consecutive
+     weeks already follow each other in chronological order, so switching
+     every .grid to a single column makes the whole month stack top-to-bottom
+     in the correct day order for free — no reordering needed. ---- */
+  @media (max-width: 720px) {
+    body { padding: 16px 10px; }
+    /* The month sidebar becomes a horizontal bar flush to the top instead
+       of a vertical strip on the left — same primary bookmark, just
+       rotated to hang from the top edge; scrolls sideways if there are
+       more months than fit. Pills (secondary bookmarks) stack directly
+       below it — JS keeps both bars' exact heights in sync via
+       syncBarLayout() since month/option counts change dynamically. */
+    .month-sidebar { position:fixed; top:0; left:0; right:0; width:auto; height:auto;
+      flex-direction:row; gap:8px; padding:0 8px 8px; overflow-x:auto; z-index:35; }
+    .month-segment { flex:0 0 auto; min-width:88px; min-height:0; padding:10px 8px;
+      border-radius:0 0 14px 14px; }
+    .seg-label { writing-mode:horizontal-tb; transform:none; font-size:12px; letter-spacing:.05em; }
+    .month-segment.current::before { top:0; right:5px; bottom:5px; left:5px;
+      border-radius:0 0 11px 11px; border-width:2px; border-color:rgba(255,255,255,.85);
+      border-style:none dashed dashed dashed; }
+    .seg-add { top:50%; left:4px; bottom:auto; transform:translateY(-50%); }
+    .seg-remove { top:50%; right:4px; left:auto; bottom:auto; transform:translateY(-50%); }
+
+    .pills { left:0; right:0; gap: 6px; padding:8px 8px 10px; }
+    .pill { font-size: 13px; padding: 8px 12px 10px; }
+    .icontoolbar { top: 10px; right: 10px; }
+    h1 { font-size: 26px; }
+    .grid.heads { display: none; }
+    .grid { grid-template-columns: 1fr; gap: 8px; }
+    .cell.empty { display: none; }
+    .grid.banner-row .banner { grid-column: 1 !important; }
+    .cellhead { gap: 8px; }
+  }
+
+  /* Bottom-right color-mode switcher: two circular swatches, each a
+     fixed 3-way conic split of one palette's primary/secondary/accent —
+     these are intentionally hardcoded to their own theme's real colors
+     (not var()) so both options stay visible no matter which is active. */
+  .theme-switcher { position:fixed; right:16px; bottom:16px; z-index:60; display:flex; gap:10px;
+    background:var(--card); padding:7px; border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,.18); }
+  .theme-dot { width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer;
+    padding:0; transition:transform .15s ease, border-color .15s ease; }
+  .theme-dot:hover { transform:scale(1.1); }
+  .theme-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
+  .theme-dot[data-theme-name="kawaii"] { background: conic-gradient(#ec6a9c 0deg 120deg, #3fbf94 120deg 240deg, #f2884d 240deg 360deg); }
+  .theme-dot[data-theme-name="classic"] { background: conic-gradient(#1c6672 0deg 120deg, #1fa896 120deg 240deg, #ef9a5c 240deg 360deg); }
+</style>
+</head>
+<body>
+<div id="monthSidebar" class="month-sidebar"></div>
+<div class="theme-switcher" id="themeSwitcher">
+  <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
+  <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
+</div>
+<div class="wrap">
+  <header>
+    <div class="pills">
+      <button type="button" class="pill on" data-opt="option-3"><span class="pill-name">1.Poland</span> <span class="pill-price">€186</span><span class="pill-remove" title="Remove option">×</span></button><button class="pill" data-opt="option-1" type="button"><span class="pill-name">1. Slovakia · Hungary · Poland</span> <span class="pill-price">€997</span><span class="pill-remove" title="Remove option">×</span></button>
+      <button class="pill" data-opt="option-2" type="button"><span class="pill-name">2. Hungary · Poland</span> <span class="pill-price">€786</span><span class="pill-remove" title="Remove option">×</span></button>
+      <button class="pill add" id="addOptionBtn" type="button" title="Add option">+</button>
+    </div>
+  </header>
+  <div class="icontoolbar">
+    <button id="saveBtn" type="button" class="icon-btn" title="Download a copy of the current plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg></button>
+    <span id="saveStatus" class="save-status"></span>
+    <span id="changeFileBtn" class="save-status changelink" style="display:none;">change save location</span>
+    <span id="presenceCount" class="save-status presence-count"></span>
+  </div>
+  <section class="panel" id="panel-option-1" data-holiday-start="12" data-holiday-end="25">
+    <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 3 / 8;">Holiday — time off · Aug 12–25</div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell active"><div class="cellhead"><span class="daynum">12</span><span class="wd">Wed</span></div><p class="loc">Košice → Budapestt</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Košice → Budapest</span>
+                <span class="line">🕒 07:10 → 11:05 (~4h)</span>
+                <span class="line">Direct MÁV/ZSSK, cheaper booked online</span>
+                <span class="price"><span class="price-val">€25</span> <em class="price-note">~22–30 € one way</em></span>
+              </li><li>
+                <span class="chip" data-icon="🌸" data-name="Festival" style="background: rgb(209, 106, 168); color: rgb(255, 255, 255); cursor: pointer;">🌸 Festival</span>
+                <span class="title">Sziget Festival — 1 day ticket</span>
+                <span class="line">🕒 Gates 12:00 → late night</span>
+                <span class="line">Hajógyári Island, one night on site</span>
+                <span class="price"><span class="price-val">€116</span> <em class="price-note">Sziget 2026 (Aug 11–15) day pass €109 + fees</em></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">One night in Budapest</span>
+                
+                <span class="line">Camping on the island or a city hostel</span>
+                <span class="price"><span class="price-val">€45</span></span>
+              </li></ul><p class="cost">Day total €186</p></div><div class="cell active"><div class="cellhead"><span class="daynum">13</span><span class="wd">Thu</span></div><p class="loc">Budapest → Košice</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train back to Košice</span>
+                <span class="line">🕒 16:35 → 20:30 (~4h)</span>
+                
+                <span class="price"><span class="price-val">€25</span></span>
+              </li></ul><p class="cost">Day total €25</p></div><div class="cell holi"><div class="cellhead"><span class="daynum">14</span><span class="wd">Fri</span></div></div><div class="cell holi"><div class="cellhead"><span class="daynum">15</span><span class="wd">Sat</span></div></div><div class="cell active"><div class="cellhead"><span class="daynum">16</span><span class="wd">Sun</span></div><p class="loc">Košice → Miskolc</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Košice → Miskolc</span>
+                <span class="line">🕒 09:20 → 11:00 (~1h40)</span>
+                <span class="line">MÁV/ZSSK regional, buy at the station</span>
+                <span class="price"><span class="price-val">€12</span></span>
+              </li><li>
+                <span class="chip" data-icon="♨️" data-name="Thermal" style="background: rgb(201, 106, 63); color: rgb(255, 255, 255); cursor: pointer;">♨️ Thermal</span>
+                <span class="title">Miskolctapolca Cave Bath</span>
+                <span class="line">🕒 13:00 → 18:00</span>
+                <span class="line">Thermal pools inside natural rock caves</span>
+                <span class="price"><span class="price-val">€10</span> <em class="price-note">Adult entry ~4 000 HUF</em></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Hotel in Miskolc (2 nights)</span>
+                
+                <span class="line">Mid-range 3★ double, per person per night</span>
+                <span class="price"><span class="price-val">€90</span> <em class="price-note">2 nights × ~45 €</em></span>
+              </li></ul><p class="cost">Day total €112</p></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 1 / 8;">Holiday — time off · Aug 12–25</div></div><div class="grid week"><div class="cell active"><div class="cellhead"><span class="daynum">17</span><span class="wd">Mon</span></div><p class="loc">Miskolc</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span>
+                <span class="title">Miskolc slow day</span>
+                <span class="line">🕒 All day</span>
+                <span class="line">Lillafüred, Diósgyőr castle, tram ride</span>
+                <span class="price"><span class="price-val">€20</span> <em class="price-note">Tickets + local transport</em></span>
+              </li></ul><p class="cost">Day total €20</p></div><div class="cell active"><div class="cellhead"><span class="daynum">18</span><span class="wd">Tue</span></div><p class="loc">Miskolc → Debrecen</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Miskolc → Debrecen</span>
+                <span class="line">🕒 10:05 → 12:30 (~2h25)</span>
+                <span class="line">Change in Füzesabony or via Nyíregyháza</span>
+                <span class="price"><span class="price-val">€11</span></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Hotel in Debrecen (2 nights)</span>
+                
+                <span class="line">Carnival week — book early, prices spike</span>
+                <span class="price"><span class="price-val">€130</span> <em class="price-note">2 nights × ~65 €</em></span>
+              </li></ul><p class="cost">Day total €141</p></div><div class="cell active"><div class="cellhead"><span class="daynum">19</span><span class="wd">Wed</span></div><p class="loc">Debrecen</p><ul class="acts"><li>
+                <span class="chip" data-icon="🌸" data-name="Festival" style="background: rgb(209, 106, 168); color: rgb(255, 255, 255); cursor: pointer;">🌸 Festival</span>
+                <span class="title">Debrecen Flower Carnival</span>
+                <span class="line">🕒 09:00 parade → late night concerts</span>
+                <span class="line">Flower floats parade through the centre</span>
+                <span class="price"><span class="price-val">€25</span> <em class="price-note">Grandstand seat / event pass</em></span>
+              </li></ul><p class="cost">Day total €25</p></div><div class="cell active"><div class="cellhead"><span class="daynum">20</span><span class="wd">Thu</span></div><p class="loc">Debrecen → Kraków</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Debrecen → Kraków</span>
+                <span class="line">🕒 Full travel day (~9–11h, 1–2 changes)</span>
+                <span class="line">Via Budapest/Katowice or via Košice–Przemyśl</span>
+                <span class="price"><span class="price-val">€45</span> <em class="price-note">Via Košice–Poprad–Kraków, ~9–12h</em></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Kraków stay (2 nights)</span>
+                
+                
+                <span class="price"><span class="price-val">€110</span> <em class="price-note">2 nights × ~55 €</em></span>
+              </li></ul><p class="cost">Day total €155</p></div><div class="cell active"><div class="cellhead"><span class="daynum">21</span><span class="wd">Fri</span></div><p class="loc">Kraków</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span>
+                <span class="title">Kraków full day</span>
+                <span class="line">🕒 All day</span>
+                <span class="line">Wawel, Kazimierz, Rynek Główny</span>
+                <span class="price"><span class="price-val">€40</span> <em class="price-note">Entries + food extra</em></span>
+              </li></ul><p class="cost">Day total €40</p></div><div class="cell active"><div class="cellhead"><span class="daynum">22</span><span class="wd">Sat</span></div><p class="loc">Kraków → Gdańsk</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">PKP Intercity Kraków → Gdańsk</span>
+                <span class="line">🕒 08:40 → 14:40 (~6h)</span>
+                <span class="line">Book in advance for the cheap fare</span>
+                <span class="price"><span class="price-val">€25</span></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Gdańsk stay (3 nights)</span>
+                
+                
+                <span class="price"><span class="price-val">€165</span> <em class="price-note">3 nights × ~55 €</em></span>
+              </li></ul><p class="cost">Day total €190</p></div><div class="cell active"><div class="cellhead"><span class="daynum">23</span><span class="wd">Sun</span></div><p class="loc">Gdańsk / Sopot</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏖️" data-name="Beach" style="background: rgb(95, 188, 192); color: rgb(20, 33, 61); cursor: pointer;">🏖️ Beach</span>
+                <span class="title">Cute beach day in Sopot</span>
+                <span class="line">🕒 SKM train 25 min, then all day</span>
+                <span class="line">Sopot pier + Jelitkowo sand</span>
+                <span class="price"><span class="price-val">€8</span> <em class="price-note">SKM return + sunbed</em></span>
+              </li></ul><p class="cost">Day total €8</p></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 1 / 3;">Holiday — time off · Aug 12–25</div></div><div class="grid week"><div class="cell active"><div class="cellhead"><span class="daynum">24</span><span class="wd">Mon</span></div><p class="loc">Gdańsk</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span>
+                <span class="title">Gdańsk old town &amp; amber</span>
+                <span class="line">🕒 All day</span>
+                <span class="line">Motława river, Mariacka street, museums</span>
+                <span class="price"><span class="price-val">€25</span></span>
+              </li></ul><p class="cost">Day total €25</p></div><div class="cell active"><div class="cellhead"><span class="daynum">25</span><span class="wd">Tue</span></div><p class="loc">Gdańsk → Milan</p><ul class="acts"><li>
+                <span class="chip" data-icon="✈️" data-name="Flight" style="background: rgb(122, 110, 201); color: rgb(255, 255, 255); cursor: pointer;">✈️ Flight</span>
+                <span class="title">Flight Gdańsk GDN → Milan (Wizz/Ryanair)</span>
+                <span class="line">🕒 Afternoon, ~2h15</span>
+                <span class="line">Trip ends — direct low-cost route</span>
+                <span class="price"><span class="price-val">€70</span> <em class="price-note">One-way, hand luggage only</em></span>
+              </li></ul><p class="cost">Day total €70</p></div><div class="cell"><div class="cellhead"><span class="daynum">26</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">27</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">28</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">29</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">30</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">31</span><span class="wd">Mon</span></div></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div></div>
+  </section><section class="panel" id="panel-option-2" data-holiday-start="13" data-holiday-end="26">
+    <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 4 / 8;">Holiday — time off · Aug 13–26</div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">12</span><span class="wd">Wed</span></div></div><div class="cell holi"><div class="cellhead"><span class="daynum">13</span><span class="wd">Thu</span></div></div><div class="cell holi"><div class="cellhead"><span class="daynum">14</span><span class="wd">Fri</span></div></div><div class="cell active"><div class="cellhead"><span class="daynum">15</span><span class="wd">Sat</span></div><p class="loc">Košice → Miskolc</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Košice → Miskolc</span>
+                <span class="line">🕒 09:20 → 11:00 (~1h40)</span>
+                <span class="line">MÁV/ZSSK regional, buy at the station</span>
+                <span class="price"><span class="price-val">€12</span></span>
+              </li><li>
+                <span class="chip" data-icon="♨️" data-name="Thermal" style="background: rgb(201, 106, 63); color: rgb(255, 255, 255); cursor: pointer;">♨️ Thermal</span>
+                <span class="title">Miskolctapolca Cave Bath</span>
+                <span class="line">🕒 13:00 → 18:00</span>
+                <span class="line">Thermal pools inside natural rock caves</span>
+                <span class="price"><span class="price-val">€10</span> <em class="price-note">Adult entry ~4 000 HUF</em></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Hotel in Miskolc (2 nights)</span>
+                
+                <span class="line">Mid-range 3★ double, per person per night</span>
+                <span class="price"><span class="price-val">€90</span> <em class="price-note">2 nights × ~45 €</em></span>
+              </li></ul><p class="cost">Day total €112</p></div><div class="cell active"><div class="cellhead"><span class="daynum">16</span><span class="wd">Sun</span></div><p class="loc">Miskolc</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span>
+                <span class="title">Miskolc slow day</span>
+                <span class="line">🕒 All day</span>
+                <span class="line">Lillafüred, Diósgyőr castle, tram ride</span>
+                <span class="price"><span class="price-val">€20</span> <em class="price-note">Tickets + local transport</em></span>
+              </li></ul><p class="cost">Day total €20</p></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 1 / 8;">Holiday — time off · Aug 13–26</div></div><div class="grid week"><div class="cell active"><div class="cellhead"><span class="daynum">17</span><span class="wd">Mon</span></div><p class="loc">Miskolc → Debrecen</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Miskolc → Debrecen</span>
+                <span class="line">🕒 10:05 → 12:30 (~2h25)</span>
+                <span class="line">Change in Füzesabony or via Nyíregyháza</span>
+                <span class="price"><span class="price-val">€11</span></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Hotel in Debrecen (2 nights)</span>
+                
+                <span class="line">Carnival week — book early, prices spike</span>
+                <span class="price"><span class="price-val">€130</span> <em class="price-note">2 nights × ~65 €</em></span>
+              </li></ul><p class="cost">Day total €141</p></div><div class="cell active"><div class="cellhead"><span class="daynum">18</span><span class="wd">Tue</span></div><p class="loc">Debrecen</p><ul class="acts"><li>
+                <span class="chip" data-icon="🌸" data-name="Festival" style="background: rgb(209, 106, 168); color: rgb(255, 255, 255); cursor: pointer;">🌸 Festival</span>
+                <span class="title">Debrecen Flower Carnival</span>
+                <span class="line">🕒 09:00 parade → late night concerts</span>
+                <span class="line">Flower floats parade through the centre</span>
+                <span class="price"><span class="price-val">€25</span> <em class="price-note">Grandstand seat / event pass</em></span>
+              </li></ul><p class="cost">Day total €25</p></div><div class="cell active"><div class="cellhead"><span class="daynum">19</span><span class="wd">Wed</span></div><p class="loc">Debrecen → Kraków</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">Train Debrecen → Kraków</span>
+                <span class="line">🕒 Full travel day (~9–11h, 1–2 changes)</span>
+                <span class="line">Via Budapest/Katowice or via Košice–Przemyśl</span>
+                <span class="price"><span class="price-val">€45</span> <em class="price-note">Via Košice–Poprad–Kraków, ~9–12h</em></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Kraków stay (2 nights)</span>
+                
+                
+                <span class="price"><span class="price-val">€110</span> <em class="price-note">2 nights × ~55 €</em></span>
+              </li></ul><p class="cost">Day total €155</p></div><div class="cell active"><div class="cellhead"><span class="daynum">20</span><span class="wd">Thu</span></div><p class="loc">Kraków</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span>
+                <span class="title">Kraków full day</span>
+                <span class="line">🕒 All day</span>
+                <span class="line">Wawel, Kazimierz, Rynek Główny</span>
+                <span class="price"><span class="price-val">€40</span> <em class="price-note">Entries + food extra</em></span>
+              </li></ul><p class="cost">Day total €40</p></div><div class="cell active"><div class="cellhead"><span class="daynum">21</span><span class="wd">Fri</span></div><p class="loc">Kraków → Gdańsk</p><ul class="acts"><li>
+                <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
+                <span class="title">PKP Intercity Kraków → Gdańsk</span>
+                <span class="line">🕒 08:40 → 14:40 (~6h)</span>
+                <span class="line">Book in advance for the cheap fare</span>
+                <span class="price"><span class="price-val">€25</span></span>
+              </li><li>
+                <span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span>
+                <span class="title">Gdańsk stay (3 nights)</span>
+                
+                
+                <span class="price"><span class="price-val">€165</span> <em class="price-note">3 nights × ~55 €</em></span>
+              </li></ul><p class="cost">Day total €190</p></div><div class="cell active"><div class="cellhead"><span class="daynum">22</span><span class="wd">Sat</span></div><p class="loc">Gdańsk / Sopot</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏖️" data-name="Beach" style="background: rgb(95, 188, 192); color: rgb(20, 33, 61); cursor: pointer;">🏖️ Beach</span>
+                <span class="title">Cute beach day in Sopot</span>
+                <span class="line">🕒 SKM train 25 min, then all day</span>
+                <span class="line">Sopot pier + Jelitkowo sand</span>
+                <span class="price"><span class="price-val">€8</span> <em class="price-note">SKM return + sunbed</em></span>
+              </li></ul><p class="cost">Day total €8</p></div><div class="cell active"><div class="cellhead"><span class="daynum">23</span><span class="wd">Sun</span></div><p class="loc">Gdańsk</p><ul class="acts"><li>
+                <span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span>
+                <span class="title">Gdańsk old town &amp; amber</span>
+                <span class="line">🕒 All day</span>
+                <span class="line">Motława river, Mariacka street, museums</span>
+                <span class="price"><span class="price-val">€25</span></span>
+              </li></ul><p class="cost">Day total €25</p></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 1 / 4;">Holiday — time off · Aug 13–26</div></div><div class="grid week"><div class="cell active"><div class="cellhead"><span class="daynum">24</span><span class="wd">Mon</span></div><p class="loc">Gdańsk → Milan</p><ul class="acts"><li>
+                <span class="chip" data-icon="✈️" data-name="Flight" style="background: rgb(122, 110, 201); color: rgb(255, 255, 255); cursor: pointer;">✈️ Flight</span>
+                <span class="title">Flight Gdańsk GDN → Milan (Wizz/Ryanair)</span>
+                <span class="line">🕒 Afternoon, ~2h15</span>
+                <span class="line">Trip ends — direct low-cost route</span>
+                <span class="price"><span class="price-val">€70</span> <em class="price-note">One-way, hand luggage only</em></span>
+              </li></ul><p class="cost">Day total €70</p></div><div class="cell holi"><div class="cellhead"><span class="daynum">25</span><span class="wd">Tue</span></div></div><div class="cell holi"><div class="cellhead"><span class="daynum">26</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">27</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">28</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">29</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">30</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">31</span><span class="wd">Mon</span></div></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div></div>
+  </section><section class="panel on" id="panel-option-3" data-year="2026" data-month="8">
+    <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">12</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">13</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">14</span><span class="wd">Fri</span></div></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">15</span><span class="wd">Sat</span></div><p class="loc">New location</p><ul class="acts"><li><span class="chip" data-icon="🚌" data-name="Bus" style="background: rgb(63, 217, 109); color: rgb(20, 33, 61); cursor: pointer;">🚌 Bus</span><span class="title">Kosice -&gt; Zakopanie&nbsp;</span><span class="line">🕒 18:20 - 21:55</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">16</span><span class="wd">Sun</span></div><p class="loc">Zakopane</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">Kosice -&gt; Zakopanie&nbsp;</span><span class="line">🕒 11:15 - 14:35</span><span class="price"><span class="price-val">€45x2</span></span></li><li><span class="chip" data-icon="♨️" data-name="Thermal" style="background: rgb(201, 106, 63); color: rgb(255, 255, 255); cursor: pointer;">♨️ Thermal</span><span class="title">Terme Chochołów</span><span class="line">🕒 4 hours</span><span class="price"><span class="price-val">€30</span></span></li><li><span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span><span class="title">Gubałówka Market</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li><li data-links="[&quot;https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;&quot;]"><span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span><span class="linkicons"><a class="linkarrow" target="_blank" rel="noopener" href="https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;" title="https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;">↗</a></span><span class="title">Willa Orla</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€60</span></span></li></ul><p class="cost">Day total €135</p></div></div><div class="grid week"><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">17</span><span class="wd">Mon</span></div><p class="loc">Zakopan</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">Zakopane - Kraków Gł.</span><span class="line">🕒 15:53-17:51</span><span class="price"><span class="price-val">€13x2</span></span></li></ul><p class="cost">Day total €13</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">18</span><span class="wd">Tue</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">19</span><span class="wd">Wed</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">20</span><span class="wd">Thu</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">21</span><span class="wd">Fri</span></div><p class="loc">Varsavia</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">22</span><span class="wd">Sat</span></div><p class="loc">Varsavia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">23</span><span class="wd">Sun</span></div><p class="loc">Danzica</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div></div><div class="grid week"><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">24</span><span class="wd">Mon</span></div><p class="loc">Danzica</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">25</span><span class="wd">Tue</span></div><p class="loc">Danzica</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">26</span><span class="wd">Wed</span></div><p class="loc">Danzica + Ritorno</p><ul class="acts"><li><span class="chip" data-icon="✈️" data-name="Flight" style="background: rgb(122, 110, 201); color: rgb(255, 255, 255); cursor: pointer;">✈️ Flight</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€38</span></span></li></ul><p class="cost">Day total €38</p></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">27</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">28</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">29</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">30</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">31</span><span class="wd">Mon</span></div></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div></div>
+  </section>
+  <h2>Budget overview</h2>
+  <div class="budget">
+    <ul><li data-opt="option-3"><span><span class="budget-name">1.Poland</span></span><strong>€186</strong></li><li data-opt="option-1"><span><span class="budget-name">1. Slovakia · Hungary · Poland</span> <em>· August 12 – 25, 2026</em></span><strong>€997</strong></li><li data-opt="option-2"><span><span class="budget-name">2. Hungary · Poland</span> <em>· August 15 – 24, 2026</em></span><strong>€786</strong></li></ul>
+  </div>
+</div>
+<script id="tagData" type="application/json">
+[
+  {
+    "icon": "🚆",
+    "name": "Train",
+    "bg": "#4a86c5",
+    "fg": "#ffffff"
+  },
+  {
+    "icon": "🌸",
+    "name": "Festival",
+    "bg": "#d16aa8",
+    "fg": "#ffffff"
+  },
+  {
+    "icon": "🏨",
+    "name": "Stay",
+    "bg": "#4fae8b",
+    "fg": "#ffffff"
+  },
+  {
+    "icon": "♨️",
+    "name": "Thermal",
+    "bg": "#c96a3f",
+    "fg": "#ffffff"
+  },
+  {
+    "icon": "🏛️",
+    "name": "City",
+    "bg": "#e8e3d5",
+    "fg": "#3a3a46"
+  },
+  {
+    "icon": "🏖️",
+    "name": "Beach",
+    "bg": "#5fbcc0",
+    "fg": "#14213d"
+  },
+  {
+    "icon": "✈️",
+    "name": "Flight",
+    "bg": "#7a6ec9",
+    "fg": "#ffffff"
+  },
+  {
+    "icon": "🚌",
+    "name": "Bus",
+    "bg": "#3fd96d",
+    "fg": "#14213d"
+  },
+  {
+    "icon": "⛴️",
+    "name": "Boat",
+    "bg": "#3d84a8",
+    "fg": "#ffffff"
+  },
+  {
+    "icon": "🚲",
+    "name": "Bike",
+    "bg": "#e2b33c",
+    "fg": "#14213d"
+  }
+]
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+
+  // Identifies which shared Firebase project this page talks to — not a
+  // secret; access control is enforced entirely by the Realtime Database's
+  // security rules (open read/write, no auth — see setup notes), not by
+  // hiding this config.
+  var firebaseConfig = {
+    apiKey: 'AIzaSyBV5E4Q_jOxcVvzCwnpbKo8nT3s2ldSF6Y',
+    authDomain: 'travel-dcc5f.firebaseapp.com',
+    databaseURL: 'https://travel-dcc5f-default-rtdb.europe-west1.firebasedatabase.app',
+    projectId: 'travel-dcc5f'
+  };
+  var planRef = null;
+  if(IS_HOSTED){
+    try {
+      firebase.initializeApp(firebaseConfig);
+      planRef = firebase.database().ref('plan');
+    } catch(e){ console.warn('Firebase init failed — falling back to static content', e); }
+  }
+  var CLIENT_ID = 'c-' + Math.random().toString(36).slice(2, 10);
+
+  // Captured before any remote snapshot touches #tagData, so new default
+  // tags (e.g. transport modes added after the shared plan already has its
+  // own tag list) can be merged in below rather than silently lost — a
+  // saved tag list should never mean missing out on new built-in options.
+  var DEFAULT_TAGS_JSON = document.getElementById('tagData').textContent;
+
+  var TAGDATA_EL = document.getElementById('tagData');
+  var TAGS = [];
+  try { TAGS = JSON.parse(TAGDATA_EL.textContent); } catch(e){ TAGS = []; }
+
+  function mergeDefaultTags(){
+    try {
+      var defaults = JSON.parse(DEFAULT_TAGS_JSON);
+      var existingKeys = {};
+      TAGS.forEach(function(t){ existingKeys[t.icon + '|' + t.name] = true; });
+      var added = false;
+      defaults.forEach(function(t){
+        var key = t.icon + '|' + t.name;
+        if(!existingKeys[key]){ TAGS.push(t); existingKeys[key] = true; added = true; }
+      });
+      if(added) TAGDATA_EL.textContent = JSON.stringify(TAGS, null, 2);
+    } catch(e){}
+  }
+
+  // .pill-name is deliberately NOT in here — a pill's name only becomes
+  // contenteditable on double-click (see the .pills dblclick handler below),
+  // so a single click always navigates instead of dropping straight into
+  // rename mode. STRIP_CONTENTEDITABLE_SEL covers it too, for the save/undo
+  // snapshot cleanup that strips contenteditable markers regardless of
+  // which element happens to be mid-edit at that moment.
+  var EDITABLE_SEL = '.title, .line, .loc, .price-val, .price-note, .budget-name';
+  var STRIP_CONTENTEDITABLE_SEL = EDITABLE_SEL + ', .pill-name';
+
+  // ---- month/year: each panel has its own calendar, generated on the fly
+  // (not baked-in HTML for one fixed month) so any month/year can be picked ----
+  var MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var WD_ABBR = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
+  function firstWeekdayMon0(year, month){ return (new Date(year, month - 1, 1).getDay() + 6) % 7; }
+
+  function getPanelDate(panel){
+    var y = parseInt(panel.dataset.year, 10);
+    var m = parseInt(panel.dataset.month, 10);
+    if(!y || !m || m < 1 || m > 12){
+      y = 2026; m = 8; // matches the original August 2026 baseline this plan started from
+      panel.dataset.year = String(y);
+      panel.dataset.month = String(m);
+    }
+    return { year: y, month: m };
+  }
+  function setPanelDate(panel, year, month){
+    panel.dataset.year = String(year);
+    panel.dataset.month = String(month);
+  }
+
+  // Rebuilds a panel's weekday-header/day-grid rows for its current
+  // year/month. Any day that already has a location/activities keeps those
+  // exact DOM nodes (moved, not recreated) at the same day-of-month number
+  // in the new grid — so swapping August for September keeps "day 10"'s
+  // plan on day 10, regardless of which weekday it falls on in either month.
+  function buildCalendarGrid(panel){
+    var d = getPanelDate(panel);
+    var preserved = {};
+    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
+      var dn = dayNumOfCell(cell);
+      if(dn === null) return;
+      var loc = cell.querySelector(':scope > .loc');
+      var acts = cell.querySelector(':scope > .acts');
+      var cost = cell.querySelector(':scope > .cost');
+      if(loc || acts){
+        preserved[dn] = { loc: loc, acts: acts, cost: cost, active: cell.classList.contains('active') };
+        if(loc) loc.remove();
+        if(acts) acts.remove();
+        if(cost) cost.remove();
+      }
+    });
+
+    panel.querySelectorAll(':scope > .grid.heads, :scope > .grid.week, :scope > .grid.banner-row').forEach(function(g){ g.remove(); });
+
+    var heads = document.createElement('div');
+    heads.className = 'grid heads';
+    WD_ABBR.forEach(function(w){
+      var hEl = document.createElement('div'); hEl.className = 'wdhead'; hEl.textContent = w;
+      heads.appendChild(hEl);
+    });
+    var addBtn = panel.querySelector(':scope > .addholiday');
+    panel.insertBefore(heads, addBtn ? addBtn.nextSibling : panel.firstChild);
+
+    var total = daysInMonth(d.year, d.month);
+    var startCol = firstWeekdayMon0(d.year, d.month);
+    var queue = [];
+    for(var i = 0; i < startCol; i++) queue.push(null);
+    for(var dn2 = 1; dn2 <= total; dn2++) queue.push(dn2);
+    while(queue.length % 7 !== 0) queue.push(null);
+
+    for(var w = 0; w < queue.length / 7; w++){
+      var row = document.createElement('div');
+      row.className = 'grid week';
+      for(var c = 0; c < 7; c++){
+        var dayNum = queue[w * 7 + c];
+        var cell = document.createElement('div');
+        if(dayNum === null){
+          cell.className = 'cell empty';
+        } else {
+          cell.className = 'cell';
+          var cellhead = document.createElement('div');
+          cellhead.className = 'cellhead';
+          var daynumEl = document.createElement('span'); daynumEl.className = 'daynum'; daynumEl.textContent = String(dayNum);
+          var wdEl = document.createElement('span'); wdEl.className = 'wd'; wdEl.textContent = WD_ABBR[c];
+          cellhead.appendChild(daynumEl); cellhead.appendChild(wdEl);
+          cell.appendChild(cellhead);
+          var pres = preserved[dayNum];
+          if(pres){
+            if(pres.active) cell.classList.add('active');
+            if(pres.loc) cell.appendChild(pres.loc);
+            if(pres.acts) cell.appendChild(pres.acts);
+            if(pres.cost) cell.appendChild(pres.cost);
+          }
+        }
+        row.appendChild(cell);
+      }
+      panel.appendChild(row);
+    }
+
+    panel.querySelectorAll(':scope > .grid.week .cell').forEach(attachCellControls);
+    renderHoliday(panel);
+    renderActivitySpans(panel);
+  }
+
+  function luminance(hex){
+    hex = hex.replace('#','');
+    if(hex.length===3){ hex = hex.split('').map(function(c){return c+c;}).join(''); }
+    var r=parseInt(hex.substr(0,2),16)/255, g=parseInt(hex.substr(2,2),16)/255, b=parseInt(hex.substr(4,2),16)/255;
+    function lin(v){ return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); }
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b);
+  }
+  function fgFor(bg){ return luminance(bg) > 0.45 ? '#14213d' : '#ffffff'; }
+  function persistTags(){
+    var json = JSON.stringify(TAGS, null, 2);
+    if(TAGDATA_EL.textContent !== json) TAGDATA_EL.textContent = json;
+  }
+  function tagKey(t){ return t.icon + '|' + t.name; }
+  function addTagIfNew(t){
+    var k = tagKey(t);
+    if(!TAGS.some(function(x){ return tagKey(x) === k; })){ TAGS.push(t); persistTags(); }
+  }
+
+  function makeEditable(el){ el.contentEditable = 'true'; }
+
+  // ---- pill / panel switching (event delegation so new pills just work) ----
+  document.querySelector('.pills').addEventListener('click', function(e){
+    if(suppressNextPillClick){ suppressNextPillClick = false; return; }
+    var btn = e.target.closest('.pill');
+    if(!btn || btn.id === 'addOptionBtn') return;
+    if(e.target.closest('.pill-remove')) return;
+    // Mid-rename (double-clicked into edit mode), a click just places the
+    // cursor/selects text — it shouldn't also navigate away from the pill
+    // being renamed. Otherwise (the common case) even a click on the name
+    // text navigates, same as clicking anywhere else on the pill.
+    var nameHit = e.target.closest('.pill-name');
+    if(nameHit && nameHit.isContentEditable) return;
+    var id = btn.getAttribute('data-opt');
+    document.querySelectorAll('.pill[data-opt]').forEach(function (b) { b.classList.toggle('on', b === btn); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'panel-' + id); });
+    var newPanel = document.getElementById('panel-' + id);
+    if(newPanel){ var nd = getPanelDate(newPanel); filterPillsByMonth(nd.year, nd.month); }
+  });
+
+  // Renaming a pill is a double-click action (single click always
+  // navigates instead) — enter edit mode and select the existing text so
+  // typing immediately replaces it, then drop back out of edit mode on
+  // blur so a later single click goes back to navigating.
+  document.querySelector('.pills').addEventListener('dblclick', function(e){
+    var nameEl = e.target.closest('.pill-name');
+    if(!nameEl) return;
+    nameEl.contentEditable = 'true';
+    nameEl.focus();
+    var range = document.createRange();
+    range.selectNodeContents(nameEl);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  document.querySelector('.pills').addEventListener('focusout', function(e){
+    if(e.target.classList && e.target.classList.contains('pill-name')) e.target.contentEditable = 'false';
+    tryApplyPendingRemoteUpdate();
+  });
+  // Every other EDITABLE_SEL field is permanently contenteditable (unlike
+  // pill-name, which only toggles on/off around a double-click), so there's
+  // no existing per-field focusout hook to piggyback on — one document-level
+  // listener covers all of them for the "apply the queued remote update as
+  // soon as this field is no longer focused" purpose.
+  document.addEventListener('focusout', function(e){
+    if(e.target.matches && e.target.matches(EDITABLE_SEL)) tryApplyPendingRemoteUpdate();
+  });
+
+  function parseMoney(str){
+    var s = String(str).replace(',', '.');
+    var m = s.match(/(-?\d+(\.\d+)?)/);
+    if(!m) return 0;
+    var base = parseFloat(m[1]);
+    // "€45x2" / "€45×2" means 45 per person/unit, times 2 — multiply into
+    // the total actually owed, since that's what a day total should reflect.
+    var multM = s.slice(m.index + m[0].length).match(/^\s*[x×]\s*(\d+(\.\d+)?)/i);
+    return multM ? base * parseFloat(multM[1]) : base;
+  }
+  function formatMoney(n){
+    n = Math.round(n * 100) / 100;
+    if (Math.round(n) === n) return '€' + Math.round(n);
+    return '€' + n.toFixed(2);
+  }
+
+  function recomputeCell(cell){
+    // A multi-day activity's price is split evenly across every day it
+    // spans (start day included) rather than counted in full on just one
+    // day — the ghost echoes show the same price text for recognizability,
+    // but only its share counts toward that day's total.
+    var sum = 0, count = 0;
+    cell.querySelectorAll(':scope > .acts > li').forEach(function(li){
+      var v = li.querySelector(':scope > .price > .price-val');
+      if(!v) return;
+      count++;
+      var amount = parseMoney(v.textContent);
+      var start = li.dataset.spanStart, end = li.dataset.spanEnd;
+      if(start && end){
+        var days = parseInt(end, 10) - parseInt(start, 10) + 1;
+        if(days > 1) amount = amount / days;
+      }
+      sum += amount;
+    });
+    var costEl = cell.querySelector(':scope > .cost');
+    if(count === 0){
+      if(costEl) costEl.remove();
+    } else {
+      if(!costEl){
+        costEl = document.createElement('p');
+        costEl.className = 'cost';
+        var addactEl = cell.querySelector(':scope > .addact');
+        if(addactEl) cell.insertBefore(costEl, addactEl); else cell.appendChild(costEl);
+      }
+      costEl.textContent = 'Day total ' + formatMoney(sum);
+    }
+    recomputePanel(cell.closest('.panel'));
+  }
+
+  // Matched by data-opt (not DOM position) everywhere, so pills, panels, and
+  // budget rows stay correctly linked no matter what order the pills are
+  // dragged into — see the pill reordering code below.
+  function optOf(panel){ return panel.id.replace(/^panel-/, ''); }
+
+  function recomputePanel(panel){
+    if(!panel) return;
+    var sum = 0;
+    panel.querySelectorAll('.cost').forEach(function(c){ sum += parseMoney(c.textContent); });
+
+    var opt = optOf(panel);
+    var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+    if(pill){
+      var priceSpan = pill.querySelector('.pill-price');
+      if(priceSpan) priceSpan.textContent = formatMoney(sum);
+    }
+    var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+    if(budgetLi){
+      var strong = budgetLi.querySelector('strong');
+      if(strong) strong.textContent = formatMoney(sum);
+    }
+  }
+
+  // ---- links (multiple per activity) ----
+  function getLinks(li){
+    try{ var v = JSON.parse(li.getAttribute('data-links') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setLinks(li, links){
+    if(links.length) li.setAttribute('data-links', JSON.stringify(links));
+    else li.removeAttribute('data-links');
+    renderLinks(li);
+  }
+
+  function renderLinks(li){
+    var links = getLinks(li);
+    var wrap = li.querySelector(':scope > .linkicons');
+    if(wrap) wrap.remove();
+    if(!links.length) return;
+    wrap = document.createElement('span');
+    wrap.className = 'linkicons';
+    links.forEach(function(url){
+      var a = document.createElement('a');
+      a.className = 'linkarrow';
+      a.target = '_blank'; a.rel = 'noopener';
+      a.href = url; a.title = url;
+      a.textContent = '↗';
+      wrap.appendChild(a);
+    });
+    var chip = li.querySelector(':scope > .chip');
+    if(chip) chip.insertAdjacentElement('afterend', wrap);
+    else li.insertBefore(wrap, li.firstChild);
+  }
+
+  var openPop = null;
+  function closePop(){ if(openPop){ openPop.remove(); openPop = null; tryApplyPendingRemoteUpdate(); } }
+  document.addEventListener('click', function(e){
+    if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
+       !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn')){
+      closePop();
+    }
+  });
+
+  // Shared popover placement: anchor below-left of the trigger element, then
+  // clamp so it can't run off the right/bottom edge on narrow (mobile) viewports.
+  function positionPopover(pop, anchorEl){
+    document.body.appendChild(pop);
+    var r = anchorEl.getBoundingClientRect();
+    var popW = pop.offsetWidth, popH = pop.offsetHeight;
+    var left = r.left;
+    var top = r.bottom + 4;
+    if(left + popW > window.innerWidth - 8) left = Math.max(8, window.innerWidth - popW - 8);
+    if(top + popH > window.innerHeight - 8) top = Math.max(8, r.top - popH - 4);
+    pop.style.left = (window.scrollX + left) + 'px';
+    pop.style.top = (window.scrollY + top) + 'px';
+    openPop = pop;
+  }
+
+  function openLinkManager(li, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'linkpop';
+
+    function rebuild(){
+      pop.innerHTML = '';
+      var links = getLinks(li);
+      links.forEach(function(url, idx){
+        var row = document.createElement('div');
+        row.className = 'linkpop-row';
+        var a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = url;
+        var rm = document.createElement('button');
+        rm.type = 'button'; rm.textContent = '✕';
+        rm.addEventListener('click', function(e){
+          e.stopPropagation();
+          var arr = getLinks(li); arr.splice(idx, 1); setLinks(li, arr); rebuild();
+        });
+        row.appendChild(a); row.appendChild(rm);
+        pop.appendChild(row);
+      });
+      var addRow = document.createElement('div');
+      addRow.className = 'addrow';
+      var input = document.createElement('input');
+      input.type = 'text'; input.placeholder = 'https://…';
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button'; addBtn.textContent = 'Add';
+      addBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var val = input.value.trim();
+        if(!val) return;
+        var arr = getLinks(li); arr.push(val); setLinks(li, arr);
+        input.value = '';
+        rebuild();
+      });
+      input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); addBtn.click(); } });
+      input.addEventListener('click', function(e){ e.stopPropagation(); });
+      addRow.appendChild(input); addRow.appendChild(addBtn);
+      pop.appendChild(addRow);
+    }
+    rebuild();
+
+    positionPopover(pop, anchorEl);
+  }
+
+  // ---- photo ----
+  function renderPhoto(li){
+    var url = li.getAttribute('data-img') || '';
+    var existing = li.querySelector(':scope > .photoicon');
+    if(!url){
+      if(existing) existing.remove();
+      return;
+    }
+    if(!existing){
+      existing = document.createElement('span');
+      existing.className = 'photoicon';
+      existing.textContent = '📷';
+      var img = document.createElement('img');
+      img.className = 'photopreview';
+      existing.appendChild(img);
+      existing.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        if(window.confirm('Remove this photo?')){
+          li.removeAttribute('data-img');
+          renderPhoto(li);
+        }
+      });
+      var chip = li.querySelector(':scope > .chip');
+      if(chip) chip.insertAdjacentElement('afterend', existing);
+      else li.insertBefore(existing, li.firstChild);
+    }
+    existing.querySelector('img').src = url;
+  }
+
+  function pickImage(li){
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.addEventListener('change', function(){
+      var file = input.files[0];
+      if(file){
+        var reader = new FileReader();
+        reader.onload = function(){
+          li.setAttribute('data-img', reader.result);
+          renderPhoto(li);
+        };
+        reader.readAsDataURL(file);
+      }
+      input.remove();
+    });
+    input.click();
+  }
+
+  // ---- tag picker ----
+  function openTagPicker(chip){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'tagpop';
+    TAGS.forEach(function(t, idx){
+      var row = document.createElement('div');
+      row.className = 'tagpop-row';
+      var sw = document.createElement('span');
+      sw.className = 'tagpop-swatch';
+      sw.style.background = t.bg;
+      row.appendChild(sw);
+      var textSpan = document.createElement('span');
+      textSpan.className = 'tagpop-rowtext';
+      textSpan.textContent = t.icon + ' ' + t.name;
+      row.appendChild(textSpan);
+      row.addEventListener('click', function(){
+        applyTag(chip, t);
+        closePop();
+      });
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button'; editBtn.className = 'tagpop-edit'; editBtn.textContent = '✎';
+      editBtn.title = 'Edit this tag';
+      editBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        openTagEditor(chip, idx);
+      });
+      row.appendChild(editBtn);
+      pop.appendChild(row);
+    });
+    var hr = document.createElement('hr');
+    pop.appendChild(hr);
+    var newBtn = document.createElement('div');
+    newBtn.className = 'newbtn';
+    newBtn.textContent = '+ New tag';
+    pop.appendChild(newBtn);
+
+    var form = document.createElement('div');
+    form.className = 'formwrap';
+    form.style.display = 'none';
+    var iconInput = document.createElement('input');
+    iconInput.type = 'text'; iconInput.placeholder = 'Icon (emoji)'; iconInput.maxLength = 4;
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text'; nameInput.placeholder = 'Name';
+    var colorInput = document.createElement('input');
+    colorInput.type = 'color'; colorInput.value = '#d9663f';
+    var addBtn = document.createElement('button');
+    addBtn.className = 'addbtn'; addBtn.type = 'button'; addBtn.textContent = 'Add & apply';
+    form.appendChild(iconInput); form.appendChild(nameInput); form.appendChild(colorInput); form.appendChild(addBtn);
+    pop.appendChild(form);
+
+    newBtn.addEventListener('click', function(){
+      form.style.display = 'block';
+      newBtn.style.display = 'none';
+      iconInput.focus();
+    });
+    addBtn.addEventListener('click', function(){
+      var icon = iconInput.value.trim() || '🏷️';
+      var name = nameInput.value.trim() || 'Custom';
+      var bg = colorInput.value;
+      var fg = fgFor(bg);
+      var t = { icon: icon, name: name, bg: bg, fg: fg };
+      addTagIfNew(t);
+      applyTag(chip, t);
+      closePop();
+    });
+
+    positionPopover(pop, chip);
+  }
+
+  // Editing an existing tag changes its shared definition (icon/name/color),
+  // which then needs to propagate to every activity chip currently using it —
+  // tags aren't per-activity copies, they're looked up by icon+name key.
+  function openTagEditor(chip, idx){
+    closePop();
+    var tag = TAGS[idx];
+    if(!tag) return;
+    var oldKey = tagKey(tag);
+    var pop = document.createElement('div');
+    pop.className = 'tagpop';
+
+    var form = document.createElement('div');
+    form.className = 'formwrap';
+    var iconInput = document.createElement('input');
+    iconInput.type = 'text'; iconInput.placeholder = 'Icon (emoji)'; iconInput.maxLength = 4; iconInput.value = tag.icon;
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text'; nameInput.placeholder = 'Name'; nameInput.value = tag.name;
+    var colorInput = document.createElement('input');
+    colorInput.type = 'color'; colorInput.value = tag.bg;
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'addbtn'; saveBtn.type = 'button'; saveBtn.textContent = 'Save changes';
+    form.appendChild(iconInput); form.appendChild(nameInput); form.appendChild(colorInput); form.appendChild(saveBtn);
+    pop.appendChild(form);
+
+    saveBtn.addEventListener('click', function(){
+      var icon = iconInput.value.trim() || tag.icon;
+      var name = nameInput.value.trim() || tag.name;
+      var bg = colorInput.value;
+      var fg = fgFor(bg);
+      var updated = { icon: icon, name: name, bg: bg, fg: fg };
+      TAGS[idx] = updated;
+      persistTags();
+      updateTagEverywhere(oldKey, updated);
+      closePop();
+    });
+
+    positionPopover(pop, chip);
+  }
+
+  function updateTagEverywhere(oldKey, t){
+    document.querySelectorAll('.chip[data-icon][data-name]').forEach(function(c){
+      var k = c.getAttribute('data-icon') + '|' + c.getAttribute('data-name');
+      if(k === oldKey) applyTag(c, t);
+    });
+  }
+
+  function applyTag(chip, t){
+    chip.setAttribute('data-icon', t.icon);
+    chip.setAttribute('data-name', t.name);
+    chip.style.background = t.bg;
+    chip.style.color = t.fg;
+    chip.textContent = t.icon + ' ' + t.name;
+    var spanLi = chip.closest('.acts > li[data-span-start]');
+    if(spanLi){ var panel = spanLi.closest('.panel'); if(panel) renderActivitySpans(panel); }
+  }
+
+  function mkBtn(label, fn){
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', function(e){ e.stopPropagation(); fn(); });
+    return b;
+  }
+
+  function openItemMenu(li, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+
+    function row(label, fn, danger){
+      var r = document.createElement('div');
+      r.className = 'itemmenu-row' + (danger ? ' danger' : '');
+      r.textContent = label;
+      r.addEventListener('click', function(e){
+        e.stopPropagation();
+        closePop();
+        fn();
+      });
+      pop.appendChild(r);
+      return r;
+    }
+
+    row('↑  Move up', function(){
+      var prev = li.previousElementSibling;
+      if(prev) li.parentNode.insertBefore(li, prev);
+    });
+    row('↓  Move down', function(){
+      var next = li.nextElementSibling;
+      if(next) li.parentNode.insertBefore(next, li);
+    });
+    row('↗  Links', function(){ openLinkManager(li, anchorEl); });
+    row('📷  Photo', function(){ pickImage(li); });
+    row('✕  Delete activity', function(){
+      var cell = li.closest('.cell');
+      var panel = cell.closest('.panel');
+      li.remove();
+      recomputeCell(cell);
+      if(panel) renderActivitySpans(panel);
+    }, true);
+
+    positionPopover(pop, anchorEl);
+  }
+
+  function attachItemControls(li){
+    if(li.querySelector(':scope > .itemctl')) return;
+    var ctl = document.createElement('span');
+    ctl.className = 'itemctl jsctl';
+
+    var gripBtn = document.createElement('button');
+    gripBtn.type = 'button'; gripBtn.className = 'item-grip';
+    gripBtn.textContent = '⠿';
+    gripBtn.title = 'Drag to move this activity';
+    gripBtn.style.touchAction = 'none';
+    gripBtn.addEventListener('pointerdown', function(e){ startActDrag(e, li); });
+    ctl.appendChild(gripBtn);
+
+    var menuBtn = mkBtn('⋯', function(){ openItemMenu(li, menuBtn); });
+    menuBtn.className = 'itemmenu-btn';
+    ctl.appendChild(menuBtn);
+    li.insertBefore(ctl, li.firstChild);
+
+    var chip = li.querySelector('.chip');
+    if(chip){
+      chip.style.cursor = 'pointer';
+      chip.addEventListener('click', function(e){
+        e.stopPropagation();
+        openTagPicker(chip);
+      });
+    }
+    li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
+    renderLinks(li);
+    renderPhoto(li);
+  }
+
+  function newActivityLi(){
+    var li = document.createElement('li');
+    var t = TAGS[0] || { icon: '🏷️', name: 'Custom', bg: '#e8e3d5', fg: '#3a3a46' };
+    var chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.setAttribute('data-icon', t.icon);
+    chip.setAttribute('data-name', t.name);
+    chip.style.background = t.bg;
+    chip.style.color = t.fg;
+    chip.textContent = t.icon + ' ' + t.name;
+
+    var title = document.createElement('span');
+    title.className = 'title';
+    title.textContent = 'New activity';
+
+    var line = document.createElement('span');
+    line.className = 'line';
+    line.textContent = '🕒 time';
+
+    var price = document.createElement('span');
+    price.className = 'price';
+    var priceVal = document.createElement('span');
+    priceVal.className = 'price-val';
+    priceVal.textContent = '€0';
+    price.appendChild(priceVal);
+
+    li.appendChild(chip); li.appendChild(title); li.appendChild(line); li.appendChild(price);
+    return li;
+  }
+
+  // ---- multi-day activities: writing a DD/MM-DD/MM range into an
+  // activity's time field extends it across those days. Unlike the holiday
+  // banner (an overlay spanning columns above the grid), this renders
+  // *inside* each day it touches — a read-only echo of the real activity
+  // (which still only lives, and is only editable, on its start day) so
+  // dragging/editing/pricing all stay unambiguous. Regenerated fresh from
+  // data-span-start/end on every relevant change, the same way the holiday
+  // banner is regenerated rather than kept in sync by hand. ----
+  function ensureActsList(cell){
+    var addBtn = cell.querySelector(':scope > .addact');
+    var acts = cell.querySelector(':scope > .acts');
+    if(!acts){
+      acts = document.createElement('ul');
+      acts.className = 'acts';
+      cell.insertBefore(acts, addBtn);
+    }
+    return acts;
+  }
+  function parseSpanFromLine(text){
+    var m = String(text).match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*-\s*(\d{1,2})\s*\/\s*(\d{1,2})/);
+    if(!m) return null;
+    var d1 = parseInt(m[1], 10), d2 = parseInt(m[3], 10);
+    if(!d1 || !d2 || d1 === d2) return null;
+    return d1 < d2 ? { start: d1, end: d2 } : { start: d2, end: d1 };
+  }
+  function updateActivitySpan(li){
+    var lineEl = li.querySelector(':scope > .line');
+    var span = lineEl ? parseSpanFromLine(lineEl.textContent) : null;
+    if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
+    else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
+    var panel = li.closest('.panel');
+    if(panel) renderActivitySpans(panel);
+  }
+  function renderActivitySpans(panel){
+    // Cells that currently hold a ghost need recomputing even if their
+    // origin activity was just deleted — otherwise the ghost disappears
+    // but the split-cost day total it was contributing to is never
+    // refreshed, leaving a stale number with nothing left to explain it.
+    var touchedCells = [];
+    panel.querySelectorAll('.act-span-ghost').forEach(function(g){
+      var c = g.closest('.cell');
+      if(c) touchedCells.push(c);
+      g.remove();
+    });
+    panel.querySelectorAll('.acts > li[data-span-start]').forEach(function(li){
+      var start = parseInt(li.dataset.spanStart, 10), end = parseInt(li.dataset.spanEnd, 10);
+      var originCell = li.closest('.cell');
+      var originDay = dayNumOfCell(originCell);
+      if(!start || !end) return;
+      touchedCells.push(originCell);
+      for(var d = start; d <= end; d++){
+        if(d === originDay) continue;
+        var targetCell = null;
+        panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === d) targetCell = c; });
+        if(!targetCell) continue;
+        touchedCells.push(targetCell);
+        var acts = ensureActsList(targetCell);
+        var ghost = document.createElement('li');
+        ghost.className = 'act-span-ghost jsctl';
+        ghost.dataset.spanStart = start;
+        ghost.dataset.spanEnd = end;
+        ghost.title = 'Continues from day ' + start + ' — edit the title, tag, or price there';
+        var chip = li.querySelector(':scope > .chip');
+        if(chip){
+          var chipClone = document.createElement('span');
+          chipClone.className = 'chip';
+          chipClone.style.background = chip.style.background;
+          chipClone.style.color = chip.style.color;
+          chipClone.textContent = chip.textContent;
+          ghost.appendChild(chipClone);
+        }
+        var titleEl = li.querySelector(':scope > .title');
+        var titleSpan = document.createElement('span');
+        titleSpan.className = 'title';
+        titleSpan.textContent = titleEl ? titleEl.textContent : '';
+        ghost.appendChild(titleSpan);
+        var contSpan = document.createElement('span');
+        contSpan.className = 'line';
+        contSpan.textContent = '↔ continues';
+        ghost.appendChild(contSpan);
+        var priceEl = li.querySelector(':scope > .price .price-val');
+        if(priceEl){
+          var priceWrap = document.createElement('span');
+          priceWrap.className = 'price';
+          var priceValClone = document.createElement('span');
+          priceValClone.className = 'price-val';
+          priceValClone.textContent = priceEl.textContent;
+          priceWrap.appendChild(priceValClone);
+          ghost.appendChild(priceWrap);
+        }
+        acts.appendChild(ghost);
+      }
+    });
+    // The origin's day and every ghost day just changed what's in their
+    // .acts list (or how a shared price should be split across them), so
+    // every touched day's total needs recomputing, not just the one the
+    // edit happened in.
+    touchedCells.forEach(recomputeCell);
+  }
+
+  // Drag one day onto another to swap their full content (location,
+  // activities, cost) — the day numbers themselves don't move, just what's
+  // in them. The small grab handle is the day-number area (.cellhead),
+  // which otherwise has no other purpose.
+  var cellDrag = null;
+  function attachCellDragHandle(cell){
+    var head = cell.querySelector(':scope > .cellhead');
+    if(!head || head.dataset.dragWired) return;
+    head.dataset.dragWired = '1';
+    head.classList.add('cellhead-draggable');
+    head.style.touchAction = 'none';
+    head.addEventListener('pointerdown', function(e){
+      cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false };
+      document.addEventListener('pointermove', onCellDragMove);
+      document.addEventListener('pointerup', onCellDragEnd);
+      document.addEventListener('pointercancel', onCellDragEnd);
+    });
+  }
+  function onCellDragMove(e){
+    if(!cellDrag) return;
+    var dx = e.clientX - cellDrag.startX, dy = e.clientY - cellDrag.startY;
+    if(!cellDrag.moved && Math.sqrt(dx * dx + dy * dy) > 6){
+      cellDrag.moved = true;
+      cellDrag.cell.classList.add('cell-dragging');
+    }
+    if(!cellDrag.moved) return;
+    document.querySelectorAll('.cell-dragover').forEach(function(c){ c.classList.remove('cell-dragover'); });
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    var target = el ? el.closest('.cell') : null;
+    if(target && target !== cellDrag.cell && !target.classList.contains('empty')){
+      target.classList.add('cell-dragover');
+    }
+  }
+  function onCellDragEnd(e){
+    if(cellDrag && cellDrag.moved){
+      document.querySelectorAll('.cell-dragover').forEach(function(c){ c.classList.remove('cell-dragover'); });
+      var el = document.elementFromPoint(e.clientX, e.clientY);
+      var target = el ? el.closest('.cell') : null;
+      if(target && target !== cellDrag.cell && !target.classList.contains('empty')){
+        swapCellContent(cellDrag.cell, target);
+      }
+      cellDrag.cell.classList.remove('cell-dragging');
+    }
+    cellDrag = null;
+    document.removeEventListener('pointermove', onCellDragMove);
+    document.removeEventListener('pointerup', onCellDragEnd);
+    document.removeEventListener('pointercancel', onCellDragEnd);
+    tryApplyPendingRemoteUpdate();
+  }
+  function swapCellContent(a, b){
+    var aLoc = a.querySelector(':scope > .loc'), aActs = a.querySelector(':scope > .acts'), aCost = a.querySelector(':scope > .cost');
+    var bLoc = b.querySelector(':scope > .loc'), bActs = b.querySelector(':scope > .acts'), bCost = b.querySelector(':scope > .cost');
+    var aAddBtn = a.querySelector(':scope > .addact'), bAddBtn = b.querySelector(':scope > .addact');
+    [aLoc, aActs, aCost, bLoc, bActs, bCost].forEach(function(n){ if(n) n.remove(); });
+    if(bLoc) a.insertBefore(bLoc, aAddBtn);
+    if(bActs) a.insertBefore(bActs, aAddBtn);
+    if(bCost) a.insertBefore(bCost, aAddBtn);
+    if(aLoc) b.insertBefore(aLoc, bAddBtn);
+    if(aActs) b.insertBefore(aActs, bAddBtn);
+    if(aCost) b.insertBefore(aCost, bAddBtn);
+    a.classList.toggle('active', !!bLoc);
+    b.classList.toggle('active', !!aLoc);
+    refreshHoliCell(a); refreshHoliCell(b);
+    recomputeCell(a); recomputeCell(b);
+    var aClear = a.querySelector(':scope > .cleardaybtn'); if(aClear) aClear.classList.toggle('has-content', !!bLoc);
+    var bClear = b.querySelector(':scope > .cleardaybtn'); if(bClear) bClear.classList.toggle('has-content', !!aLoc);
+    var swapPanel = a.closest('.panel');
+    if(swapPanel) renderActivitySpans(swapPanel);
+  }
+
+  // Drag an activity onto any day (or before/after another activity on the
+  // same day) to move it there. Nearest-cell distance (not exact hit-test)
+  // so dropping near a day's edge still resolves correctly.
+  function nearestCellAt(panel, x, y){
+    var cells = panel.querySelectorAll('.cell:not(.empty)');
+    var best = null, bestDist = Infinity;
+    cells.forEach(function(cell){
+      var r = cell.getBoundingClientRect();
+      var dx = Math.max(r.left - x, 0, x - r.right);
+      var dy = Math.max(r.top - y, 0, y - r.bottom);
+      var dist = dx * dx + dy * dy;
+      if(dist < bestDist){ bestDist = dist; best = cell; }
+    });
+    return best;
+  }
+  function ensureCellHasList(cell){
+    var addBtn = cell.querySelector(':scope > .addact');
+    var loc = cell.querySelector(':scope > .loc');
+    var acts = cell.querySelector(':scope > .acts');
+    if(!loc){
+      loc = document.createElement('p');
+      loc.className = 'loc';
+      loc.textContent = 'New location';
+      makeEditable(loc);
+      cell.insertBefore(loc, addBtn);
+      cell.classList.add('active');
+    }
+    if(!acts){
+      acts = document.createElement('ul');
+      acts.className = 'acts';
+      cell.insertBefore(acts, addBtn);
+    }
+    return acts;
+  }
+  var actDrag = null;
+  function startActDrag(e, li){
+    e.preventDefault();
+    e.stopPropagation();
+    actDrag = { li: li, originCell: li.closest('.cell'), moved: false };
+    document.addEventListener('pointermove', onActDragMove);
+    document.addEventListener('pointerup', onActDragEnd);
+    document.addEventListener('pointercancel', onActDragEnd);
+  }
+  function onActDragMove(e){
+    if(!actDrag) return;
+    actDrag.moved = true;
+    actDrag.li.classList.add('act-dragging');
+    var panel = actDrag.originCell.closest('.panel');
+    var cell = nearestCellAt(panel, e.clientX, e.clientY);
+    if(!cell) return;
+    var acts = ensureCellHasList(cell);
+    var items = Array.prototype.slice.call(acts.children).filter(function(x){ return x !== actDrag.li; });
+    var insertBeforeEl = null;
+    for(var i = 0; i < items.length; i++){
+      var r = items[i].getBoundingClientRect();
+      if(e.clientY < r.top + r.height / 2){ insertBeforeEl = items[i]; break; }
+    }
+    if(insertBeforeEl) acts.insertBefore(actDrag.li, insertBeforeEl);
+    else acts.appendChild(actDrag.li);
+  }
+  function onActDragEnd(){
+    if(actDrag && actDrag.moved){
+      actDrag.li.classList.remove('act-dragging');
+      var newCell = actDrag.li.closest('.cell');
+      recomputeCell(actDrag.originCell);
+      if(newCell !== actDrag.originCell){
+        recomputeCell(newCell);
+        refreshHoliCell(newCell);
+        var newClear = newCell.querySelector(':scope > .cleardaybtn');
+        if(newClear) newClear.classList.toggle('has-content', true);
+        if(actDrag.originCell.querySelectorAll(':scope > .acts li').length === 0){
+          refreshHoliCell(actDrag.originCell);
+        }
+      }
+      var actPanel = newCell.closest('.panel');
+      if(actPanel) renderActivitySpans(actPanel);
+    }
+    actDrag = null;
+    document.removeEventListener('pointermove', onActDragMove);
+    document.removeEventListener('pointerup', onActDragEnd);
+    document.removeEventListener('pointercancel', onActDragEnd);
+    tryApplyPendingRemoteUpdate();
+  }
+
+  function attachCellControls(cell){
+    if(cell.classList.contains('empty')) return;
+    attachCellDragHandle(cell);
+    if(cell.querySelector(':scope > .addact')) return;
+
+    var addBtn = document.createElement('button');
+    addBtn.type = 'button'; addBtn.className = 'addact jsctl';
+    addBtn.textContent = '+ Add activity';
+
+    var addLocBtn = document.createElement('button');
+    addLocBtn.type = 'button'; addLocBtn.className = 'addloc jsctl';
+    addLocBtn.textContent = '+ Add location';
+
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button'; clearBtn.className = 'cleardaybtn jsctl';
+    clearBtn.textContent = '✕ clear day';
+
+    function refreshClear(){
+      var hasLoc = !!cell.querySelector(':scope > .loc');
+      clearBtn.classList.toggle('has-content', hasLoc);
+    }
+
+    function ensureLoc(){
+      var loc = cell.querySelector(':scope > .loc');
+      if(!loc){
+        loc = document.createElement('p');
+        loc.className = 'loc';
+        loc.textContent = 'New location';
+        makeEditable(loc);
+        cell.insertBefore(loc, addBtn);
+        cell.classList.add('active');
+      }
+      return loc;
+    }
+    function ensureActs(){
+      var acts = cell.querySelector(':scope > .acts');
+      if(!acts){
+        acts = document.createElement('ul');
+        acts.className = 'acts';
+        cell.insertBefore(acts, addBtn);
+      }
+      return acts;
+    }
+
+    addLocBtn.addEventListener('click', function(){
+      ensureLoc();
+      ensureActs();
+      refreshHoliCell(cell);
+      refreshClear();
+    });
+
+    addBtn.addEventListener('click', function(){
+      ensureLoc();
+      var acts = ensureActs();
+      var li = newActivityLi();
+      acts.appendChild(li);
+      attachItemControls(li);
+      recomputeCell(cell);
+      refreshHoliCell(cell);
+      refreshClear();
+    });
+
+    clearBtn.addEventListener('click', function(){
+      var loc = cell.querySelector(':scope > .loc');
+      var acts = cell.querySelector(':scope > .acts');
+      var cost = cell.querySelector(':scope > .cost');
+      if(loc) loc.remove();
+      if(acts) acts.remove();
+      if(cost) cost.remove();
+      cell.classList.remove('active');
+      recomputePanel(cell.closest('.panel'));
+      refreshHoliCell(cell);
+      refreshClear();
+    });
+
+    cell.appendChild(clearBtn);
+    cell.appendChild(addLocBtn);
+    cell.appendChild(addBtn);
+    refreshClear();
+  }
+
+  // ---- holiday banner: data-driven, draggable ends ----
+  function dayNumOfCell(cell){
+    var d = cell.querySelector('.daynum');
+    return d ? parseInt(d.textContent, 10) : null;
+  }
+
+  // Any number of holiday periods per panel, stored as a JSON array on
+  // data-holidays. Older published panels still carry the single-period
+  // data-holiday-start/-end/-label attributes from before this existed;
+  // getHolidays() migrates those into a one-item array on first read.
+  function getHolidays(panel){
+    if(panel.dataset.holidays){
+      try{ var arr = JSON.parse(panel.dataset.holidays); if(Array.isArray(arr)) return arr; }
+      catch(e){}
+    }
+    var s = parseInt(panel.dataset.holidayStart || '', 10);
+    var e = parseInt(panel.dataset.holidayEnd || '', 10);
+    if(s && e && e >= s){
+      return [{ start: s, end: e, label: panel.dataset.holidayLabel || 'Holiday — time off' }];
+    }
+    return [];
+  }
+  function setHolidays(panel, arr){
+    panel.dataset.holidays = JSON.stringify(arr);
+  }
+
+  function refreshHoliCell(cell){
+    var panel = cell.closest('.panel');
+    if(!panel) return;
+    var dn = dayNumOfCell(cell);
+    var inAny = dn !== null && getHolidays(panel).some(function(h){ return dn >= h.start && dn <= h.end; });
+    cell.classList.toggle('holi', inAny && !cell.querySelector(':scope > .loc'));
+  }
+
+  function lastDayOfCalendar(panel){
+    var days = [];
+    panel.querySelectorAll('.daynum').forEach(function(d){ days.push(parseInt(d.textContent, 10)); });
+    return Math.max.apply(null, days);
+  }
+
+  function promptForRange(maxDay, defaultText){
+    var input = window.prompt('Holiday period — enter the start and end day of the month (e.g. 5-10):', defaultText || '1-3');
+    if(input === null) return null;
+    var m = input.match(/(\d+)\s*[-–]\s*(\d+)/);
+    if(!m){ window.alert('Enter two day numbers separated by a dash, e.g. 5-10'); return null; }
+    var s = Math.max(1, Math.min(maxDay, parseInt(m[1], 10)));
+    var e = Math.max(1, Math.min(maxDay, parseInt(m[2], 10)));
+    if(e < s){ var tmp = s; s = e; e = tmp; }
+    return { start: s, end: e };
+  }
+
+  function addHolidayToPanel(panel){
+    var range = promptForRange(lastDayOfCalendar(panel));
+    if(!range) return;
+    var arr = getHolidays(panel);
+    arr.push({ start: range.start, end: range.end, label: 'Holiday — time off' });
+    setHolidays(panel, arr);
+    renderHoliday(panel);
+  }
+
+  // Dragging is delta-based (days moved = mouse pixels moved / cell size),
+  // not "which cell is under the cursor right now". A spatial hit-test was
+  // tried first and broke exactly at the row boundary the handle sits on:
+  // the banner for the end-of-range handle sits just above the FOLLOWING
+  // week's row, so a shrink-drag (cursor barely moving, staying near the
+  // banner's own height) reads as "closer to the next row down" and jumps
+  // forward instead of back. Tracking movement relative to the drag's start
+  // point sidesteps that ambiguity — no vertical movement keeps you in the
+  // same week regardless of which row happens to be geometrically nearest.
+  var dragState = null;
+  function startDrag(e, panel, holidayIdx, which){
+    e.preventDefault();
+    e.stopPropagation();
+    var sample = panel.querySelector('.cell:not(.empty)');
+    var cellRect = sample.getBoundingClientRect();
+    var h = getHolidays(panel)[holidayIdx];
+    dragState = {
+      panel: panel, holidayIdx: holidayIdx, which: which,
+      startX: e.clientX, startY: e.clientY,
+      origValue: which === 'start' ? h.start : h.end,
+      cellWidth: cellRect.width,
+      cellHeight: cellRect.height
+    };
+    document.addEventListener('pointermove', onDragMove);
+    document.addEventListener('pointerup', onDragEnd);
+    document.addEventListener('pointercancel', onDragEnd);
+  }
+  function onDragMove(e){
+    if(!dragState) return;
+    var dx = e.clientX - dragState.startX;
+    var dy = e.clientY - dragState.startY;
+    var dayDelta = Math.round(dx / dragState.cellWidth) + Math.round(dy / dragState.cellHeight) * 7;
+    var panel = dragState.panel;
+    var maxDay = lastDayOfCalendar(panel);
+    var newDay = Math.max(1, Math.min(maxDay, dragState.origValue + dayDelta));
+    var arr = getHolidays(panel);
+    var h = arr[dragState.holidayIdx];
+    if(!h) return;
+    if(dragState.which === 'start'){
+      if(newDay <= h.end && newDay !== h.start){ h.start = newDay; setHolidays(panel, arr); renderHoliday(panel); }
+    } else {
+      if(newDay >= h.start && newDay !== h.end){ h.end = newDay; setHolidays(panel, arr); renderHoliday(panel); }
+    }
+  }
+  function onDragEnd(){
+    dragState = null;
+    document.removeEventListener('pointermove', onDragMove);
+    document.removeEventListener('pointerup', onDragEnd);
+    document.removeEventListener('pointercancel', onDragEnd);
+    tryApplyPendingRemoteUpdate();
+  }
+
+  function renderHoliday(panel){
+    var holidays = getHolidays(panel);
+    panel.querySelectorAll(':scope > .grid.banner-row').forEach(function(n){ n.remove(); });
+    panel.querySelectorAll('.cell.holi').forEach(function(c){ c.classList.remove('holi'); });
+    // Per-panel "+ Add (another) holiday period" button removed — redundant
+    // with "Add holiday period" in the top "+" dropdown.
+    var oldAddBtn = panel.querySelector(':scope > .addholiday');
+    if(oldAddBtn) oldAddBtn.remove();
+
+    holidays.forEach(function(h){
+      if(!h.label) h.label = 'Holiday — time off';
+      if(h.start >= 1 && h.end >= h.start){
+        panel.querySelectorAll('.cell').forEach(function(cell){
+          var dn = dayNumOfCell(cell);
+          if(dn !== null && dn >= h.start && dn <= h.end && !cell.querySelector(':scope > .loc')){
+            cell.classList.add('holi');
+          }
+        });
+      }
+    });
+
+    var weeks = Array.prototype.slice.call(panel.querySelectorAll(':scope > .grid.week'));
+    holidays.forEach(function(h, holidayIdx){
+      weeks.forEach(function(weekRow){
+        var cells = Array.prototype.slice.call(weekRow.children);
+        var firstCol = null, lastCol = null, containsStart = false, containsEnd = false;
+        cells.forEach(function(cell, idx){
+          var dn = dayNumOfCell(cell);
+          if(dn === null) return;
+          if(dn >= h.start && dn <= h.end){
+            if(firstCol === null) firstCol = idx + 1;
+            lastCol = idx + 1;
+            if(dn === h.start) containsStart = true;
+            if(dn === h.end) containsEnd = true;
+          }
+        });
+        if(firstCol === null) return;
+        var bannerRow = document.createElement('div');
+        bannerRow.className = 'grid banner-row';
+        var banner = document.createElement('div');
+        banner.className = 'banner';
+        banner.style.gridColumn = firstCol + ' / ' + (lastCol + 1);
+
+        var labelSpan = document.createElement('span');
+        labelSpan.className = 'banner-label';
+        labelSpan.contentEditable = 'true';
+        labelSpan.textContent = h.label;
+        labelSpan.addEventListener('click', function(e){ e.stopPropagation(); });
+        labelSpan.addEventListener('input', function(){
+          var arr = getHolidays(panel);
+          if(arr[holidayIdx]){ arr[holidayIdx].label = labelSpan.textContent; setHolidays(panel, arr); }
+          panel.querySelectorAll(':scope > .grid.banner-row').forEach(function(row, rowIdx){
+            var other = row.querySelector('.banner-label');
+            if(other && other !== labelSpan && row.dataset.holidayIdx === String(holidayIdx)){
+              other.textContent = labelSpan.textContent;
+            }
+          });
+        });
+        bannerRow.dataset.holidayIdx = String(holidayIdx);
+        banner.appendChild(labelSpan);
+        var pd = getPanelDate(panel);
+        banner.appendChild(document.createTextNode(' · ' + MONTH_SHORT[pd.month - 1] + ' ' + h.start + '–' + h.end + ' '));
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button'; removeBtn.className = 'banner-remove jsctl';
+        removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove this holiday period';
+        removeBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          var arr = getHolidays(panel);
+          arr.splice(holidayIdx, 1);
+          setHolidays(panel, arr);
+          renderHoliday(panel);
+        });
+        banner.appendChild(removeBtn);
+
+        if(containsStart){
+          var hl = document.createElement('span');
+          hl.className = 'handle handle-left jsctl';
+          hl.title = 'Drag to change the start day';
+          hl.style.touchAction = 'none';
+          hl.addEventListener('pointerdown', function(e){ startDrag(e, panel, holidayIdx, 'start'); });
+          banner.appendChild(hl);
+        }
+        if(containsEnd){
+          var hrr = document.createElement('span');
+          hrr.className = 'handle handle-right jsctl';
+          hrr.title = 'Drag to change the end day';
+          hrr.style.touchAction = 'none';
+          hrr.addEventListener('pointerdown', function(e){ startDrag(e, panel, holidayIdx, 'end'); });
+          banner.appendChild(hrr);
+        }
+        bannerRow.appendChild(banner);
+        panel.insertBefore(bannerRow, weekRow);
+      });
+    });
+  }
+
+  // ---- add / rename / remove options ----
+  document.addEventListener('input', function(e){
+    if(e.target.classList && e.target.classList.contains('pill-name')){
+      var pill = e.target.closest('.pill');
+      var opt = pill.getAttribute('data-opt');
+      var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+      if(budgetLi){
+        var bn = budgetLi.querySelector('.budget-name');
+        if(bn) bn.textContent = e.target.textContent;
+      }
+    }
+  });
+
+  // ---- drag to reorder options (pills, panels stay linked by data-opt so
+  // reordering the pills alone is safe; the budget-overview rows are moved
+  // along with them so the whole UI stays visually consistent) ----
+  var pillDrag = null;
+  var suppressNextPillClick = false;
+  document.querySelector('.pills').addEventListener('pointerdown', function(e){
+    var pill = e.target.closest('.pill[data-opt]');
+    if(!pill) return;
+    var nameHitPd = e.target.closest('.pill-name');
+    if((nameHitPd && nameHitPd.isContentEditable) || e.target.closest('.pill-remove')) return;
+    pillDrag = { pill: pill, startX: e.clientX, startY: e.clientY, moved: false };
+    document.addEventListener('pointermove', onPillDragMove);
+    document.addEventListener('pointerup', onPillDragEnd);
+    document.addEventListener('pointercancel', onPillDragEnd);
+  });
+  function onPillDragMove(e){
+    if(!pillDrag) return;
+    var dx = e.clientX - pillDrag.startX, dy = e.clientY - pillDrag.startY;
+    if(!pillDrag.moved && Math.sqrt(dx * dx + dy * dy) > 6){
+      pillDrag.moved = true;
+      pillDrag.pill.classList.add('dragging');
+    }
+    if(!pillDrag.moved) return;
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    var target = el ? el.closest('.pill[data-opt]') : null;
+    if(target && target !== pillDrag.pill){
+      var pillsWrap = document.querySelector('.pills');
+      var all = Array.prototype.slice.call(pillsWrap.querySelectorAll('.pill[data-opt]'));
+      var fromIdx = all.indexOf(pillDrag.pill), toIdx = all.indexOf(target);
+      if(fromIdx < toIdx) target.insertAdjacentElement('afterend', pillDrag.pill);
+      else target.insertAdjacentElement('beforebegin', pillDrag.pill);
+
+      var budgetList = document.querySelector('.budget ul');
+      var draggedLi = budgetList.querySelector('li[data-opt="' + pillDrag.pill.getAttribute('data-opt') + '"]');
+      var targetLi = budgetList.querySelector('li[data-opt="' + target.getAttribute('data-opt') + '"]');
+      if(draggedLi && targetLi){
+        if(fromIdx < toIdx) targetLi.insertAdjacentElement('afterend', draggedLi);
+        else targetLi.insertAdjacentElement('beforebegin', draggedLi);
+      }
+    }
+  }
+  function onPillDragEnd(){
+    if(pillDrag){
+      pillDrag.pill.classList.remove('dragging');
+      if(pillDrag.moved) suppressNextPillClick = true;
+    }
+    pillDrag = null;
+    document.removeEventListener('pointermove', onPillDragMove);
+    document.removeEventListener('pointerup', onPillDragEnd);
+    document.removeEventListener('pointercancel', onPillDragEnd);
+    tryApplyPendingRemoteUpdate();
+  }
+
+  // Internal option IDs (panel-option-N) must stay globally unique for the
+  // lifetime of the page, even across removals — deriving N from the
+  // *current* panel count (as this used to) reissues an already-used ID as
+  // soon as anything is removed, producing two panels with the same id.
+  // That breaks every id-based lookup (option switching, month filtering,
+  // sidebar sync), which is what made tag/delete editing look "blocked" on
+  // newly created months/options. A monotonically increasing counter, seeded
+  // from the highest N already present, guarantees a fresh id every time.
+  var nextOptionN = (function(){
+    var max = 0;
+    document.querySelectorAll('.panel[id^="panel-option-"]').forEach(function(p){
+      var m = p.id.match(/^panel-option-(\d+)$/);
+      if(m) max = Math.max(max, parseInt(m[1], 10));
+    });
+    return max;
+  })();
+  function nextOptionId(){ nextOptionN += 1; return nextOptionN; }
+
+  function createOption(year, month){
+    var panels = document.querySelectorAll('.panel');
+    var n = nextOptionId(); // internal id, must stay globally unique across all months
+    var displayNum = 1; // the "1.", "2." shown to the user — counts only within this month
+    panels.forEach(function(p){ var d = getPanelDate(p); if(d.year === year && d.month === month) displayNum++; });
+    var template = panels[0];
+    var clone = template.cloneNode(true);
+    clone.id = 'panel-option-' + n;
+    clone.classList.remove('on');
+    clone.removeAttribute('data-holiday-start');
+    clone.removeAttribute('data-holiday-end');
+    clone.removeAttribute('data-holiday-label');
+    clone.removeAttribute('data-holidays');
+    clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
+    clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
+    clone.querySelectorAll('.loc, .acts, .cost').forEach(function(n){ n.remove(); });
+    clone.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('active', 'holi'); });
+    clone.querySelectorAll(':scope > .grid.banner-row').forEach(function(n){ n.remove(); });
+    setPanelDate(clone, year, month);
+    var allPanels = document.querySelectorAll('.panel');
+    allPanels[allPanels.length - 1].insertAdjacentElement('afterend', clone);
+
+    var pillsWrap = document.querySelector('.pills');
+    var newPill = document.createElement('button');
+    newPill.type = 'button'; newPill.className = 'pill';
+    newPill.setAttribute('data-opt', 'option-' + n);
+    newPill.innerHTML = '<span class="pill-name">' + displayNum + '. New option</span> <span class="pill-price">€0</span>' +
+      '<span class="pill-remove" title="Remove option">&times;</span>';
+    pillsWrap.insertBefore(newPill, document.getElementById('addOptionBtn'));
+
+    var budgetList = document.querySelector('.budget ul');
+    var li = document.createElement('li');
+    li.setAttribute('data-opt', 'option-' + n);
+    li.innerHTML = '<span><span class="budget-name">' + displayNum + '. New option</span></span><strong>€0</strong>';
+    budgetList.appendChild(li);
+
+    clone.querySelectorAll('.grid .cell').forEach(attachCellControls);
+    buildCalendarGrid(clone);
+    renderMonthSidebar();
+    filterPillsByMonth(year, month);
+    return clone;
+  }
+
+  // Duplicates an option exactly (content, holidays, price) — unlike
+  // createOption, which deliberately starts a fresh empty panel. Cloned
+  // .jsctl controls carry stale "already wired" markers (e.g. the cellhead
+  // drag flag), so those are cleared before re-attaching so drag-to-swap
+  // still works on the copy.
+  function duplicateOption(opt){
+    var srcPanel = document.getElementById('panel-' + opt);
+    var srcPill = document.querySelector('.pill[data-opt="' + opt + '"]');
+    var srcBudgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+    if(!srcPanel || !srcPill) return;
+    var n = nextOptionId();
+    var clone = srcPanel.cloneNode(true);
+    clone.id = 'panel-option-' + n;
+    clone.classList.remove('on');
+    clone.querySelectorAll('.jsctl').forEach(function(x){ x.remove(); });
+    clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(x){ x.remove(); });
+    clone.querySelectorAll(':scope > .grid.banner-row').forEach(function(x){ x.remove(); });
+    clone.querySelectorAll('.cellhead').forEach(function(h){ h.removeAttribute('data-drag-wired'); });
+    srcPanel.insertAdjacentElement('afterend', clone);
+
+    var srcName = srcPill.querySelector('.pill-name').textContent;
+    var srcPrice = srcPill.querySelector('.pill-price').textContent;
+
+    var newPill = document.createElement('button');
+    newPill.type = 'button'; newPill.className = 'pill';
+    newPill.setAttribute('data-opt', 'option-' + n);
+    newPill.innerHTML = '<span class="pill-name"></span> <span class="pill-price"></span>' +
+      '<span class="pill-remove" title="Remove option">&times;</span>';
+    newPill.querySelector('.pill-name').textContent = srcName;
+    newPill.querySelector('.pill-price').textContent = srcPrice;
+    srcPill.insertAdjacentElement('afterend', newPill);
+
+    var budgetList = document.querySelector('.budget ul');
+    var li = document.createElement('li');
+    li.setAttribute('data-opt', 'option-' + n);
+    li.innerHTML = '<span><span class="budget-name"></span></span><strong></strong>';
+    li.querySelector('.budget-name').textContent = srcName;
+    li.querySelector('strong').textContent = srcPrice;
+    if(srcBudgetLi) srcBudgetLi.insertAdjacentElement('afterend', li);
+    else budgetList.appendChild(li);
+
+    clone.querySelectorAll('.grid .cell').forEach(attachCellControls);
+    clone.querySelectorAll('.acts li').forEach(attachItemControls);
+    renderHoliday(clone);
+    renderActivitySpans(clone);
+    renderMonthSidebar();
+    var d = getPanelDate(clone);
+    filterPillsByMonth(d.year, d.month);
+    return clone;
+  }
+
+  function openPillContextMenu(pill, x, y){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    var row = document.createElement('div');
+    row.className = 'itemmenu-row';
+    row.textContent = '⧉  Duplicate';
+    row.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      duplicateOption(pill.getAttribute('data-opt'));
+    });
+    pop.appendChild(row);
+    document.body.appendChild(pop);
+    var popW = pop.offsetWidth, popH = pop.offsetHeight;
+    var left = x, top = y;
+    if(left + popW > window.innerWidth - 8) left = Math.max(8, window.innerWidth - popW - 8);
+    if(top + popH > window.innerHeight - 8) top = Math.max(8, window.innerHeight - popH - 8);
+    pop.style.left = (window.scrollX + left) + 'px';
+    pop.style.top = (window.scrollY + top) + 'px';
+    openPop = pop;
+  }
+
+  document.querySelector('.pills').addEventListener('contextmenu', function(e){
+    var pill = e.target.closest('.pill[data-opt]');
+    if(!pill) return;
+    e.preventDefault();
+    openPillContextMenu(pill, e.clientX, e.clientY);
+  });
+
+  var addOptionBtn = document.getElementById('addOptionBtn');
+  if(addOptionBtn){
+    addOptionBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var pop = document.createElement('div');
+      pop.className = 'itemmenu';
+      function menuRow(label, fn){
+        var r = document.createElement('div');
+        r.className = 'itemmenu-row';
+        r.textContent = label;
+        r.addEventListener('click', function(ev){
+          ev.stopPropagation();
+          closePop();
+          fn();
+        });
+        pop.appendChild(r);
+      }
+      menuRow('+ Add option', function(){
+        var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+        var d = getPanelDate(activePanel);
+        createOption(d.year, d.month);
+      });
+      menuRow('+ Add holiday period', function(){
+        var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+        if(activePanel) addHolidayToPanel(activePanel);
+      });
+      positionPopover(pop, addOptionBtn);
+    });
+  }
+
+  // ---- month sidebar: one segment per distinct year/month in use across
+  // all options, each with its own color, hover-to-reveal "+" (add another
+  // month/option), and a click-to-swap month/year picker on its label ----
+  var SEG_COLORS = ['var(--primary)', 'var(--secondary)', 'var(--accent)'];
+  function monthKey(y, m){ return y + '-' + m; }
+  function formatMonthLabel(year, month, segCount){
+    if(segCount <= 2) return MONTH_FULL[month - 1] + ' ' + year;
+    if(segCount <= 4) return MONTH_SHORT[month - 1] + ' ' + year;
+    var yy = String(year).slice(2);
+    if(segCount <= 6) return MONTH_SHORT[month - 1] + ' ' + yy;
+    return (month < 10 ? '0' + month : month) + '/' + yy;
+  }
+
+  // Clicking a sidebar segment shows only the options that belong to its
+  // month (others stay in the DOM, just hidden) and switches to one of
+  // them, so you're never looking at options from the wrong month.
+  function filterPillsByMonth(year, month){
+    var firstMatch = null;
+    document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      var d = getPanelDate(panel);
+      var matches = d.year === year && d.month === month;
+      pill.classList.toggle('pill-filtered-out', !matches);
+      if(matches && !firstMatch) firstMatch = pill;
+    });
+    // The budget overview list is a second, independent view of the same
+    // options — it needs the exact same per-month filter as the pill bar,
+    // not just whichever is currently active, so it was silently showing
+    // every month's totals in one list regardless of the pill filter above.
+    document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
+      var panel = document.getElementById('panel-' + li.getAttribute('data-opt'));
+      var d = getPanelDate(panel);
+      li.classList.toggle('budget-filtered-out', !(d.year === year && d.month === month));
+    });
+    var activePill = document.querySelector('.pill[data-opt].on');
+    var activeMatches = activePill && !activePill.classList.contains('pill-filtered-out');
+    if(!activeMatches && firstMatch){
+      document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
+      firstMatch.classList.add('on');
+      document.getElementById('panel-' + firstMatch.getAttribute('data-opt')).classList.add('on');
+    }
+    var curKey = monthKey(year, month);
+    document.querySelectorAll('.month-segment').forEach(function(seg){
+      seg.classList.toggle('current', seg.dataset.monthKey === curKey);
+    });
+  }
+
+  // Re-derives and re-applies the pill filter from whatever panel is
+  // *actually* active right now, with no arguments to get wrong or a call
+  // site to forget — wired into the MutationObserver below so it self-heals
+  // after every relevant DOM change instead of depending on every single
+  // mutation site remembering to call filterPillsByMonth itself.
+  function syncPillFilter(){
+    var activePanel = document.querySelector('.panel.on');
+    if(!activePanel) return;
+    var d = getPanelDate(activePanel);
+    filterPillsByMonth(d.year, d.month);
+  }
+
+  function removeMonth(year, month){
+    var opts = [];
+    document.querySelectorAll('.panel').forEach(function(panel){
+      var d = getPanelDate(panel);
+      if(d.year === year && d.month === month) opts.push(optOf(panel));
+    });
+    var totalOptions = document.querySelectorAll('.pill[data-opt]').length;
+    if(opts.length >= totalOptions){
+      window.alert("Can't remove the only month/option left.");
+      return;
+    }
+    var label = formatMonthLabel(year, month, 1);
+    if(!window.confirm('Remove ' + label + ' and all ' + opts.length + ' option(s) in it? This can\'t be undone.')) return;
+    opts.forEach(function(opt){
+      var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+      var panel = document.getElementById('panel-' + opt);
+      var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+      if(pill) pill.remove();
+      if(panel) panel.remove();
+      if(budgetLi) budgetLi.remove();
+    });
+    var firstPill = document.querySelector('.pill[data-opt]');
+    if(firstPill && !document.querySelector('.pill[data-opt].on')){
+      firstPill.classList.add('on');
+      document.getElementById('panel-' + firstPill.getAttribute('data-opt')).classList.add('on');
+    }
+    renderMonthSidebar();
+    var activePanel = document.querySelector('.panel.on');
+    if(activePanel){ var d = getPanelDate(activePanel); filterPillsByMonth(d.year, d.month); }
+  }
+
+  function openMonthPickerPopover(anchorEl, year, month, applyLabel, onApply){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'monthpop';
+    var monthSel = document.createElement('select');
+    MONTH_FULL.forEach(function(name, i){
+      var opt = document.createElement('option');
+      opt.value = String(i + 1); opt.textContent = name;
+      if(i + 1 === month) opt.selected = true;
+      monthSel.appendChild(opt);
+    });
+    var yearInput = document.createElement('input');
+    yearInput.type = 'number'; yearInput.value = year; yearInput.min = '1970'; yearInput.max = '2999';
+    var applyBtn = document.createElement('button');
+    applyBtn.type = 'button'; applyBtn.className = 'addbtn'; applyBtn.textContent = applyLabel;
+    [monthSel, yearInput].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    applyBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var newMonth = parseInt(monthSel.value, 10);
+      var newYear = parseInt(yearInput.value, 10) || year;
+      closePop();
+      onApply(newYear, newMonth);
+    });
+    pop.appendChild(monthSel);
+    pop.appendChild(yearInput);
+    pop.appendChild(applyBtn);
+    positionPopover(pop, anchorEl);
+  }
+
+  // Both bars are position:fixed with content-driven heights (pills wrap
+  // to more rows as options are added; the month bar can wrap to two rows
+  // on narrow phones with several months) — .wrap's clearance and, on
+  // mobile, where the pills bar starts, are kept in sync here rather than
+  // hardcoded, since either bar's real height changes at runtime.
+  function syncBarLayout(){
+    var sidebarEl = document.getElementById('monthSidebar');
+    var pillsEl = document.querySelector('.pills');
+    var wrapEl = document.querySelector('.wrap');
+    if(!pillsEl || !wrapEl) return;
+    var isMobile = window.matchMedia('(max-width:720px)').matches;
+    var sidebarH = (isMobile && sidebarEl) ? sidebarEl.getBoundingClientRect().height : 0;
+    pillsEl.style.top = sidebarH + 'px';
+    var pillsH = pillsEl.getBoundingClientRect().height;
+    wrapEl.style.paddingTop = (sidebarH + pillsH + 16) + 'px';
+  }
+  window.addEventListener('resize', syncBarLayout);
+
+  function renderMonthSidebar(){
+    var sidebar = document.getElementById('monthSidebar');
+    if(!sidebar) return;
+    sidebar.innerHTML = '';
+    var seen = [];
+    document.querySelectorAll('.panel').forEach(function(panel){
+      var d = getPanelDate(panel);
+      var key = monthKey(d.year, d.month);
+      if(!seen.some(function(s){ return s.key === key; })) seen.push({ key: key, year: d.year, month: d.month });
+    });
+    // Chronological, not insertion order — a new month is always appended
+    // to the end of the panel list regardless of which existing month's
+    // "+" created it, so without this a month added "out of order" (e.g.
+    // September when August and December already exist) would render
+    // after December instead of between them, which reads as the new tab
+    // landing in the wrong place / vanishing from where it was expected.
+    seen.sort(function(a, b){ return a.year - b.year || a.month - b.month; });
+    var activePanel = document.querySelector('.panel.on');
+    var activeKey = activePanel ? monthKey(getPanelDate(activePanel).year, getPanelDate(activePanel).month) : null;
+    var colorByKey = {};
+    seen.forEach(function(s, idx){
+      var seg = document.createElement('div');
+      seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
+      seg.dataset.monthKey = s.key;
+      var segColor = SEG_COLORS[idx % SEG_COLORS.length];
+      colorByKey[s.key] = segColor;
+      seg.style.background = segColor;
+      seg.title = 'Click to show only this month\'s options';
+      seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
+
+      var label = document.createElement('span');
+      label.className = 'seg-label';
+      label.textContent = formatMonthLabel(s.year, s.month, seen.length);
+      label.title = 'Click to show this month\'s options — double-click to change the month';
+      // Single click just navigates, same as clicking anywhere else on the
+      // tab (most of the tab's visible area IS the label, so without this
+      // almost every click on the tab was opening the month-change popover
+      // instead of switching to it). Changing the month itself is a
+      // double-click action.
+      label.addEventListener('click', function(e){
+        e.stopPropagation();
+        filterPillsByMonth(s.year, s.month);
+      });
+      label.addEventListener('dblclick', function(e){
+        e.stopPropagation();
+        openMonthPickerPopover(seg, s.year, s.month, 'Apply', function(newYear, newMonth){
+          document.querySelectorAll('.panel').forEach(function(panel){
+            var d2 = getPanelDate(panel);
+            if(d2.year === s.year && d2.month === s.month){
+              setPanelDate(panel, newYear, newMonth);
+              buildCalendarGrid(panel);
+            }
+          });
+          renderMonthSidebar();
+          filterPillsByMonth(newYear, newMonth);
+        });
+      });
+      seg.appendChild(label);
+
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button'; addBtn.className = 'seg-add jsctl'; addBtn.textContent = '+';
+      addBtn.title = 'Add another month';
+      addBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        openMonthPickerPopover(seg, s.year, s.month, 'Add', function(newYear, newMonth){
+          var newPanel = createOption(newYear, newMonth);
+          document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
+          document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
+          document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
+          newPanel.classList.add('on');
+        });
+      });
+      seg.appendChild(addBtn);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button'; removeBtn.className = 'seg-remove jsctl'; removeBtn.textContent = '✕';
+      removeBtn.title = 'Remove this month and all its options';
+      removeBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        removeMonth(s.year, s.month);
+      });
+      seg.appendChild(removeBtn);
+
+      sidebar.appendChild(seg);
+    });
+    // Every option pill gets the exact same fill as its own month's
+    // sidebar tab (not just the active one) — the pill's own selected
+    // state is conveyed by the stitch border alone, same as the sidebar.
+    document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      if(!panel) return;
+      var d = getPanelDate(panel);
+      var color = colorByKey[monthKey(d.year, d.month)] || SEG_COLORS[0];
+      pill.style.background = color;
+      pill.style.borderColor = color;
+      pill.style.color = '#fff';
+    });
+    syncBarLayout();
+  }
+
+  document.addEventListener('click', function(e){
+    var rm = e.target.closest('.pill-remove');
+    if(!rm) return;
+    var pill = rm.closest('.pill');
+    var pills = document.querySelectorAll('.pill[data-opt]');
+    if(pills.length <= 1) return;
+    var opt = pill.getAttribute('data-opt');
+    var panel = document.getElementById('panel-' + opt);
+    var wasOn = pill.classList.contains('on');
+    pill.remove();
+    if(panel) panel.remove();
+    var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+    if(budgetLi) budgetLi.remove();
+    if(wasOn){
+      var firstPill = document.querySelector('.pill[data-opt]');
+      if(firstPill){
+        firstPill.classList.add('on');
+        var firstPanel = document.getElementById('panel-' + firstPill.getAttribute('data-opt'));
+        if(firstPanel) firstPanel.classList.add('on');
+      }
+    }
+  });
+
+  // ---- initial attach (also reused after an undo/redo restore, since
+  // replacing .wrap wholesale gives back plain markup with none of the
+  // dynamically-added controls or listeners wired up) ----
+  function reattachAll(){
+    // The old "Estimates per person..." disclaimer under Budget overview
+    // was removed from the template, but a browser with an older cached
+    // copy (local storage or plain HTTP cache) can still restore it —
+    // strip it defensively every time content gets (re)applied, regardless
+    // of where that content came from.
+    document.querySelectorAll('.fine').forEach(function(el){ el.remove(); });
+    // #icontoolbar (save button/status/presence) lives inside .wrap, so a
+    // wholesale .wrap swap always produces fresh toolbar nodes — re-point
+    // (and, only if they actually changed, re-wire) statusEl/saveBtn/
+    // changeFileBtn here every time, or the save button silently loses its
+    // click handler and the "Editing…/Saved ✓" status stops updating after
+    // the very first remote snapshot or undo/redo.
+    if(typeof wireIconToolbar === 'function') wireIconToolbar();
+    document.querySelectorAll(EDITABLE_SEL).forEach(makeEditable);
+    document.querySelectorAll('.acts li').forEach(attachItemControls);
+    document.querySelectorAll('.grid .cell').forEach(attachCellControls);
+    document.querySelectorAll('.panel').forEach(renderHoliday);
+    document.querySelectorAll('.panel').forEach(renderActivitySpans);
+    renderMonthSidebar();
+    var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+    if(activePanel){ var d0 = getPanelDate(activePanel); filterPillsByMonth(d0.year, d0.month); }
+  }
+  reattachAll();
+
+  // Color-mode switcher: two fixed swatches (their own colors are
+  // hardcoded in CSS, not var()-driven, so both stay visible regardless
+  // of which is active) — clicking one applies its palette via the same
+  // [data-theme] attribute the early bootstrap script already checks, so
+  // a reload never flashes the other palette first.
+  var THEME_KEY = 'travelPlannerTheme';
+  function applyTheme(name){
+    if(name === 'classic') document.documentElement.setAttribute('data-theme', 'classic');
+    else document.documentElement.removeAttribute('data-theme');
+    document.querySelectorAll('.theme-dot').forEach(function(d){
+      d.classList.toggle('active', d.getAttribute('data-theme-name') === name);
+    });
+    try { localStorage.setItem(THEME_KEY, name); } catch(e){}
+  }
+  document.querySelectorAll('.theme-dot').forEach(function(dot){
+    dot.addEventListener('click', function(){ applyTheme(dot.getAttribute('data-theme-name')); });
+  });
+  (function initTheme(){
+    var saved = 'kawaii';
+    try { saved = localStorage.getItem(THEME_KEY) || 'kawaii'; } catch(e){}
+    applyTheme(saved);
+  })();
+
+  document.addEventListener('input', function(e){
+    if(e.target.classList && e.target.classList.contains('price-val')){
+      var priceLi = e.target.closest('.acts > li[data-span-start]');
+      if(priceLi){
+        var pricePanel = priceLi.closest('.panel');
+        if(pricePanel) renderActivitySpans(pricePanel);
+      } else {
+        var cell = e.target.closest('.cell');
+        if(cell) recomputeCell(cell);
+      }
+    }
+    if(e.target.classList && e.target.classList.contains('line')){
+      var li = e.target.closest('.acts > li');
+      if(li) updateActivitySpan(li);
+    }
+    if(e.target.classList && e.target.classList.contains('title')){
+      var titleLi = e.target.closest('.acts > li[data-span-start]');
+      if(titleLi){ var p = titleLi.closest('.panel'); if(p) renderActivitySpans(p); }
+    }
+  });
+
+  // ---- save: cached file handle + manual button + debounced autosave ----
+  var saveBtn = document.getElementById('saveBtn');
+  var statusEl = document.getElementById('saveStatus');
+  var changeFileBtn = document.getElementById('changeFileBtn');
+
+  // Only used now for the one-time migration seed read (see
+  // getMigrationSeedPayload below) — no longer written to.
+  var LS_KEY = 'travelPlanHtml_v1';
+
+  var SAVE_EXCLUDE_SEL = '.icontoolbar, .tagpop, .linkpop, .monthpop, #tagData, .theme-switcher';
+
+  function buildSaveHtml(){
+    persistTags();
+    var clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
+    clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
+    clone.querySelectorAll(STRIP_CONTENTEDITABLE_SEL).forEach(function(el){ el.removeAttribute('contenteditable'); });
+    var st = clone.querySelector('#saveStatus');
+    if(st) st.textContent = '';
+    return '<!doctype html>\n' + clone.outerHTML;
+  }
+
+  function downloadCopy(htmlStr){
+    var blob = new Blob([htmlStr], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'travel-plan-august-2026.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  var DB_NAME = 'travelPlanEditor';
+  var STORE_NAME = 'handles';
+  var HANDLE_KEY = 'fileHandle';
+  var cachedHandle = null;
+
+  function idbOpen(){
+    return new Promise(function(resolve, reject){
+      var req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = function(){ req.result.createObjectStore(STORE_NAME); };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }
+  async function idbGetHandle(){
+    try{
+      var db = await idbOpen();
+      return await new Promise(function(resolve){
+        var tx = db.transaction(STORE_NAME, 'readonly');
+        var req = tx.objectStore(STORE_NAME).get(HANDLE_KEY);
+        req.onsuccess = function(){ resolve(req.result || null); };
+        req.onerror = function(){ resolve(null); };
+      });
+    } catch(e){ return null; }
+  }
+  async function idbSetHandle(handle){
+    try{
+      var db = await idbOpen();
+      return await new Promise(function(resolve){
+        var tx = db.transaction(STORE_NAME, 'readwrite');
+        if(handle) tx.objectStore(STORE_NAME).put(handle, HANDLE_KEY);
+        else tx.objectStore(STORE_NAME).delete(HANDLE_KEY);
+        tx.oncomplete = function(){ resolve(true); };
+        tx.onerror = function(){ resolve(false); };
+      });
+    } catch(e){ return false; }
+  }
+
+  function refreshChangeFileBtn(){
+    if(changeFileBtn) changeFileBtn.style.display = cachedHandle ? 'inline' : 'none';
+  }
+
+  async function writeWithHandle(handle, htmlStr){
+    var perm = await handle.queryPermission({ mode: 'readwrite' });
+    if(perm !== 'granted') perm = await handle.requestPermission({ mode: 'readwrite' });
+    if(perm !== 'granted') return false;
+    var writable = await handle.createWritable();
+    await writable.write(htmlStr);
+    await writable.close();
+    return true;
+  }
+
+  function setStatus(text, autoClear){
+    if(!statusEl) return;
+    statusEl.textContent = text;
+    if(autoClear){
+      setTimeout(function(){ if(statusEl.textContent === text) statusEl.textContent = ''; }, 2500);
+    }
+  }
+
+  // Payload for the shared backend is built from captureUndoSnapshot()
+  // (defined further down) rather than buildSaveHtml() — that function
+  // already does exactly the right stripping work (persistTags, clone only
+  // .wrap, strip .jsctl/popovers/contenteditable, blank #saveStatus) and
+  // already returns {wrap, tagData} in the shape needed here, so there's no
+  // reason to additionally clone the *whole document* on every autosave.
+  function buildBackendPayload(){
+    var snap = captureUndoSnapshot();
+    return { wrapHtml: snap.wrap, tagDataJson: snap.tagData };
+  }
+  function saveToBackend(payload){
+    if(!planRef) return Promise.resolve(false);
+    var write = planRef.set({
+      wrapHtml: payload.wrapHtml,
+      tagDataJson: payload.tagDataJson,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP,
+      updatedBy: CLIENT_ID
+    }).then(function(){ return true; }).catch(function(){ return false; });
+    // set() only resolves once the server acks the write — genuinely offline
+    // (or a misconfigured project), that ack never arrives and the promise
+    // hangs forever, leaving the status stuck on "Editing…" indefinitely.
+    // Racing a timeout turns "stuck silently" into "told you it failed" —
+    // the write itself is still queued client-side and will still go
+    // through once connectivity returns, this only affects the status text.
+    var timeout = new Promise(function(resolve){ setTimeout(function(){ resolve(false); }, 8000); });
+    return Promise.race([write, timeout]);
+  }
+
+  async function doSave(){
+    var htmlStr = buildSaveHtml();
+
+    // Background autosave (below) already keeps local storage current on
+    // every edit — this button is just for grabbing a portable file copy,
+    // so it doesn't need to duplicate that write.
+    if(IS_HOSTED){
+      downloadCopy(htmlStr);
+      setStatus('Downloaded ✓', true);
+      return;
+    }
+
+    var wroteDirect = false;
+    var mode = '';
+
+    if(!cachedHandle) cachedHandle = await idbGetHandle();
+
+    if(cachedHandle){
+      try{
+        wroteDirect = await writeWithHandle(cachedHandle, htmlStr);
+        if(wroteDirect) mode = 'file';
+      } catch(err){ wroteDirect = false; }
+      if(!wroteDirect){ cachedHandle = null; await idbSetHandle(null); }
+    }
+
+    if(!wroteDirect && window.showSaveFilePicker){
+      try{
+        var handle = await window.showSaveFilePicker({
+          suggestedName: 'travel-plan-august-2026.html',
+          types: [{ description: 'HTML file', accept: { 'text/html': ['.html'] } }]
+        });
+        wroteDirect = await writeWithHandle(handle, htmlStr);
+        if(wroteDirect){
+          cachedHandle = handle;
+          await idbSetHandle(handle);
+          mode = 'file';
+        }
+      } catch(err){
+        if(err && err.name === 'AbortError'){ return; }
+        wroteDirect = false;
+      }
+    }
+
+    if(!wroteDirect){
+      downloadCopy(htmlStr);
+      mode = 'download';
+    }
+
+    refreshChangeFileBtn();
+    setStatus(mode === 'file' ? 'Saved ✓' : 'Downloaded a new copy ✓', true);
+  }
+
+  async function triggerAutoSave(){
+    if(IS_HOSTED){
+      var ok = await saveToBackend(buildBackendPayload());
+      setStatus(ok ? 'Saved ✓' : 'Autosave failed — check connection', ok);
+      return;
+    }
+
+    var htmlStr = buildSaveHtml();
+    if(!cachedHandle) cachedHandle = await idbGetHandle();
+    if(!cachedHandle){
+      setStatus('Click 💾 once to enable autosave');
+      return;
+    }
+    try{
+      var ok2 = await writeWithHandle(cachedHandle, htmlStr);
+      if(ok2){ setStatus('Saved ✓', true); }
+      else { cachedHandle = null; await idbSetHandle(null); refreshChangeFileBtn(); setStatus('Click 💾 once to enable autosave'); }
+    } catch(err){
+      cachedHandle = null; await idbSetHandle(null); refreshChangeFileBtn();
+      setStatus('Click 💾 once to enable autosave');
+    }
+  }
+
+  var autoSaveTimer = null;
+  function scheduleAutoSave(){
+    setStatus('Editing…');
+    clearTimeout(autoSaveTimer);
+    // Shorter when hosted (was 400ms) — shrinks the last-write-wins collision
+    // window now that autosave can race against a different person's edit,
+    // not just occasional same-browser other-tab writes.
+    autoSaveTimer = setTimeout(triggerAutoSave, IS_HOSTED ? 250 : 900);
+  }
+
+  // #icontoolbar (saveBtn/statusEl/changeFileBtn/presenceEl) lives INSIDE
+  // .wrap, so every wholesale .wrap replaceWith() (undo/redo, a remote
+  // snapshot arriving) silently produces brand-new toolbar nodes — the
+  // saveBtn/statusEl/changeFileBtn variables captured once above would go
+  // on pointing at the old, now-detached elements forever, and the save
+  // button would lose its click handler entirely. reattachAll() already
+  // re-runs after every one of those replacements, so re-querying and
+  // (only when the node actually changed) re-wiring from there keeps these
+  // refs — and the click handler — pointed at whatever's actually live.
+  function wireIconToolbar(){
+    var freshSaveBtn = document.getElementById('saveBtn');
+    statusEl = document.getElementById('saveStatus');
+    if(freshSaveBtn === saveBtn) return;
+    saveBtn = freshSaveBtn;
+    changeFileBtn = document.getElementById('changeFileBtn');
+    saveBtn.addEventListener('click', function(){ doSave(); });
+    saveBtn.title = IS_HOSTED ? 'Download a copy of the current plan' : 'Save';
+    if(changeFileBtn){
+      if(IS_HOSTED){
+        changeFileBtn.style.display = 'none';
+      } else {
+        changeFileBtn.addEventListener('click', async function(){
+          cachedHandle = null;
+          await idbSetHandle(null);
+          refreshChangeFileBtn();
+          setStatus('Next save will ask where to save', true);
+        });
+        refreshChangeFileBtn();
+      }
+    }
+  }
+  wireIconToolbar();
+
+  // ---- undo/redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z): coarse, snapshot-based —
+  // captures a clean copy of .wrap + tagData (same shape as an autosave)
+  // once mutations settle, and restores by swapping .wrap back in and
+  // re-running reattachAll(). Simpler and more robust than tracking
+  // per-action diffs, at the cost of undo granularity being "a batch of
+  // changes that happened close together in time" rather than per-keystroke.
+  function captureUndoSnapshot(){
+    persistTags();
+    var wrapClone = document.querySelector('.wrap').cloneNode(true);
+    wrapClone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
+    wrapClone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
+    wrapClone.querySelectorAll(STRIP_CONTENTEDITABLE_SEL).forEach(function(el){ el.removeAttribute('contenteditable'); });
+    // Blank the transient "Editing…/Saved ✓" indicator — same as buildSaveHtml()
+    // — so its own lifecycle never registers as a real content change and
+    // pollutes the undo history with phantom no-op checkpoints.
+    var st = wrapClone.querySelector('#saveStatus');
+    if(st) st.textContent = '';
+    return { wrap: wrapClone.outerHTML, tagData: TAGDATA_EL.textContent };
+  }
+  function restoreUndoSnapshot(entry){
+    var parsed = new DOMParser().parseFromString(entry.wrap, 'text/html');
+    var newWrap = parsed.querySelector('.wrap');
+    var curWrap = document.querySelector('.wrap');
+    if(newWrap && curWrap) curWrap.replaceWith(newWrap);
+    TAGDATA_EL.textContent = entry.tagData;
+    try { TAGS = JSON.parse(entry.tagData); } catch(e){ TAGS = []; }
+    reattachAll();
+  }
+
+  var undoStack = [];
+  var redoStack = [];
+  var lastSnapshot = captureUndoSnapshot();
+  var undoTimer = null;
+  var restoringHistory = false;
+  var UNDO_MAX = 30;
+
+  function pushUndoIfChanged(){
+    if(restoringHistory) return;
+    var snap = captureUndoSnapshot();
+    if(snap.wrap === lastSnapshot.wrap && snap.tagData === lastSnapshot.tagData) return;
+    undoStack.push(lastSnapshot);
+    if(undoStack.length > UNDO_MAX) undoStack.shift();
+    lastSnapshot = snap;
+    redoStack = [];
+  }
+  function scheduleUndoSnapshot(){
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(pushUndoIfChanged, 600);
+  }
+
+  document.addEventListener('keydown', function(e){
+    var mod = e.metaKey || e.ctrlKey;
+    if(!mod || e.key.toLowerCase() !== 'z') return;
+    e.preventDefault();
+    clearTimeout(undoTimer);
+    pushUndoIfChanged();
+    restoringHistory = true;
+    if(e.shiftKey){
+      if(redoStack.length){
+        undoStack.push(lastSnapshot);
+        lastSnapshot = redoStack.pop();
+        restoreUndoSnapshot(lastSnapshot);
+      }
+    } else {
+      if(undoStack.length){
+        redoStack.push(lastSnapshot);
+        lastSnapshot = undoStack.pop();
+        restoreUndoSnapshot(lastSnapshot);
+      }
+    }
+    restoringHistory = false;
+    scheduleAutoSave();
+  });
+
+  var mo = new MutationObserver(function(mutations){
+    var relevant = mutations.some(function(m){
+      var node = m.target;
+      if(node.nodeType === 3) node = node.parentElement;
+      return node && !node.closest(SAVE_EXCLUDE_SEL);
+    });
+    if(relevant){ scheduleAutoSave(); scheduleUndoSnapshot(); syncPillFilter(); }
+  });
+  mo.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true,
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] });
+
+  // ---- shared real-time sync: one Firebase listener replaces both the old
+  // one-time localStorage restore AND the old same-browser-only 'storage'
+  // event listener. ref.on('value', cb) fires immediately with whatever the
+  // current shared value is (the "initial load" case) and again on every
+  // future change from ANY connected browser/device (the "live sync" case)
+  // — RTDB gives us both for free from one registration. ----
+
+  // True while some in-progress local interaction would be corrupted by a
+  // remote DOM swap arriving right now (a focused editable field mid-
+  // keystroke, an active drag whose closure holds a direct reference into
+  // the current .wrap, or an open popover anchored to a node that's about
+  // to be replaced). Checked before ever applying a remote snapshot.
+  function isLocallyBusy(){
+    var ae = document.activeElement;
+    if(ae && ae.isContentEditable && ae.matches && ae.matches(EDITABLE_SEL + ', .pill-name')) return true;
+    if(pillDrag || cellDrag || actDrag || dragState) return true;
+    if(openPop) return true;
+    return false;
+  }
+
+  var pendingRemoteUpdate = null;
+  // Only the latest queued value is kept (never a list) — consistent with
+  // the last-write-wins model below. Wired into every existing "the busy
+  // condition just ended" hook (drag-end handlers, popover close, field
+  // blur) rather than polling.
+  function tryApplyPendingRemoteUpdate(){
+    if(pendingRemoteUpdate && !isLocallyBusy()){
+      var val = pendingRemoteUpdate;
+      pendingRemoteUpdate = null;
+      applyRemoteSnapshot(val);
+    }
+  }
+
+  function applyRemoteSnapshot(val){
+    var parsed = new DOMParser().parseFromString(val.wrapHtml, 'text/html');
+    var newWrap = parsed.querySelector('.wrap');
+    if(!newWrap) return;
+    restoringHistory = true;
+    document.querySelector('.wrap').replaceWith(newWrap);
+    if(val.tagDataJson){
+      TAGDATA_EL.textContent = val.tagDataJson;
+      try { TAGS = JSON.parse(val.tagDataJson); } catch(err){ TAGS = []; }
+    }
+    reattachAll();
+    lastSnapshot = captureUndoSnapshot();
+    restoringHistory = false;
+    setStatus('Synced ✓', true);
+  }
+
+  // One-time migration seed (only ever runs while /plan is empty): prefer
+  // this browser's existing localStorage save — the real, possibly-newer
+  // content someone was actually editing — over the static defaults baked
+  // into whichever copy of the file happens to load first.
+  function getMigrationSeedPayload(){
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if(raw){
+        var entry = JSON.parse(raw);
+        var html = entry && entry.html;
+        if(html){
+          var parsed = new DOMParser().parseFromString(html, 'text/html');
+          var wrap = parsed.querySelector('.wrap');
+          var tagData = parsed.getElementById('tagData');
+          if(wrap) return { wrapHtml: wrap.outerHTML, tagDataJson: tagData ? tagData.textContent : TAGDATA_EL.textContent };
+        }
+      }
+    } catch(e){}
+    return buildBackendPayload(); // fallback: whatever's currently in the live page
+  }
+
+  if(IS_HOSTED && planRef){
+    var firstLoadDone = false;
+    planRef.on('value', function(snapshot){
+      var val = snapshot.val();
+      if(!firstLoadDone){
+        firstLoadDone = true;
+        if(val && val.wrapHtml){
+          applyRemoteSnapshot(val);
+          mergeDefaultTags();
+        } else {
+          saveToBackend(getMigrationSeedPayload());
+        }
+        document.documentElement.style.visibility = '';
+        return;
+      }
+      if(!val || !val.wrapHtml) return;
+      // Firebase echoes our own writes straight back to this same listener,
+      // often before the debounced local snapshots below have caught up —
+      // without this check, re-applying our own echo via a wholesale .wrap
+      // replace would itself count as a new "relevant" mutation to the
+      // autosave observer, scheduling another write, which echoes back
+      // again, forever. Skipping anything tagged with our own CLIENT_ID
+      // breaks that loop; only a genuinely different client's write reaches
+      // applyRemoteSnapshot below.
+      if(val.updatedBy === CLIENT_ID) return;
+      if(val.wrapHtml === lastSnapshot.wrap) return;
+      if(isLocallyBusy()){ pendingRemoteUpdate = val; return; }
+      applyRemoteSnapshot(val);
+    });
+
+    // Lightweight "N viewing" presence — not used for conflict resolution,
+    // just situational awareness. onDisconnect() cleans this client's entry
+    // up automatically (tab close, network drop) with no server code.
+    var presenceRef = firebase.database().ref('presence/' + CLIENT_ID);
+    presenceRef.set({ ts: firebase.database.ServerValue.TIMESTAMP });
+    presenceRef.onDisconnect().remove();
+    firebase.database().ref('presence').on('value', function(s){
+      var val = s.val();
+      var count = val ? Object.keys(val).length : 1;
+      var el = document.getElementById('presenceCount');
+      if(el) el.textContent = count > 1 ? count + ' viewing' : '';
+    });
+  }
+
+  if(!IS_HOSTED){
+    (async function initHandle(){
+      cachedHandle = await idbGetHandle();
+      refreshChangeFileBtn();
+    })();
+  }
+})();
+</script>
+</body>
+</html>
