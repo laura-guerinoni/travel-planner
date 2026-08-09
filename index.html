@@ -2708,6 +2708,19 @@
     wrapClone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
     wrapClone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
     wrapClone.querySelectorAll(STRIP_CONTENTEDITABLE_SEL).forEach(function(el){ el.removeAttribute('contenteditable'); });
+    // .wrap's own top padding and .pills' own top offset are pure runtime
+    // layout output from syncBarLayout() — recomputed fresh from scratch by
+    // reattachAll() every time content loads, never actual plan content.
+    // They also vary slightly between browsers (font metrics, sidebar
+    // state), so leaving them in made every save/compare see a "change"
+    // that wasn't one: constant saves, constant downloads by every other
+    // open tab, and a tab-to-tab feedback loop when two browsers were open
+    // at once (each kept "correcting" the other's padding back to its own).
+    // Stripping them keeps the saved/compared HTML identical across
+    // browsers and viewports whenever the actual plan hasn't changed.
+    wrapClone.style.removeProperty('padding-top');
+    var pillsClone = wrapClone.querySelector('.pills');
+    if(pillsClone) pillsClone.style.removeProperty('top');
     // Blank the transient "Editing…/Saved ✓" indicator — same as buildSaveHtml()
     // — so its own lifecycle never registers as a real content change and
     // pollutes the undo history with phantom no-op checkpoints.
@@ -2752,34 +2765,80 @@
     e.preventDefault();
     clearTimeout(undoTimer);
     pushUndoIfChanged();
-    restoringHistory = true;
-    if(e.shiftKey){
-      if(redoStack.length){
-        undoStack.push(lastSnapshot);
-        lastSnapshot = redoStack.pop();
-        restoreUndoSnapshot(lastSnapshot);
+    withHistoryRestoreGuard(function(){
+      if(e.shiftKey){
+        if(redoStack.length){
+          undoStack.push(lastSnapshot);
+          lastSnapshot = redoStack.pop();
+          restoreUndoSnapshot(lastSnapshot);
+        }
+      } else {
+        if(undoStack.length){
+          redoStack.push(lastSnapshot);
+          lastSnapshot = undoStack.pop();
+          restoreUndoSnapshot(lastSnapshot);
+        }
       }
-    } else {
-      if(undoStack.length){
-        redoStack.push(lastSnapshot);
-        lastSnapshot = undoStack.pop();
-        restoreUndoSnapshot(lastSnapshot);
-      }
-    }
-    restoringHistory = false;
+    });
     scheduleAutoSave();
   });
 
+  // How long, after a genuine local edit, to keep refusing an incoming
+  // remote snapshot. A click like "delete activity" or "clear day" is
+  // instantaneous — unlike a focused field or open popover, isLocallyBusy()
+  // previously had no way to know one *just* happened, so a remote snapshot
+  // that was already in flight (queued before the click, or saved by
+  // another tab moments earlier) could land right after and silently
+  // overwrite the change with older content. Longer than the slowest
+  // autosave debounce (900ms offline) plus a margin for the write to reach
+  // the server and echo back — not a real fix for the underlying
+  // last-write-wins/whole-document sync model, but it closes the specific
+  // window where a click-based edit gets reverted a moment after it lands.
+  var LOCAL_EDIT_GRACE_MS = 1500;
+  var localEditUntil = 0;
+
+  var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
       if(node.nodeType === 3) node = node.parentElement;
-      return node && !node.closest(SAVE_EXCLUDE_SEL);
+      if(!node) return false;
+      // .wrap's and .pills' own inline `style` is pure runtime layout
+      // output (syncBarLayout positioning the fixed header/padding), not
+      // plan content — see the matching note in captureUndoSnapshot(). A
+      // style change ONLY on these two elements themselves (not their
+      // descendants — an actual added/edited activity still counts)
+      // shouldn't schedule a save or hold off an incoming update.
+      if(m.type === 'attributes' && m.attributeName === 'style' &&
+         (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
+      return !node.closest(SAVE_EXCLUDE_SEL);
     });
-    if(relevant){ scheduleAutoSave(); scheduleUndoSnapshot(); syncPillFilter(); }
+    if(relevant){
+      scheduleAutoSave(); scheduleUndoSnapshot(); syncPillFilter();
+      localEditUntil = Date.now() + LOCAL_EDIT_GRACE_MS;
+    }
   });
-  mo.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] });
+  mo.observe(document.body, MO_OPTS);
+  // Mutations caused by applying a remote snapshot or an undo/redo restore
+  // must never be seen as local edits — restoringHistory alone can't
+  // guarantee that: MutationObserver callbacks always run as a microtask
+  // *after* the current synchronous code finishes, so by the time this
+  // callback runs, a function that flips restoringHistory back to false
+  // before returning has already done so, and the check above would see
+  // "false" even for mutations that function itself caused. Disconnecting
+  // the observer for the duration of such a block (see applyRemoteSnapshot
+  // and the undo/redo handler below) sidesteps the timing issue entirely —
+  // those mutations are never queued in the first place, regardless of
+  // when the callback would have run.
+  function withHistoryRestoreGuard(fn){
+    mo.disconnect();
+    restoringHistory = true;
+    try { fn(); } finally {
+      restoringHistory = false;
+      mo.observe(document.body, MO_OPTS);
+    }
+  }
 
   // ---- shared real-time sync: one Firebase listener replaces both the old
   // one-time localStorage restore AND the old same-browser-only 'storage'
@@ -2798,6 +2857,7 @@
     if(ae && ae.isContentEditable && ae.matches && ae.matches(EDITABLE_SEL + ', .pill-name')) return true;
     if(pillDrag || cellDrag || actDrag || dragState) return true;
     if(openPop) return true;
+    if(Date.now() < localEditUntil) return true;
     return false;
   }
 
@@ -2813,20 +2873,26 @@
       applyRemoteSnapshot(val);
     }
   }
+  // Safety net: the grace window above (localEditUntil) can expire with no
+  // field blur, popover close, or drag-end to naturally trigger a re-check
+  // — e.g. after a plain button click like "clear day" with nothing left
+  // focused. Without this, a queued update could sit in pendingRemoteUpdate
+  // indefinitely until some unrelated UI event happens to fire.
+  setInterval(tryApplyPendingRemoteUpdate, 500);
 
   function applyRemoteSnapshot(val){
     var parsed = new DOMParser().parseFromString(val.wrapHtml, 'text/html');
     var newWrap = parsed.querySelector('.wrap');
     if(!newWrap) return;
-    restoringHistory = true;
-    document.querySelector('.wrap').replaceWith(newWrap);
-    if(val.tagDataJson){
-      TAGDATA_EL.textContent = val.tagDataJson;
-      try { TAGS = JSON.parse(val.tagDataJson); } catch(err){ TAGS = []; }
-    }
-    reattachAll();
-    lastSnapshot = captureUndoSnapshot();
-    restoringHistory = false;
+    withHistoryRestoreGuard(function(){
+      document.querySelector('.wrap').replaceWith(newWrap);
+      if(val.tagDataJson){
+        TAGDATA_EL.textContent = val.tagDataJson;
+        try { TAGS = JSON.parse(val.tagDataJson); } catch(err){ TAGS = []; }
+      }
+      reattachAll();
+      lastSnapshot = captureUndoSnapshot();
+    });
     setStatus('Synced ✓', true);
   }
 
@@ -2851,6 +2917,20 @@
     return buildBackendPayload(); // fallback: whatever's currently in the live page
   }
 
+  // Floor for accepting an incoming snapshot: every save carries a real
+  // server-assigned timestamp (updatedAt), so — unlike the CLIENT_ID check
+  // below, which only filters OUR OWN echo — this catches a genuinely
+  // different client's write that's actually older than what we already
+  // have. That happens whenever two tabs are edited around the same time:
+  // one tab's save can still be in flight (queued locally, not yet sent)
+  // when it finally reaches the server moments after a newer save from the
+  // other tab already landed — without this check that older write would
+  // still overwrite the newer one on arrival, silently reverting whatever
+  // was just changed. Updated from BOTH remote snapshots and our own
+  // writes' echo (the updatedBy check further down only stops the echo
+  // from being re-applied to the DOM, not from raising this floor).
+  var lastSeenUpdatedAt = 0;
+
   if(IS_HOSTED && planRef){
     var firstLoadDone = false;
     planRef.on('value', function(snapshot){
@@ -2858,8 +2938,19 @@
       if(!firstLoadDone){
         firstLoadDone = true;
         if(val && val.wrapHtml){
+          if(val.updatedAt) lastSeenUpdatedAt = val.updatedAt;
           applyRemoteSnapshot(val);
           mergeDefaultTags();
+          // Self-heal old data saved before captureUndoSnapshot() started
+          // stripping per-browser layout styling (padding-top/top) from
+          // what gets stored: if what's now on the page (cleaned) differs
+          // from what was actually stored (possibly still carrying that
+          // junk from a previous version of this file), push the cleaned
+          // version back once, right away — rather than leaving stale,
+          // bloated data sitting in Firebase until someone happens to make
+          // an unrelated edit.
+          var cleaned = captureUndoSnapshot();
+          if(cleaned.wrap !== val.wrapHtml) saveToBackend({ wrapHtml: cleaned.wrap, tagDataJson: cleaned.tagData });
         } else {
           saveToBackend(getMigrationSeedPayload());
         }
@@ -2867,6 +2958,11 @@
         return;
       }
       if(!val || !val.wrapHtml) return;
+      // A write older than the newest one we've already incorporated is
+      // stale no matter who sent it — ignore it outright rather than let it
+      // clobber more-current content with a rewind.
+      if(val.updatedAt && val.updatedAt < lastSeenUpdatedAt) return;
+      if(val.updatedAt) lastSeenUpdatedAt = val.updatedAt;
       // Firebase echoes our own writes straight back to this same listener,
       // often before the debounced local snapshots below have caught up —
       // without this check, re-applying our own echo via a wholesale .wrap
@@ -2874,7 +2970,9 @@
       // autosave observer, scheduling another write, which echoes back
       // again, forever. Skipping anything tagged with our own CLIENT_ID
       // breaks that loop; only a genuinely different client's write reaches
-      // applyRemoteSnapshot below.
+      // applyRemoteSnapshot below. (lastSeenUpdatedAt is still updated
+      // above even for our own echo, so it keeps acting as an accurate
+      // floor for the next incoming write.)
       if(val.updatedBy === CLIENT_ID) return;
       if(val.wrapHtml === lastSnapshot.wrap) return;
       if(isLocallyBusy()){ pendingRemoteUpdate = val; return; }
