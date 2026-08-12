@@ -2704,6 +2704,19 @@
 
   async function triggerAutoSave(){
     if(IS_HOSTED){
+      // firstLoadDone (declared below, but var-hoisted through this whole
+      // IIFE) only flips true once this client has actually received and
+      // applied the real shared plan from Firebase. Before that, whatever
+      // is on the page is just this file's own static placeholder markup —
+      // rendered before first paint and normally hidden behind the
+      // visibility:hidden flag until Firebase responds. A MutationObserver-
+      // triggered autosave firing during that window (e.g. because the
+      // network round-trip to Firebase is slower than the 250ms debounce)
+      // would otherwise capture that placeholder and blindly overwrite the
+      // real shared data with it — identically on every device, since the
+      // placeholder is baked into the file itself, not derived from any
+      // per-browser state.
+      if(!firstLoadDone){ console.warn('Skipping autosave: initial Firebase sync has not landed yet.'); return; }
       var payload = buildBackendPayload();
       if(!payload){ console.warn('Skipping autosave: extracted content had no options.'); return; }
       var ok = await saveToBackend(payload);
