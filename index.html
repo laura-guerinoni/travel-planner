@@ -2624,6 +2624,12 @@
   // reason to additionally clone the *whole document* on every autosave.
   function buildBackendPayload(){
     var snap = captureUndoSnapshot();
+    var model = null;
+    try { model = JSON.parse(snap.content); } catch(e){}
+    // Never push an empty document — the UI itself never lets the option
+    // count reach zero (see the pill-remove handler above), so an empty
+    // extraction here can only mean a DOM/rendering bug, not a real edit.
+    if(!model || !Array.isArray(model.options) || !model.options.length) return null;
     return { contentJson: snap.content, tagDataJson: snap.tagData };
   }
   function saveToBackend(payload){
@@ -2698,7 +2704,9 @@
 
   async function triggerAutoSave(){
     if(IS_HOSTED){
-      var ok = await saveToBackend(buildBackendPayload());
+      var payload = buildBackendPayload();
+      if(!payload){ console.warn('Skipping autosave: extracted content had no options.'); return; }
+      var ok = await saveToBackend(payload);
       setStatus(ok ? 'Saved ✓' : 'Autosave failed — check connection', ok);
       return;
     }
@@ -3005,6 +3013,37 @@
     return true;
   }
 
+  // Guards the automatic (non-user-initiated) resaves below — the self-heal
+  // rewrite on load, and any future case where the app writes back data it
+  // re-derived rather than data the user actually edited. Those paths have
+  // no business ever losing content: the model is vertical (options contain
+  // days, days contain activities), and a shallow "did the JSON string
+  // change" check can't tell a formatting cleanup apart from an incomplete
+  // render that silently dropped an option/day/activity a stale or buggy
+  // client failed to understand. Real user edits (delete an activity, remove
+  // an option) legitimately shrink the model and must NOT go through this —
+  // this is only for writes that claim to be a lossless re-derivation of
+  // data that's already on the server.
+  function modelPreservesStructure(model, baseline){
+    if(!model || !Array.isArray(model.options)) return false;
+    if(!baseline || !Array.isArray(baseline.options)) return true;
+    if(model.options.length < baseline.options.length) return false;
+    var byId = {};
+    model.options.forEach(function(o){ byId[o.id] = o; });
+    return baseline.options.every(function(baseOpt){
+      var opt = byId[baseOpt.id];
+      if(!opt) return false;
+      var baseDays = baseOpt.d || {};
+      var days = opt.d || {};
+      return Object.keys(baseDays).every(function(dn){
+        var baseActs = (baseDays[dn] && baseDays[dn].a) || [];
+        var acts = (days[dn] && days[dn].a) || [];
+        if(!baseActs.length) return true;
+        return acts.length >= baseActs.length;
+      });
+    });
+  }
+
   function captureUndoSnapshot(){
     persistTags();
     return { content: JSON.stringify(extractContentModel()), tagData: TAGDATA_EL.textContent };
@@ -3246,9 +3285,24 @@
           // Also upgrades old full-HTML data to the compact JSON model on
           // the first load that sees it, rather than leaving the bloated
           // blob in place until someone happens to make an edit.
-          if(cleaned.content !== val.contentJson) saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
+          if(cleaned.content !== val.contentJson){
+            var serverModel = null;
+            try { serverModel = val.contentJson ? JSON.parse(val.contentJson) : null; } catch(err){ serverModel = null; }
+            var cleanedModel = null;
+            try { cleanedModel = JSON.parse(cleaned.content); } catch(err){ cleanedModel = null; }
+            // This resave is supposed to be a lossless re-derivation of data
+            // that's already on the server, never a real edit — a stale or
+            // buggy client that failed to render some option/day/activity it
+            // didn't recognize must not be allowed to write that gap back.
+            if(modelPreservesStructure(cleanedModel, serverModel)){
+              saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
+            } else {
+              console.warn('Skipping self-heal resave: re-derived content is missing options/days/activities present on the server.');
+            }
+          }
         } else {
-          saveToBackend(getMigrationSeedPayload());
+          var seed = getMigrationSeedPayload();
+          if(seed) saveToBackend(seed);
         }
         document.documentElement.style.visibility = '';
         return;
