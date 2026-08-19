@@ -1553,6 +1553,15 @@
     document.removeEventListener('pointercancel', onCellDragEnd);
     tryApplyPendingRemoteUpdate();
   }
+  // "clear day" should be reachable whenever there's anything on the day to
+  // clear — a location OR an activity, not just a location. .act-span-ghost
+  // rows are a derived echo of a multi-day activity stored on another day
+  // (see extractContentModel), not real content on this cell, so they don't
+  // count.
+  function cellHasContent(cell){
+    if(cell.querySelector(':scope > .loc')) return true;
+    return !!cell.querySelector(':scope > .acts > li:not(.act-span-ghost)');
+  }
   function swapCellContent(a, b){
     var aLoc = a.querySelector(':scope > .loc'), aActs = a.querySelector(':scope > .acts'), aCost = a.querySelector(':scope > .cost');
     var bLoc = b.querySelector(':scope > .loc'), bActs = b.querySelector(':scope > .acts'), bCost = b.querySelector(':scope > .cost');
@@ -1568,8 +1577,8 @@
     b.classList.toggle('active', !!aLoc);
     refreshHoliCell(a); refreshHoliCell(b);
     recomputeCell(a); recomputeCell(b);
-    var aClear = a.querySelector(':scope > .cleardaybtn'); if(aClear) aClear.classList.toggle('has-content', !!bLoc);
-    var bClear = b.querySelector(':scope > .cleardaybtn'); if(bClear) bClear.classList.toggle('has-content', !!aLoc);
+    var aClear = a.querySelector(':scope > .cleardaybtn'); if(aClear) aClear.classList.toggle('has-content', cellHasContent(a));
+    var bClear = b.querySelector(':scope > .cleardaybtn'); if(bClear) bClear.classList.toggle('has-content', cellHasContent(b));
     var swapPanel = a.closest('.panel');
     if(swapPanel) renderActivitySpans(swapPanel);
   }
@@ -1676,8 +1685,7 @@
     clearBtn.textContent = '✕ clear day';
 
     function refreshClear(){
-      var hasLoc = !!cell.querySelector(':scope > .loc');
-      clearBtn.classList.toggle('has-content', hasLoc);
+      clearBtn.classList.toggle('has-content', cellHasContent(cell));
     }
 
     function ensureLoc(){
