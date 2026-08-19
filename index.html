@@ -2998,6 +2998,17 @@
           cell.insertBefore(ul, anchor);
           cell.classList.add('active');
         }
+        // buildCalendarGrid() (called above, before this loop runs) already
+        // ran attachCellControls() — and therefore refreshClear() — on every
+        // cell while they were still empty, since this is a freshly built
+        // panel with nothing yet to preserve. The loc/acts just inserted
+        // above never re-triggers that closure (attachCellControls's own
+        // no-op guard skips cells that already have their controls), so
+        // without this, has-content stays stuck at "false" for every day
+        // populated this way — i.e. on every Firebase sync and undo/redo
+        // restore — regardless of what's actually on the day.
+        var clear = cell.querySelector(':scope > .cleardaybtn');
+        if(clear) clear.classList.toggle('has-content', cellHasContent(cell));
       });
 
       var pill = document.createElement('button');
