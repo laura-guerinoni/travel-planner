@@ -403,10 +403,14 @@
   #manageAccessPanel { display:none; position:fixed; inset:0; z-index:9998;
     align-items:center; justify-content:center; background:rgba(0,0,0,.35); }
   #manageAccessPanel.show { display:flex; }
-  #manageAccessPanel .map-inner { position:relative; background:var(--card); border-radius:16px; padding:22px;
+  #manageAccessPanel .map-inner { background:var(--card); border-radius:16px; padding:22px;
     width:min(360px, 90vw); max-height:80vh; overflow:auto; box-shadow:0 12px 32px rgba(0,0,0,.25); }
-  #manageAccessPanel h2 { margin:0 0 14px; font-size:17px; color:var(--ink); }
-  #manageAccessCloseX { position:absolute; top:12px; right:12px; width:28px; height:28px; padding:0;
+  /* Flexbox centers the X against the header's line box exactly, rather
+     than an absolute offset guessed to match this particular font size —
+     stays correct if the heading's size or line-height ever changes. */
+  .map-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 14px; }
+  #manageAccessPanel h2 { margin:0; font-size:17px; color:var(--ink); }
+  #manageAccessCloseX { flex:none; width:28px; height:28px; padding:0;
     border:none; background:transparent; color:var(--muted); font-size:18px; line-height:1; cursor:pointer;
     border-radius:50%; }
   #manageAccessCloseX:hover { background:var(--bg); color:var(--ink); }
@@ -434,8 +438,10 @@
 <button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
 <div id="manageAccessPanel">
   <div class="map-inner">
-    <button type="button" id="manageAccessCloseX" title="Close" aria-label="Close">✕</button>
-    <h2>Manage access</h2>
+    <div class="map-header">
+      <h2>Manage access</h2>
+      <button type="button" id="manageAccessCloseX" title="Close" aria-label="Close">✕</button>
+    </div>
     <ul id="manageAccessList"></ul>
     <form id="manageAccessAddForm">
       <input type="email" id="manageAccessAddInput" placeholder="Invite by email" required />
