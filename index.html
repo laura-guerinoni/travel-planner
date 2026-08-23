@@ -388,6 +388,37 @@
   #authGate[data-state="denied"] #authSignInBtn,
   #authGate[data-state="error"] #authSignInBtn,
   #authGate[data-state="error"] #authSignOutBtn { display:none; }
+
+  /* Owner-only "manage access" control. Lives outside .wrap (like the
+     theme switcher) on purpose — .wrap gets fully torn down and rebuilt on
+     every Firebase sync and undo/redo restore, which would otherwise mean
+     re-wiring this button's listeners every time, the same class of bug
+     fixed earlier for the per-day "clear day" button. */
+  #manageAccessBtn { display:none; position:fixed; top:16px; left:16px; z-index:60;
+    align-items:center; gap:6px; padding:8px 14px; border-radius:999px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  #manageAccessBtn.show { display:inline-flex; }
+  #manageAccessBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
+  #manageAccessPanel { display:none; position:fixed; inset:0; z-index:9998;
+    align-items:center; justify-content:center; background:rgba(0,0,0,.35); }
+  #manageAccessPanel.show { display:flex; }
+  #manageAccessPanel .map-inner { background:var(--card); border-radius:16px; padding:22px;
+    width:min(360px, 90vw); max-height:80vh; overflow:auto; box-shadow:0 12px 32px rgba(0,0,0,.25); }
+  #manageAccessPanel h2 { margin:0 0 14px; font-size:17px; color:var(--ink); }
+  #manageAccessList { list-style:none; margin:0 0 14px; padding:0; display:flex; flex-direction:column; gap:8px; }
+  #manageAccessList li { display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:13px; padding:6px 8px; border-radius:8px; background:var(--bg); color:var(--ink); }
+  #manageAccessList .map-role { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  #manageAccessList button.map-remove { border:none; background:transparent; color:#b3261e; cursor:pointer;
+    font-size:14px; padding:2px 6px; }
+  #manageAccessAddForm { display:flex; gap:6px; margin-bottom:8px; }
+  #manageAccessAddForm input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px; }
+  #manageAccessAddForm button { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
+    color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
+  #manageAccessError { color:#b3261e; font-size:12px; min-height:14px; margin:0 0 10px; }
+  #manageAccessCloseBtn { width:100%; padding:8px; border-radius:8px; border:1px solid var(--line);
+    background:transparent; color:var(--ink); cursor:pointer; font-size:13px; }
 </style>
 </head>
 <body>
@@ -397,6 +428,19 @@
   <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
   <button type="button" id="authSignInBtn">Sign in with Google</button>
   <button type="button" id="authSignOutBtn">Sign out and try another account</button>
+</div>
+<button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
+<div id="manageAccessPanel">
+  <div class="map-inner">
+    <h2>Manage access</h2>
+    <ul id="manageAccessList"></ul>
+    <form id="manageAccessAddForm">
+      <input type="email" id="manageAccessAddInput" placeholder="Invite by email" required />
+      <button type="submit">Invite</button>
+    </form>
+    <p id="manageAccessError"></p>
+    <button type="button" id="manageAccessCloseBtn">Close</button>
+  </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
 <div class="theme-switcher" id="themeSwitcher">
@@ -723,13 +767,23 @@
   }
   var CLIENT_ID = 'c-' + Math.random().toString(36).slice(2, 10);
 
-  // Matches the Realtime Database security rules — both sides must agree on
-  // exactly who's allowed, since the rules are the actual enforcement and
-  // this gate is just the UI in front of them. Case-insensitive: Google
-  // accounts are case-insensitive too, and the rules lower-case for the
-  // comparison (see setup notes shared alongside this file).
-  var ALLOWED_EMAILS = ['lau.ggguer@gmail.com', 'lau.guerinoni@gmail.com'];
+  // Membership lives in the database itself, under /members, rather than
+  // hardcoded here — so who's allowed can change (invite/remove) without a
+  // code deploy. Each key is a sanitized email (RTDB keys can't contain
+  // '.', which real email addresses always do) mapped to a role: 'owner'
+  // (seeded once by hand in the Firebase console, never created or removed
+  // through this app — see setup notes) or 'invited' (added/removed by an
+  // owner, from the "Manage access" panel below). The security rules
+  // independently enforce all of this against the same /members data —
+  // this file only mirrors that logic for the UI; it isn't what makes it
+  // secure.
+  function sanitizeEmailKey(email){
+    return (email || '').toLowerCase().replace(/\./g, ',');
+  }
   var syncStarted = false;
+  var currentUserEmail = null;
+  var currentUserKey = null;
+  var currentUserRole = null; // 'owner' | 'invited' | null
   var authGateEl = document.getElementById('authGate');
   var authStatusEl = document.getElementById('authGateStatus');
   var authDeniedEl = document.getElementById('authGateDenied');
@@ -759,21 +813,136 @@
 
       auth.onAuthStateChanged(function(user){
         if(!user){
+          currentUserEmail = null; currentUserKey = null; currentUserRole = null;
+          hideMemberPanel();
           showAuthGate('signin', 'Sign in with the Google account this plan was shared with.');
           return;
         }
-        var email = (user.email || '').toLowerCase();
-        if(ALLOWED_EMAILS.indexOf(email) === -1){
-          showAuthGate('denied', 'Signed in as ' + (user.email || 'unknown') + ' — that account isn’t on the list for this plan.');
-          return;
-        }
-        hideAuthGate();
-        startSync();
+        currentUserEmail = user.email || '';
+        currentUserKey = sanitizeEmailKey(currentUserEmail);
+        // Only ever reads this signed-in user's own membership entry — the
+        // security rules allow that regardless of role (or absence of one),
+        // specifically so a not-yet-invited visitor can still get a real
+        // "you're not on the list" answer instead of a permission error.
+        firebase.database().ref('members/' + currentUserKey).once('value').then(function(snap){
+          var role = snap.val();
+          currentUserRole = role;
+          if(role !== 'owner' && role !== 'invited'){
+            hideMemberPanel();
+            showAuthGate('denied', 'Signed in as ' + (currentUserEmail || 'unknown') + ' — that account isn’t on the list for this plan.');
+            return;
+          }
+          hideAuthGate();
+          startSync();
+          if(role === 'owner') initMemberPanel(); else hideMemberPanel();
+        }).catch(function(err){
+          console.warn('Membership lookup failed', err);
+          showAuthGate('error', 'Couldn’t check access — check your connection and reload.');
+        });
       });
     } catch(e){
       console.warn('Firebase Auth init failed', e);
       showAuthGate('error', 'Couldn’t load sign-in — check your connection and reload.');
     }
+  }
+
+  // ---- owner-only "manage access" panel: view/invite/remove members ----
+  // Rendered from /members directly rather than kept in sync locally — this
+  // is opened rarely enough that a fresh read on open/action is simpler
+  // than maintaining a live listener, and it means the list can never show
+  // stale state from before someone else's concurrent change.
+  var manageBtn = document.getElementById('manageAccessBtn');
+  var managePanel = document.getElementById('manageAccessPanel');
+  var manageList = document.getElementById('manageAccessList');
+  var manageForm = document.getElementById('manageAccessAddForm');
+  var manageInput = document.getElementById('manageAccessAddInput');
+  var manageErrorEl = document.getElementById('manageAccessError');
+  var manageCloseBtn = document.getElementById('manageAccessCloseBtn');
+  var memberPanelWired = false;
+
+  function hideMemberPanel(){
+    if(manageBtn) manageBtn.classList.remove('show');
+    if(managePanel) managePanel.classList.remove('show');
+  }
+
+  function renderMemberList(){
+    if(!manageList) return;
+    if(manageErrorEl) manageErrorEl.textContent = '';
+    firebase.database().ref('members').once('value').then(function(snap){
+      var val = snap.val() || {};
+      var rows = Object.keys(val).map(function(key){
+        return { key: key, email: key.replace(/,/g, '.'), role: val[key] };
+      });
+      // Owner(s) first, then invited members alphabetically — keeps the
+      // one row that can never be removed visually anchored at the top.
+      rows.sort(function(a, b){
+        if(a.role !== b.role) return a.role === 'owner' ? -1 : 1;
+        return a.email.localeCompare(b.email);
+      });
+      manageList.innerHTML = '';
+      rows.forEach(function(row){
+        var li = document.createElement('li');
+        var label = document.createElement('span');
+        label.textContent = row.email;
+        li.appendChild(label);
+        var roleEl = document.createElement('span');
+        roleEl.className = 'map-role';
+        roleEl.textContent = row.role;
+        li.appendChild(roleEl);
+        // No remove control for an owner row at all — belt and suspenders
+        // alongside the security rules, which independently refuse to ever
+        // delete or overwrite an entry whose current value is 'owner'.
+        if(row.role !== 'owner'){
+          var removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'map-remove';
+          removeBtn.textContent = '✕';
+          removeBtn.title = 'Remove access for ' + row.email;
+          removeBtn.addEventListener('click', function(){
+            if(manageErrorEl) manageErrorEl.textContent = '';
+            firebase.database().ref('members/' + row.key).remove().catch(function(err){
+              if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t remove ' + row.email + ' — try again.';
+              console.warn('Remove member failed', err);
+            }).then(renderMemberList);
+          });
+          li.appendChild(removeBtn);
+        }
+        manageList.appendChild(li);
+      });
+    }).catch(function(err){
+      if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t load the member list.';
+      console.warn('Load members failed', err);
+    });
+  }
+
+  function initMemberPanel(){
+    if(!manageBtn) return;
+    manageBtn.classList.add('show');
+    if(memberPanelWired) return;
+    memberPanelWired = true;
+    manageBtn.addEventListener('click', function(){
+      if(managePanel) managePanel.classList.add('show');
+      renderMemberList();
+    });
+    if(manageCloseBtn) manageCloseBtn.addEventListener('click', function(){
+      if(managePanel) managePanel.classList.remove('show');
+    });
+    if(manageForm) manageForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      var email = (manageInput.value || '').trim().toLowerCase();
+      if(!email) return;
+      if(manageErrorEl) manageErrorEl.textContent = '';
+      // Always writes 'invited' — the security rules reject anything else
+      // from this path anyway, so there's no way to grant owner status
+      // through this UI, only through the one-time manual console step.
+      firebase.database().ref('members/' + sanitizeEmailKey(email)).set('invited').then(function(){
+        manageInput.value = '';
+        renderMemberList();
+      }).catch(function(err){
+        if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t invite ' + email + ' — try again.';
+        console.warn('Invite failed', err);
+      });
+    });
   }
 
   // Captured before any remote snapshot touches #tagData, so new default
