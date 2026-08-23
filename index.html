@@ -403,9 +403,13 @@
   #manageAccessPanel { display:none; position:fixed; inset:0; z-index:9998;
     align-items:center; justify-content:center; background:rgba(0,0,0,.35); }
   #manageAccessPanel.show { display:flex; }
-  #manageAccessPanel .map-inner { background:var(--card); border-radius:16px; padding:22px;
+  #manageAccessPanel .map-inner { position:relative; background:var(--card); border-radius:16px; padding:22px;
     width:min(360px, 90vw); max-height:80vh; overflow:auto; box-shadow:0 12px 32px rgba(0,0,0,.25); }
   #manageAccessPanel h2 { margin:0 0 14px; font-size:17px; color:var(--ink); }
+  #manageAccessCloseX { position:absolute; top:12px; right:12px; width:28px; height:28px; padding:0;
+    border:none; background:transparent; color:var(--muted); font-size:18px; line-height:1; cursor:pointer;
+    border-radius:50%; }
+  #manageAccessCloseX:hover { background:var(--bg); color:var(--ink); }
   #manageAccessList { list-style:none; margin:0 0 14px; padding:0; display:flex; flex-direction:column; gap:8px; }
   #manageAccessList li { display:flex; align-items:center; justify-content:space-between; gap:8px;
     font-size:13px; padding:6px 8px; border-radius:8px; background:var(--bg); color:var(--ink); }
@@ -417,8 +421,6 @@
   #manageAccessAddForm button { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
     color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
   #manageAccessError { color:#b3261e; font-size:12px; min-height:14px; margin:0 0 10px; }
-  #manageAccessCloseBtn { width:100%; padding:8px; border-radius:8px; border:1px solid var(--line);
-    background:transparent; color:var(--ink); cursor:pointer; font-size:13px; }
 </style>
 </head>
 <body>
@@ -432,6 +434,7 @@
 <button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
 <div id="manageAccessPanel">
   <div class="map-inner">
+    <button type="button" id="manageAccessCloseX" title="Close" aria-label="Close">✕</button>
     <h2>Manage access</h2>
     <ul id="manageAccessList"></ul>
     <form id="manageAccessAddForm">
@@ -439,7 +442,6 @@
       <button type="submit">Invite</button>
     </form>
     <p id="manageAccessError"></p>
-    <button type="button" id="manageAccessCloseBtn">Close</button>
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
@@ -857,7 +859,7 @@
   var manageForm = document.getElementById('manageAccessAddForm');
   var manageInput = document.getElementById('manageAccessAddInput');
   var manageErrorEl = document.getElementById('manageAccessError');
-  var manageCloseBtn = document.getElementById('manageAccessCloseBtn');
+  var manageCloseBtn = document.getElementById('manageAccessCloseX');
   var memberPanelWired = false;
 
   function hideMemberPanel(){
