@@ -377,29 +377,39 @@
   #authGate.show { display:flex; }
   #authGate h1 { font-size:20px; margin:0; }
   #authGate .authMsg { color:var(--muted); font-size:13px; max-width:320px; }
-  #authGate .authDenied { color:#b3261e; font-size:13px; max-width:320px; }
   #authGate button { display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
     border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--ink);
     font-size:14px; font-weight:700; cursor:pointer; }
   #authGate button:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
-  #authGate[data-state="signin"] .authDenied,
-  #authGate[data-state="signin"] #authSignOutBtn,
-  #authGate[data-state="denied"] .authMsg,
-  #authGate[data-state="denied"] #authSignInBtn,
-  #authGate[data-state="error"] #authSignInBtn,
-  #authGate[data-state="error"] #authSignOutBtn { display:none; }
+  /* Default-hidden, opt-in shown per state below — simpler to reason about
+     than hiding things per-state from a visible-by-default baseline once
+     there are four states (signin / error / subscribe / picker) instead
+     of the original two. */
+  #authGate #authGateSubscribe, #authGate #planPickerList,
+  #authGate #authSignInBtn, #authGate #authSignOutBtn { display:none; }
+  #authGate[data-state="signin"] #authSignInBtn { display:inline-flex; }
+  #authGate[data-state="subscribe"] #authGateSubscribe { display:flex; flex-direction:column; gap:10px; align-items:center; }
+  #authGate[data-state="subscribe"] #authSignOutBtn,
+  #authGate[data-state="picker"] #authSignOutBtn { display:inline-flex; }
+  #authGate[data-state="picker"] #planPickerList { display:flex; flex-direction:column; gap:8px;
+    width:min(280px, 80vw); list-style:none; padding:0; margin:0; }
+  #authGate #planNameInput { padding:9px 12px; border-radius:8px; border:1px solid var(--line);
+    font-size:13px; width:220px; max-width:100%; }
+  #planPickerList li { display:flex; }
+  #planPickerList li button { flex:1; justify-content:flex-start; }
 
   /* Owner-only "manage access" control. Lives outside .wrap (like the
      theme switcher) on purpose — .wrap gets fully torn down and rebuilt on
      every Firebase sync and undo/redo restore, which would otherwise mean
      re-wiring this button's listeners every time, the same class of bug
      fixed earlier for the per-day "clear day" button. */
-  #manageAccessBtn { display:none; position:fixed; top:16px; left:16px; z-index:60;
+  #ownerControls { position:fixed; top:16px; left:16px; z-index:60; display:flex; gap:8px; }
+  #manageAccessBtn, #switchPlanBtn { display:none;
     align-items:center; gap:6px; padding:8px 14px; border-radius:999px; border:1px solid var(--line);
     background:var(--card); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.08); }
-  #manageAccessBtn.show { display:inline-flex; }
-  #manageAccessBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
+    box-shadow:0 2px 8px rgba(0,0,0,.08); white-space:nowrap; }
+  #manageAccessBtn.show, #switchPlanBtn.show { display:inline-flex; }
+  #manageAccessBtn:hover, #switchPlanBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
   #manageAccessPanel { display:none; position:fixed; inset:0; z-index:9998;
     align-items:center; justify-content:center; background:rgba(0,0,0,.35); }
   #manageAccessPanel.show { display:flex; }
@@ -429,13 +439,20 @@
 </head>
 <body>
 <div id="authGate">
-  <h1>🔒 Travel Planner</h1>
-  <p class="authMsg" id="authGateStatus">Sign in with the Google account this plan was shared with.</p>
-  <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
+  <h1>✈️ Travel Planner</h1>
+  <p class="authMsg" id="authGateStatus">Sign in with your Google account.</p>
+  <div id="authGateSubscribe">
+    <input type="text" id="planNameInput" placeholder="Trip name (e.g. Japan 2026)" />
+    <button type="button" id="planCreateBtn">Create my travel planner</button>
+  </div>
+  <ul id="planPickerList"></ul>
   <button type="button" id="authSignInBtn">Sign in with Google</button>
-  <button type="button" id="authSignOutBtn">Sign out and try another account</button>
+  <button type="button" id="authSignOutBtn">Sign out</button>
 </div>
-<button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
+<div id="ownerControls">
+  <button type="button" id="switchPlanBtn" title="Switch to a different plan">🔀 Switch plan</button>
+  <button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
+</div>
 <div id="manageAccessPanel">
   <div class="map-inner">
     <div class="map-header">
@@ -758,53 +775,138 @@
 
   // Identifies which shared Firebase project this page talks to — not a
   // secret; access control is enforced entirely by the Realtime Database's
-  // security rules, which require a signed-in, allow-listed Google account
-  // (see the auth gate below) — not by hiding this config.
+  // security rules, which require a signed-in Google account that's a
+  // member of whichever plan is being read/written (see the auth gate and
+  // plan-resolution logic below) — not by hiding this config.
   var firebaseConfig = {
     apiKey: 'AIzaSyBV5E4Q_jOxcVvzCwnpbKo8nT3s2ldSF6Y',
     authDomain: 'travel-dcc5f.firebaseapp.com',
     databaseURL: 'https://travel-dcc5f-default-rtdb.europe-west1.firebasedatabase.app',
     projectId: 'travel-dcc5f'
   };
+  // Set once a specific plan has been resolved (own plan, an invited plan,
+  // or a freshly created one) — see resolveActivePlan() below. Nothing
+  // reads or writes Firebase before that happens.
   var planRef = null;
+  var activePlanId = null;
   if(IS_HOSTED){
     try {
       firebase.initializeApp(firebaseConfig);
-      planRef = firebase.database().ref('plan');
     } catch(e){ console.warn('Firebase init failed — falling back to static content', e); }
   }
   var CLIENT_ID = 'c-' + Math.random().toString(36).slice(2, 10);
 
-  // Membership lives in the database itself, under /members, rather than
-  // hardcoded here — so who's allowed can change (invite/remove) without a
-  // code deploy. Each key is a sanitized email (RTDB keys can't contain
-  // '.', which real email addresses always do) mapped to a role: 'owner'
-  // (seeded once by hand in the Firebase console, never created or removed
-  // through this app — see setup notes) or 'invited' (added/removed by an
-  // owner, from the "Manage access" panel below). The security rules
-  // independently enforce all of this against the same /members data —
-  // this file only mirrors that logic for the UI; it isn't what makes it
-  // secure.
+  // Plans live in the database under /plans/{planId}, each with its own
+  // /members map — same 'owner'/'invited' roles as before, just scoped per
+  // plan instead of one single global list, so this app can host any
+  // number of independent, mutually invisible travel plans in one Firebase
+  // project. A signed-in user's own plan always lives at the planId equal
+  // to their own sanitized email (see sanitizeEmailKey) — that's what lets
+  // the security rules allow "claim ownership of a plan with this ID" as a
+  // simple structural check (the ID IS your email) rather than needing to
+  // inspect whether the plan already has members. Plans you're invited
+  // into (owned by someone else, at their planId) are looked up via
+  // /emailToPlans/{yourSanitizedEmail}, a reverse index maintained
+  // alongside every /members write — RTDB can't query "which plans is my
+  // email a member of" directly, so the app has to maintain that index
+  // itself. The security rules independently enforce all of this; this
+  // file only mirrors that logic for the UI, it isn't what makes it secure.
   function sanitizeEmailKey(email){
     return (email || '').toLowerCase().replace(/\./g, ',');
   }
   var syncStarted = false;
   var currentUserEmail = null;
   var currentUserKey = null;
-  var currentUserRole = null; // 'owner' | 'invited' | null
+  var currentUserRole = null; // 'owner' | 'invited' | null, for the currently active plan
   var authGateEl = document.getElementById('authGate');
   var authStatusEl = document.getElementById('authGateStatus');
-  var authDeniedEl = document.getElementById('authGateDenied');
+  var planNameInput = document.getElementById('planNameInput');
+  var planCreateBtn = document.getElementById('planCreateBtn');
+  var planPickerList = document.getElementById('planPickerList');
 
   function showAuthGate(state, message){
     if(!authGateEl) return;
     authGateEl.setAttribute('data-state', state);
     authGateEl.classList.add('show');
-    if(state === 'denied'){ if(authDeniedEl) authDeniedEl.textContent = message || ''; }
-    else if(authStatusEl) authStatusEl.textContent = message || '';
+    if(authStatusEl) authStatusEl.textContent = message || '';
   }
   function hideAuthGate(){
     if(authGateEl) authGateEl.classList.remove('show');
+  }
+
+  // Every plan this signed-in user can reach: their own (at planId ===
+  // their own key, if it's been created) plus anything under
+  // /emailToPlans/{theirKey} — populated for their own plan too at
+  // creation time, so this single reverse-index lookup already covers it;
+  // the direct own-plan check just distinguishes "not created yet" for the
+  // subscribe screen without needing a separate signal. Both reads are
+  // allowed unconditionally for your own key by the security rules, even
+  // when nothing exists there yet.
+  function listAccessiblePlans(){
+    var ownPlanCheck = firebase.database().ref('plans/' + currentUserKey + '/members/' + currentUserKey).once('value');
+    var invitesCheck = firebase.database().ref('emailToPlans/' + currentUserKey).once('value');
+    return Promise.all([ownPlanCheck, invitesCheck]).then(function(results){
+      var ownRole = results[0].val();
+      var invites = results[1].val() || {};
+      var ids = Object.keys(invites);
+      if(ownRole && ids.indexOf(currentUserKey) === -1) ids.push(currentUserKey);
+      return ids;
+    });
+  }
+
+  var switchPlanBtn = document.getElementById('switchPlanBtn');
+  var hasMultiplePlans = false;
+
+  function selectPlan(planId){
+    activePlanId = planId;
+    planRef = firebase.database().ref('plans/' + planId);
+    hideAuthGate();
+    startSync();
+    firebase.database().ref('plans/' + planId + '/members/' + currentUserKey).once('value').then(function(snap){
+      currentUserRole = snap.val();
+      if(currentUserRole === 'owner') initMemberPanel(); else hideMemberPanel();
+    }).catch(function(err){ console.warn('Role lookup failed', err); hideMemberPanel(); });
+    if(switchPlanBtn) switchPlanBtn.classList.toggle('show', hasMultiplePlans);
+    // So reloading, or sharing the URL with someone already invited to this
+    // specific plan, lands back on it directly instead of the picker.
+    try {
+      var url = new URL(location.href);
+      url.searchParams.set('plan', planId);
+      history.replaceState(null, '', url);
+    } catch(e){}
+  }
+
+  function renderPlanPicker(planIds){
+    if(!planPickerList) return;
+    planPickerList.innerHTML = '';
+    planIds.forEach(function(id){
+      var li = document.createElement('li');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = id === currentUserKey ? 'My travel planner' : ('Shared plan (' + id.replace(/,/g, '.') + ')');
+      btn.addEventListener('click', function(){ selectPlan(id); });
+      li.appendChild(btn);
+      planPickerList.appendChild(li);
+    });
+  }
+
+  function resolveActivePlan(){
+    listAccessiblePlans().then(function(ids){
+      hasMultiplePlans = ids.length > 1;
+      var requested = null;
+      try { requested = new URL(location.href).searchParams.get('plan'); } catch(e){}
+      if(requested && ids.indexOf(requested) !== -1){ selectPlan(requested); return; }
+      if(ids.length === 0){
+        showAuthGate('subscribe', 'You don’t have a travel plan yet.');
+        return;
+      }
+      if(ids.length === 1){ selectPlan(ids[0]); return; }
+      showAuthGate('picker', 'Choose a plan to open.');
+      renderPlanPicker(ids);
+    }).catch(function(err){
+      console.warn('Plan lookup failed', err);
+      showAuthGate('error', 'Couldn’t check your plans — check your connection and reload.');
+    });
   }
 
   if(IS_HOSTED){
@@ -818,35 +920,52 @@
         });
       });
       if(signOutBtn) signOutBtn.addEventListener('click', function(){ auth.signOut(); });
+      // Dropping the ?plan= param and reloading is the simplest correct way
+      // to switch: tearing down and re-initializing the live sync engine,
+      // undo history, and presence listener in place would be a much
+      // bigger change for a control that's used rarely.
+      if(switchPlanBtn) switchPlanBtn.addEventListener('click', function(){
+        var url = new URL(location.href);
+        url.searchParams.delete('plan');
+        location.href = url.toString();
+      });
+      if(planCreateBtn) planCreateBtn.addEventListener('click', function(){
+        planCreateBtn.disabled = true;
+        var name = ((planNameInput && planNameInput.value) || '').trim() || 'My trip';
+        var now = new Date();
+        // Minimal but valid starter content — applyContentModel() refuses
+        // a model with zero options, so a brand new plan needs at least
+        // this much to render at all. nextOptionN (used when the user adds
+        // further options later) gets bumped correctly the moment this
+        // comes back through the normal sync/applyRemoteSnapshot path, the
+        // same as any other incoming option — no special-casing needed here.
+        var starterModel = { v: 2, options: [{ id: 'option-1', nm: name, y: now.getFullYear(), m: now.getMonth() + 1, on: 1 }] };
+        var updates = {};
+        updates['plans/' + currentUserKey + '/contentJson'] = JSON.stringify(starterModel);
+        updates['plans/' + currentUserKey + '/tagDataJson'] = DEFAULT_TAGS_JSON;
+        updates['plans/' + currentUserKey + '/updatedAt'] = firebase.database.ServerValue.TIMESTAMP;
+        updates['plans/' + currentUserKey + '/updatedBy'] = CLIENT_ID;
+        updates['plans/' + currentUserKey + '/members/' + currentUserKey] = 'owner';
+        updates['emailToPlans/' + currentUserKey + '/' + currentUserKey] = true;
+        firebase.database().ref().update(updates).then(function(){
+          selectPlan(currentUserKey);
+        }).catch(function(err){
+          planCreateBtn.disabled = false;
+          showAuthGate('subscribe', 'Couldn’t create your plan — check your connection and try again.');
+          console.warn('Plan creation failed', err);
+        });
+      });
 
       auth.onAuthStateChanged(function(user){
         if(!user){
-          currentUserEmail = null; currentUserKey = null; currentUserRole = null;
+          currentUserEmail = null; currentUserKey = null; currentUserRole = null; activePlanId = null; planRef = null;
           hideMemberPanel();
-          showAuthGate('signin', 'Sign in with the Google account this plan was shared with.');
+          showAuthGate('signin', 'Sign in with your Google account.');
           return;
         }
         currentUserEmail = user.email || '';
         currentUserKey = sanitizeEmailKey(currentUserEmail);
-        // Only ever reads this signed-in user's own membership entry — the
-        // security rules allow that regardless of role (or absence of one),
-        // specifically so a not-yet-invited visitor can still get a real
-        // "you're not on the list" answer instead of a permission error.
-        firebase.database().ref('members/' + currentUserKey).once('value').then(function(snap){
-          var role = snap.val();
-          currentUserRole = role;
-          if(role !== 'owner' && role !== 'invited'){
-            hideMemberPanel();
-            showAuthGate('denied', 'Signed in as ' + (currentUserEmail || 'unknown') + ' — that account isn’t on the list for this plan.');
-            return;
-          }
-          hideAuthGate();
-          startSync();
-          if(role === 'owner') initMemberPanel(); else hideMemberPanel();
-        }).catch(function(err){
-          console.warn('Membership lookup failed', err);
-          showAuthGate('error', 'Couldn’t check access — check your connection and reload.');
-        });
+        resolveActivePlan();
       });
     } catch(e){
       console.warn('Firebase Auth init failed', e);
@@ -854,11 +973,13 @@
     }
   }
 
-  // ---- owner-only "manage access" panel: view/invite/remove members ----
-  // Rendered from /members directly rather than kept in sync locally — this
-  // is opened rarely enough that a fresh read on open/action is simpler
-  // than maintaining a live listener, and it means the list can never show
-  // stale state from before someone else's concurrent change.
+  // ---- owner-only "manage access" panel: view/invite/remove members of
+  // the currently active plan (activePlanId) ----
+  // Rendered from /plans/{activePlanId}/members directly rather than kept
+  // in sync locally — this is opened rarely enough that a fresh read on
+  // open/action is simpler than maintaining a live listener, and it means
+  // the list can never show stale state from before someone else's
+  // concurrent change.
   var manageBtn = document.getElementById('manageAccessBtn');
   var managePanel = document.getElementById('manageAccessPanel');
   var manageList = document.getElementById('manageAccessList');
@@ -874,9 +995,9 @@
   }
 
   function renderMemberList(){
-    if(!manageList) return;
+    if(!manageList || !activePlanId) return;
     if(manageErrorEl) manageErrorEl.textContent = '';
-    firebase.database().ref('members').once('value').then(function(snap){
+    firebase.database().ref('plans/' + activePlanId + '/members').once('value').then(function(snap){
       var val = snap.val() || {};
       var rows = Object.keys(val).map(function(key){
         return { key: key, email: key.replace(/,/g, '.'), role: val[key] };
@@ -908,7 +1029,14 @@
           removeBtn.title = 'Remove access for ' + row.email;
           removeBtn.addEventListener('click', function(){
             if(manageErrorEl) manageErrorEl.textContent = '';
-            firebase.database().ref('members/' + row.key).remove().catch(function(err){
+            // Multi-path atomic update — removing someone from a plan has
+            // to clear both the plan's own member entry AND their reverse
+            // index (/emailToPlans), or a removed member would still see
+            // this plan offered on their own next sign-in.
+            var updates = {};
+            updates['plans/' + activePlanId + '/members/' + row.key] = null;
+            updates['emailToPlans/' + row.key + '/' + activePlanId] = null;
+            firebase.database().ref().update(updates).catch(function(err){
               if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t remove ' + row.email + ' — try again.';
               console.warn('Remove member failed', err);
             }).then(renderMemberList);
@@ -938,12 +1066,20 @@
     if(manageForm) manageForm.addEventListener('submit', function(e){
       e.preventDefault();
       var email = (manageInput.value || '').trim().toLowerCase();
-      if(!email) return;
+      if(!email || !activePlanId) return;
       if(manageErrorEl) manageErrorEl.textContent = '';
+      var key = sanitizeEmailKey(email);
+      // Multi-path atomic update, mirroring plan creation: the invitee's
+      // reverse index has to be updated in the same write as the plan's
+      // own member entry, or they'd never discover this plan on sign-in.
       // Always writes 'invited' — the security rules reject anything else
       // from this path anyway, so there's no way to grant owner status
-      // through this UI, only through the one-time manual console step.
-      firebase.database().ref('members/' + sanitizeEmailKey(email)).set('invited').then(function(){
+      // through this UI, only through the deterministic self-bootstrap
+      // path (a plan's own creator claiming the planId that's their email).
+      var updates = {};
+      updates['plans/' + activePlanId + '/members/' + key] = 'invited';
+      updates['emailToPlans/' + key + '/' + activePlanId] = true;
+      firebase.database().ref().update(updates).then(function(){
         manageInput.value = '';
         renderMemberList();
       }).catch(function(err){
@@ -3558,10 +3694,11 @@
   // from being re-applied to the DOM, not from raising this floor).
   var lastSeenUpdatedAt = 0;
 
-  // Only ever called once a signed-in, allow-listed Google account is
-  // confirmed (see onAuthStateChanged above) — before that, planRef is
-  // never read from or written to, so an unauthenticated load can't so
-  // much as see the shared plan exists, let alone its content.
+  // Only ever called once a specific plan has been resolved and selected
+  // (see resolveActivePlan()/selectPlan() above) — before that, planRef is
+  // null and nothing is read from or written to Firebase, so an
+  // unauthenticated load, or a signed-in one with no accessible plan yet,
+  // can't so much as see that any plan exists, let alone its content.
   function startSync(){
     if(syncStarted || !IS_HOSTED || !planRef) return;
     syncStarted = true;
@@ -3640,10 +3777,10 @@
     // Lightweight "N viewing" presence — not used for conflict resolution,
     // just situational awareness. onDisconnect() cleans this client's entry
     // up automatically (tab close, network drop) with no server code.
-    var presenceRef = firebase.database().ref('presence/' + CLIENT_ID);
+    var presenceRef = firebase.database().ref('plans/' + activePlanId + '/presence/' + CLIENT_ID);
     presenceRef.set({ ts: firebase.database.ServerValue.TIMESTAMP });
     presenceRef.onDisconnect().remove();
-    firebase.database().ref('presence').on('value', function(s){
+    firebase.database().ref('plans/' + activePlanId + '/presence').on('value', function(s){
       var val = s.val();
       var count = val ? Object.keys(val).length : 1;
       var el = document.getElementById('presenceCount');
