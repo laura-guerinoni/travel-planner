@@ -6,11 +6,13 @@
   try {
     // Hidden unconditionally while hosted — with a shared backend as the
     // source of truth, we can no longer tell synchronously whether there's
-    // real content coming, so always hide first and let the Firebase
-    // listener (or the failsafe below, if it never fires) reveal the page.
+    // real content coming, so always hide first. Revealed later from the
+    // main script, only after sign-in is confirmed against the allow-list
+    // (see #authGate) and the first snapshot has synced — deliberately no
+    // blanket timed failsafe here, since that would hand over the real
+    // content to anyone who simply waits, auth or no auth.
     if (location.protocol === 'http:' || location.protocol === 'https:') {
       document.documentElement.style.visibility = 'hidden';
-      setTimeout(function(){ document.documentElement.style.visibility = ''; }, 2500);
     }
   } catch(e){}
   // Applied here, before first paint, so switching color mode never
@@ -363,9 +365,39 @@
   .theme-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
   .theme-dot[data-theme-name="kawaii"] { background: conic-gradient(#ec6a9c 0deg 120deg, #3fbf94 120deg 240deg, #f2884d 240deg 360deg); }
   .theme-dot[data-theme-name="classic"] { background: conic-gradient(#1c6672 0deg 120deg, #1fa896 120deg 240deg, #ef9a5c 240deg 360deg); }
+
+  /* Sign-in gate. Sits on top of the (visibility:hidden) document, so it
+     needs its own explicit visibility:visible to punch through — plain
+     CSS visibility lets a descendant re-show itself even when an ancestor
+     set visibility:hidden, unlike display:none which no descendant rule
+     can override. */
+  #authGate { display:none; visibility:visible; position:fixed; inset:0; z-index:9999;
+    align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    background:var(--bg); text-align:center; padding:24px; }
+  #authGate.show { display:flex; }
+  #authGate h1 { font-size:20px; margin:0; }
+  #authGate .authMsg { color:var(--muted); font-size:13px; max-width:320px; }
+  #authGate .authDenied { color:#b3261e; font-size:13px; max-width:320px; }
+  #authGate button { display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
+    border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--ink);
+    font-size:14px; font-weight:700; cursor:pointer; }
+  #authGate button:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  #authGate[data-state="signin"] .authDenied,
+  #authGate[data-state="signin"] #authSignOutBtn,
+  #authGate[data-state="denied"] .authMsg,
+  #authGate[data-state="denied"] #authSignInBtn,
+  #authGate[data-state="error"] #authSignInBtn,
+  #authGate[data-state="error"] #authSignOutBtn { display:none; }
 </style>
 </head>
 <body>
+<div id="authGate">
+  <h1>🔒 Travel Planner</h1>
+  <p class="authMsg" id="authGateStatus">Sign in with the Google account this plan was shared with.</p>
+  <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
+  <button type="button" id="authSignInBtn">Sign in with Google</button>
+  <button type="button" id="authSignOutBtn">Sign out and try another account</button>
+</div>
 <div id="monthSidebar" class="month-sidebar"></div>
 <div class="theme-switcher" id="themeSwitcher">
   <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
@@ -667,14 +699,15 @@
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script>
 (function(){
   var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 
   // Identifies which shared Firebase project this page talks to — not a
   // secret; access control is enforced entirely by the Realtime Database's
-  // security rules (open read/write, no auth — see setup notes), not by
-  // hiding this config.
+  // security rules, which require a signed-in, allow-listed Google account
+  // (see the auth gate below) — not by hiding this config.
   var firebaseConfig = {
     apiKey: 'AIzaSyBV5E4Q_jOxcVvzCwnpbKo8nT3s2ldSF6Y',
     authDomain: 'travel-dcc5f.firebaseapp.com',
@@ -689,6 +722,59 @@
     } catch(e){ console.warn('Firebase init failed — falling back to static content', e); }
   }
   var CLIENT_ID = 'c-' + Math.random().toString(36).slice(2, 10);
+
+  // Matches the Realtime Database security rules — both sides must agree on
+  // exactly who's allowed, since the rules are the actual enforcement and
+  // this gate is just the UI in front of them. Case-insensitive: Google
+  // accounts are case-insensitive too, and the rules lower-case for the
+  // comparison (see setup notes shared alongside this file).
+  var ALLOWED_EMAILS = ['lau.ggguer@gmail.com', 'lau.guerinoni@gmail.com'];
+  var syncStarted = false;
+  var authGateEl = document.getElementById('authGate');
+  var authStatusEl = document.getElementById('authGateStatus');
+  var authDeniedEl = document.getElementById('authGateDenied');
+
+  function showAuthGate(state, message){
+    if(!authGateEl) return;
+    authGateEl.setAttribute('data-state', state);
+    authGateEl.classList.add('show');
+    if(state === 'denied'){ if(authDeniedEl) authDeniedEl.textContent = message || ''; }
+    else if(authStatusEl) authStatusEl.textContent = message || '';
+  }
+  function hideAuthGate(){
+    if(authGateEl) authGateEl.classList.remove('show');
+  }
+
+  if(IS_HOSTED){
+    try {
+      var auth = firebase.auth();
+      var signInBtn = document.getElementById('authSignInBtn');
+      var signOutBtn = document.getElementById('authSignOutBtn');
+      if(signInBtn) signInBtn.addEventListener('click', function(){
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
+          showAuthGate('signin', 'Sign-in didn’t go through' + (err && err.message ? ': ' + err.message : '') + ' — try again.');
+        });
+      });
+      if(signOutBtn) signOutBtn.addEventListener('click', function(){ auth.signOut(); });
+
+      auth.onAuthStateChanged(function(user){
+        if(!user){
+          showAuthGate('signin', 'Sign in with the Google account this plan was shared with.');
+          return;
+        }
+        var email = (user.email || '').toLowerCase();
+        if(ALLOWED_EMAILS.indexOf(email) === -1){
+          showAuthGate('denied', 'Signed in as ' + (user.email || 'unknown') + ' — that account isn’t on the list for this plan.');
+          return;
+        }
+        hideAuthGate();
+        startSync();
+      });
+    } catch(e){
+      console.warn('Firebase Auth init failed', e);
+      showAuthGate('error', 'Couldn’t load sign-in — check your connection and reload.');
+    }
+  }
 
   // Captured before any remote snapshot touches #tagData, so new default
   // tags (e.g. transport modes added after the shared plan already has its
@@ -3295,7 +3381,20 @@
   // from being re-applied to the DOM, not from raising this floor).
   var lastSeenUpdatedAt = 0;
 
-  if(IS_HOSTED && planRef){
+  // Only ever called once a signed-in, allow-listed Google account is
+  // confirmed (see onAuthStateChanged above) — before that, planRef is
+  // never read from or written to, so an unauthenticated load can't so
+  // much as see the shared plan exists, let alone its content.
+  function startSync(){
+    if(syncStarted || !IS_HOSTED || !planRef) return;
+    syncStarted = true;
+    // Safety net for a signed-in, allowed user whose database read then
+    // hangs (rules misconfigured, network partition mid-flight) — without
+    // this the page would stay invisible forever with no explanation.
+    // Scoped to only ever fire post-auth, unlike the old unconditional
+    // page-load timer this replaced, which would have handed the real
+    // content to anyone who simply waited it out, signed in or not.
+    setTimeout(function(){ document.documentElement.style.visibility = ''; }, 4000);
     var firstLoadDone = false;
     planRef.on('value', function(snapshot){
       var val = snapshot.val();
