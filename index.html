@@ -142,7 +142,32 @@
   .budget strong { color:var(--primary); }
   .fine { color:var(--muted); font-size:12px; margin:10px 0 0; }
   footer { margin-top:28px; text-align:center; color:var(--muted); font-size:13px; }
-  @media print { body { background:#fff; padding:0; } .panel { display:block !important; } .pills { display:none; } }
+  /* Print / Save as PDF. Page size+orientation come from a dynamically
+     injected <style id="dynamicPrintPage"> (set right before window.print()
+     — CSS @page can't read a value out of a data attribute, so there's no
+     way to make it respond to the panel's radio choices other than writing
+     a fresh @page rule for that specific print). Scope (this month vs all)
+     and per-panel labels are also applied just before printing, as a
+     .print-hide class and a data-print-label attribute respectively — see
+     applyPrintScope()/clearPrintScope() — rather than baked into this
+     stylesheet, since both depend on which option is currently open and
+     what its name is.
+     Uses .jsctl (every add/clear/drag control the app already tags as
+     "editing-only, strip for a clean view" — see buildSaveHtml()) so this
+     doesn't have to independently re-list every interactive control. */
+  @media print {
+    body { background:#fff; padding:0; }
+    html, body { visibility:visible !important; }
+    .panel { display:block !important; page-break-after:always; }
+    .panel:last-of-type { page-break-after:auto; }
+    .panel.print-hide, .budget li.print-hide { display:none !important; }
+    .panel::before { content:attr(data-print-label); display:block;
+      font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
+    .pills, .month-sidebar, .theme-switcher, .icontoolbar,
+    #authGate, #ownerControls, #manageAccessPanel, #printBtn, #printPanel,
+    .jsctl, #tagData { display:none !important; }
+    .wrap { margin:0; padding:0; max-width:none; }
+  }
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
      showing between them. Flat, no drop shadow. */
@@ -400,20 +425,22 @@
     box-shadow:0 2px 8px rgba(0,0,0,.08); }
   #manageAccessBtn.show { display:inline-flex; }
   #manageAccessBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
-  #manageAccessPanel { display:none; position:fixed; inset:0; z-index:9998;
+  /* Shared modal-overlay chrome — used by both Manage Access and Print, so
+     the second modal didn't need to re-derive this from scratch. */
+  .modal-overlay { display:none; position:fixed; inset:0; z-index:9998;
     align-items:center; justify-content:center; background:rgba(0,0,0,.35); }
-  #manageAccessPanel.show { display:flex; }
-  #manageAccessPanel .map-inner { background:var(--card); border-radius:16px; padding:22px;
+  .modal-overlay.show { display:flex; }
+  .modal-overlay .map-inner { background:var(--card); border-radius:16px; padding:22px;
     width:min(360px, 90vw); max-height:80vh; overflow:auto; box-shadow:0 12px 32px rgba(0,0,0,.25); }
   /* Flexbox centers the X against the header's line box exactly, rather
      than an absolute offset guessed to match this particular font size —
      stays correct if the heading's size or line-height ever changes. */
   .map-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 14px; }
-  #manageAccessPanel h2 { margin:0; font-size:17px; color:var(--ink); }
-  #manageAccessCloseX { flex:none; width:28px; height:28px; padding:0;
+  .modal-overlay h2 { margin:0; font-size:17px; color:var(--ink); }
+  .modal-close { flex:none; width:28px; height:28px; padding:0;
     border:none; background:transparent; color:var(--muted); font-size:18px; line-height:1; cursor:pointer;
     border-radius:50%; }
-  #manageAccessCloseX:hover { background:var(--bg); color:var(--ink); }
+  .modal-close:hover { background:var(--bg); color:var(--ink); }
   #manageAccessList { list-style:none; margin:0 0 14px; padding:0; display:flex; flex-direction:column; gap:8px; }
   #manageAccessList li { display:flex; align-items:center; justify-content:space-between; gap:8px;
     font-size:13px; padding:6px 8px; border-radius:8px; background:var(--bg); color:var(--ink); }
@@ -422,9 +449,20 @@
     font-size:14px; padding:2px 6px; }
   #manageAccessAddForm { display:flex; gap:6px; margin-bottom:8px; }
   #manageAccessAddForm input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px; }
-  #manageAccessAddForm button { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
+  #manageAccessAddForm button, .modal-primary-btn { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
     color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
   #manageAccessError { color:#b3261e; font-size:12px; min-height:14px; margin:0 0 10px; }
+
+  #printBtn { display:none; position:fixed; top:16px; right:16px; z-index:60;
+    align-items:center; gap:6px; padding:8px 14px; border-radius:999px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  #printBtn.show { display:inline-flex; }
+  #printBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
+  #printPanel fieldset { border:1px solid var(--line); border-radius:10px; padding:8px 12px 10px; margin:0 0 12px; }
+  #printPanel legend { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:0 4px; }
+  #printPanel label { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); padding:4px 0; cursor:pointer; }
+  #printGoBtn { width:100%; }
 </style>
 </head>
 <body>
@@ -436,11 +474,11 @@
   <button type="button" id="authSignOutBtn">Sign out and try another account</button>
 </div>
 <button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
-<div id="manageAccessPanel">
+<div id="manageAccessPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
       <h2>Manage access</h2>
-      <button type="button" id="manageAccessCloseX" title="Close" aria-label="Close">✕</button>
+      <button type="button" id="manageAccessCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
     <ul id="manageAccessList"></ul>
     <form id="manageAccessAddForm">
@@ -448,6 +486,31 @@
       <button type="submit">Invite</button>
     </form>
     <p id="manageAccessError"></p>
+  </div>
+</div>
+<button type="button" id="printBtn" title="Print or save as PDF">🖨️ Print / PDF</button>
+<div id="printPanel" class="modal-overlay">
+  <div class="map-inner">
+    <div class="map-header">
+      <h2>Print / Save as PDF</h2>
+      <button type="button" id="printCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <fieldset>
+      <legend>Include</legend>
+      <label><input type="radio" name="printScope" value="active" checked /> This month only</label>
+      <label><input type="radio" name="printScope" value="all" /> All months</label>
+    </fieldset>
+    <fieldset>
+      <legend>Paper size</legend>
+      <label><input type="radio" name="printSize" value="a4" checked /> A4</label>
+      <label><input type="radio" name="printSize" value="letter" /> US Letter</label>
+    </fieldset>
+    <fieldset>
+      <legend>Orientation</legend>
+      <label><input type="radio" name="printOrientation" value="portrait" checked /> Portrait</label>
+      <label><input type="radio" name="printOrientation" value="landscape" /> Landscape</label>
+    </fieldset>
+    <button type="button" id="printGoBtn" class="modal-primary-btn">Print / Save as PDF</button>
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
@@ -842,6 +905,7 @@
           }
           hideAuthGate();
           startSync();
+          if(printBtn) printBtn.classList.add('show');
           if(role === 'owner') initMemberPanel(); else hideMemberPanel();
         }).catch(function(err){
           console.warn('Membership lookup failed', err);
@@ -2818,6 +2882,79 @@
     if(st) st.textContent = '';
     return '<!doctype html>\n' + clone.outerHTML;
   }
+
+  // ---- Print / Save as PDF ----
+  // Deliberately built on window.print() rather than a PDF-generation
+  // library — every browser already offers "Save as PDF" as a print
+  // destination, so this stays free and needs no dependency, no server,
+  // and no page-layout-in-JS reimplementation of what print CSS already
+  // does. The panel just chooses what window.print() sees.
+  var printBtn = document.getElementById('printBtn');
+  var printPanel = document.getElementById('printPanel');
+  var printCloseX = document.getElementById('printCloseX');
+  var printGoBtn = document.getElementById('printGoBtn');
+
+  function panelPrintLabel(panel){
+    var opt = panel.id.replace(/^panel-/, '');
+    var pillName = document.querySelector('.pill[data-opt="' + opt + '"] .pill-name');
+    var d = getPanelDate(panel);
+    return (pillName ? pillName.textContent.trim() : 'Untitled') + ' — ' + MONTH_FULL[d.month - 1] + ' ' + d.year;
+  }
+
+  // Applied right before window.print(), never persisted — .print-hide and
+  // data-print-label only ever matter under the @media print stylesheet,
+  // so leaving them in the live DOM between prints would be harmless, but
+  // clearPrintScope() (wired to the 'afterprint' event) removes them anyway
+  // to keep the DOM clean for anything else that walks it (undo snapshots,
+  // the self-heal resave) rather than relying on them being print-only.
+  function applyPrintScope(scope){
+    var activePanel = document.querySelector('.panel.on');
+    var activeOpt = activePanel ? activePanel.id.replace(/^panel-/, '') : null;
+    document.querySelectorAll('.panel').forEach(function(panel){
+      var isActive = panel === activePanel;
+      panel.classList.toggle('print-hide', scope === 'active' && !isActive);
+      if(scope === 'all' || isActive) panel.setAttribute('data-print-label', panelPrintLabel(panel));
+    });
+    document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
+      li.classList.toggle('print-hide', scope === 'active' && li.getAttribute('data-opt') !== activeOpt);
+    });
+  }
+  function clearPrintScope(){
+    document.querySelectorAll('.print-hide').forEach(function(el){ el.classList.remove('print-hide'); });
+    document.querySelectorAll('.panel[data-print-label]').forEach(function(el){ el.removeAttribute('data-print-label'); });
+  }
+
+  function applyPrintPageSetup(size, orientation){
+    var styleEl = document.getElementById('dynamicPrintPage');
+    if(!styleEl){
+      styleEl = document.createElement('style');
+      styleEl.id = 'dynamicPrintPage';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = '@page { size: ' + (size === 'letter' ? 'letter' : 'A4') + ' ' + orientation + '; margin: 12mm; }';
+  }
+
+  function radioValue(name, fallback){
+    var el = document.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : fallback;
+  }
+
+  // Shown immediately in local-file mode (there's always exactly one plan:
+  // whatever's in this file). In hosted mode there's nothing meaningful to
+  // print until a specific plan has actually been resolved and loaded, so
+  // that path shows it from inside selectPlan() instead — see below.
+  if(printBtn){
+    if(!IS_HOSTED) printBtn.classList.add('show');
+    printBtn.addEventListener('click', function(){ if(printPanel) printPanel.classList.add('show'); });
+  }
+  if(printCloseX) printCloseX.addEventListener('click', function(){ if(printPanel) printPanel.classList.remove('show'); });
+  if(printGoBtn) printGoBtn.addEventListener('click', function(){
+    applyPrintPageSetup(radioValue('printSize', 'a4'), radioValue('printOrientation', 'portrait'));
+    applyPrintScope(radioValue('printScope', 'active'));
+    if(printPanel) printPanel.classList.remove('show');
+    window.print();
+  });
+  window.addEventListener('afterprint', clearPrintScope);
 
   function downloadCopy(htmlStr){
     var blob = new Blob([htmlStr], { type: 'text/html' });
