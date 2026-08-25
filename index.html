@@ -164,9 +164,18 @@
     .panel::before { content:attr(data-print-label); display:block;
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .month-sidebar, .theme-switcher, .icontoolbar,
-    #authGate, #ownerControls, #manageAccessPanel, #printBtn, #printPanel,
+    #authGate, #ownerControls, #manageAccessBtn, #manageAccessPanel,
+    #switchPlanBtn, #printBtn, #printPanel,
     .jsctl, #tagData { display:none !important; }
     .wrap { margin:0; padding:0; max-width:none; }
+    /* A day's content shouldn't be sliced by a page boundary — better to
+       push the whole cell to the next page than split it mid-activity.
+       Lower min-height than the screen version too: on-screen every cell
+       reserves the same tall minimum regardless of content so the grid
+       stays visually even, but on paper that means empty early-month
+       weeks burn a disproportionate amount of the page for nothing. */
+    .cell { min-height:0; break-inside:avoid; page-break-inside:avoid; }
+    .grid.week { break-inside:avoid; page-break-inside:avoid; }
   }
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
