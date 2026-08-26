@@ -58,7 +58,16 @@
     font-family:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   button, input, textarea, select { font-family:inherit; }
   .wrap { max-width:1120px; margin:0 auto; }
-  header { text-align:center; margin-bottom:20px; }
+  /* margin-bottom:0 (not 20px) — header's only child (.pills) is
+     position:fixed, so header itself already collapses to zero height,
+     but a leftover margin still applies to a collapsed box. That stray
+     20px was only ever felt in the natural unscrolled position (sticky
+     positioning below doesn't care about a fixed-out-of-flow ancestor's
+     margin at all), which is exactly what made the gap between the pills
+     bar and the weekday header inconsistent — bigger at the top of the
+     page than once scrolled. syncBarLayout()'s GAP is the single source
+     of that spacing now, in both states. */
+  header { text-align:center; margin-bottom:0; }
   h1 { margin:0 0 10px; font-size:34px; }
   /* Flush to the very top of the viewport, same as the sidebar is flush
      to the left — .wrap's padding-top is kept in sync with this bar's
@@ -122,9 +131,10 @@
      at all, since only the active panel's own heads row is ever actually
      in the visible DOM flow (the others are display:none), so whichever
      one is showing just... sticks, automatically, on panel switch too.
-     --pills-height is kept current by syncBarLayout(), the same function
-     that already tracks the pills bar's own (content-driven, can wrap to
-     more rows) height for .wrap's padding. */
+     --pills-height (despite the name, the pills bar's height PLUS the gap
+     below it — same value .wrap's own padding-top uses, so the gap reads
+     identically whether stuck or sitting at the natural unscrolled
+     position) is kept current by syncBarLayout(). */
   .grid.heads { position:sticky; top:var(--pills-height, 0px); z-index:30;
     background-color:var(--bg); background-image:var(--texture); }
   .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
@@ -1904,11 +1914,12 @@
   // Same plain-line SVG style as the "…" menu's icons (stroke, not fill,
   // no emoji) rather than each control inventing its own visual language.
   var ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
-  // Rounder body (rx=5) and a small friendly viewfinder bump instead of
-  // the sharper, more utilitarian body/roofline of a standard camera
-  // glyph — matches the app's own "kawaii" theme better while staying a
-  // plain stroke icon like the rest of the menu.
-  var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="5"/><path d="M8.5 7L10 4h4l1.5 3"/><circle cx="12" cy="14" r="3.5"/></svg>';
+  // A simple photo/picture glyph (rounded frame + sun + mountain) rather
+  // than a camera — reads as "this activity has a photo attached" more
+  // directly than a camera does, and the rounded frame (rx=4) keeps it in
+  // step with the app's own "kawaii" theme, same plain-stroke style as
+  // the rest of the menu.
+  var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
   var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   // Counts photo reads/resizes currently in flight (see pickImage below) —
@@ -3434,11 +3445,21 @@
     var sidebarH = (isMobile && sidebarEl) ? sidebarEl.getBoundingClientRect().height : 0;
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
-    wrapEl.style.paddingTop = (sidebarH + pillsH + 16) + 'px';
-    // Where the sticky weekday header (.grid.heads, see its own CSS rule)
-    // should stop scrolling and stick — right at the pills bar's own
-    // bottom edge, same as .wrap's padding above starts counting from.
-    document.documentElement.style.setProperty('--pills-height', (sidebarH + pillsH) + 'px');
+    // Tripled from the original 16px — and, critically, the SAME target
+    // (sidebarH + pillsH + GAP, a position measured from the VIEWPORT,
+    // matching .pills' own position:fixed frame of reference) feeds both
+    // .wrap's padding-top and --pills-height, so the gap between the
+    // pills bar and the weekday header reads as identical whether the
+    // page is scrolled or sitting at the top. .wrap's padding-top is
+    // itself measured from .wrap's OWN top edge though, not the viewport
+    // — subtracting wrapTop converts the viewport-relative target back
+    // into that frame, or the header would land 30-40px further down
+    // than intended, by however far .wrap's own top sits below y=0.
+    var GAP = 48;
+    var wrapTop = wrapEl.getBoundingClientRect().top;
+    var target = sidebarH + pillsH + GAP;
+    wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
+    document.documentElement.style.setProperty('--pills-height', target + 'px');
   }
   window.addEventListener('resize', syncBarLayout);
 
