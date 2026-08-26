@@ -92,13 +92,18 @@
     border-radius:999px; padding:8px 16px; font-size:14px; font-weight:700; }
   .grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
   .heads { margin-bottom:8px; }
-  .week { margin-bottom:8px; align-items:start; }
+  /* Stretch (the grid default) rather than start: a week where one day is
+     much taller than its short/empty neighbors used to leave those
+     neighbors sitting at their own minimum height, reading as a ragged row
+     with dead gaps rather than a uniform week. Matches what print already
+     does for the same reason. */
+  .week { margin-bottom:8px; align-items:stretch; }
   .banner-row { margin-bottom:6px; }
   .banner { background:rgba(var(--secondary-rgb),.16); color:var(--secondary); border:1px solid rgba(var(--secondary-rgb),.4);
     border-radius:999px; padding:4px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
   .wdhead { text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
   .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
-    min-width:0; overflow-wrap:anywhere; }
+    min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; }
   .cell.empty { background:transparent; border:none; min-height:0; }
   .cell.active { border-color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.06); }
   .cellhead { display:flex; align-items:baseline; gap:6px; }
@@ -118,7 +123,12 @@
   .act-span-ghost .line { font-style:italic; }
   .price { display:block; font-weight:700; }
   .price em { font-style:normal; font-weight:400; color:var(--muted); }
-  .cost { margin:8px 0 0; padding-top:6px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
+  /* margin-top:auto (not just the top margin above) pins this to the
+     bottom of the cell rather than right under the last activity — matters
+     now that .week stretches every cell in a row to match its tallest
+     sibling, or a light day would leave dead space between its total and
+     the cell's own bottom edge. */
+  .cost { margin:auto 0 0; padding-top:6px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
   h2 { margin:26px 0 12px; font-size:20px; }
   /* padding-top is 8px, not 16px — each row already carries its own 8px
      top padding, so 16px there (on top of that) read as a bigger gap above
@@ -187,21 +197,10 @@
        reversal of the original "shrink empty weeks to save paper" idea in
        favor of a calendar that reads as evenly weighted throughout. */
     .cell { min-height:160px; break-inside:avoid; page-break-inside:avoid; }
-    .grid.week { break-inside:avoid; page-break-inside:avoid;
-      /* .week's screen rule sets align-items:start deliberately, so a
-         short day doesn't get stretched into dead empty space while
-         editing — on paper the opposite is true: a week where one day is
-         much taller than its neighbors reads as broken, uneven boxes
-         rather than a row. Overriding to the grid default (stretch) only
-         for print makes every cell in a row match its tallest sibling. */
-      align-items:stretch; }
-    /* Now that a light day can be stretched taller than its own content
-       (to match a heavier sibling in the same week — see .grid.week
-       above), pin "Day total" to the bottom of that extra space instead
-       of leaving it sitting right under the last activity with a dead
-       gap beneath it. */
-    .cell { display:flex; flex-direction:column; }
-    .cost { margin-top:auto; }
+    .grid.week { break-inside:avoid; page-break-inside:avoid; }
+    /* .cell's stretch/pin-to-bottom behavior (see the base .week/.cell/
+       .cost rules) already carries over to print unchanged — only the
+       taller minimum and the break-avoidance above are print-specific. */
     /* "Day list" layout — opt-in, toggled via a class on <body> rather
        than always-on (the calendar grid stays the default). Reuses the
        same single-column shape as the phone-responsive breakpoint, since
@@ -353,16 +352,22 @@
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   .acts li:hover .photopreview-wrap, .photoicon:hover .photopreview-wrap { display:block; }
-  .photoicon .photopreview { display:block; width:220px; max-width:60vw; max-height:260px; object-fit:cover;
-    border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25); border:2px solid var(--card); background:#fff; }
+  /* ~30% of the viewport width on hover, not the old fixed 220px thumbnail
+     — big enough to actually judge the photo without opening the full
+     lightbox, capped so it can't blow past a reasonable size on a huge
+     display or a tiny one. */
+  .photoicon .photopreview { display:block; width:30vw; min-width:180px; max-width:420px;
+    max-height:34vh; object-fit:cover; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+    border:2px solid var(--card); background:#fff; }
   /* Sits on top of the preview thumbnail itself rather than beside it, so
      the two actions are reachable from the same hover area that reveals
      the thumbnail in the first place — no separate hover target to find. */
   .photoctl { position:absolute; top:6px; right:6px; display:flex; gap:4px; }
-  .photoctl button { width:24px; height:24px; padding:0; border:none; border-radius:50%; cursor:pointer;
-    background:rgba(0,0,0,.55); color:#fff; font-size:12px; line-height:1; display:flex;
+  .photoctl button { width:26px; height:26px; padding:0; border:none; border-radius:50%; cursor:pointer;
+    background:rgba(0,0,0,.55); color:#fff; line-height:1; display:flex;
     align-items:center; justify-content:center; }
   .photoctl button:hover { background:rgba(0,0,0,.75); }
+  .photoctl button svg { width:14px; height:14px; }
 
   .photobox-inner { background:var(--card); border-radius:16px; padding:18px;
     width:min(760px, 92vw); max-height:90vh; display:flex; flex-direction:column;
@@ -384,8 +389,10 @@
   .photobox-next { right:8px; }
   .photobox-footer { display:flex; justify-content:flex-end; margin-top:12px; padding-top:12px;
     border-top:1px solid var(--line); }
-  .photobox-delete { border:1px solid var(--line); background:transparent; color:var(--ink);
-    font-size:13px; font-weight:700; padding:8px 14px; border-radius:999px; cursor:pointer; }
+  .photobox-delete { display:flex; align-items:center; gap:6px; border:1px solid var(--line);
+    background:transparent; color:var(--ink); font-size:13px; font-weight:700; padding:8px 14px;
+    border-radius:999px; cursor:pointer; }
+  .photobox-delete svg { width:15px; height:15px; }
   .photobox-delete:hover { border-color:#c0392b; color:#c0392b; }
 
   .banner { position:relative; overflow:visible; }
@@ -619,7 +626,7 @@
       <button type="button" id="photoboxNext" class="photobox-nav photobox-next" title="Next photo" aria-label="Next photo">›</button>
     </div>
     <div class="photobox-footer">
-      <button type="button" id="photoboxDelete" class="photobox-delete">🗑 Delete photo</button>
+      <button type="button" id="photoboxDelete" class="photobox-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete photo</span></button>
     </div>
   </div>
 </div>
@@ -1624,6 +1631,11 @@
   }
 
   // ---- photo ----
+  // Same plain-line SVG style as the "…" menu's icons (stroke, not fill,
+  // no emoji) rather than each control inventing its own visual language.
+  var ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
   function removePhotoFromLi(li){
     if(!window.confirm('Remove this photo?')) return false;
     li.removeAttribute('data-img');
@@ -1660,11 +1672,11 @@
       ctl.className = 'photoctl';
       var expandBtn = document.createElement('button');
       expandBtn.type = 'button'; expandBtn.title = 'View larger'; expandBtn.setAttribute('aria-label', 'View larger');
-      expandBtn.textContent = '⤢';
+      expandBtn.innerHTML = ICON_EXPAND;
       expandBtn.addEventListener('click', function(ev){ ev.stopPropagation(); openPhotobox(li); });
       var deleteBtn = document.createElement('button');
       deleteBtn.type = 'button'; deleteBtn.title = 'Delete photo'; deleteBtn.setAttribute('aria-label', 'Delete photo');
-      deleteBtn.textContent = '🗑';
+      deleteBtn.innerHTML = ICON_TRASH;
       deleteBtn.addEventListener('click', function(ev){ ev.stopPropagation(); removePhotoFromLi(li); });
       ctl.appendChild(expandBtn);
       ctl.appendChild(deleteBtn);
@@ -1679,8 +1691,9 @@
   }
 
   // ---- photo lightbox: "make bigger", with prev/next across every other
-  // photo in the same day and the connected activity's details up top, so
-  // the picture is never shown without the context of what it's from ----
+  // photo in the same option/month and the connected activity's details up
+  // top, so the picture is never shown without the context of what it's
+  // from ----
   var photoboxOverlay = document.getElementById('photoLightbox');
   var photoboxImg = document.getElementById('photoboxImg');
   var photoboxActivity = document.getElementById('photoboxActivity');
@@ -1690,10 +1703,13 @@
   var photoboxDeleteBtn = document.getElementById('photoboxDelete');
   var photoboxState = null;
 
-  function photosInSameDay(li){
-    var acts = li.closest('.acts');
-    if(!acts) return [li];
-    return Array.prototype.slice.call(acts.querySelectorAll(':scope > li[data-img]'));
+  // Every photo in the current option/month, not just the current day — a
+  // panel's cells are already in day order in the DOM, so this comes out
+  // in calendar order for free.
+  function photosInSamePanel(li){
+    var panel = li.closest('.panel');
+    if(!panel) return [li];
+    return Array.prototype.slice.call(panel.querySelectorAll('.acts > li[data-img]'));
   }
 
   // A cloned <li> rather than hand-picked fields, so whatever the activity
@@ -1723,7 +1739,7 @@
   }
 
   function openPhotobox(li){
-    var list = photosInSameDay(li);
+    var list = photosInSamePanel(li);
     var index = list.indexOf(li);
     if(index === -1) return;
     photoboxState = { list: list, index: index };
