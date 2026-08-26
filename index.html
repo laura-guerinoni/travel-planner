@@ -129,18 +129,11 @@
   .act-span-ghost .line { font-style:italic; }
   .price { display:block; font-weight:700; }
   .price em { font-style:normal; font-weight:400; color:var(--muted); }
-  /* margin-top:auto (not just the top margin above) pins this to the
-     bottom of the cell rather than right under the last activity — matters
-     now that .week stretches every cell in a row to match its tallest
-     sibling, or a light day would leave dead space between its total and
-     the cell's own bottom edge. */
-  .cost { margin:auto 0 0; padding-top:6px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
-  /* On screen, .daytotal-badge (up in .cellhead) replaces this — kept in
-     the DOM either way since recomputePanel() still sums it for the
-     option/pill/budget totals, and print still shows it bottom-pinned
-     (a top-corner badge doesn't read the same way on paper as it does as
-     a small UI affordance on screen). */
-  @media screen { .cost { display:none; } }
+  /* .daytotal-badge (up in .cellhead) replaces this everywhere now,
+     screen and print alike — kept in the DOM (never shown) purely because
+     recomputePanel() still sums its text for the option/pill/budget
+     totals. */
+  .cost { display:none; }
   h2 { margin:26px 0 12px; font-size:20px; }
   /* padding-top is 8px, not 16px — each row already carries its own 8px
      top padding, so 16px there (on top of that) read as a bigger gap above
@@ -187,10 +180,21 @@
     .panel.print-hide, .budget li.print-hide { display:none !important; }
     .panel::before { content:attr(data-print-label); display:block;
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
-    .pills, .month-sidebar, #statusBar, .daytotal-badge,
+    .pills, .month-sidebar, #statusBar,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
     #switchPlanBtn, #printPanel, #photoLightbox,
     .jsctl, #tagData { display:none !important; }
+    /* .daytotal-badge itself prints now (see the shared .cost rule above) —
+       only the hover-driven "swap for clear day" behavior is screen-only,
+       and .cleardaybtn is already covered by .jsctl above regardless. */
+    .daytotal-badge { display:inline-block !important; visibility:visible !important; }
+    /* Grid view only: each day's own "Sat"/"Sun" label is redundant with
+       its column's MON/TUE/... header directly above it, and dropping it
+       frees a little width in every cell — room that matters most on a
+       busy, expensive day with a lot to fit. List view keeps it: with the
+       column headers hidden there (see body.print-list rules below), the
+       per-day label is the only thing saying which weekday a row is. */
+    body:not(.print-list) .cellhead .wd { display:none; }
     /* !important is load-bearing here, not decorative: .wrap carries a JS-
        set INLINE padding-top (syncBarLayout(), reserving room for the
        fixed month-sidebar/pills bar on screen — see wrapEl.style.paddingTop
@@ -598,6 +602,11 @@
   .actionMenuThemeRow { display:flex; align-items:center; gap:8px; padding:9px 10px; }
   .actionMenuThemeLabel { flex:1; font-size:13px; font-weight:700; color:var(--ink); }
   .actionMenuThemeRow .theme-dot { width:22px; height:22px; }
+  .lang-btn { width:auto; height:22px; padding:0 7px; border-radius:999px; border:2px solid transparent;
+    background:var(--bg); color:var(--ink); font-size:10px; font-weight:700; letter-spacing:.03em;
+    cursor:pointer; transition:border-color .15s ease; }
+  .lang-btn:hover { opacity:.8; }
+  .lang-btn.active { border-color:var(--ink); }
   /* Shared modal-overlay chrome — used by both Manage Access and Print, so
      the second modal didn't need to re-derive this from scratch. */
   .modal-overlay { display:none; position:fixed; inset:0; z-index:9998;
@@ -620,6 +629,12 @@
   #manageAccessList .map-role { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
   #manageAccessList button.map-remove { border:none; background:transparent; color:#b3261e; cursor:pointer;
     font-size:14px; padding:2px 6px; }
+  #manageAccessList button.map-make-owner { border:1px solid var(--line); background:transparent;
+    color:var(--ink); cursor:pointer; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px;
+    white-space:nowrap; }
+  #manageAccessList button.map-make-owner:hover { border-color:var(--primary); color:var(--primary); }
+  #manageAccessList li > span:first-child { flex:1; min-width:0; overflow-wrap:anywhere; }
+  #manageAccessList .map-row-actions { display:flex; align-items:center; gap:6px; flex:none; }
   #manageAccessAddForm { display:flex; gap:6px; margin-bottom:8px; }
   #manageAccessAddForm input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px; }
   #manageAccessAddForm button, .modal-primary-btn { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
@@ -637,19 +652,19 @@
   <h1>🔒 Travel Planner</h1>
   <p class="authMsg" id="authGateStatus">Sign in with the Google account this plan was shared with.</p>
   <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
-  <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Sign in with Google</button>
-  <button type="button" id="authSignOutBtn">Sign out and try another account</button>
+  <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> <span data-i18n="auth_signin">Sign in with Google</span></button>
+  <button type="button" id="authSignOutBtn" data-i18n="auth_signout">Sign out and try another account</button>
 </div>
 <div id="manageAccessPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
-      <h2>Manage access</h2>
+      <h2 data-i18n="manage_title">Manage access</h2>
       <button type="button" id="manageAccessCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
     <ul id="manageAccessList"></ul>
     <form id="manageAccessAddForm">
-      <input type="email" id="manageAccessAddInput" placeholder="Invite by email" required />
-      <button type="submit">Invite</button>
+      <input type="email" id="manageAccessAddInput" data-i18n-placeholder="manage_invite_placeholder" placeholder="Invite by email" required />
+      <button type="submit" data-i18n="manage_invite_btn">Invite</button>
     </form>
     <p id="manageAccessError"></p>
   </div>
@@ -667,37 +682,37 @@
       <button type="button" id="photoboxNext" class="photobox-nav photobox-next" title="Next photo" aria-label="Next photo">›</button>
     </div>
     <div class="photobox-footer">
-      <button type="button" id="photoboxDelete" class="photobox-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete photo</span></button>
+      <button type="button" id="photoboxDelete" class="photobox-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span data-i18n="photo_delete">Delete photo</span></button>
     </div>
   </div>
 </div>
 <div id="printPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
-      <h2>Print / Save as PDF</h2>
+      <h2 data-i18n="print_title">Print / Save as PDF</h2>
       <button type="button" id="printCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
     <fieldset>
-      <legend>Include</legend>
-      <label><input type="radio" name="printScope" value="active" checked /> This month only</label>
-      <label><input type="radio" name="printScope" value="all" /> All months</label>
+      <legend data-i18n="print_include">Include</legend>
+      <label><input type="radio" name="printScope" value="active" checked /> <span data-i18n="print_scope_active">This month only</span></label>
+      <label><input type="radio" name="printScope" value="all" /> <span data-i18n="print_scope_all">All months</span></label>
     </fieldset>
     <fieldset>
-      <legend>Layout</legend>
-      <label><input type="radio" name="printLayout" value="grid" checked /> Calendar grid</label>
-      <label><input type="radio" name="printLayout" value="list" /> Day list</label>
+      <legend data-i18n="print_layout">Layout</legend>
+      <label><input type="radio" name="printLayout" value="grid" checked /> <span data-i18n="print_layout_grid">Calendar grid</span></label>
+      <label><input type="radio" name="printLayout" value="list" /> <span data-i18n="print_layout_list">Day list</span></label>
     </fieldset>
     <fieldset>
-      <legend>Paper size</legend>
+      <legend data-i18n="print_size">Paper size</legend>
       <label><input type="radio" name="printSize" value="a4" checked /> A4</label>
-      <label><input type="radio" name="printSize" value="letter" /> US Letter</label>
+      <label><input type="radio" name="printSize" value="letter" /> <span data-i18n="print_size_letter">US Letter</span></label>
     </fieldset>
     <fieldset>
-      <legend>Orientation</legend>
-      <label><input type="radio" name="printOrientation" value="portrait" checked /> Portrait</label>
-      <label><input type="radio" name="printOrientation" value="landscape" /> Landscape</label>
+      <legend data-i18n="print_orientation">Orientation</legend>
+      <label><input type="radio" name="printOrientation" value="portrait" checked /> <span data-i18n="print_portrait">Portrait</span></label>
+      <label><input type="radio" name="printOrientation" value="landscape" /> <span data-i18n="print_landscape">Landscape</span></label>
     </fieldset>
-    <button type="button" id="printGoBtn" class="modal-primary-btn">Print / Save as PDF</button>
+    <button type="button" id="printGoBtn" class="modal-primary-btn" data-i18n="print_go">Print / Save as PDF</button>
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
@@ -713,16 +728,22 @@
     <button type="button" id="actionMenuBtn" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="true">⋮</button>
     <div id="actionMenuDropdown">
       <button type="button" id="saveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span id="saveBtnLabel">Save</span></button>
-      <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Manage access</span></button>
-      <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span>Print</span></button>
+      <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="menu_manage">Manage access</span></button>
+      <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span data-i18n="menu_print">Print</span></button>
       <div class="actionMenuDivider"></div>
       <div class="actionMenuThemeRow">
-        <span class="actionMenuThemeLabel">Theme</span>
+        <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
         <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
         <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
       </div>
+      <div class="actionMenuThemeRow">
+        <span class="actionMenuThemeLabel" data-i18n="menu_language">Language</span>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="it">IT</button>
+        <button type="button" class="lang-btn" data-lang="es">ES</button>
+      </div>
       <div class="actionMenuDivider"></div>
-      <button type="button" id="appSignOutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign out</span></button>
+      <button type="button" id="appSignOutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span data-i18n="menu_signout">Sign out</span></button>
     </div>
   </div>
   <div id="statusBar">
@@ -941,7 +962,7 @@
   </section><section class="panel on" id="panel-option-3" data-year="2026" data-month="8">
     <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">12</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">13</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">14</span><span class="wd">Fri</span></div></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">15</span><span class="wd">Sat</span></div><p class="loc">New location</p><ul class="acts"><li><span class="chip" data-icon="🚌" data-name="Bus" style="background: rgb(63, 217, 109); color: rgb(20, 33, 61); cursor: pointer;">🚌 Bus</span><span class="title">Kosice -&gt; Zakopanie&nbsp;</span><span class="line">🕒 18:20 - 21:55</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">16</span><span class="wd">Sun</span></div><p class="loc">Zakopane</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">Kosice -&gt; Zakopanie&nbsp;</span><span class="line">🕒 11:15 - 14:35</span><span class="price"><span class="price-val">€45x2</span></span></li><li><span class="chip" data-icon="♨️" data-name="Thermal" style="background: rgb(201, 106, 63); color: rgb(255, 255, 255); cursor: pointer;">♨️ Thermal</span><span class="title">Terme Chochołów</span><span class="line">🕒 4 hours</span><span class="price"><span class="price-val">€30</span></span></li><li><span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span><span class="title">Gubałówka Market</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li><li data-links="[&quot;https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;&quot;]"><span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span><span class="linkicons"><a class="linkarrow" target="_blank" rel="noopener" href="https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;" title="https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;">↗</a></span><span class="title">Willa Orla</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€60</span></span></li></ul><p class="cost">Day total €135</p></div></div><div class="grid week"><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">17</span><span class="wd">Mon</span></div><p class="loc">Zakopan</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">Zakopane - Kraków Gł.</span><span class="line">🕒 15:53-17:51</span><span class="price"><span class="price-val">€13x2</span></span></li></ul><p class="cost">Day total €13</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">18</span><span class="wd">Tue</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">19</span><span class="wd">Wed</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">20</span><span class="wd">Thu</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">21</span><span class="wd">Fri</span></div><p class="loc">Varsavia</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">22</span><span class="wd">Sat</span></div><p class="loc">Varsavia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">23</span><span class="wd">Sun</span></div><p class="loc">Danzica</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div></div><div class="grid week"><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">24</span><span class="wd">Mon</span></div><p class="loc">Danzica</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">25</span><span class="wd">Tue</span></div><p class="loc">Danzica</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">26</span><span class="wd">Wed</span></div><p class="loc">Danzica + Ritorno</p><ul class="acts"><li><span class="chip" data-icon="✈️" data-name="Flight" style="background: rgb(122, 110, 201); color: rgb(255, 255, 255); cursor: pointer;">✈️ Flight</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€38</span></span></li></ul><p class="cost">Day total €38</p></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">27</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">28</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">29</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">30</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">31</span><span class="wd">Mon</span></div></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div></div>
   </section>
-  <h2>Budget overview</h2>
+  <h2 data-i18n="budget_overview">Budget overview</h2>
   <div class="budget">
     <ul><li data-opt="option-3"><span><span class="budget-name">1.Poland</span></span><strong>€186</strong></li><li data-opt="option-1"><span><span class="budget-name">1. Slovakia · Hungary · Poland</span> <em>· August 12 – 25, 2026</em></span><strong>€997</strong></li><li data-opt="option-2"><span><span class="budget-name">2. Hungary · Poland</span> <em>· August 15 – 24, 2026</em></span><strong>€786</strong></li></ul>
   </div>
@@ -1016,6 +1037,63 @@
 <script>
 (function(){
   var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+
+  // ---- language: English/Italian/Spanish for the app's own UI chrome
+  // (menus, panels, buttons) — never the trip content itself, which stays
+  // exactly as typed regardless of language, the same way changing the
+  // color theme doesn't touch it either. Declared this early (before
+  // reattachAll()/attachCellControls() are even defined below) since those
+  // call t() while building the "+ Add location" etc. buttons on load. ----
+  var LANG_KEY = 'travelPlannerLang';
+  var TRANSLATIONS = {
+    en: {
+      menu_save: 'Save', menu_download: 'Download', menu_manage: 'Manage access', menu_print: 'Print',
+      menu_theme: 'Theme', menu_language: 'Language', menu_signout: 'Sign out',
+      manage_title: 'Manage access', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
+      manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
+      print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
+      print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
+      print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
+      print_orientation: 'Orientation', print_portrait: 'Portrait', print_landscape: 'Landscape',
+      print_go: 'Print / Save as PDF',
+      add_location: '+ Add location', add_activity: '+ Add activity', clear_day: '✕ clear day',
+      budget_overview: 'Budget overview', photo_delete: 'Delete photo',
+      auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account'
+    },
+    it: {
+      menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
+      menu_theme: 'Tema', menu_language: 'Lingua', menu_signout: 'Esci',
+      manage_title: 'Gestisci accesso', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
+      manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
+      print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
+      print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
+      print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
+      print_orientation: 'Orientamento', print_portrait: 'Verticale', print_landscape: 'Orizzontale',
+      print_go: 'Stampa / Salva come PDF',
+      add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: '✕ svuota giorno',
+      budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
+      auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account'
+    },
+    es: {
+      menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
+      menu_theme: 'Tema', menu_language: 'Idioma', menu_signout: 'Cerrar sesión',
+      manage_title: 'Gestionar acceso', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
+      manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
+      print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
+      print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
+      print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
+      print_orientation: 'Orientación', print_portrait: 'Vertical', print_landscape: 'Horizontal',
+      print_go: 'Imprimir / Guardar como PDF',
+      add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: '✕ vaciar día',
+      budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
+      auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta'
+    }
+  };
+  var currentLang = 'en';
+  function t(key){
+    var dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+    return (dict && dict[key] != null) ? dict[key] : (TRANSLATIONS.en[key] || key);
+  }
 
   // Identifies which shared Firebase project this page talks to — not a
   // secret; access control is enforced entirely by the Realtime Database's
@@ -1187,10 +1265,35 @@
         var label = document.createElement('span');
         label.textContent = row.email;
         li.appendChild(label);
+        var actions = document.createElement('span');
+        actions.className = 'map-row-actions';
         var roleEl = document.createElement('span');
         roleEl.className = 'map-role';
-        roleEl.textContent = row.role;
-        li.appendChild(roleEl);
+        roleEl.textContent = t('manage_role_' + row.role) || row.role;
+        actions.appendChild(roleEl);
+        // Any current owner can promote an invited member to owner —
+        // whether they've been on the list a while or were just invited,
+        // this is the same action either way (a fresh invite always lands
+        // as 'invited' first; promoting is a separate, deliberate second
+        // step rather than a special "invite as owner" path). Requires the
+        // security rules' $memberKey .validate to accept 'owner' as a
+        // written value, not just 'invited' — see the rules update that
+        // shipped alongside this.
+        if(row.role === 'invited'){
+          var makeOwnerBtn = document.createElement('button');
+          makeOwnerBtn.type = 'button';
+          makeOwnerBtn.className = 'map-make-owner';
+          makeOwnerBtn.textContent = t('manage_make_owner');
+          makeOwnerBtn.title = 'Give ' + row.email + ' owner access';
+          makeOwnerBtn.addEventListener('click', function(){
+            if(manageErrorEl) manageErrorEl.textContent = '';
+            firebase.database().ref('members/' + row.key).set('owner').catch(function(err){
+              if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t update ' + row.email + ' — try again.';
+              console.warn('Promote member failed', err);
+            }).then(renderMemberList);
+          });
+          actions.appendChild(makeOwnerBtn);
+        }
         // No remove control for an owner row at all — belt and suspenders
         // alongside the security rules, which independently refuse to ever
         // delete or overwrite an entry whose current value is 'owner'.
@@ -1207,8 +1310,9 @@
               console.warn('Remove member failed', err);
             }).then(renderMemberList);
           });
-          li.appendChild(removeBtn);
+          actions.appendChild(removeBtn);
         }
+        li.appendChild(actions);
         manageList.appendChild(li);
       });
     }).catch(function(err){
@@ -2490,16 +2594,16 @@
     if(cell.querySelector(':scope > .addact')) return;
 
     var addBtn = document.createElement('button');
-    addBtn.type = 'button'; addBtn.className = 'addact jsctl';
-    addBtn.textContent = '+ Add activity';
+    addBtn.type = 'button'; addBtn.className = 'addact jsctl'; addBtn.dataset.i18n = 'add_activity';
+    addBtn.textContent = t('add_activity');
 
     var addLocBtn = document.createElement('button');
-    addLocBtn.type = 'button'; addLocBtn.className = 'addloc jsctl';
-    addLocBtn.textContent = '+ Add location';
+    addLocBtn.type = 'button'; addLocBtn.className = 'addloc jsctl'; addLocBtn.dataset.i18n = 'add_location';
+    addLocBtn.textContent = t('add_location');
 
     var clearBtn = document.createElement('button');
-    clearBtn.type = 'button'; clearBtn.className = 'cleardaybtn jsctl';
-    clearBtn.textContent = '✕ clear day';
+    clearBtn.type = 'button'; clearBtn.className = 'cleardaybtn jsctl'; clearBtn.dataset.i18n = 'clear_day';
+    clearBtn.textContent = t('clear_day');
 
     function refreshClear(){
       clearBtn.classList.toggle('has-content', cellHasContent(cell));
@@ -3377,6 +3481,40 @@
     applyTheme(saved);
   })();
 
+  // Sweeps every [data-i18n]/[data-i18n-placeholder] element currently in
+  // the document — covers both the static chrome (menu, panels) and
+  // anything built dynamically with the same attributes already set (the
+  // "+ Add location"/"+ Add activity"/"clear day" buttons, tagged when
+  // attachCellControls() creates them). #saveBtnLabel is deliberately not
+  // swept this way — its text depends on IS_HOSTED (Save vs Download), not
+  // language alone, so it's refreshed here directly instead.
+  function applyLanguage(lang){
+    currentLang = TRANSLATIONS[lang] ? lang : 'en';
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){
+      el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+    });
+    var saveBtnLabelEl = document.getElementById('saveBtnLabel');
+    if(saveBtnLabelEl) saveBtnLabelEl.textContent = IS_HOSTED ? t('menu_download') : t('menu_save');
+    document.querySelectorAll('.lang-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-lang') === currentLang);
+    });
+    // Only actually open when an owner has the panel up — harmless no-op
+    // otherwise, and avoids a stray Firebase read on every language switch.
+    if(manageList && manageList.children.length) renderMemberList();
+    try { localStorage.setItem(LANG_KEY, currentLang); } catch(e){}
+  }
+  document.querySelectorAll('.lang-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ applyLanguage(btn.getAttribute('data-lang')); });
+  });
+  (function initLanguage(){
+    var saved = 'en';
+    try { saved = localStorage.getItem(LANG_KEY) || 'en'; } catch(e){}
+    applyLanguage(saved);
+  })();
+
   document.addEventListener('input', function(e){
     if(e.target.classList && e.target.classList.contains('price-val')){
       var priceLi = e.target.closest('.acts > li[data-span-start]');
@@ -3753,7 +3891,7 @@
     saveBtn.addEventListener('click', function(){ doSave(); closeActionMenu(); });
     saveBtn.title = IS_HOSTED ? 'Download a copy of the current plan' : 'Save';
     var saveBtnLabel = saveBtn.querySelector('#saveBtnLabel');
-    if(saveBtnLabel) saveBtnLabel.textContent = IS_HOSTED ? 'Download' : 'Save';
+    if(saveBtnLabel) saveBtnLabel.textContent = IS_HOSTED ? t('menu_download') : t('menu_save');
     if(changeFileBtn){
       if(IS_HOSTED){
         changeFileBtn.style.display = 'none';
