@@ -156,6 +156,13 @@
      "editing-only, strip for a clean view" — see buildSaveHtml()) so this
      doesn't have to independently re-list every interactive control. */
   @media print {
+    /* Browsers suppress background colors/images by default when printing
+       (an ink-saving default, decades old) — without this, every colored
+       activity tag chip prints as plain text with no swatch at all. This
+       overrides that default rather than requiring the person printing to
+       separately find and enable "Background graphics" in the print
+       dialog on top of everything else already covered there. */
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
     body { background:#fff; padding:0; }
     html, body { visibility:visible !important; }
     .panel { display:block !important; page-break-after:always; }
@@ -183,6 +190,13 @@
          rather than a row. Overriding to the grid default (stretch) only
          for print makes every cell in a row match its tallest sibling. */
       align-items:stretch; }
+    /* Now that a light day can be stretched taller than its own content
+       (to match a heavier sibling in the same week — see .grid.week
+       above), pin "Day total" to the bottom of that extra space instead
+       of leaving it sitting right under the last activity with a dead
+       gap beneath it. */
+    .cell { display:flex; flex-direction:column; }
+    .cost { margin-top:auto; }
   }
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
@@ -904,6 +918,20 @@
       var appSignOutBtn = document.getElementById('appSignOutBtn');
       if(signInBtn) signInBtn.addEventListener('click', function(){
         auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
+          // auth/cancelled-popup-request: fires when the button gets
+          // clicked again (or double-clicked) before the first popup
+          // resolves — Firebase cancels the earlier request in favor of
+          // the newer one, which is completely normal, not a failure.
+          // auth/popup-closed-by-user: the person just closed the popup
+          // without finishing — also not an error, just changed their
+          // mind. Neither is something the user needs to see error text
+          // about; showing raw Firebase error codes for expected,
+          // harmless cases reads as broken when it isn't.
+          var code = err && err.code;
+          if(code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user'){
+            showAuthGate('signin', 'Sign in with your Google account.');
+            return;
+          }
           showAuthGate('signin', 'Sign-in didn’t go through' + (err && err.message ? ': ' + err.message : '') + ' — try again.');
         });
       });
