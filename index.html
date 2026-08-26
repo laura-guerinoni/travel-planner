@@ -174,7 +174,15 @@
     #authGate, #ownerControls, #manageAccessBtn, #manageAccessPanel,
     #switchPlanBtn, #topRightControls, #printPanel,
     .jsctl, #tagData { display:none !important; }
-    .wrap { margin:0; padding:0; max-width:none; }
+    /* !important is load-bearing here, not decorative: .wrap carries a JS-
+       set INLINE padding-top (syncBarLayout(), reserving room for the
+       fixed month-sidebar/pills bar on screen — see wrapEl.style.paddingTop
+       elsewhere in this file), and that leftover inline style outranks a
+       plain class rule regardless of source order. Without !important this
+       line loses that fight silently, and print keeps the same top gap
+       that's reserved for a screen-only fixed header it never actually
+       shows — exactly what was showing up as "too much space at the top". */
+    .wrap { margin:0 !important; padding:0 !important; max-width:none !important; }
     /* A day's content shouldn't be sliced by a page boundary — better to
        push the whole cell to the next page than split it mid-activity.
        min-height went through a few rounds (0 -> 40px -> 80px -> this)
