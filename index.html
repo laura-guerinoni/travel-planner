@@ -207,6 +207,22 @@
        gap beneath it. */
     .cell { display:flex; flex-direction:column; }
     .cost { margin-top:auto; }
+    /* "Day list" layout — opt-in, toggled via a class on <body> rather
+       than always-on (the calendar grid stays the default). Reuses the
+       same single-column shape as the phone-responsive breakpoint, since
+       that already solves "give each day its own full-width row" — the
+       difference is this one's deliberate, for whoever wants more
+       horizontal room per day than 7 columns allow, not a screen-width
+       accident. The weekday header row (MON/TUE/...) is meaningless once
+       every day already carries its own weekday label, and empty filler
+       cells (padding out the grid before day 1) are just blank space with
+       nothing to align to a column anymore, so both get hidden. No
+       min-height floor here either, unlike the grid — this layout has no
+       "match your row's tallest sibling" concept to balance against, so a
+       short day can just be short. */
+    body.print-list .grid.heads, body.print-list .cell.empty { display:none; }
+    body.print-list .grid.week { grid-template-columns:1fr; }
+    body.print-list .cell { min-height:0; }
   }
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
@@ -549,6 +565,11 @@
       <legend>Include</legend>
       <label><input type="radio" name="printScope" value="active" checked /> This month only</label>
       <label><input type="radio" name="printScope" value="all" /> All months</label>
+    </fieldset>
+    <fieldset>
+      <legend>Layout</legend>
+      <label><input type="radio" name="printLayout" value="grid" checked /> Calendar grid</label>
+      <label><input type="radio" name="printLayout" value="list" /> Day list — one day per row, more room for busy days</label>
     </fieldset>
     <fieldset>
       <legend>Paper size</legend>
@@ -3024,10 +3045,14 @@
   if(printGoBtn) printGoBtn.addEventListener('click', function(){
     applyPrintPageSetup(radioValue('printSize', 'a4'), radioValue('printOrientation', 'portrait'));
     applyPrintScope(radioValue('printScope', 'active'));
+    document.body.classList.toggle('print-list', radioValue('printLayout', 'grid') === 'list');
     if(printPanel) printPanel.classList.remove('show');
     window.print();
   });
-  window.addEventListener('afterprint', clearPrintScope);
+  window.addEventListener('afterprint', function(){
+    clearPrintScope();
+    document.body.classList.remove('print-list');
+  });
 
   function downloadCopy(htmlStr){
     var blob = new Blob([htmlStr], { type: 'text/html' });
