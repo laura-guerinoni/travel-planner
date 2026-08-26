@@ -1786,6 +1786,37 @@
     else if(e.key === 'ArrowRight') photoboxNavigate(1);
   });
 
+  // A phone photo straight off the camera (often several MB) blows past
+  // what's sane to embed as base64 in a JSON blob that gets rewritten to
+  // Firebase in full on every single save — the save can silently fail
+  // (size limit or timeout) well past what setStatus's error text draws
+  // attention to, leaving the server's copy one photo short of what's on
+  // screen. The next reload then pulls that stale copy, which is what
+  // reads as "the picture disappears". Downscaling to a sane max dimension
+  // and re-encoding as JPEG cuts a multi-MB photo down to tens of KB —
+  // still plenty for viewing in the lightbox, but small enough to save
+  // reliably every time.
+  function resizeImageDataUrl(dataUrl, maxDim, quality){
+    return new Promise(function(resolve){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement('canvas');
+        canvas.width = cw; canvas.height = ch;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, cw, ch);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      // If the browser can't decode it as an <img> for some reason, fall
+      // back to the untouched original rather than losing the photo.
+      img.onerror = function(){ resolve(dataUrl); };
+      img.src = dataUrl;
+    });
+  }
+
   function pickImage(li){
     var input = document.createElement('input');
     input.type = 'file';
@@ -1798,8 +1829,10 @@
       if(file){
         var reader = new FileReader();
         reader.onload = function(){
-          li.setAttribute('data-img', reader.result);
-          renderPhoto(li);
+          resizeImageDataUrl(reader.result, 1600, 0.82).then(function(resized){
+            li.setAttribute('data-img', resized);
+            renderPhoto(li);
+          });
         };
         reader.readAsDataURL(file);
       }
@@ -3417,7 +3450,10 @@
       tagDataJson: payload.tagDataJson,
       updatedAt: firebase.database.ServerValue.TIMESTAMP,
       updatedBy: CLIENT_ID
-    }).then(function(){ return true; }).catch(function(){ return false; });
+    }).then(function(){ return true; }).catch(function(err){
+      console.warn('Save failed', err, 'payload size (chars):', payload.contentJson.length);
+      return false;
+    });
     // set() only resolves once the server acks the write — genuinely offline
     // (or a misconfigured project), that ack never arrives and the promise
     // hangs forever, leaving the status stuck on "Editing…" indefinitely.
