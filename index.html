@@ -380,7 +380,19 @@
   .photobox-activity .line { display:block; color:var(--muted); }
   .photobox-body { position:relative; display:flex; align-items:center; justify-content:center;
     flex:1; min-height:0; }
-  .photobox-img { max-width:100%; max-height:70vh; object-fit:contain; border-radius:8px; }
+  /* min-width/min-height:0 override the flex item default (auto, which
+     resolves to the image's own natural pixel size as a floor) — without
+     these, a large photo could refuse to shrink below its native
+     dimensions despite max-width:100%, spilling past .photobox-inner's
+     edges instead of fitting inside it. */
+  .photobox-img { max-width:100%; max-height:70vh; min-width:0; min-height:0;
+    object-fit:contain; border-radius:8px; opacity:0; transition:opacity .15s ease; }
+  .photobox-img.loaded { opacity:1; }
+  .photobox-loading { position:absolute; width:32px; height:32px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--primary);
+    animation:photobox-spin .8s linear infinite; display:none; }
+  .photobox-loading.show { display:block; }
+  @keyframes photobox-spin { to { transform:rotate(360deg); } }
   .photobox-nav { position:absolute; top:50%; transform:translateY(-50%); width:36px; height:36px;
     border-radius:50%; border:none; background:rgba(0,0,0,.45); color:#fff; font-size:20px; line-height:1;
     cursor:pointer; display:flex; align-items:center; justify-content:center; }
@@ -623,6 +635,7 @@
     </div>
     <div class="photobox-body">
       <button type="button" id="photoboxPrev" class="photobox-nav photobox-prev" title="Previous photo" aria-label="Previous photo">‹</button>
+      <div id="photoboxLoading" class="photobox-loading" aria-hidden="true"></div>
       <img id="photoboxImg" class="photobox-img" alt="" />
       <button type="button" id="photoboxNext" class="photobox-nav photobox-next" title="Next photo" aria-label="Next photo">›</button>
     </div>
@@ -1702,6 +1715,7 @@
   // from ----
   var photoboxOverlay = document.getElementById('photoLightbox');
   var photoboxImg = document.getElementById('photoboxImg');
+  var photoboxLoading = document.getElementById('photoboxLoading');
   var photoboxActivity = document.getElementById('photoboxActivity');
   var photoboxPrevBtn = document.getElementById('photoboxPrev');
   var photoboxNextBtn = document.getElementById('photoboxNext');
@@ -1740,10 +1754,23 @@
     return frag;
   }
 
+  // Swapping .src is instant, but decoding/painting a large photo isn't —
+  // the spinner covers that gap instead of the old image just sitting
+  // there (or a blank flash) until the new one is actually ready to show.
+  photoboxImg.addEventListener('load', function(){
+    photoboxLoading.classList.remove('show');
+    photoboxImg.classList.add('loaded');
+  });
+  photoboxImg.addEventListener('error', function(){
+    photoboxLoading.classList.remove('show');
+  });
+
   function renderPhotobox(){
     if(!photoboxState || !photoboxState.list.length){ closePhotobox(); return; }
     if(photoboxState.index >= photoboxState.list.length) photoboxState.index = photoboxState.list.length - 1;
     var li = photoboxState.list[photoboxState.index];
+    photoboxImg.classList.remove('loaded');
+    photoboxLoading.classList.add('show');
     photoboxImg.src = li.getAttribute('data-img') || '';
     photoboxActivity.innerHTML = '';
     photoboxActivity.appendChild(photoboxHeaderFrom(li));
