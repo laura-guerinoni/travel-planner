@@ -374,6 +374,7 @@
     box-shadow:0 12px 32px rgba(0,0,0,.25); }
   .photobox-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
     margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+  #photoboxActivity .cellhead { margin-bottom:6px; }
   .photobox-activity { list-style:none; margin:0; font-size:13px; }
   .photobox-activity .title { display:block; font-weight:700; font-size:14px; margin:4px 0 2px; }
   .photobox-activity .line { display:block; color:var(--muted); }
@@ -1718,12 +1719,20 @@
   // evolve. cloneNode doesn't carry over event listeners, so the clone is
   // inert by construction; contenteditable is a plain attribute though, so
   // it's stripped explicitly or the text would look (falsely) editable.
+  // The day number/weekday (cloned straight from the cell's own .cellhead)
+  // goes on top of that — with prev/next now able to jump to a different
+  // day entirely, which day you're looking at is no longer implied by
+  // "whatever was on screen when you opened this".
   function photoboxHeaderFrom(li){
+    var frag = document.createDocumentFragment();
+    var cellhead = li.closest('.cell') && li.closest('.cell').querySelector(':scope > .cellhead');
+    if(cellhead) frag.appendChild(cellhead.cloneNode(true));
     var clone = li.cloneNode(true);
     clone.querySelectorAll('.photoicon, .itemctl').forEach(function(el){ el.remove(); });
     clone.querySelectorAll('[contenteditable]').forEach(function(el){ el.removeAttribute('contenteditable'); });
     clone.className = 'photobox-activity';
-    return clone;
+    frag.appendChild(clone);
+    return frag;
   }
 
   function renderPhotobox(){
