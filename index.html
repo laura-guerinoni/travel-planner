@@ -1636,6 +1636,11 @@
   // no emoji) rather than each control inventing its own visual language.
   var ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+  // Counts photo reads/resizes currently in flight (see pickImage below) —
+  // isLocallyBusy() treats any nonzero count as "don't apply a remote
+  // snapshot right now", the same way it already does for a focused field
+  // or an open popover.
+  var photoUploadBusy = 0;
 
   function removePhotoFromLi(li){
     if(!window.confirm('Remove this photo?')) return false;
@@ -1827,13 +1832,37 @@
     input.addEventListener('change', function(){
       var file = input.files[0];
       if(file){
+        // Reading + resizing a large photo can take a real moment, and
+        // isLocallyBusy() otherwise has no way to know an edit is even in
+        // progress until the moment data-img actually gets set at the very
+        // end — a remote snapshot arriving in that gap would rebuild every
+        // panel from scratch right out from under this still-in-flight
+        // upload, detaching `li` before setAttribute below ever runs. The
+        // photo would then silently vanish: set on a node nothing renders,
+        // in a subtree the save-triggering MutationObserver isn't watching
+        // any more either, so no error, no retry, nothing. photoUploadBusy
+        // closes that gap the same way localEditUntil does for a normal
+        // keystroke, just spanning the whole async read+resize instead of
+        // firing only after the fact.
+        // Deliberately NOT calling tryApplyPendingRemoteUpdate() right after
+        // setAttribute below: that call happens in the same synchronous
+        // block as the mutation itself, before the MutationObserver has had
+        // a chance to react and arm localEditUntil — calling it here could
+        // apply a queued update (discarding the photo just set) before this
+        // edit is even scheduled to save. The existing 500ms interval
+        // safety net picks it up shortly after, once localEditUntil has
+        // actually been armed — same as every other busy-condition-just-
+        // ended case that doesn't have its own natural completion hook.
+        photoUploadBusy++;
         var reader = new FileReader();
         reader.onload = function(){
           resizeImageDataUrl(reader.result, 1600, 0.82).then(function(resized){
+            photoUploadBusy--;
             li.setAttribute('data-img', resized);
             renderPhoto(li);
           });
         };
+        reader.onerror = function(){ photoUploadBusy--; };
         reader.readAsDataURL(file);
       }
       input.remove();
@@ -4013,13 +4042,16 @@
   // True while some in-progress local interaction would be corrupted by a
   // remote DOM swap arriving right now (a focused editable field mid-
   // keystroke, an active drag whose closure holds a direct reference into
-  // the current .wrap, or an open popover anchored to a node that's about
-  // to be replaced). Checked before ever applying a remote snapshot.
+  // the current .wrap, an open popover anchored to a node that's about to
+  // be replaced, or a photo still being read/resized whose target <li>
+  // would be silently orphaned by a rebuild). Checked before ever applying
+  // a remote snapshot.
   function isLocallyBusy(){
     var ae = document.activeElement;
     if(ae && ae.isContentEditable && ae.matches && ae.matches(EDITABLE_SEL + ', .pill-name')) return true;
     if(pillDrag || cellDrag || actDrag || dragState) return true;
     if(openPop) return true;
+    if(photoUploadBusy > 0) return true;
     if(Date.now() < localEditUntil) return true;
     return false;
   }
