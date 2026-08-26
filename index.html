@@ -292,6 +292,7 @@
     align-items:flex-end; gap:2px; }
   .save-status { font-size:11px; color:var(--muted); text-align:right; max-width:160px; min-height:14px; }
   .save-status.changelink { text-decoration:underline; cursor:pointer; }
+  .save-status.save-status-error { color:#c0392b; font-weight:700; }
 
   .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; touch-action:none; }
   .pill.dragging { opacity:.55; cursor:grabbing; }
@@ -1765,6 +1766,38 @@
     photoboxLoading.classList.remove('show');
   });
 
+  // .photobox-img's own CSS max-height:70vh is a flat fraction of the
+  // viewport with no idea how much room the header/footer chrome around it
+  // actually takes — a photo whose aspect ratio lets it render at the full
+  // 70vh rendered at that height regardless, overflowing .photobox-body
+  // (align-items:center doesn't stretch/clip a child to its cross-axis
+  // size the way a column layout's flex:1 does) even though .photobox-
+  // inner's own 90vh cap was never actually exceeded. Measuring the real
+  // header/footer height and setting an explicit inline cap keeps the
+  // whole modal within that same budget regardless of how tall the header
+  // ends up being (a longer activity, more lines of detail, etc).
+  // Outer height including margins — getBoundingClientRect() only covers
+  // the border box, so a bare height read here would silently drop
+  // .photobox-header's margin-bottom and .photobox-footer's margin-top,
+  // which is exactly the gap that was still slipping the image past its
+  // own container even after accounting for the header/footer boxes
+  // themselves.
+  function outerHeight(el){
+    if(!el) return 0;
+    var cs = getComputedStyle(el);
+    return el.getBoundingClientRect().height + parseFloat(cs.marginTop || 0) + parseFloat(cs.marginBottom || 0);
+  }
+
+  function fitPhotoboxImage(){
+    var header = photoboxOverlay.querySelector('.photobox-header');
+    var footer = photoboxOverlay.querySelector('.photobox-footer');
+    var innerCs = getComputedStyle(photoboxOverlay.querySelector('.photobox-inner'));
+    var innerPadding = parseFloat(innerCs.paddingTop || 0) + parseFloat(innerCs.paddingBottom || 0);
+    var chromeHeight = outerHeight(header) + outerHeight(footer) + innerPadding;
+    var budget = window.innerHeight * 0.9 - chromeHeight;
+    photoboxImg.style.maxHeight = Math.max(160, budget) + 'px';
+  }
+
   function renderPhotobox(){
     if(!photoboxState || !photoboxState.list.length){ closePhotobox(); return; }
     if(photoboxState.index >= photoboxState.list.length) photoboxState.index = photoboxState.list.length - 1;
@@ -1777,6 +1810,7 @@
     var multi = photoboxState.list.length > 1;
     photoboxPrevBtn.disabled = !multi;
     photoboxNextBtn.disabled = !multi;
+    fitPhotoboxImage();
   }
 
   function openPhotobox(li){
@@ -1784,9 +1818,16 @@
     var index = list.indexOf(li);
     if(index === -1) return;
     photoboxState = { list: list, index: index };
-    renderPhotobox();
+    // Shown before rendering, not after — fitPhotoboxImage() measures the
+    // header/footer's real rendered height, which is zero for a
+    // display:none element.
     photoboxOverlay.classList.add('show');
+    renderPhotobox();
   }
+
+  window.addEventListener('resize', function(){
+    if(photoboxOverlay.classList.contains('show')) fitPhotoboxImage();
+  });
 
   function closePhotobox(){
     photoboxOverlay.classList.remove('show');
@@ -3478,6 +3519,11 @@
   function setStatus(text, autoClear){
     if(!statusEl) return;
     statusEl.textContent = text;
+    // A failure already doesn't auto-clear (every failure call passes
+    // autoClear=false), but at 11px muted grey in the corner it was easy
+    // to miss entirely — this makes it visually impossible to mistake for
+    // routine status text.
+    statusEl.classList.toggle('save-status-error', /failed/i.test(text));
     if(autoClear){
       setTimeout(function(){ if(statusEl.textContent === text) statusEl.textContent = ''; }, 2500);
     }
