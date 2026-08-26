@@ -75,6 +75,12 @@
   .pill { cursor:pointer; font:inherit; font-size:14px; font-weight:600; border:1px solid var(--line);
     background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:9px 16px 11px; }
   .pill span { opacity:.7; font-weight:700; }
+  /* Same small-badge treatment as each day's own total, rather than
+     plain dimmed text — a price reads as its own piece of information
+     at a glance instead of blending into the option name next to it. */
+  .pill .pill-price { display:inline-block; opacity:1; background:rgba(0,0,0,.08);
+    border-radius:999px; padding:2px 8px; font-size:12px; }
+  .pill.on .pill-price { background:rgba(255,255,255,.25); }
   .pill.on { background:var(--primary); border-color:var(--primary); color:#fff; }
   /* the selected option's stitch — open on top, since that's the edge
      it's "hanging" from, mirroring the sidebar's own current-tab treatment */
@@ -99,7 +105,15 @@
      does for the same reason. */
   .week { margin-bottom:8px; align-items:stretch; }
   .banner-row { margin-bottom:6px; }
-  .banner { background:rgba(var(--secondary-rgb),.16); color:var(--secondary); border:1px solid rgba(var(--secondary-rgb),.4);
+  /* Opaque white backing (background-color) behind the tint
+     (background-image, painted on top — CSS background layers stack with
+     the first listed on top) so the semi-transparent green always
+     composites against solid white, not whatever's actually behind it —
+     the page's own dotted texture was showing through and making the
+     pill's color read as inconsistent depending on what was underneath. */
+  .banner { background-color:var(--card);
+    background-image:linear-gradient(rgba(var(--secondary-rgb),.16), rgba(var(--secondary-rgb),.16));
+    color:var(--secondary); border:1px solid rgba(var(--secondary-rgb),.4);
     border-radius:999px; padding:4px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
   .wdhead { text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
   .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
@@ -312,7 +326,17 @@
 
   .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; touch-action:none; }
   .pill.dragging { opacity:.55; cursor:grabbing; }
-  .pill-name { outline:none; }
+  /* Stays on one line and lets the pill grow wider instead — without
+     this, editing a name could squeeze the contenteditable span down to
+     almost nothing (the pills row has room for other pills too) and wrap
+     character-by-character into a tall, single-letter-per-line column. */
+  /* Truncated to a max width (with the full name always available via the
+     title tooltip) while just displayed — but not while actually being
+     edited, where clipping the very text you're typing would be
+     actively unhelpful. */
+  .pill-name { outline:none; white-space:nowrap; max-width:180px; overflow:hidden;
+    text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
+  .pill-name[contenteditable="true"] { max-width:none; overflow:visible; text-overflow:clip; }
   .pill-remove { display:none; font-size:13px; line-height:1; opacity:.75; padding:0 2px; border-radius:4px; }
   .pill-remove:hover { opacity:1; background:rgba(0,0,0,.12); }
   .pill:hover .pill-remove { display:inline-block; }
@@ -372,10 +396,25 @@
     padding:0 3px; line-height:14px; }
   .linkadd:hover { color:var(--primary); border-color:var(--primary); }
 
-  .photoicon { position:relative; display:inline-block; margin-left:4px; font-size:11px; cursor:pointer; }
+  .photoicon { position:relative; display:inline-flex; align-items:center; margin-left:4px; color:var(--muted); cursor:pointer; }
+  .photoicon > svg { width:14px; height:14px; }
+  /* Toggled from the "⋯" item menu, same as the photo icon's own
+     add/remove lives there — clicking the badge itself is a shortcut to
+     unmark it directly, without needing to reopen the menu. */
+  .booked-badge { display:inline-flex; align-items:center; gap:3px; margin-left:4px;
+    vertical-align:middle; font-size:10px; font-weight:700; color:#2e7d4f;
+    background:rgba(63,217,109,.2); border-radius:999px; padding:2px 7px; cursor:pointer; }
+  .booked-badge:hover { background:rgba(63,217,109,.34); }
+  .booked-badge svg { width:10px; height:10px; }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
-  .acts li:hover .photopreview-wrap, .photoicon:hover .photopreview-wrap { display:block; }
+  /* Scoped to the icon itself, not the whole activity row — .photopreview-
+     wrap is a DOM child of .photoicon (even though it renders below it),
+     so :hover here still covers moving the pointer down into the preview
+     to reach the expand/delete buttons; it just no longer pops up from
+     hovering an unrelated control elsewhere on the row, like the item's
+     own "⋯" menu button. */
+  .photoicon:hover .photopreview-wrap { display:block; }
   /* ~30% of the viewport width on hover, not the old fixed 220px thumbnail
      — big enough to actually judge the photo without opening the full
      lightbox, capped so it can't blow past a reasonable size on a huge
@@ -1064,7 +1103,8 @@
       print_go: 'Print / Save as PDF',
       add_location: '+ Add location', add_activity: '+ Add activity', clear_day: '✕ clear day',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
-      auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account'
+      auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
+      act_booked: 'Booked', act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1078,7 +1118,8 @@
       print_go: 'Stampa / Salva come PDF',
       add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: '✕ Svuota',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
-      auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account'
+      auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
+      act_booked: 'Prenotato', act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1092,7 +1133,8 @@
       print_go: 'Imprimir / Guardar como PDF',
       add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: '✕ Vaciar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
-      auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta'
+      auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
+      act_booked: 'Reservado', act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva'
     }
   };
   var currentLang = 'en';
@@ -1836,6 +1878,8 @@
   // Same plain-line SVG style as the "…" menu's icons (stroke, not fill,
   // no emoji) rather than each control inventing its own visual language.
   var ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
   var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   // Counts photo reads/resizes currently in flight (see pickImage below) —
   // isLocallyBusy() treats any nonzero count as "don't apply a remote
@@ -1860,7 +1904,7 @@
     if(!existing){
       existing = document.createElement('span');
       existing.className = 'photoicon';
-      existing.textContent = '📷';
+      existing.innerHTML = ICON_CAMERA;
       existing.addEventListener('click', function(ev){
         ev.stopPropagation();
         openPhotobox(li);
@@ -1895,6 +1939,36 @@
       else li.insertBefore(existing, li.firstChild);
     }
     existing.querySelector('img').src = url;
+  }
+
+  // ---- booked badge: a lightweight yes/no marker ("already have the
+  // train tickets / hotel confirmed") toggled from the "⋯" item menu, same
+  // as the photo icon is added/removed from there — clicking the badge
+  // itself is a shortcut to unmark it directly. ----
+  function renderBooked(li){
+    var existing = li.querySelector(':scope > .booked-badge');
+    if(!li.hasAttribute('data-booked')){
+      if(existing) existing.remove();
+      return;
+    }
+    if(!existing){
+      existing = document.createElement('span');
+      existing.className = 'booked-badge';
+      existing.innerHTML = ICON_CHECK;
+      var label = document.createElement('span');
+      label.dataset.i18n = 'act_booked';
+      label.textContent = t('act_booked');
+      existing.appendChild(label);
+      existing.title = t('act_unmark_booked');
+      existing.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        li.removeAttribute('data-booked');
+        renderBooked(li);
+      });
+      var anchor = li.querySelector(':scope > .photoicon') || li.querySelector(':scope > .chip');
+      if(anchor) anchor.insertAdjacentElement('afterend', existing);
+      else li.insertBefore(existing, li.firstChild);
+    }
   }
 
   // ---- photo lightbox: "make bigger", with prev/next across every other
@@ -2286,6 +2360,11 @@
     });
     row('↗  Links', function(){ openLinkManager(li, anchorEl); });
     row('📷  Photo', function(){ pickImage(li); });
+    row(li.hasAttribute('data-booked') ? '✕  ' + t('act_unmark_booked') : '✓  ' + t('act_mark_booked'), function(){
+      if(li.hasAttribute('data-booked')) li.removeAttribute('data-booked');
+      else li.setAttribute('data-booked', '1');
+      renderBooked(li);
+    });
     row('✕  Delete activity', function(){
       var cell = li.closest('.cell');
       var panel = cell.closest('.panel');
@@ -2326,6 +2405,7 @@
     li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
     renderLinks(li);
     renderPhoto(li);
+    renderBooked(li);
   }
 
   function newActivityLi(){
@@ -2948,6 +3028,7 @@
   // ---- add / rename / remove options ----
   document.addEventListener('input', function(e){
     if(e.target.classList && e.target.classList.contains('pill-name')){
+      e.target.title = e.target.textContent;
       var pill = e.target.closest('.pill');
       var opt = pill.getAttribute('data-opt');
       var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
@@ -3472,6 +3553,13 @@
     document.querySelectorAll('.grid .cell').forEach(attachCellControls);
     document.querySelectorAll('.panel').forEach(renderHoliday);
     document.querySelectorAll('.panel').forEach(renderActivitySpans);
+    // .pill-name is truncated with an ellipsis (see the CSS) — this keeps
+    // the tooltip showing the untruncated name in sync with whatever's
+    // actually there, covering every path that sets it (initial load, a
+    // remote sync, undo/redo) without needing to touch each one
+    // individually. Live typing is covered separately, in the input
+    // listener below.
+    document.querySelectorAll('.pill-name').forEach(function(el){ el.title = el.textContent; });
     renderMonthSidebar();
     var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
     if(activePanel){ var d0 = getPanelDate(activePanel); filterPillsByMonth(d0.year, d0.month); }
@@ -4015,6 +4103,7 @@
     if(links.length) a.u = links;
     var img = li.getAttribute('data-img');
     if(img) a.g = img;
+    if(li.hasAttribute('data-booked')) a.bk = 1;
     return a;
   }
 
@@ -4105,6 +4194,7 @@
     }
     if(a.u && a.u.length) li.setAttribute('data-links', JSON.stringify(a.u));
     if(a.g) li.setAttribute('data-img', a.g);
+    if(a.bk) li.setAttribute('data-booked', '1');
     var span = lines.length ? parseSpanFromLine(lines[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     return li;
@@ -4329,7 +4419,7 @@
   var localEditUntil = 0;
 
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-booked', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
