@@ -174,7 +174,12 @@
   .loc { margin:6px 0; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
-  .acts li { font-size:11px; }
+  /* Padding lives here unconditionally, not only on a checked activity —
+     it used to appear only once .booked-check:checked was true, so
+     checking one visibly nudged its own content over and left every
+     unchecked sibling flush left, an inconsistent jump between the two
+     states. Same padding always, background/radius still conditional. */
+  .acts li { font-size:11px; padding:6px; border-radius:8px; }
   /* .tagrow holds the tag chip on the left and .tagctl (the item menu +
      booked checkbox) pinned to the right via margin-left:auto — .chip and
      .booked-check both stay findable via plain (not ":scope >") lookups
@@ -197,13 +202,15 @@
     background:var(--card); position:relative; vertical-align:middle; }
   .booked-check:checked { background:#2e7d4f; border-color:#2e7d4f; }
   .booked-check:checked::after {
-    content:''; position:absolute; left:4px; top:1px; width:4px; height:8px;
-    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
+    content:''; position:absolute; left:4px; top:1.3px; width:3.3px; height:6.7px;
+    border:solid #fff; border-width:0 1.3px 1.3px 0; transform:rotate(45deg);
   }
   /* Checking an activity tints the whole card, not just the checkbox —
-     easy to spot what's already sorted at a glance among a busy day. */
+     easy to spot what's already sorted at a glance among a busy day.
+     Padding/radius are shared with every activity (see .acts li above)
+     so this never shifts anything, only colors it. */
   .acts li:has(> .tagrow .booked-check:checked) {
-    background:rgba(63,217,109,.14); border-radius:8px; padding:6px;
+    background:rgba(63,217,109,.14);
   }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
@@ -449,8 +456,11 @@
   .acts li { cursor:grab; }
   /* Higher specificity than ".acts li" alone, needed to actually win —
      a read-only echo of a multi-day activity (see its own comment above),
-     never gets the pointerdown listener that makes the grab cursor true. */
-  .acts li.act-span-ghost { cursor:default; }
+     never gets the pointerdown listener that makes the grab cursor true,
+     and keeps its own tighter padding rather than every other
+     activity's (see .acts li's own padding, added for the booked
+     checkbox — same specificity fight). */
+  .acts li.act-span-ghost { cursor:default; padding:4px 6px; }
   .acts li [contenteditable="true"] { cursor:text; }
   .acts li .chip, .acts li .booked-check, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
 
@@ -2475,12 +2485,39 @@
 
     // No dedicated drag handle any more — pointerdown anywhere on the
     // activity that isn't one of its actual controls (tag, checkbox,
-    // menu, a link, or editable text — preventDefault below would
-    // otherwise block a click from ever focusing/placing a caret in
-    // those) starts the drag instead.
+    // menu, a link, or editable text) can turn into a drag. Critically,
+    // this does NOT preventDefault on the plain pointerdown itself (only
+    // on the first pointermove past a small threshold, once it's
+    // genuinely a drag) — doing it eagerly, on every pointerdown
+    // regardless of whether the pointer ever moves, silently blocked the
+    // browser's own default click behavior for ANY click anywhere else on
+    // the page, including the blur that normally ends editing a different
+    // activity's title elsewhere — which is what made the "..." menu/
+    // "+ Add activity" hover controls (both :focus-within-driven, see
+    // their CSS) look stuck showing on whatever was last focused, for
+    // days no longer even being hovered.
     li.addEventListener('pointerdown', function(e){
       if(e.target.closest('.chip, .booked-check, .itemmenu-btn, a, [contenteditable="true"]')) return;
-      startActDrag(e, li);
+      var startX = e.clientX, startY = e.clientY, pid = e.pointerId, engaged = false;
+      function onMove(ev){
+        if(ev.pointerId !== pid) return;
+        if(!engaged){
+          if(Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+          engaged = true;
+          ev.preventDefault();
+          actDrag = { li: li, originCell: li.closest('.cell'), moved: false };
+        }
+        onActDragMove(ev);
+      }
+      function onUp(){
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
+        if(engaged) onActDragEnd();
+      }
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
     });
 
     var chip = li.querySelector('.chip');
@@ -2766,14 +2803,6 @@
     return acts;
   }
   var actDrag = null;
-  function startActDrag(e, li){
-    e.preventDefault();
-    e.stopPropagation();
-    actDrag = { li: li, originCell: li.closest('.cell'), moved: false };
-    document.addEventListener('pointermove', onActDragMove);
-    document.addEventListener('pointerup', onActDragEnd);
-    document.addEventListener('pointercancel', onActDragEnd);
-  }
   function onActDragMove(e){
     if(!actDrag) return;
     actDrag.moved = true;
@@ -2809,9 +2838,6 @@
       if(actPanel) renderActivitySpans(actPanel);
     }
     actDrag = null;
-    document.removeEventListener('pointermove', onActDragMove);
-    document.removeEventListener('pointerup', onActDragEnd);
-    document.removeEventListener('pointercancel', onActDragEnd);
     tryApplyPendingRemoteUpdate();
   }
 
