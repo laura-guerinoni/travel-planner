@@ -109,6 +109,12 @@
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
   .wd { font-size:11px; color:var(--muted); }
+  /* Day total as a top-right badge instead of a bottom line, so every
+     cell reads top-aligned (day number left, total right) regardless of
+     how much content follows. */
+  .daytotal-badge { margin-left:auto; font-size:11px; font-weight:700; color:var(--muted);
+    background:var(--bg); border-radius:999px; padding:2px 8px; white-space:nowrap; }
+  .cell:hover .daytotal-badge.has-content { visibility:hidden; }
   .loc { margin:6px 0; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
@@ -129,6 +135,12 @@
      sibling, or a light day would leave dead space between its total and
      the cell's own bottom edge. */
   .cost { margin:auto 0 0; padding-top:6px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
+  /* On screen, .daytotal-badge (up in .cellhead) replaces this — kept in
+     the DOM either way since recomputePanel() still sums it for the
+     option/pill/budget totals, and print still shows it bottom-pinned
+     (a top-corner badge doesn't read the same way on paper as it does as
+     a small UI affordance on screen). */
+  @media screen { .cost { display:none; } }
   h2 { margin:26px 0 12px; font-size:20px; }
   /* padding-top is 8px, not 16px — each row already carries its own 8px
      top padding, so 16px there (on top of that) read as a bigger gap above
@@ -175,7 +187,7 @@
     .panel.print-hide, .budget li.print-hide { display:none !important; }
     .panel::before { content:attr(data-print-label); display:block;
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
-    .pills, .month-sidebar, #statusBar,
+    .pills, .month-sidebar, #statusBar, .daytotal-badge,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
     #switchPlanBtn, #printPanel, #photoLightbox,
     .jsctl, #tagData { display:none !important; }
@@ -330,8 +342,15 @@
   .cell:hover .addact, .cell:focus-within .addact { display:block; }
   .cell:hover .addloc, .cell:focus-within .addloc { display:block; }
   .cell:has(> .loc) .addloc { display:none; }
-  .cleardaybtn { display:none; position:absolute; top:4px; right:6px; border:none; background:transparent;
-    color:var(--muted); font-size:11px; cursor:pointer; }
+  /* Sits directly over .daytotal-badge's own spot (same top-right corner
+     of .cellhead) rather than its own separate location, so hovering the
+     day swaps "€135" for "Clear day" in place — the control that clears
+     everything replaces the summary of everything there is to clear,
+     which should read as "this affects the whole day" rather than a
+     generic small icon floating in a corner. */
+  .cleardaybtn { display:none; position:absolute; top:8px; right:8px; border:none;
+    background:var(--bg); color:#c0392b; font-size:11px; font-weight:700; border-radius:999px;
+    padding:2px 8px; cursor:pointer; white-space:nowrap; }
   .cleardaybtn.has-content { display:none; }
   .cell:hover .cleardaybtn.has-content { display:inline-block; }
 
@@ -1531,6 +1550,23 @@
         if(addactEl) cell.insertBefore(costEl, addactEl); else cell.appendChild(costEl);
       }
       costEl.textContent = 'Day total ' + formatMoney(sum);
+    }
+    // Mirrors costEl's own total into a badge up in .cellhead — the
+    // on-screen display now, with costEl itself hidden on screen (still
+    // shown in print, and still what recomputePanel() below sums for the
+    // option/pill/budget totals). Kept as a genuinely separate element
+    // rather than moving costEl itself, so nothing about print or the
+    // totals math has to change.
+    var badge = cell.querySelector(':scope > .cellhead > .daytotal-badge');
+    if(count === 0){
+      if(badge) badge.remove();
+    } else {
+      if(!badge){
+        badge = document.createElement('span');
+        badge.className = 'daytotal-badge has-content';
+        cell.querySelector(':scope > .cellhead').appendChild(badge);
+      }
+      badge.textContent = formatMoney(sum);
     }
     recomputePanel(cell.closest('.panel'));
   }
@@ -3304,6 +3340,19 @@
     if(activePanel){ var d0 = getPanelDate(activePanel); filterPillsByMonth(d0.year, d0.month); }
   }
   reattachAll();
+  // In hosted mode this recomputes the placeholder content, harmlessly —
+  // it gets replaced within moments by the real synced plan, which
+  // applyContentModel() already recomputes on its own. But local-file mode
+  // (opening this HTML directly, or a downloaded copy) never goes through
+  // applyContentModel at all: whatever's baked into the static markup is
+  // just shown as-is. .cost's text is baked in, but .daytotal-badge isn't
+  // — it only ever gets created here, by recomputeCell, which otherwise
+  // only runs in response to an actual edit. Without this, a freshly
+  // opened local file would show no day totals at all until you touched
+  // something.
+  document.querySelectorAll('.grid .cell:not(.empty)').forEach(function(c){
+    if(c.querySelector(':scope > .acts')) recomputeCell(c);
+  });
 
   // Color-mode switcher: two fixed swatches (their own colors are
   // hardcoded in CSS, not var()-driven, so both stay visible regardless
