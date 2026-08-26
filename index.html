@@ -165,7 +165,7 @@
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .month-sidebar, .theme-switcher, .icontoolbar,
     #authGate, #ownerControls, #manageAccessBtn, #manageAccessPanel,
-    #switchPlanBtn, #printBtn, #printPanel,
+    #switchPlanBtn, #topRightControls, #printPanel,
     .jsctl, #tagData { display:none !important; }
     .wrap { margin:0; padding:0; max-width:none; }
     /* A day's content shouldn't be sliced by a page boundary — better to
@@ -175,7 +175,14 @@
        stays visually even, but on paper that means empty early-month
        weeks burn a disproportionate amount of the page for nothing. */
     .cell { min-height:0; break-inside:avoid; page-break-inside:avoid; }
-    .grid.week { break-inside:avoid; page-break-inside:avoid; }
+    .grid.week { break-inside:avoid; page-break-inside:avoid;
+      /* .week's screen rule sets align-items:start deliberately, so a
+         short day doesn't get stretched into dead empty space while
+         editing — on paper the opposite is true: a week where one day is
+         much taller than its neighbors reads as broken, uneven boxes
+         rather than a row. Overriding to the grid default (stretch) only
+         for print makes every cell in a row match its tallest sibling. */
+      align-items:stretch; }
   }
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
@@ -462,12 +469,13 @@
     color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
   #manageAccessError { color:#b3261e; font-size:12px; min-height:14px; margin:0 0 10px; }
 
-  #printBtn { display:none; position:fixed; top:16px; right:16px; z-index:60;
+  #topRightControls { position:fixed; top:16px; right:16px; z-index:60; display:flex; gap:8px; }
+  #printBtn, #appSignOutBtn { display:none;
     align-items:center; gap:6px; padding:8px 14px; border-radius:999px; border:1px solid var(--line);
     background:var(--card); color:var(--ink); font-size:13px; font-weight:700; cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.08); }
-  #printBtn.show { display:inline-flex; }
-  #printBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
+    box-shadow:0 2px 8px rgba(0,0,0,.08); white-space:nowrap; }
+  #printBtn.show, #appSignOutBtn.show { display:inline-flex; }
+  #printBtn:hover, #appSignOutBtn:hover { box-shadow:0 4px 12px rgba(0,0,0,.14); }
   #printPanel fieldset { border:1px solid var(--line); border-radius:10px; padding:8px 12px 10px; margin:0 0 12px; }
   #printPanel legend { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:0 4px; }
   #printPanel label { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); padding:4px 0; cursor:pointer; }
@@ -479,7 +487,7 @@
   <h1>🔒 Travel Planner</h1>
   <p class="authMsg" id="authGateStatus">Sign in with the Google account this plan was shared with.</p>
   <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
-  <button type="button" id="authSignInBtn">Sign in with Google</button>
+  <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Sign in with Google</button>
   <button type="button" id="authSignOutBtn">Sign out and try another account</button>
 </div>
 <button type="button" id="manageAccessBtn" title="Manage who can access this plan">👥 Manage access</button>
@@ -497,7 +505,10 @@
     <p id="manageAccessError"></p>
   </div>
 </div>
-<button type="button" id="printBtn" title="Print or save as PDF">🖨️ Print / PDF</button>
+<div id="topRightControls">
+  <button type="button" id="appSignOutBtn" title="Sign out">🚪 Sign out</button>
+  <button type="button" id="printBtn" title="Print or save as PDF">🖨️ Print / PDF</button>
+</div>
 <div id="printPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
@@ -884,17 +895,25 @@
       var auth = firebase.auth();
       var signInBtn = document.getElementById('authSignInBtn');
       var signOutBtn = document.getElementById('authSignOutBtn');
+      var appSignOutBtn = document.getElementById('appSignOutBtn');
       if(signInBtn) signInBtn.addEventListener('click', function(){
         auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(err){
           showAuthGate('signin', 'Sign-in didn’t go through' + (err && err.message ? ': ' + err.message : '') + ' — try again.');
         });
       });
       if(signOutBtn) signOutBtn.addEventListener('click', function(){ auth.signOut(); });
+      // Same handler as the gate's own sign-out button — this is just a
+      // second entry point that stays reachable once you're actually
+      // looking at the plan, where the gate (and its sign-out button)
+      // isn't on screen any more.
+      if(appSignOutBtn) appSignOutBtn.addEventListener('click', function(){ auth.signOut(); });
 
       auth.onAuthStateChanged(function(user){
         if(!user){
           currentUserEmail = null; currentUserKey = null; currentUserRole = null;
           hideMemberPanel();
+          if(printBtn) printBtn.classList.remove('show');
+          if(appSignOutBtn) appSignOutBtn.classList.remove('show');
           showAuthGate('signin', 'Sign in with the Google account this plan was shared with.');
           return;
         }
@@ -915,6 +934,7 @@
           hideAuthGate();
           startSync();
           if(printBtn) printBtn.classList.add('show');
+          if(appSignOutBtn) appSignOutBtn.classList.add('show');
           if(role === 'owner') initMemberPanel(); else hideMemberPanel();
         }).catch(function(err){
           console.warn('Membership lookup failed', err);
@@ -2907,7 +2927,7 @@
     var opt = panel.id.replace(/^panel-/, '');
     var pillName = document.querySelector('.pill[data-opt="' + opt + '"] .pill-name');
     var d = getPanelDate(panel);
-    return (pillName ? pillName.textContent.trim() : 'Untitled') + ' — ' + MONTH_FULL[d.month - 1] + ' ' + d.year;
+    return (pillName ? pillName.textContent.trim() : 'Untitled') + ' ' + MONTH_FULL[d.month - 1] + ' ' + d.year;
   }
 
   // Applied right before window.print(), never persisted — .print-hide and
