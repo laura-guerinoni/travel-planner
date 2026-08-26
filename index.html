@@ -116,6 +116,17 @@
     color:var(--secondary); border:1px solid rgba(var(--secondary-rgb),.4);
     border-radius:999px; padding:4px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
   .wdhead { text-align:center; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  /* Sticks to the top of the viewport, right below the fixed pills bar,
+     as you scroll down through a busy month — native position:sticky
+     rather than a JS-tracked fixed clone: it needs no per-panel tracking
+     at all, since only the active panel's own heads row is ever actually
+     in the visible DOM flow (the others are display:none), so whichever
+     one is showing just... sticks, automatically, on panel switch too.
+     --pills-height is kept current by syncBarLayout(), the same function
+     that already tracks the pills bar's own (content-driven, can wrap to
+     more rows) height for .wrap's padding. */
+  .grid.heads { position:sticky; top:var(--pills-height, 0px); z-index:30;
+    background-color:var(--bg); background-image:var(--texture); }
   .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
     min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; }
   .cell.empty { background:transparent; border:none; min-height:0; }
@@ -218,6 +229,11 @@
        that's reserved for a screen-only fixed header it never actually
        shows — exactly what was showing up as "too much space at the top". */
     .wrap { margin:0 !important; padding:0 !important; max-width:none !important; }
+    /* The screen-only sticky weekday header (see the base .grid.heads
+       rule) means nothing on a printed page — reset it back to a plain
+       in-flow row rather than risk a print/PDF engine trying to honor
+       position:sticky per-page. */
+    .grid.heads { position:static; }
     /* A day's content shouldn't be sliced by a page boundary — better to
        push the whole cell to the next page than split it mid-activity.
        min-height went through a few rounds (0 -> 40px -> 80px -> this)
@@ -337,9 +353,14 @@
   .pill-name { outline:none; white-space:nowrap; max-width:180px; overflow:hidden;
     text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
   .pill-name[contenteditable="true"] { max-width:none; overflow:visible; text-overflow:clip; }
-  .pill-remove { display:none; font-size:13px; line-height:1; opacity:.75; padding:0 2px; border-radius:4px; }
+  /* visibility:hidden (not display:none) — the × still occupies its own
+     layout space at all times, so the pill is already exactly as wide as
+     it'll ever need to be; hovering just reveals what was always there
+     instead of widening the pill and shifting everything after it. */
+  .pill-remove { display:inline-block; visibility:hidden; font-size:13px; line-height:1;
+    opacity:.75; padding:0 2px; border-radius:4px; }
   .pill-remove:hover { opacity:1; background:rgba(0,0,0,.12); }
-  .pill:hover .pill-remove { display:inline-block; }
+  .pill:hover .pill-remove { visibility:visible; }
   /* Plain icon, no bubble/background — same weight as the calendar's own
      day numbers (var(--ink)), since this is a secondary action next to the
      pills, not another pill-like choice competing with them. */
@@ -400,12 +421,17 @@
   .photoicon > svg { width:14px; height:14px; }
   /* Toggled from the "⋯" item menu, same as the photo icon's own
      add/remove lives there — clicking the badge itself is a shortcut to
-     unmark it directly, without needing to reopen the menu. */
-  .booked-badge { display:inline-flex; align-items:center; gap:3px; margin-left:4px;
-    vertical-align:middle; font-size:10px; font-weight:700; color:#2e7d4f;
-    background:rgba(63,217,109,.2); border-radius:999px; padding:2px 7px; cursor:pointer; }
+     unmark it directly, without needing to reopen the menu. On its own
+     row (display:flex + width:fit-content — block-level so it always
+     starts a new line, but only as wide as its own content) rather than
+     crammed onto the chip/photo-icon row: sharing that line made every
+     control there smaller and harder to hit precisely, and reads as
+     cluttered with three different things fighting for the same strip. */
+  .booked-badge { display:flex; width:fit-content; align-items:center; gap:4px; margin-top:6px;
+    font-size:11px; font-weight:700; color:#2e7d4f;
+    background:rgba(63,217,109,.2); border-radius:999px; padding:4px 10px; cursor:pointer; }
   .booked-badge:hover { background:rgba(63,217,109,.34); }
-  .booked-badge svg { width:10px; height:10px; }
+  .booked-badge svg { width:11px; height:11px; }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
@@ -1878,7 +1904,11 @@
   // Same plain-line SVG style as the "…" menu's icons (stroke, not fill,
   // no emoji) rather than each control inventing its own visual language.
   var ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
-  var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  // Rounder body (rx=5) and a small friendly viewfinder bump instead of
+  // the sharper, more utilitarian body/roofline of a standard camera
+  // glyph — matches the app's own "kawaii" theme better while staying a
+  // plain stroke icon like the rest of the menu.
+  var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="5"/><path d="M8.5 7L10 4h4l1.5 3"/><circle cx="12" cy="14" r="3.5"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
   var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   // Counts photo reads/resizes currently in flight (see pickImage below) —
@@ -3405,6 +3435,10 @@
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
     wrapEl.style.paddingTop = (sidebarH + pillsH + 16) + 'px';
+    // Where the sticky weekday header (.grid.heads, see its own CSS rule)
+    // should stop scrolling and stick — right at the pills bar's own
+    // bottom edge, same as .wrap's padding above starts counting from.
+    document.documentElement.style.setProperty('--pills-height', (sidebarH + pillsH) + 'px');
   }
   window.addEventListener('resize', syncBarLayout);
 
