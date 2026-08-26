@@ -357,8 +357,15 @@
      — big enough to actually judge the photo without opening the full
      lightbox, capped so it can't blow past a reasonable size on a huge
      display or a tiny one. */
-  .photoicon .photopreview { display:block; width:30vw; min-width:180px; max-width:420px;
-    max-height:34vh; object-fit:cover; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+  /* max-width/max-height (not a forced width) so the box itself takes the
+     photo's own aspect ratio, capped in each dimension — a fixed width
+     forced every preview into the same landscape-shaped box regardless of
+     the photo's own orientation, which meant a portrait photo either got
+     cropped (object-fit:cover) or letterboxed inside an oddly wide box
+     that didn't match it (object-fit:contain) — neither actually showed
+     the photo at a natural, appropriately-shaped size. */
+  .photoicon .photopreview { display:block; max-width:min(30vw, 420px); max-height:34vh;
+    object-fit:contain; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     border:2px solid var(--card); background:#fff; }
   /* Sits on top of the preview thumbnail itself rather than beside it, so
      the two actions are reachable from the same hover area that reveals
@@ -3635,7 +3642,10 @@
       if(!firstLoadDone){ console.warn('Skipping autosave: initial Firebase sync has not landed yet.'); return; }
       var payload = buildBackendPayload();
       if(!payload){ console.warn('Skipping autosave: extracted content had no options.'); return; }
+      setStatus('Saving…');
+      console.log('Autosave: sending write,', payload.contentJson.length, 'chars');
       var ok = await saveToBackend(payload);
+      console.log('Autosave:', ok ? 'write acked by server' : 'write FAILED (see warning above, or a timeout)');
       setStatus(ok ? 'Saved ✓' : 'Autosave failed — check connection', ok);
       return;
     }
