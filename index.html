@@ -107,7 +107,11 @@
   .pill .pill-price { display:inline-block; opacity:1; background:rgba(0,0,0,.08);
     border-radius:999px; padding:2px 8px; font-size:12px; }
   .pill.on .pill-price { background:rgba(255,255,255,.25); }
-  .pill.on { background:var(--primary); border-color:var(--primary); color:#fff; }
+  /* Extra padding-right (9px, vs the base 6px) so the × sits centered
+     between the price pill and the dashed border's own inset right edge
+     (4px in from the pill) instead of crowding the dashed line — only
+     matters once the dashed border exists at all, i.e. selected pills. */
+  .pill.on { background:var(--primary); border-color:var(--primary); color:#fff; padding-right:9px; }
   /* the selected option's stitch — open on top, since that's the edge
      it's "hanging" from, mirroring the sidebar's own current-tab treatment */
   .pill.on::after {
@@ -153,7 +157,7 @@
      identically whether stuck or sitting at the natural unscrolled
      position) is kept current by syncBarLayout(). */
   .grid.heads { position:sticky; top:var(--pills-height, 0px); z-index:30;
-    background-color:var(--bg); background-image:var(--texture); }
+    background-color:var(--bg); background-image:var(--texture); padding-bottom:8px; }
   .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
     min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; }
   .cell.empty { background:transparent; border:none; min-height:0; }
@@ -172,6 +176,14 @@
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   .acts li { font-size:11px; }
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; }
+  /* .title-row wraps the booked-checkbox + .title together so flexbox
+     can center them against each other reliably — .title itself keeps
+     display:block (still renders correctly as a flex item) and stays
+     findable via a plain '.title' lookup; only the two ":scope > .title"
+     lookups (extractActivity, the span-ghost clone) had to drop the ">"
+     to still find it one level deeper. */
+  .title-row { display:flex; align-items:center; gap:6px; }
+  .booked-check { cursor:pointer; flex:none; margin:0; }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
 
@@ -444,7 +456,12 @@
     padding:0 3px; line-height:14px; }
   .linkadd:hover { color:var(--primary); border-color:var(--primary); }
 
-  .photoicon { position:relative; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
+  /* vertical-align:middle lines the icon's own box up with the chip's,
+     but the chip's emoji glyph (its tallest content) sits slightly
+     higher within its own box than the reference point middle uses —
+     the 2px lift corrects for that so the icon doesn't read as sitting
+     low against the chip. */
+  .photoicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .photoicon > svg { width:14px; height:14px; }
   /* Toggled from the "⋯" item menu, same as the photo icon's own
      add/remove lives there — clicking the badge itself is a shortcut to
@@ -2005,6 +2022,11 @@
   // as the photo icon is added/removed from there — clicking the badge
   // itself is a shortcut to unmark it directly. ----
   function renderBooked(li){
+    // Keeps the checkbox next to the title in sync no matter which of the
+    // three controls (checkbox, badge, item menu) actually changed the
+    // underlying data-booked attribute.
+    var check = li.querySelector('.booked-check');
+    if(check) check.checked = li.hasAttribute('data-booked');
     var existing = li.querySelector(':scope > .booked-badge');
     if(!li.hasAttribute('data-booked')){
       if(existing) existing.remove();
@@ -2461,6 +2483,15 @@
         openTagPicker(chip);
       });
     }
+    var bookedCheck = li.querySelector('.booked-check');
+    if(bookedCheck){
+      bookedCheck.addEventListener('click', function(e){ e.stopPropagation(); });
+      bookedCheck.addEventListener('change', function(){
+        if(bookedCheck.checked) li.setAttribute('data-booked', '1');
+        else li.removeAttribute('data-booked');
+        renderBooked(li);
+      });
+    }
     li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
     renderLinks(li);
     renderPhoto(li);
@@ -2469,18 +2500,30 @@
 
   function newActivityLi(){
     var li = document.createElement('li');
-    var t = TAGS[0] || { icon: '🏷️', name: 'Custom', bg: '#e8e3d5', fg: '#3a3a46' };
+    // Named "tag", not "t" — this function's own local shadowed the
+    // global t(key) translate function used just below for the checkbox's
+    // title, which silently threw ("t is not a function") every time a
+    // new activity was added.
+    var tag = TAGS[0] || { icon: '🏷️', name: 'Custom', bg: '#e8e3d5', fg: '#3a3a46' };
     var chip = document.createElement('span');
     chip.className = 'chip';
-    chip.setAttribute('data-icon', t.icon);
-    chip.setAttribute('data-name', t.name);
-    chip.style.background = t.bg;
-    chip.style.color = t.fg;
-    chip.textContent = t.icon + ' ' + t.name;
+    chip.setAttribute('data-icon', tag.icon);
+    chip.setAttribute('data-name', tag.name);
+    chip.style.background = tag.bg;
+    chip.style.color = tag.fg;
+    chip.textContent = tag.icon + ' ' + tag.name;
 
+    var titleRow = document.createElement('span');
+    titleRow.className = 'title-row';
+    var bookedCheck = document.createElement('input');
+    bookedCheck.type = 'checkbox';
+    bookedCheck.className = 'booked-check jsctl';
+    bookedCheck.title = t('act_mark_booked');
+    titleRow.appendChild(bookedCheck);
     var title = document.createElement('span');
     title.className = 'title';
     title.textContent = 'New activity';
+    titleRow.appendChild(title);
 
     var line = document.createElement('span');
     line.className = 'line';
@@ -2493,7 +2536,7 @@
     priceVal.textContent = '€0';
     price.appendChild(priceVal);
 
-    li.appendChild(chip); li.appendChild(title); li.appendChild(line); li.appendChild(price);
+    li.appendChild(chip); li.appendChild(titleRow); li.appendChild(line); li.appendChild(price);
     return li;
   }
 
@@ -2568,7 +2611,7 @@
           chipClone.textContent = chip.textContent;
           ghost.appendChild(chipClone);
         }
-        var titleEl = li.querySelector(':scope > .title');
+        var titleEl = li.querySelector('.title');
         var titleSpan = document.createElement('span');
         titleSpan.className = 'title';
         titleSpan.textContent = titleEl ? titleEl.textContent : '';
@@ -3473,7 +3516,7 @@
     // viewport-relative target back into that frame, or the header would
     // land 30-40px further down than intended, by however far .wrap's
     // own top sits below y=0.
-    var GAP = 34;
+    var GAP = 14;
     var wrapTop = wrapEl.getBoundingClientRect().top;
     var pillsBottom = sidebarH + pillsH;
     var target = pillsBottom + GAP;
@@ -4170,7 +4213,7 @@
     var a = {};
     var chip = li.querySelector(':scope > .chip');
     if(chip){ a.i = chip.getAttribute('data-icon') || ''; a.n = chip.getAttribute('data-name') || ''; }
-    var t = li.querySelector(':scope > .title');
+    var t = li.querySelector('.title');
     if(t) a.t = t.textContent;
     var lines = [];
     li.querySelectorAll(':scope > .line').forEach(function(l){ lines.push(l.textContent); });
@@ -4245,10 +4288,26 @@
       chip.textContent = (a.i || '') + ' ' + (a.n || '');
       li.appendChild(chip);
     }
+    // A direct toggle right next to the name — the badge below (see
+    // renderBooked) still shows the "booked" status, but marking it used
+    // to mean opening the "..." item menu first. .title-row (see its own
+    // CSS) wraps both so flexbox can center them reliably; .title itself
+    // is still findable via a plain '.title' lookup everywhere it's
+    // queried (extractActivity/the span-ghost clone use '.title' rather
+    // than ':scope > .title' for exactly this reason).
+    var titleRow = document.createElement('span');
+    titleRow.className = 'title-row';
+    var bookedCheck = document.createElement('input');
+    bookedCheck.type = 'checkbox';
+    bookedCheck.className = 'booked-check jsctl';
+    bookedCheck.title = t('act_mark_booked');
+    if(a.bk) bookedCheck.checked = true;
+    titleRow.appendChild(bookedCheck);
     var title = document.createElement('span');
     title.className = 'title';
     title.textContent = a.t || '';
-    li.appendChild(title);
+    titleRow.appendChild(title);
+    li.appendChild(titleRow);
     var lines = a.l || [];
     lines.forEach(function(txt){
       var sp = document.createElement('span');
