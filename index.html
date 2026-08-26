@@ -165,7 +165,7 @@
     .panel.print-hide, .budget li.print-hide { display:none !important; }
     .panel::before { content:attr(data-print-label); display:block;
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
-    .pills, .month-sidebar, .theme-switcher, .icontoolbar,
+    .pills, .month-sidebar, #statusBar,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
     #switchPlanBtn, #printPanel, #photoLightbox,
     .jsctl, #tagData { display:none !important; }
@@ -218,6 +218,17 @@
     body.print-list .grid.heads, body.print-list .cell.empty { display:none; }
     body.print-list .grid.week { grid-template-columns:1fr; }
     body.print-list .cell { min-height:0; }
+    /* In list mode a "week" is just 7 stacked day cards, not a row that
+       needs to read as a visual unit the way the grid's week rows do — so
+       unlike the grid, it shouldn't be kept together as one atomic block.
+       Without this override, .grid.week's break-inside:avoid above forces
+       an entire week (up to 7 days of content) onto a single page as a
+       whole, which is what was leaving big uneven gaps: a week too tall
+       for the remaining space on a page got pushed to the next one in
+       full, wasting whatever room was left behind. Individual day cards
+       (.cell, above) still never split mid-content — only the week-level
+       grouping around them is now free to flow across a page break. */
+    body.print-list .grid.week { break-inside:auto; page-break-inside:auto; }
   }
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
@@ -269,13 +280,17 @@
     width:16px; height:18px; line-height:18px; padding:0; cursor:grab; }
   .act-dragging { opacity:.45; }
 
-  .icontoolbar { position:fixed; top:14px; right:16px; z-index:70; display:flex; flex-direction:column;
-    align-items:flex-end; gap:4px; }
+  /* The "…" trigger stays top-right on its own now — status text moved to
+     #statusBar (bottom-right) and everything else that used to be its own
+     permanent icon (save/download, theme picker) moved inside the dropdown,
+     so nothing else needs to anchor to this corner any more. */
   .icon-btn { width:28px; height:28px; border-radius:50%; border:none; background:var(--card);
     color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
     padding:0; box-shadow:0 1px 3px rgba(0,0,0,.15); }
   .icon-btn svg { width:15px; height:15px; }
   .icon-btn:hover { opacity:.7; }
+  #statusBar { position:fixed; right:16px; bottom:16px; z-index:60; display:flex; flex-direction:column;
+    align-items:flex-end; gap:2px; }
   .save-status { font-size:11px; color:var(--muted); text-align:right; max-width:160px; min-height:14px; }
   .save-status.changelink { text-decoration:underline; cursor:pointer; }
 
@@ -460,7 +475,8 @@
 
     .pills { left:0; right:0; gap: 6px; padding:8px 8px 10px; }
     .pill { font-size: 13px; padding: 8px 12px 10px; }
-    .icontoolbar { top: 10px; right: 10px; }
+    #actionMenu { top: 10px; right: 10px; }
+    #statusBar { right: 10px; bottom: 10px; }
     h1 { font-size: 26px; }
     .grid.heads { display: none; }
     .grid { grid-template-columns: 1fr; gap: 8px; }
@@ -469,12 +485,13 @@
     .cellhead { gap: 8px; }
   }
 
-  /* Bottom-right color-mode switcher: two circular swatches, each a
-     fixed 3-way conic split of one palette's primary/secondary/accent —
-     these are intentionally hardcoded to their own theme's real colors
-     (not var()) so both options stay visible no matter which is active. */
-  .theme-switcher { position:fixed; right:16px; bottom:16px; z-index:60; display:flex; gap:10px;
-    background:var(--card); padding:7px; border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,.18); }
+  /* Color-mode picker: two circular swatches, each a fixed 3-way conic
+     split of one palette's primary/secondary/accent — these are
+     intentionally hardcoded to their own theme's real colors (not var())
+     so both options stay visible no matter which is active. Lives as a row
+     inside the "…" dropdown (.actionMenuThemeRow overrides the size down
+     to fit a menu row); the swatch colors/shape themselves stay shared
+     here since nothing about them is menu-specific. */
   .theme-dot { width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer;
     padding:0; transition:transform .15s ease, border-color .15s ease; }
   .theme-dot:hover { transform:scale(1.1); }
@@ -505,31 +522,35 @@
   #authGate[data-state="error"] #authSignInBtn,
   #authGate[data-state="error"] #authSignOutBtn { display:none; }
 
-  /* Owner-only "manage access" control. Lives outside .wrap (like the
-     theme switcher) on purpose — .wrap gets fully torn down and rebuilt on
-     every Firebase sync and undo/redo restore, which would otherwise mean
-     re-wiring this button's listeners every time, the same class of bug
-     fixed earlier for the per-day "clear day" button. */
-  /* Manage Access / Print / Sign out used to each be their own floating
-     button (two different corners, at one point) — consolidated into one
-     menu since none of them need to be reachable in a single click 24/7,
-     and three-plus permanent buttons was more visual clutter than the
-     actions warranted. */
-  #actionMenu { display:none; position:relative; }
+  /* Save/download, Manage Access, Print, the theme picker, and Sign out
+     used to each be their own permanent floating control, scattered across
+     three different corners at one point — consolidated into one menu
+     since none of them need to be reachable in a single click 24/7, and
+     that many permanent buttons was more visual clutter than the actions
+     warranted. Only the trigger itself stays anchored top-right. */
+  #actionMenu { display:none; position:fixed; top:14px; right:16px; z-index:70; }
   #actionMenu.show { display:block; }
   #actionMenuBtn { font-size:15px; font-weight:700; }
   #actionMenuDropdown { display:none; flex-direction:column; gap:2px; position:absolute;
     top:calc(100% + 8px); right:0; min-width:200px; padding:6px; border-radius:12px;
     border:1px solid var(--line); background:var(--card); box-shadow:0 8px 24px rgba(0,0,0,.16); z-index:1; }
   #actionMenuDropdown.show { display:flex; }
-  /* Each item keeps its own independent show/hide (owner-only for Manage
-     Access, hosted-only for Sign out) — same per-item gating as before,
-     just rendered as menu rows now instead of separate floating buttons. */
-  #actionMenuDropdown button { display:none; align-items:center; gap:8px; width:100%;
+  /* Each top-level item keeps its own independent show/hide (owner-only
+     for Manage Access, hosted-only for Sign out) — same per-item gating as
+     before, just rendered as menu rows now instead of separate floating
+     buttons. Scoped to direct children only so it doesn't reach the theme
+     dots nested a level deeper inside .actionMenuThemeRow — those have no
+     such gating and should just always be visible. */
+  #actionMenuDropdown > button { display:none; align-items:center; gap:8px; width:100%;
     padding:9px 10px; border:none; background:transparent; color:var(--ink); font-size:13px;
     font-weight:700; text-align:left; cursor:pointer; border-radius:8px; }
-  #actionMenuDropdown button.show { display:flex; }
-  #actionMenuDropdown button:hover { background:var(--bg); }
+  #actionMenuDropdown > button.show { display:flex; }
+  #actionMenuDropdown > button:hover { background:var(--bg); }
+  #actionMenuDropdown > button svg { flex:none; width:16px; height:16px; }
+  .actionMenuDivider { height:1px; margin:4px 6px; background:var(--line); }
+  .actionMenuThemeRow { display:flex; align-items:center; gap:8px; padding:9px 10px; }
+  .actionMenuThemeLabel { flex:1; font-size:13px; font-weight:700; color:var(--ink); }
+  .actionMenuThemeRow .theme-dot { width:22px; height:22px; }
   /* Shared modal-overlay chrome — used by both Manage Access and Print, so
      the second modal didn't need to re-derive this from scratch. */
   .modal-overlay { display:none; position:fixed; inset:0; z-index:9998;
@@ -616,7 +637,7 @@
     <fieldset>
       <legend>Layout</legend>
       <label><input type="radio" name="printLayout" value="grid" checked /> Calendar grid</label>
-      <label><input type="radio" name="printLayout" value="list" /> Day list — one day per row, more room for busy days</label>
+      <label><input type="radio" name="printLayout" value="list" /> Day list</label>
     </fieldset>
     <fieldset>
       <legend>Paper size</legend>
@@ -632,10 +653,6 @@
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
-<div class="theme-switcher" id="themeSwitcher">
-  <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
-  <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
-</div>
 <div class="wrap">
   <header>
     <div class="pills">
@@ -644,16 +661,23 @@
       <button class="pill add" id="addOptionBtn" type="button" title="Add option">+</button>
     </div>
   </header>
-  <div class="icontoolbar">
-    <div id="actionMenu">
-      <button type="button" id="actionMenuBtn" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="true">⋮</button>
-      <div id="actionMenuDropdown">
-        <button type="button" id="manageAccessBtn">👥 Manage access</button>
-        <button type="button" id="printBtn">🖨️ Print / PDF</button>
-        <button type="button" id="appSignOutBtn">🚪 Sign out</button>
+  <div id="actionMenu">
+    <button type="button" id="actionMenuBtn" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="true">⋮</button>
+    <div id="actionMenuDropdown">
+      <button type="button" id="saveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span id="saveBtnLabel">Save</span></button>
+      <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Manage access</span></button>
+      <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span>Print</span></button>
+      <div class="actionMenuDivider"></div>
+      <div class="actionMenuThemeRow">
+        <span class="actionMenuThemeLabel">Theme</span>
+        <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
       </div>
+      <div class="actionMenuDivider"></div>
+      <button type="button" id="appSignOutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign out</span></button>
     </div>
-    <button id="saveBtn" type="button" class="icon-btn" title="Download a copy of the current plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg></button>
+  </div>
+  <div id="statusBar">
     <span id="saveStatus" class="save-status"></span>
     <span id="changeFileBtn" class="save-status changelink" style="display:none;">change save location</span>
     <span id="presenceCount" class="save-status presence-count"></span>
@@ -3165,7 +3189,7 @@
   // getMigrationSeedPayload below) — no longer written to.
   var LS_KEY = 'travelPlanHtml_v1';
 
-  var SAVE_EXCLUDE_SEL = '.icontoolbar, .tagpop, .linkpop, .monthpop, #tagData, .theme-switcher';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -3456,16 +3480,16 @@
     var htmlStr = buildSaveHtml();
     if(!cachedHandle) cachedHandle = await idbGetHandle();
     if(!cachedHandle){
-      setStatus('Click 💾 once to enable autosave');
+      setStatus('Click Save once to enable autosave');
       return;
     }
     try{
       var ok2 = await writeWithHandle(cachedHandle, htmlStr);
       if(ok2){ setStatus('Saved ✓', true); }
-      else { cachedHandle = null; await idbSetHandle(null); refreshChangeFileBtn(); setStatus('Click 💾 once to enable autosave'); }
+      else { cachedHandle = null; await idbSetHandle(null); refreshChangeFileBtn(); setStatus('Click Save once to enable autosave'); }
     } catch(err){
       cachedHandle = null; await idbSetHandle(null); refreshChangeFileBtn();
-      setStatus('Click 💾 once to enable autosave');
+      setStatus('Click Save once to enable autosave');
     }
   }
 
@@ -3479,23 +3503,28 @@
     autoSaveTimer = setTimeout(triggerAutoSave, IS_HOSTED ? 250 : 900);
   }
 
-  // #icontoolbar (saveBtn/statusEl/changeFileBtn/presenceEl) lives INSIDE
-  // .wrap, so every wholesale .wrap replaceWith() (undo/redo, a remote
-  // snapshot arriving) silently produces brand-new toolbar nodes — the
-  // saveBtn/statusEl/changeFileBtn variables captured once above would go
-  // on pointing at the old, now-detached elements forever, and the save
-  // button would lose its click handler entirely. reattachAll() already
-  // re-runs after every one of those replacements, so re-querying and
-  // (only when the node actually changed) re-wiring from there keeps these
-  // refs — and the click handler — pointed at whatever's actually live.
+  // #actionMenu (saveBtn) and #statusBar (statusEl/changeFileBtn/presenceEl)
+  // both live INSIDE .wrap, so a wholesale .wrap replaceWith() (applyRemote
+  // Snapshot()'s fallback for a plan saved in the old pre-JSON-model format,
+  // read once on first load and never written again) would silently produce
+  // brand-new toolbar nodes — the saveBtn/statusEl/changeFileBtn variables
+  // captured once above would go on pointing at the old, now-detached
+  // elements forever, and the save button would lose its click handler
+  // entirely. reattachAll() already re-runs after that replacement, so
+  // re-querying and (only when the node actually changed) re-wiring from
+  // there keeps these refs — and the click handler — pointed at whatever's
+  // actually live.
   function wireIconToolbar(){
     var freshSaveBtn = document.getElementById('saveBtn');
     statusEl = document.getElementById('saveStatus');
     if(freshSaveBtn === saveBtn) return;
     saveBtn = freshSaveBtn;
     changeFileBtn = document.getElementById('changeFileBtn');
-    saveBtn.addEventListener('click', function(){ doSave(); });
+    saveBtn.classList.add('show');
+    saveBtn.addEventListener('click', function(){ doSave(); closeActionMenu(); });
     saveBtn.title = IS_HOSTED ? 'Download a copy of the current plan' : 'Save';
+    var saveBtnLabel = saveBtn.querySelector('#saveBtnLabel');
+    if(saveBtnLabel) saveBtnLabel.textContent = IS_HOSTED ? 'Download' : 'Save';
     if(changeFileBtn){
       if(IS_HOSTED){
         changeFileBtn.style.display = 'none';
