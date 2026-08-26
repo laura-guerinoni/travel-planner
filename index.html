@@ -1031,6 +1031,13 @@
     return (email || '').toLowerCase().replace(/\./g, ',');
   }
   var syncStarted = false;
+  // Read by triggerAutoSave() (defined separately below, not nested inside
+  // startSync()) to skip autosaving before the real shared plan has been
+  // received — a `var` declared inside startSync() itself would only be
+  // visible within that function's own closure, not to a sibling function
+  // referencing the same name; declared here instead so both actually
+  // share one variable.
+  var firstLoadDone = false;
   var currentUserEmail = null;
   var currentUserKey = null;
   var currentUserRole = null; // 'owner' | 'invited' | null
@@ -3627,9 +3634,9 @@
 
   async function triggerAutoSave(){
     if(IS_HOSTED){
-      // firstLoadDone (declared below, but var-hoisted through this whole
-      // IIFE) only flips true once this client has actually received and
-      // applied the real shared plan from Firebase. Before that, whatever
+      // firstLoadDone (declared as a top-level var near syncStarted, set by
+      // startSync() below) only flips true once this client has actually
+      // received and applied the real shared plan from Firebase. Before that, whatever
       // is on the page is just this file's own static placeholder markup —
       // rendered before first paint and normally hidden behind the
       // visibility:hidden flag until Firebase responds. A MutationObserver-
@@ -4235,7 +4242,6 @@
     // page-load timer this replaced, which would have handed the real
     // content to anyone who simply waited it out, signed in or not.
     setTimeout(function(){ document.documentElement.style.visibility = ''; }, 4000);
-    var firstLoadDone = false;
     planRef.on('value', function(snapshot){
       var val = snapshot.val();
       if(!firstLoadDone){
