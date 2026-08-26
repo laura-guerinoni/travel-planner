@@ -184,7 +184,7 @@
        Not zero, though — a fully empty week (every cell just a bare day
        number) still keeps a small floor so it reads as a proper row of
        calendar boxes instead of collapsing down to near-nothing. */
-    .cell { min-height:40px; break-inside:avoid; page-break-inside:avoid; }
+    .cell { min-height:80px; break-inside:avoid; page-break-inside:avoid; }
     .grid.week { break-inside:avoid; page-break-inside:avoid;
       /* .week's screen rule sets align-items:start deliberately, so a
          short day doesn't get stretched into dead empty space while
