@@ -177,14 +177,13 @@
     .wrap { margin:0; padding:0; max-width:none; }
     /* A day's content shouldn't be sliced by a page boundary — better to
        push the whole cell to the next page than split it mid-activity.
-       Lower min-height than the screen version too: on-screen every cell
-       reserves the same tall minimum regardless of content so the grid
-       stays visually even, but on paper that means empty early-month
-       weeks burn a disproportionate amount of the page for nothing.
-       Not zero, though — a fully empty week (every cell just a bare day
-       number) still keeps a small floor so it reads as a proper row of
-       calendar boxes instead of collapsing down to near-nothing. */
-    .cell { min-height:80px; break-inside:avoid; page-break-inside:avoid; }
+       min-height went through a few rounds (0 -> 40px -> 80px -> this)
+       based on direct feedback each step — 0 made empty weeks collapse to
+       near-nothing, 40/80px still read as too cramped. 160px is now taller
+       than the screen version's own 104px minimum, which is a deliberate
+       reversal of the original "shrink empty weeks to save paper" idea in
+       favor of a calendar that reads as evenly weighted throughout. */
+    .cell { min-height:160px; break-inside:avoid; page-break-inside:avoid; }
     .grid.week { break-inside:avoid; page-break-inside:avoid;
       /* .week's screen rule sets align-items:start deliberately, so a
          short day doesn't get stretched into dead empty space while
