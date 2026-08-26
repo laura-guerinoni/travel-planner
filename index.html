@@ -633,7 +633,13 @@
     color:var(--ink); cursor:pointer; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px;
     white-space:nowrap; }
   #manageAccessList button.map-make-owner:hover { border-color:var(--primary); color:var(--primary); }
-  #manageAccessList li > span:first-child { flex:1; min-width:0; overflow-wrap:anywhere; }
+  /* Truncated with an ellipsis rather than wrapped — a long address
+     wrapping mid-word into a cramped second line, squeezed next to the
+     role/action buttons which stay on one line regardless, read as
+     broken rather than just long. The full address is still available
+     via the title tooltip. */
+  #manageAccessList li > span:first-child { flex:1; min-width:0; overflow:hidden;
+    white-space:nowrap; text-overflow:ellipsis; }
   #manageAccessList .map-row-actions { display:flex; align-items:center; gap:6px; flex:none; }
   #manageAccessAddForm { display:flex; gap:6px; margin-bottom:8px; }
   #manageAccessAddForm input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px; }
@@ -1095,6 +1101,28 @@
     return (dict && dict[key] != null) ? dict[key] : (TRANSLATIONS.en[key] || key);
   }
 
+  // Month/weekday names for the calendar itself — separate from
+  // TRANSLATIONS above (that's UI chrome; these are calendar-standard
+  // names, referenced by MONTH_FULL/MONTH_SHORT/WD_ABBR further down,
+  // which get reassigned to the right language's array in applyLanguage()).
+  var CALENDAR_NAMES = {
+    en: {
+      full: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      short: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      wd: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+    },
+    it: {
+      full: ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'],
+      short: ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'],
+      wd: ['Lun','Mar','Mer','Gio','Ven','Sab','Dom']
+    },
+    es: {
+      full: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+      short: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+      wd: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
+    }
+  };
+
   // Identifies which shared Firebase project this page talks to — not a
   // secret; access control is enforced entirely by the Realtime Database's
   // security rules, which require a signed-in, allow-listed Google account
@@ -1264,6 +1292,7 @@
         var li = document.createElement('li');
         var label = document.createElement('span');
         label.textContent = row.email;
+        label.title = row.email;
         li.appendChild(label);
         var actions = document.createElement('span');
         actions.className = 'map-row-actions';
@@ -1387,9 +1416,13 @@
 
   // ---- month/year: each panel has its own calendar, generated on the fly
   // (not baked-in HTML for one fixed month) so any month/year can be picked ----
-  var MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var WD_ABBR = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  // Reassigned wholesale (not indexed into) by applyLanguage() below, to
+  // whichever language's arrays CALENDAR_NAMES holds — every place that
+  // reads MONTH_FULL[i]/WD_ABBR[i] picks up the new language automatically
+  // without needing to know applyLanguage() exists.
+  var MONTH_FULL = CALENDAR_NAMES.en.full;
+  var MONTH_SHORT = CALENDAR_NAMES.en.short;
+  var WD_ABBR = CALENDAR_NAMES.en.wd;
 
   function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
   function firstWeekdayMon0(year, month){ return (new Date(year, month - 1, 1).getDay() + 6) % 7; }
@@ -3505,6 +3538,35 @@
     // otherwise, and avoids a stray Firebase read on every language switch.
     if(manageList && manageList.children.length) renderMemberList();
     try { localStorage.setItem(LANG_KEY, currentLang); } catch(e){}
+
+    // Calendar month/weekday names — MONTH_FULL/MONTH_SHORT/WD_ABBR are
+    // read by name (not through t()) all over the file, so reassigning
+    // them here is enough for anything computed AFTER this point (print
+    // labels, a freshly built panel). What's already rendered on screen
+    // needs patching directly, though: the weekday header row, each day's
+    // own weekday label, the month sidebar, holiday banners (which show a
+    // short month name), and the budget list's "· August 12 – 25" note.
+    var names = CALENDAR_NAMES[currentLang] || CALENDAR_NAMES.en;
+    MONTH_FULL = names.full; MONTH_SHORT = names.short; WD_ABBR = names.wd;
+    document.querySelectorAll('.wdhead').forEach(function(el, i){ el.textContent = WD_ABBR[i % 7]; });
+    document.querySelectorAll('.cell:not(.empty) > .cellhead > .wd').forEach(function(wdEl){
+      var cell = wdEl.closest('.cell');
+      var panel = cell.closest('.panel');
+      var dn = dayNumOfCell(cell);
+      if(!panel || dn == null) return;
+      var d = getPanelDate(panel);
+      var mondayIdx = (new Date(d.year, d.month - 1, dn).getDay() + 6) % 7;
+      wdEl.textContent = WD_ABBR[mondayIdx];
+    });
+    renderMonthSidebar();
+    document.querySelectorAll('.panel').forEach(function(panel){ renderHoliday(panel); });
+    document.querySelectorAll('.budget li[data-opt] em').forEach(function(em){
+      var li = em.closest('li[data-opt]');
+      var panel = document.getElementById('panel-' + li.getAttribute('data-opt'));
+      if(!panel) return;
+      var d = getPanelDate(panel);
+      em.textContent = holidayRangeText(getHolidays(panel), d.year, d.month);
+    });
   }
   document.querySelectorAll('.lang-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ applyLanguage(btn.getAttribute('data-lang')); });
