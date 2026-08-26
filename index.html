@@ -364,7 +364,13 @@
      weeks already follow each other in chronological order, so switching
      every .grid to a single column makes the whole month stack top-to-bottom
      in the correct day order for free — no reordering needed. ---- */
-  @media (max-width: 720px) {
+  /* screen-scoped deliberately: A4/Letter portrait's printable width
+     (~700px at 96dpi after margins) falls under this same 720px
+     breakpoint, so without "screen" the print stylesheet was inheriting
+     the phone layout — single-column stacked days, hidden weekday
+     header row — any time someone printed in portrait, since a max-width
+     query has no idea "narrow" here means the paper, not a phone. */
+  @media screen and (max-width: 720px) {
     body { padding: 16px 10px; }
     /* The month sidebar becomes a horizontal bar flush to the top instead
        of a vertical strip on the left — same primary bookmark, just
