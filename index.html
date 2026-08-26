@@ -100,11 +100,6 @@
   .cell { background:var(--card); border:1px solid var(--line); border-radius:12px; min-height:104px; padding:8px;
     min-width:0; overflow-wrap:anywhere; }
   .cell.empty { background:transparent; border:none; min-height:0; }
-  /* Opaque white backing behind the tint so the page texture never shows
-     through a holiday cell that has no other content sitting on top of it. */
-  .cell.holi { background-color:var(--card);
-    background-image:linear-gradient(rgba(var(--secondary-rgb),.08), rgba(var(--secondary-rgb),.08));
-    border-color:rgba(var(--secondary-rgb),.28); }
   .cell.active { border-color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.06); }
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
@@ -172,7 +167,7 @@
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .month-sidebar, .theme-switcher, .icontoolbar,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
-    #switchPlanBtn, #printPanel,
+    #switchPlanBtn, #printPanel, #photoLightbox,
     .jsctl, #tagData { display:none !important; }
     /* !important is load-bearing here, not decorative: .wrap carries a JS-
        set INLINE padding-top (syncBarLayout(), reserving room for the
@@ -340,9 +335,43 @@
   .linkadd:hover { color:var(--primary); border-color:var(--primary); }
 
   .photoicon { position:relative; display:inline-block; margin-left:4px; font-size:11px; cursor:pointer; }
-  .photoicon .photopreview { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
-    top:100%; margin-top:6px; width:220px; max-width:60vw; max-height:260px; object-fit:cover; border-radius:8px;
-    box-shadow:0 8px 24px rgba(0,0,0,.25); border:2px solid var(--card); background:#fff; }
+  .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
+    top:100%; margin-top:6px; }
+  .acts li:hover .photopreview-wrap, .photoicon:hover .photopreview-wrap { display:block; }
+  .photoicon .photopreview { display:block; width:220px; max-width:60vw; max-height:260px; object-fit:cover;
+    border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25); border:2px solid var(--card); background:#fff; }
+  /* Sits on top of the preview thumbnail itself rather than beside it, so
+     the two actions are reachable from the same hover area that reveals
+     the thumbnail in the first place — no separate hover target to find. */
+  .photoctl { position:absolute; top:6px; right:6px; display:flex; gap:4px; }
+  .photoctl button { width:24px; height:24px; padding:0; border:none; border-radius:50%; cursor:pointer;
+    background:rgba(0,0,0,.55); color:#fff; font-size:12px; line-height:1; display:flex;
+    align-items:center; justify-content:center; }
+  .photoctl button:hover { background:rgba(0,0,0,.75); }
+
+  .photobox-inner { background:var(--card); border-radius:16px; padding:18px;
+    width:min(760px, 92vw); max-height:90vh; display:flex; flex-direction:column;
+    box-shadow:0 12px 32px rgba(0,0,0,.25); }
+  .photobox-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+  .photobox-activity { list-style:none; margin:0; font-size:13px; }
+  .photobox-activity .title { display:block; font-weight:700; font-size:14px; margin:4px 0 2px; }
+  .photobox-activity .line { display:block; color:var(--muted); }
+  .photobox-body { position:relative; display:flex; align-items:center; justify-content:center;
+    flex:1; min-height:0; }
+  .photobox-img { max-width:100%; max-height:70vh; object-fit:contain; border-radius:8px; }
+  .photobox-nav { position:absolute; top:50%; transform:translateY(-50%); width:36px; height:36px;
+    border-radius:50%; border:none; background:rgba(0,0,0,.45); color:#fff; font-size:20px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .photobox-nav:hover { background:rgba(0,0,0,.65); }
+  .photobox-nav[disabled] { display:none; }
+  .photobox-prev { left:8px; }
+  .photobox-next { right:8px; }
+  .photobox-footer { display:flex; justify-content:flex-end; margin-top:12px; padding-top:12px;
+    border-top:1px solid var(--line); }
+  .photobox-delete { border:1px solid var(--line); background:transparent; color:var(--ink);
+    font-size:13px; font-weight:700; padding:8px 14px; border-radius:999px; cursor:pointer; }
+  .photobox-delete:hover { border-color:#c0392b; color:#c0392b; }
 
   .banner { position:relative; overflow:visible; }
   .handle { position:absolute; top:1px; bottom:1px; width:14px; cursor:ew-resize; border-radius:4px;
@@ -555,6 +584,22 @@
       <button type="submit">Invite</button>
     </form>
     <p id="manageAccessError"></p>
+  </div>
+</div>
+<div id="photoLightbox" class="modal-overlay">
+  <div class="photobox-inner">
+    <div class="photobox-header">
+      <div id="photoboxActivity"></div>
+      <button type="button" id="photoboxCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="photobox-body">
+      <button type="button" id="photoboxPrev" class="photobox-nav photobox-prev" title="Previous photo" aria-label="Previous photo">‹</button>
+      <img id="photoboxImg" class="photobox-img" alt="" />
+      <button type="button" id="photoboxNext" class="photobox-nav photobox-next" title="Next photo" aria-label="Next photo">›</button>
+    </div>
+    <div class="photobox-footer">
+      <button type="button" id="photoboxDelete" class="photobox-delete">🗑 Delete photo</button>
+    </div>
   </div>
 </div>
 <div id="printPanel" class="modal-overlay">
@@ -1555,6 +1600,13 @@
   }
 
   // ---- photo ----
+  function removePhotoFromLi(li){
+    if(!window.confirm('Remove this photo?')) return false;
+    li.removeAttribute('data-img');
+    renderPhoto(li);
+    return true;
+  }
+
   function renderPhoto(li){
     var url = li.getAttribute('data-img') || '';
     var existing = li.querySelector(':scope > .photoicon');
@@ -1566,22 +1618,124 @@
       existing = document.createElement('span');
       existing.className = 'photoicon';
       existing.textContent = '📷';
-      var img = document.createElement('img');
-      img.className = 'photopreview';
-      existing.appendChild(img);
       existing.addEventListener('click', function(ev){
         ev.stopPropagation();
-        if(window.confirm('Remove this photo?')){
-          li.removeAttribute('data-img');
-          renderPhoto(li);
-        }
+        openPhotobox(li);
       });
+
+      var wrap = document.createElement('span');
+      wrap.className = 'photopreview-wrap';
+      var img = document.createElement('img');
+      img.className = 'photopreview';
+      wrap.appendChild(img);
+
+      // Overlaid on the hover thumbnail itself, so the same hover that
+      // reveals the preview also reveals what you can do with it — no
+      // second hover target to discover.
+      var ctl = document.createElement('span');
+      ctl.className = 'photoctl';
+      var expandBtn = document.createElement('button');
+      expandBtn.type = 'button'; expandBtn.title = 'View larger'; expandBtn.setAttribute('aria-label', 'View larger');
+      expandBtn.textContent = '⤢';
+      expandBtn.addEventListener('click', function(ev){ ev.stopPropagation(); openPhotobox(li); });
+      var deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button'; deleteBtn.title = 'Delete photo'; deleteBtn.setAttribute('aria-label', 'Delete photo');
+      deleteBtn.textContent = '🗑';
+      deleteBtn.addEventListener('click', function(ev){ ev.stopPropagation(); removePhotoFromLi(li); });
+      ctl.appendChild(expandBtn);
+      ctl.appendChild(deleteBtn);
+      wrap.appendChild(ctl);
+
+      existing.appendChild(wrap);
       var chip = li.querySelector(':scope > .chip');
       if(chip) chip.insertAdjacentElement('afterend', existing);
       else li.insertBefore(existing, li.firstChild);
     }
     existing.querySelector('img').src = url;
   }
+
+  // ---- photo lightbox: "make bigger", with prev/next across every other
+  // photo in the same day and the connected activity's details up top, so
+  // the picture is never shown without the context of what it's from ----
+  var photoboxOverlay = document.getElementById('photoLightbox');
+  var photoboxImg = document.getElementById('photoboxImg');
+  var photoboxActivity = document.getElementById('photoboxActivity');
+  var photoboxPrevBtn = document.getElementById('photoboxPrev');
+  var photoboxNextBtn = document.getElementById('photoboxNext');
+  var photoboxCloseX = document.getElementById('photoboxCloseX');
+  var photoboxDeleteBtn = document.getElementById('photoboxDelete');
+  var photoboxState = null;
+
+  function photosInSameDay(li){
+    var acts = li.closest('.acts');
+    if(!acts) return [li];
+    return Array.prototype.slice.call(acts.querySelectorAll(':scope > li[data-img]'));
+  }
+
+  // A cloned <li> rather than hand-picked fields, so whatever the activity
+  // actually shows (chip, title, one line or several, price) is exactly
+  // what shows here too — nothing to keep in sync by hand as those fields
+  // evolve. cloneNode doesn't carry over event listeners, so the clone is
+  // inert by construction; contenteditable is a plain attribute though, so
+  // it's stripped explicitly or the text would look (falsely) editable.
+  function photoboxHeaderFrom(li){
+    var clone = li.cloneNode(true);
+    clone.querySelectorAll('.photoicon, .itemctl').forEach(function(el){ el.remove(); });
+    clone.querySelectorAll('[contenteditable]').forEach(function(el){ el.removeAttribute('contenteditable'); });
+    clone.className = 'photobox-activity';
+    return clone;
+  }
+
+  function renderPhotobox(){
+    if(!photoboxState || !photoboxState.list.length){ closePhotobox(); return; }
+    if(photoboxState.index >= photoboxState.list.length) photoboxState.index = photoboxState.list.length - 1;
+    var li = photoboxState.list[photoboxState.index];
+    photoboxImg.src = li.getAttribute('data-img') || '';
+    photoboxActivity.innerHTML = '';
+    photoboxActivity.appendChild(photoboxHeaderFrom(li));
+    var multi = photoboxState.list.length > 1;
+    photoboxPrevBtn.disabled = !multi;
+    photoboxNextBtn.disabled = !multi;
+  }
+
+  function openPhotobox(li){
+    var list = photosInSameDay(li);
+    var index = list.indexOf(li);
+    if(index === -1) return;
+    photoboxState = { list: list, index: index };
+    renderPhotobox();
+    photoboxOverlay.classList.add('show');
+  }
+
+  function closePhotobox(){
+    photoboxOverlay.classList.remove('show');
+    photoboxState = null;
+  }
+
+  function photoboxNavigate(delta){
+    if(!photoboxState || photoboxState.list.length < 2) return;
+    var len = photoboxState.list.length;
+    photoboxState.index = (photoboxState.index + delta + len) % len;
+    renderPhotobox();
+  }
+
+  photoboxPrevBtn.addEventListener('click', function(){ photoboxNavigate(-1); });
+  photoboxNextBtn.addEventListener('click', function(){ photoboxNavigate(1); });
+  photoboxCloseX.addEventListener('click', closePhotobox);
+  photoboxOverlay.addEventListener('click', function(e){ if(e.target === photoboxOverlay) closePhotobox(); });
+  photoboxDeleteBtn.addEventListener('click', function(){
+    if(!photoboxState) return;
+    var li = photoboxState.list[photoboxState.index];
+    if(!removePhotoFromLi(li)) return;
+    photoboxState.list.splice(photoboxState.index, 1);
+    renderPhotobox();
+  });
+  document.addEventListener('keydown', function(e){
+    if(!photoboxOverlay.classList.contains('show')) return;
+    if(e.key === 'Escape') closePhotobox();
+    else if(e.key === 'ArrowLeft') photoboxNavigate(-1);
+    else if(e.key === 'ArrowRight') photoboxNavigate(1);
+  });
 
   function pickImage(li){
     var input = document.createElement('input');
@@ -2193,13 +2347,21 @@
   // getHolidays() migrates those into a one-item array on first read.
   function getHolidays(panel){
     if(panel.dataset.holidays){
-      try{ var arr = JSON.parse(panel.dataset.holidays); if(Array.isArray(arr)) return arr; }
+      try{
+        var arr = JSON.parse(panel.dataset.holidays);
+        if(Array.isArray(arr)){
+          // Normalizes labels saved with the old em-dash default before
+          // any custom label the user actually typed is left untouched.
+          arr.forEach(function(h){ if(h.label === 'Holiday — time off') h.label = 'Holiday - time off'; });
+          return arr;
+        }
+      }
       catch(e){}
     }
     var s = parseInt(panel.dataset.holidayStart || '', 10);
     var e = parseInt(panel.dataset.holidayEnd || '', 10);
     if(s && e && e >= s){
-      return [{ start: s, end: e, label: panel.dataset.holidayLabel || 'Holiday — time off' }];
+      return [{ start: s, end: e, label: panel.dataset.holidayLabel || 'Holiday - time off' }];
     }
     return [];
   }
@@ -2222,7 +2384,7 @@
   }
 
   function promptForRange(maxDay, defaultText){
-    var input = window.prompt('Holiday period — enter the start and end day of the month (e.g. 5-10):', defaultText || '1-3');
+    var input = window.prompt('Holiday period - enter the start and end day of the month (e.g. 5-10):', defaultText || '1-3');
     if(input === null) return null;
     var m = input.match(/(\d+)\s*[-–]\s*(\d+)/);
     if(!m){ window.alert('Enter two day numbers separated by a dash, e.g. 5-10'); return null; }
@@ -2236,7 +2398,7 @@
     var range = promptForRange(lastDayOfCalendar(panel));
     if(!range) return;
     var arr = getHolidays(panel);
-    arr.push({ start: range.start, end: range.end, label: 'Holiday — time off' });
+    arr.push({ start: range.start, end: range.end, label: 'Holiday - time off' });
     setHolidays(panel, arr);
     renderHoliday(panel);
   }
@@ -2303,7 +2465,7 @@
     if(oldAddBtn) oldAddBtn.remove();
 
     holidays.forEach(function(h){
-      if(!h.label) h.label = 'Holiday — time off';
+      if(!h.label) h.label = 'Holiday - time off';
       if(h.start >= 1 && h.end >= h.start){
         panel.querySelectorAll('.cell').forEach(function(cell){
           var dn = dayNumOfCell(cell);
@@ -2390,6 +2552,32 @@
       });
     });
   }
+
+  // ---- typing "->" turns it into an arrow, matching the "Košice →
+  // Budapest" style already used throughout the plan. Only the common
+  // live-typing case is handled: caret sitting right after the "->" that
+  // was just typed, in a plain text node (every editable field here is a
+  // single leaf span with no nested markup) — pasted text with "->"
+  // earlier in the string is left alone rather than risk mangling the
+  // cursor position.
+  document.addEventListener('input', function(e){
+    if(!e.target.isContentEditable) return;
+    var sel = window.getSelection();
+    if(!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    var node = range.startContainer;
+    if(node.nodeType !== Node.TEXT_NODE) return;
+    var pos = range.startOffset;
+    var text = node.textContent;
+    var idx = text.lastIndexOf('->', pos);
+    if(idx === -1 || idx + 2 !== pos) return;
+    node.textContent = text.slice(0, idx) + '→' + text.slice(idx + 2);
+    var newRange = document.createRange();
+    newRange.setStart(node, idx + 1);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  });
 
   // ---- add / rename / remove options ----
   document.addEventListener('input', function(e){
