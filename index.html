@@ -76,13 +76,30 @@
   .pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
     position:fixed; top:0; left:46px; right:16px; z-index:40;
     background-color:var(--bg); background-image:var(--texture); padding:0 8px 14px; }
+  /* Fills the strip between the pills bar's bottom edge and wherever the
+     sticky weekday header (.grid.heads) catches — that strip is just
+     .wrap's padding-top, not any element's own box, so nothing painted
+     over it and whatever the page scrolled underneath showed straight
+     through. A plain fixed div with the same background, kept in sync by
+     syncBarLayout() via --pills-bottom/--pills-gap, papers over it. */
+  .pills-gapfill { position:fixed; left:0; right:0; top:var(--pills-bottom, 0px);
+    height:var(--pills-gap, 0px); z-index:29; pointer-events:none;
+    background-color:var(--bg); background-image:var(--texture); }
   /* Second-tier bookmarks: same tab-hanging-off-an-edge idea as the month
      sidebar, just smaller and hanging off the TOP edge instead of the
      left — rounded only at the bottom (the edge pointing away from what
      they're attached to). Flat, no shadow, so the hierarchy (sidebar =
      month, pills = option within it) reads through scale/color alone. */
+  /* Left/right padding deliberately asymmetric (24px / 6px), not the
+     same value on both sides — the × sits on the right (reserved via
+     .pill-remove's own layout box, see below) and adds ~18px on top of
+     whatever padding-right already gives it, so a smaller padding-right
+     plus that reserved width lands close to the 24px on the left,
+     keeping the empty space either side of the pill's real content
+     (name + price) visually even even though only one side ever shows
+     something on hover. */
   .pill { cursor:pointer; font:inherit; font-size:14px; font-weight:600; border:1px solid var(--line);
-    background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:9px 16px 11px; }
+    background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:9px 6px 11px 24px; }
   .pill span { opacity:.7; font-weight:700; }
   /* Same small-badge treatment as each day's own total, rather than
      plain dimmed text — a price reads as its own piece of information
@@ -154,7 +171,7 @@
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   .acts li { font-size:11px; }
-  .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; }
+  .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
 
@@ -215,7 +232,7 @@
     .panel.print-hide, .budget li.print-hide { display:none !important; }
     .panel::before { content:attr(data-print-label); display:block;
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
-    .pills, .month-sidebar, #statusBar,
+    .pills, .pills-gapfill, .month-sidebar, #statusBar,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
     #switchPlanBtn, #printPanel, #photoLightbox,
     .jsctl, #tagData { display:none !important; }
@@ -427,7 +444,7 @@
     padding:0 3px; line-height:14px; }
   .linkadd:hover { color:var(--primary); border-color:var(--primary); }
 
-  .photoicon { position:relative; display:inline-flex; align-items:center; margin-left:4px; color:var(--muted); cursor:pointer; }
+  .photoicon { position:relative; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .photoicon > svg { width:14px; height:14px; }
   /* Toggled from the "⋯" item menu, same as the photo icon's own
      add/remove lives there — clicking the badge itself is a shortcut to
@@ -797,6 +814,7 @@
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
+<div class="pills-gapfill" aria-hidden="true"></div>
 <div class="wrap">
   <header>
     <div class="pills">
@@ -3445,21 +3463,28 @@
     var sidebarH = (isMobile && sidebarEl) ? sidebarEl.getBoundingClientRect().height : 0;
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
-    // Tripled from the original 16px — and, critically, the SAME target
-    // (sidebarH + pillsH + GAP, a position measured from the VIEWPORT,
-    // matching .pills' own position:fixed frame of reference) feeds both
-    // .wrap's padding-top and --pills-height, so the gap between the
-    // pills bar and the weekday header reads as identical whether the
-    // page is scrolled or sitting at the top. .wrap's padding-top is
-    // itself measured from .wrap's OWN top edge though, not the viewport
-    // — subtracting wrapTop converts the viewport-relative target back
-    // into that frame, or the header would land 30-40px further down
-    // than intended, by however far .wrap's own top sits below y=0.
-    var GAP = 48;
+    // The SAME target (sidebarH + pillsH + GAP, a position measured from
+    // the VIEWPORT, matching .pills' own position:fixed frame of
+    // reference) feeds both .wrap's padding-top and --pills-height, so
+    // the gap between the pills bar and the weekday header reads as
+    // identical whether the page is scrolled or sitting at the top.
+    // .wrap's padding-top is itself measured from .wrap's OWN top edge
+    // though, not the viewport — subtracting wrapTop converts the
+    // viewport-relative target back into that frame, or the header would
+    // land 30-40px further down than intended, by however far .wrap's
+    // own top sits below y=0.
+    var GAP = 34;
     var wrapTop = wrapEl.getBoundingClientRect().top;
-    var target = sidebarH + pillsH + GAP;
+    var pillsBottom = sidebarH + pillsH;
+    var target = pillsBottom + GAP;
     wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
     document.documentElement.style.setProperty('--pills-height', target + 'px');
+    // .pills-gapfill (see its own CSS rule) papers over the strip between
+    // the pills bar's bottom edge and where the sticky weekday header
+    // catches — nothing else paints that strip, so without this, page
+    // content scrolling past underneath was visible right through it.
+    document.documentElement.style.setProperty('--pills-bottom', pillsBottom + 'px');
+    document.documentElement.style.setProperty('--pills-gap', GAP + 'px');
   }
   window.addEventListener('resize', syncBarLayout);
 
