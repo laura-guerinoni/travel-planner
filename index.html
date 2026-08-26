@@ -171,7 +171,12 @@
   .daytotal-badge { margin-left:auto; font-size:11px; font-weight:700; color:var(--muted);
     background:var(--bg); border-radius:999px; padding:2px 8px; white-space:nowrap; }
   .cell:hover .daytotal-badge.has-content { visibility:hidden; }
-  .loc { margin:6px 0; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
+  /* padding-left matches .acts li's own padding (see below) — an
+     activity's real content now sits 6px further right than .loc used
+     to, since that padding lives on the li itself, not the cell; without
+     this the day's own location label no longer lined up with the
+     activities under it. */
+  .loc { margin:6px 0; padding-left:6px; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   /* Padding lives here unconditionally, not only on a checked activity —
@@ -445,7 +450,12 @@
      checkbox next to it doesn't shift sideways when this fades in. */
   .itemmenu-btn { visibility:hidden; border:none; background:var(--line); color:var(--ink); border-radius:6px;
     font-size:12px; font-weight:800; width:20px; height:18px; line-height:18px; padding:0; cursor:pointer; }
-  li:hover .itemmenu-btn, li:focus-within .itemmenu-btn { visibility:visible; }
+  /* Hover only, deliberately no :focus-within fallback — clicking either
+     this button or the checkbox next to it leaves it focused (native
+     button/checkbox behavior), and focus doesn't clear just because the
+     mouse moved elsewhere, which is what made this look stuck showing
+     after you'd already moved on to a different day. */
+  li:hover .itemmenu-btn { visibility:visible; }
   .itemmenu-btn:hover { background:var(--primary); color:#fff; }
   /* No dedicated drag handle any more — grabbing anywhere on the activity
      that isn't one of its actual controls (tag, checkbox, menu, a link,
@@ -473,8 +483,12 @@
 
   .addact, .addloc { display:none; width:100%; margin-top:6px; border:1px dashed var(--line); background:transparent;
     color:var(--muted); border-radius:8px; padding:4px; font-size:11px; font-weight:700; cursor:pointer; }
-  .cell:hover .addact, .cell:focus-within .addact { display:block; }
-  .cell:hover .addloc, .cell:focus-within .addloc { display:block; }
+  /* Hover only — see the same note on .itemmenu-btn above; :focus-within
+     kept this showing on a cell you'd already moved the mouse away from
+     for as long as something inside it (an activity's checkbox, its "..."
+     menu, an editable field) still held focus. */
+  .cell:hover .addact { display:block; }
+  .cell:hover .addloc { display:block; }
   .cell:has(> .loc) .addloc { display:none; }
   /* Sits directly over .daytotal-badge's own spot (same top-right corner
      of .cellhead) rather than its own separate location, so hovering the
