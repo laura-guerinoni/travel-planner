@@ -175,15 +175,21 @@
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   .acts li { font-size:11px; }
+  /* .tagrow holds the tag chip on the left and .tagctl (the item menu +
+     booked checkbox) pinned to the right via margin-left:auto — .chip and
+     .booked-check both stay findable via plain (not ":scope >") lookups
+     elsewhere (extractActivity, renderPhoto's anchor, the span-ghost
+     clone, attachItemControls) since they're one level deeper than <li>
+     now. margin-bottom moved off .chip itself (still 0 there) onto
+     .tagrow, so a flex item's own margin doesn't throw off
+     align-items:center against .tagctl. */
+  .tagrow { display:flex; align-items:center; margin-bottom:3px; }
+  .tagrow .chip { margin-bottom:0; }
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; }
-  /* .title-row wraps the booked-checkbox + .title together so flexbox
-     can center them against each other reliably — .title itself keeps
-     display:block (still renders correctly as a flex item) and stays
-     findable via a plain '.title' lookup; only the two ":scope > .title"
-     lookups (extractActivity, the span-ghost clone) had to drop the ">"
-     to still find it one level deeper. */
-  .title-row { display:flex; align-items:center; gap:6px; }
-  .booked-check { cursor:pointer; flex:none; margin:0; }
+  .tagctl { margin-left:auto; display:flex; align-items:center; gap:6px; }
+  /* Green, not the browser default blue — matches the rest of the app's
+     "booked" language elsewhere (was a green badge, now just this). */
+  .booked-check { cursor:pointer; accent-color:#2e7d4f; }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
 
@@ -360,8 +366,6 @@
   .cellhead-draggable { cursor:grab; touch-action:none; }
   .cell-dragging { opacity:.45; }
   .cell-dragover { outline:2px dashed var(--primary); outline-offset:2px; }
-  .item-grip { border:none; background:var(--line); color:var(--ink); border-radius:6px; font-size:10px;
-    width:16px; height:18px; line-height:18px; padding:0; cursor:grab; }
   .act-dragging { opacity:.45; }
 
   /* The "…" trigger stays top-right on its own now — status text moved to
@@ -412,11 +416,28 @@
 
   .cell { position:relative; }
 
-  .itemctl { display:none; float:right; }
-  li:hover .itemctl, li:focus-within .itemctl { display:inline-flex; }
-  .itemmenu-btn { border:none; background:var(--line); color:var(--ink); border-radius:6px; font-size:12px;
-    font-weight:800; width:20px; height:18px; line-height:18px; padding:0; cursor:pointer; }
+  /* Lives in .tagctl now (see .tagrow above), pinned to the right of the
+     tag alongside the booked checkbox rather than floated across the
+     whole row — visibility (not display), same reasoning as .pill-remove
+     elsewhere: it still occupies its layout space at all times so the
+     checkbox next to it doesn't shift sideways when this fades in. */
+  .itemmenu-btn { visibility:hidden; border:none; background:var(--line); color:var(--ink); border-radius:6px;
+    font-size:12px; font-weight:800; width:20px; height:18px; line-height:18px; padding:0; cursor:pointer; }
+  li:hover .itemmenu-btn, li:focus-within .itemmenu-btn { visibility:visible; }
   .itemmenu-btn:hover { background:var(--primary); color:#fff; }
+  /* No dedicated drag handle any more — grabbing anywhere on the activity
+     that isn't one of its actual controls (tag, checkbox, menu, a link,
+     or editable text) starts the drag; see the li pointerdown listener in
+     attachItemControls(). The li's own cursor hints that; editable text
+     keeps the normal text cursor so it doesn't look draggable where it
+     isn't. */
+  .acts li { cursor:grab; }
+  /* Higher specificity than ".acts li" alone, needed to actually win —
+     a read-only echo of a multi-day activity (see its own comment above),
+     never gets the pointerdown listener that makes the grab cursor true. */
+  .acts li.act-span-ghost { cursor:default; }
+  .acts li [contenteditable="true"] { cursor:text; }
+  .acts li .chip, .acts li .booked-check, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
 
   .itemmenu { position:absolute; z-index:55; background:var(--card); border:1px solid var(--line);
     border-radius:10px; padding:4px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px; width:160px; }
@@ -463,19 +484,6 @@
      low against the chip. */
   .photoicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .photoicon > svg { width:14px; height:14px; }
-  /* Toggled from the "⋯" item menu, same as the photo icon's own
-     add/remove lives there — clicking the badge itself is a shortcut to
-     unmark it directly, without needing to reopen the menu. On its own
-     row (display:flex + width:fit-content — block-level so it always
-     starts a new line, but only as wide as its own content) rather than
-     crammed onto the chip/photo-icon row: sharing that line made every
-     control there smaller and harder to hit precisely, and reads as
-     cluttered with three different things fighting for the same strip. */
-  .booked-badge { display:flex; width:fit-content; align-items:center; gap:4px; margin-top:6px;
-    font-size:11px; font-weight:700; color:#2e7d4f;
-    background:rgba(63,217,109,.2); border-radius:999px; padding:4px 10px; cursor:pointer; }
-  .booked-badge:hover { background:rgba(63,217,109,.34); }
-  .booked-badge svg { width:11px; height:11px; }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
@@ -1175,7 +1183,7 @@
       add_location: '+ Add location', add_activity: '+ Add activity', clear_day: '✕ clear day',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
-      act_booked: 'Booked', act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked'
+      act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1190,7 +1198,7 @@
       add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: '✕ Svuota',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
-      act_booked: 'Prenotato', act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione'
+      act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1205,7 +1213,7 @@
       add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: '✕ Vaciar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
-      act_booked: 'Reservado', act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva'
+      act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva'
     }
   };
   var currentLang = 'en';
@@ -1870,8 +1878,10 @@
       a.textContent = '↗';
       wrap.appendChild(a);
     });
-    var chip = li.querySelector(':scope > .chip');
+    var chip = li.querySelector('.chip');
+    var tagrow = li.querySelector('.tagrow');
     if(chip) chip.insertAdjacentElement('afterend', wrap);
+    else if(tagrow) tagrow.insertBefore(wrap, tagrow.firstChild);
     else li.insertBefore(wrap, li.firstChild);
   }
 
@@ -1955,7 +1965,6 @@
   // step with the app's own "kawaii" theme, same plain-stroke style as
   // the rest of the menu.
   var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
-  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
   var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   // Counts photo reads/resizes currently in flight (see pickImage below) —
   // isLocallyBusy() treats any nonzero count as "don't apply a remote
@@ -2010,46 +2019,30 @@
       wrap.appendChild(ctl);
 
       existing.appendChild(wrap);
-      var chip = li.querySelector(':scope > .chip');
+      // .chip lives inside .tagrow now (see buildActivityLi/newActivityLi),
+      // not as a direct child of <li> — inserting the icon right after it
+      // keeps it on the same tag row instead of falling through to the
+      // li.insertBefore fallback, which would otherwise land the icon
+      // before .tagrow entirely.
+      var tagrow = li.querySelector('.tagrow');
+      var chip = li.querySelector('.chip');
       if(chip) chip.insertAdjacentElement('afterend', existing);
+      else if(tagrow) tagrow.insertBefore(existing, tagrow.firstChild);
       else li.insertBefore(existing, li.firstChild);
     }
     existing.querySelector('img').src = url;
   }
 
-  // ---- booked badge: a lightweight yes/no marker ("already have the
-  // train tickets / hotel confirmed") toggled from the "⋯" item menu, same
-  // as the photo icon is added/removed from there — clicking the badge
-  // itself is a shortcut to unmark it directly. ----
+  // The booked checkbox (see .tagctl in buildActivityLi/newActivityLi) is
+  // the only booked indicator now — no separate badge to keep in sync,
+  // just its own checked state against the underlying data-booked
+  // attribute, whichever of the checkbox/item-menu actually changed it.
   function renderBooked(li){
-    // Keeps the checkbox next to the title in sync no matter which of the
-    // three controls (checkbox, badge, item menu) actually changed the
-    // underlying data-booked attribute.
     var check = li.querySelector('.booked-check');
-    if(check) check.checked = li.hasAttribute('data-booked');
-    var existing = li.querySelector(':scope > .booked-badge');
-    if(!li.hasAttribute('data-booked')){
-      if(existing) existing.remove();
-      return;
-    }
-    if(!existing){
-      existing = document.createElement('span');
-      existing.className = 'booked-badge';
-      existing.innerHTML = ICON_CHECK;
-      var label = document.createElement('span');
-      label.dataset.i18n = 'act_booked';
-      label.textContent = t('act_booked');
-      existing.appendChild(label);
-      existing.title = t('act_unmark_booked');
-      existing.addEventListener('click', function(ev){
-        ev.stopPropagation();
-        li.removeAttribute('data-booked');
-        renderBooked(li);
-      });
-      var anchor = li.querySelector(':scope > .photoicon') || li.querySelector(':scope > .chip');
-      if(anchor) anchor.insertAdjacentElement('afterend', existing);
-      else li.insertBefore(existing, li.firstChild);
-    }
+    if(!check) return;
+    var booked = li.hasAttribute('data-booked');
+    check.checked = booked;
+    check.title = t(booked ? 'act_unmark_booked' : 'act_mark_booked');
   }
 
   // ---- photo lightbox: "make bigger", with prev/next across every other
@@ -2090,7 +2083,7 @@
     var cellhead = li.closest('.cell') && li.closest('.cell').querySelector(':scope > .cellhead');
     if(cellhead) frag.appendChild(cellhead.cloneNode(true));
     var clone = li.cloneNode(true);
-    clone.querySelectorAll('.photoicon, .itemctl').forEach(function(el){ el.remove(); });
+    clone.querySelectorAll('.photoicon, .itemmenu-btn, .booked-check').forEach(function(el){ el.remove(); });
     clone.querySelectorAll('[contenteditable]').forEach(function(el){ el.removeAttribute('contenteditable'); });
     clone.className = 'photobox-activity';
     frag.appendChild(clone);
@@ -2458,22 +2451,22 @@
   }
 
   function attachItemControls(li){
-    if(li.querySelector(':scope > .itemctl')) return;
-    var ctl = document.createElement('span');
-    ctl.className = 'itemctl jsctl';
-
-    var gripBtn = document.createElement('button');
-    gripBtn.type = 'button'; gripBtn.className = 'item-grip';
-    gripBtn.textContent = '⠿';
-    gripBtn.title = 'Drag to move this activity';
-    gripBtn.style.touchAction = 'none';
-    gripBtn.addEventListener('pointerdown', function(e){ startActDrag(e, li); });
-    ctl.appendChild(gripBtn);
-
+    if(li.querySelector('.itemmenu-btn')) return;
     var menuBtn = mkBtn('⋯', function(){ openItemMenu(li, menuBtn); });
-    menuBtn.className = 'itemmenu-btn';
-    ctl.appendChild(menuBtn);
-    li.insertBefore(ctl, li.firstChild);
+    menuBtn.className = 'itemmenu-btn jsctl';
+    var tagctl = li.querySelector('.tagctl');
+    if(tagctl) tagctl.insertBefore(menuBtn, tagctl.firstChild);
+    else li.insertBefore(menuBtn, li.firstChild);
+
+    // No dedicated drag handle any more — pointerdown anywhere on the
+    // activity that isn't one of its actual controls (tag, checkbox,
+    // menu, a link, or editable text — preventDefault below would
+    // otherwise block a click from ever focusing/placing a caret in
+    // those) starts the drag instead.
+    li.addEventListener('pointerdown', function(e){
+      if(e.target.closest('.chip, .booked-check, .itemmenu-btn, a, [contenteditable="true"]')) return;
+      startActDrag(e, li);
+    });
 
     var chip = li.querySelector('.chip');
     if(chip){
@@ -2513,17 +2506,21 @@
     chip.style.color = tag.fg;
     chip.textContent = tag.icon + ' ' + tag.name;
 
-    var titleRow = document.createElement('span');
-    titleRow.className = 'title-row';
+    var tagrow = document.createElement('span');
+    tagrow.className = 'tagrow';
+    tagrow.appendChild(chip);
+    var tagctl = document.createElement('span');
+    tagctl.className = 'tagctl';
     var bookedCheck = document.createElement('input');
     bookedCheck.type = 'checkbox';
     bookedCheck.className = 'booked-check jsctl';
     bookedCheck.title = t('act_mark_booked');
-    titleRow.appendChild(bookedCheck);
+    tagctl.appendChild(bookedCheck);
+    tagrow.appendChild(tagctl);
+
     var title = document.createElement('span');
     title.className = 'title';
     title.textContent = 'New activity';
-    titleRow.appendChild(title);
 
     var line = document.createElement('span');
     line.className = 'line';
@@ -2536,7 +2533,7 @@
     priceVal.textContent = '€0';
     price.appendChild(priceVal);
 
-    li.appendChild(chip); li.appendChild(titleRow); li.appendChild(line); li.appendChild(price);
+    li.appendChild(tagrow); li.appendChild(title); li.appendChild(line); li.appendChild(price);
     return li;
   }
 
@@ -2602,7 +2599,7 @@
         ghost.dataset.spanStart = start;
         ghost.dataset.spanEnd = end;
         ghost.title = 'Continues from day ' + start + ' — edit the title, tag, or price there';
-        var chip = li.querySelector(':scope > .chip');
+        var chip = li.querySelector('.chip');
         if(chip){
           var chipClone = document.createElement('span');
           chipClone.className = 'chip';
@@ -4211,7 +4208,7 @@
 
   function extractActivity(li){
     var a = {};
-    var chip = li.querySelector(':scope > .chip');
+    var chip = li.querySelector('.chip');
     if(chip){ a.i = chip.getAttribute('data-icon') || ''; a.n = chip.getAttribute('data-name') || ''; }
     var t = li.querySelector('.title');
     if(t) a.t = t.textContent;
@@ -4275,6 +4272,8 @@
 
   function buildActivityLi(a){
     var li = document.createElement('li');
+    var tagrow = document.createElement('span');
+    tagrow.className = 'tagrow';
     if(a.i || a.n){
       var st = tagStyleFor(a.i || '', a.n || '');
       var chip = document.createElement('span');
@@ -4286,28 +4285,28 @@
       chip.style.background = st.bg;
       chip.style.color = st.fg;
       chip.textContent = (a.i || '') + ' ' + (a.n || '');
-      li.appendChild(chip);
+      tagrow.appendChild(chip);
     }
-    // A direct toggle right next to the name — the badge below (see
-    // renderBooked) still shows the "booked" status, but marking it used
-    // to mean opening the "..." item menu first. .title-row (see its own
-    // CSS) wraps both so flexbox can center them reliably; .title itself
-    // is still findable via a plain '.title' lookup everywhere it's
-    // queried (extractActivity/the span-ghost clone use '.title' rather
-    // than ':scope > .title' for exactly this reason).
-    var titleRow = document.createElement('span');
-    titleRow.className = 'title-row';
+    // Pinned to the right of the tag (see .tagctl) — a one-click way to
+    // mark booked, kept in sync with the item menu's own toggle by
+    // renderBooked(). .chip and .booked-check are one level deeper than
+    // <li> now (inside .tagrow/.tagctl), so extractActivity/renderPhoto's
+    // anchor/the span-ghost clone all use plain '.chip' lookups rather
+    // than ':scope > .chip'.
+    var tagctl = document.createElement('span');
+    tagctl.className = 'tagctl';
     var bookedCheck = document.createElement('input');
     bookedCheck.type = 'checkbox';
     bookedCheck.className = 'booked-check jsctl';
     bookedCheck.title = t('act_mark_booked');
     if(a.bk) bookedCheck.checked = true;
-    titleRow.appendChild(bookedCheck);
+    tagctl.appendChild(bookedCheck);
+    tagrow.appendChild(tagctl);
+    li.appendChild(tagrow);
     var title = document.createElement('span');
     title.className = 'title';
     title.textContent = a.t || '';
-    titleRow.appendChild(title);
-    li.appendChild(titleRow);
+    li.appendChild(title);
     var lines = a.l || [];
     lines.forEach(function(txt){
       var sp = document.createElement('span');
