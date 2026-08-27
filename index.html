@@ -541,6 +541,12 @@
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
+  /* The mobile "+" FAB's own menu — bigger, more touch-friendly text than
+     the other small popovers this class is shared with (item menu, pill
+     context menu), so it gets its own row size via this extra class
+     rather than bumping .itemmenu-row's font-size globally. */
+  .fab-menu.itemmenu { min-width:190px; }
+  .fab-menu .itemmenu-row { font-size:16px; padding:10px 14px; }
 
   .addact, .addloc { display:none; width:100%; margin-top:6px; border:1px dashed var(--line); background:transparent;
     color:var(--muted); border-radius:8px; padding:4px; font-size:11px; font-weight:700; cursor:pointer; }
@@ -765,14 +771,19 @@
     /* Sheet-tabs-at-the-bottom, the way Google Sheets does it on mobile —
        a horizontally scrollable single row (not the desktop's wrapping
        multi-row layout) anchored to the bottom edge instead of stacked
-       under the month bar at the top. right:70px reserves room for the
-       round "+" (#mobileAddFab below), which sits fixed alongside it
-       rather than inside the scrolling row itself — Sheets' own "+" stays
-       put while its tabs scroll underneath/before it, not scrolling away
-       with them. */
-    .pills { left:0; right:70px; top:auto; bottom:0; gap:8px;
+       under the month bar at the top. The bar now spans the full width
+       (right:0) so its background is continuous behind the round "+"
+       (#mobileAddFab below) too, rather than stopping short and leaving
+       the FAB floating over whatever scrolled underneath — the extra
+       right padding on the row itself keeps pill content from scrolling
+       under the FAB, which still sits fixed on top of the shared strip. */
+    .pills { left:0; right:0; top:auto; bottom:0; gap:8px;
       flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto;
-      padding:10px 8px; }
+      padding:10px 74px 10px 8px; box-shadow:0 -2px 8px rgba(0,0,0,.15);
+      scrollbar-width:none; -ms-overflow-style:none; }
+    /* Hide the scrollbar itself (WebKit/Blink) — scrolling still works,
+       there's just no visible track/thumb cluttering the tab strip. */
+    .pills::-webkit-scrollbar { display:none; }
     /* Top-rounded, not bottom — hanging off the bottom edge now, the
        opposite edge from before, so the rounded corners point the
        opposite way too (same "rounded at the edge pointing away from
@@ -791,7 +802,7 @@
     #mobileAddFab { display:flex; align-items:center; justify-content:center;
       position:fixed; right:10px; bottom:10px; z-index:56; width:56px; height:56px;
       border-radius:50%; border:none; background:var(--primary); color:#fff;
-      box-shadow:0 4px 14px rgba(0,0,0,.3); cursor:pointer; }
+      box-shadow:0 2px 6px rgba(0,0,0,.25); cursor:pointer; }
     #mobileAddFab svg { width:26px; height:26px; }
     #mobileAddFab:active { opacity:.85; }
     h1 { font-size: 26px; }
@@ -3800,6 +3811,7 @@
   document.addEventListener('pointerdown', function(e){
     var pill = e.target.closest('.pill[data-opt]');
     if(!pill) return;
+    if(e.pointerType === 'touch') return;
     var nameHitPd = e.target.closest('.pill-name');
     if((nameHitPd && nameHitPd.isContentEditable) || e.target.closest('.pill-remove')) return;
     pillDrag = { pill: pill, startX: e.clientX, startY: e.clientY, moved: false };
@@ -4725,7 +4737,7 @@
     e.stopPropagation();
     closePop();
     var pop = document.createElement('div');
-    pop.className = 'itemmenu';
+    pop.className = 'itemmenu fab-menu';
     function menuRow(label, fn){
       var r = document.createElement('div');
       r.className = 'itemmenu-row';
@@ -4737,17 +4749,17 @@
       });
       pop.appendChild(r);
     }
-    menuRow('+ Add activity', openFabAdd);
-    menuRow('+ Add alternative', function(){
+    menuRow('+ Activity', openFabAdd);
+    menuRow('+ Alternative', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
       var d = getPanelDate(activePanel);
       createOption(d.year, d.month);
     });
-    menuRow('+ Add holiday period', function(){
+    menuRow('+ Holiday period', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
       if(activePanel) addHolidayToPanel(activePanel);
     });
-    menuRow('+ Add month', function(){
+    menuRow('+ Month', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
       var d = getPanelDate(activePanel);
       openMonthPickerPopover(mobileAddFab, d.year, d.month, 'Add', function(newYear, newMonth){
