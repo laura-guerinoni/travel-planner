@@ -415,7 +415,11 @@
   .monthpop .addbtn { width:100%; border:none; background:var(--primary); color:#fff; border-radius:6px;
     padding:7px; font:inherit; font-weight:700; cursor:pointer; }
 
-  .cellhead-draggable { cursor:grab; touch-action:none; }
+  /* No touch-action:none — that unconditionally blocked the browser's
+     own touch scrolling over the day-number label, drag intent or not.
+     wireDragStarter's own long-press gate (see its own comment) is what
+     actually distinguishes a drag from a scroll on touch now. */
+  .cellhead-draggable { cursor:grab; }
   .cell-dragging { opacity:.45; }
   .cell-dragover { outline:2px dashed var(--primary); outline-offset:2px; }
   .act-dragging { opacity:.45; }
@@ -2764,39 +2768,20 @@
 
     // No dedicated drag handle any more — pointerdown anywhere on the
     // activity that isn't one of its actual controls (tag, checkbox,
-    // menu, a link, or editable text) can turn into a drag. Critically,
-    // this does NOT preventDefault on the plain pointerdown itself (only
-    // on the first pointermove past a small threshold, once it's
-    // genuinely a drag) — doing it eagerly, on every pointerdown
-    // regardless of whether the pointer ever moves, silently blocked the
-    // browser's own default click behavior for ANY click anywhere else on
-    // the page, including the blur that normally ends editing a different
-    // activity's title elsewhere — which is what made the "..." menu/
-    // "+ Add activity" hover controls (both :focus-within-driven, see
-    // their CSS) look stuck showing on whatever was last focused, for
-    // days no longer even being hovered.
-    li.addEventListener('pointerdown', function(e){
-      if(e.target.closest('.chip, .booked-check, .itemmenu-btn, a, [contenteditable="true"]')) return;
-      var startX = e.clientX, startY = e.clientY, pid = e.pointerId, engaged = false;
-      function onMove(ev){
-        if(ev.pointerId !== pid) return;
-        if(!engaged){
-          if(Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
-          engaged = true;
-          ev.preventDefault();
-          actDrag = { li: li, originCell: li.closest('.cell'), moved: false };
-        }
-        onActDragMove(ev);
-      }
-      function onUp(){
-        document.removeEventListener('pointermove', onMove);
-        document.removeEventListener('pointerup', onUp);
-        document.removeEventListener('pointercancel', onUp);
-        if(engaged) onActDragEnd();
-      }
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
-      document.addEventListener('pointercancel', onUp);
+    // menu, a link, or editable text) can turn into a drag, via the
+    // shared wireDragStarter (see its own comment — preventDefault below
+    // it, not this pointerdown, is deliberate: doing it eagerly on every
+    // pointerdown blocked the browser's own default click behavior for
+    // ANY click elsewhere on the page, including the blur that normally
+    // ends editing a different activity's title, which is what made the
+    // "..." menu/"+ Add activity" hover controls look stuck showing on
+    // whatever was last focused, for days no longer even being hovered).
+    wireDragStarter(li, {
+      shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, a, [contenteditable="true"]'); },
+      moveThreshold: 5,
+      onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; },
+      onMove: onActDragMove,
+      onEnd: onActDragEnd
     });
 
     var chip = li.querySelector('.chip');
@@ -3018,6 +3003,65 @@
     touchedCells.forEach(recomputeCell);
   }
 
+  // Shared pointerdown-based drag starter for both an activity and a day
+  // (see the two call sites below) — mouse/pen engage a drag as soon as
+  // movement crosses a small threshold, same as before, but touch waits
+  // for a genuine long press (holding still past longPressMs) first.
+  // Touch has no separate "grab handle" gesture the way a mouse does — any
+  // finger movement is normally how you scroll — so engaging a drag from
+  // the first few pixels of movement fought with just trying to scroll
+  // past the thing. Movement before the long press completes cancels it
+  // and leaves the pointer alone, so the browser's own scroll takes over
+  // exactly like it would if this listener weren't here at all.
+  var DRAG_LONG_PRESS_MS = 450;
+  var DRAG_TOUCH_CANCEL_PX = 8;
+  function wireDragStarter(el, opts){
+    el.addEventListener('pointerdown', function(e){
+      if(opts.shouldSkip && opts.shouldSkip(e)) return;
+      var startX = e.clientX, startY = e.clientY, pid = e.pointerId, engaged = false, longPressTimer = null;
+      function cleanup(){
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
+      }
+      function engage(ev){
+        engaged = true;
+        if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+        opts.onStart(e);
+        if(ev) onMove(ev);
+      }
+      function onMove(ev){
+        if(ev.pointerId !== pid) return;
+        if(!engaged){
+          var dx = Math.abs(ev.clientX - startX), dy = Math.abs(ev.clientY - startY);
+          if(e.pointerType === 'touch'){
+            if(dx > DRAG_TOUCH_CANCEL_PX || dy > DRAG_TOUCH_CANCEL_PX){
+              if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+              cleanup();
+            }
+            return;
+          }
+          if(dx < opts.moveThreshold && dy < opts.moveThreshold) return;
+          engage(ev);
+          return;
+        }
+        ev.preventDefault();
+        opts.onMove(ev);
+      }
+      function onUp(ev){
+        if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+        cleanup();
+        if(engaged) opts.onEnd(ev);
+      }
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+      if(e.pointerType === 'touch'){
+        longPressTimer = setTimeout(function(){ longPressTimer = null; engage(null); }, DRAG_LONG_PRESS_MS);
+      }
+    });
+  }
+
   // Drag one day onto another to swap their full content (location,
   // activities, cost) — the day numbers themselves don't move, just what's
   // in them. The small grab handle is the day-number area (.cellhead),
@@ -3028,12 +3072,11 @@
     if(!head || head.dataset.dragWired) return;
     head.dataset.dragWired = '1';
     head.classList.add('cellhead-draggable');
-    head.style.touchAction = 'none';
-    head.addEventListener('pointerdown', function(e){
-      cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false };
-      document.addEventListener('pointermove', onCellDragMove);
-      document.addEventListener('pointerup', onCellDragEnd);
-      document.addEventListener('pointercancel', onCellDragEnd);
+    wireDragStarter(head, {
+      moveThreshold: 6,
+      onStart: function(e){ cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false }; },
+      onMove: onCellDragMove,
+      onEnd: onCellDragEnd
     });
   }
   function onCellDragMove(e){
