@@ -705,8 +705,13 @@
        stack directly below it — JS keeps both bars' exact heights in
        sync via syncBarLayout() since month/option counts change
        dynamically. */
+    /* No bottom padding — .month-sidebar itself has no background of its
+       own (only each .month-segment does), so that padding was an
+       unpainted transparent strip between the segment's bottom edge and
+       the pills row directly below it, showing whatever scrolled past
+       underneath through the gap. */
     .month-sidebar { position:fixed; top:0; left:0; right:0; width:auto; height:auto;
-      flex-direction:row; gap:8px; padding:0 8px 8px; overflow-x:auto; z-index:35; }
+      flex-direction:row; gap:8px; padding:0 8px; overflow-x:auto; z-index:35; }
     /* flex-grow (not flex:0 0 auto) — a single month used to sit as an
        88px tab with the rest of the bar showing blank page behind it;
        growing lets it fill the whole width instead, and divides evenly
