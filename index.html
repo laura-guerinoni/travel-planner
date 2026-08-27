@@ -3362,10 +3362,21 @@
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.removeEventListener('pointercancel', onUp);
+        if(e.pointerType === 'touch') el.style.touchAction = '';
       }
       function engage(ev){
         engaged = true;
         if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+        // preventDefault() on a pointermove alone isn't reliably enough to
+        // stop a touch scroll once the browser's own gesture recognizer
+        // has already committed to panning — and on a real device it
+        // commits fast. Locking touch-action to none right here, the
+        // instant the long press completes with (by definition) no
+        // meaningful movement yet, heads that off before the browser
+        // ever gets to decide — this is why moving down after the
+        // outline appears was just scrolling the page with nothing
+        // actually dragged.
+        if(e.pointerType === 'touch') el.style.touchAction = 'none';
         opts.onStart(e);
         if(ev) onMove(ev);
       }
