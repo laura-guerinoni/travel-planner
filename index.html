@@ -2286,10 +2286,19 @@
     var m = s.match(/(-?\d+(\.\d+)?)/);
     if(!m) return 0;
     var base = parseFloat(m[1]);
+    var rest = s.slice(m.index + m[0].length);
     // "€45x2" / "€45×2" means 45 per person/unit, times 2 — multiply into
     // the total actually owed, since that's what a day total should reflect.
-    var multM = s.slice(m.index + m[0].length).match(/^\s*[x×]\s*(\d+(\.\d+)?)/i);
-    return multM ? base * parseFloat(multM[1]) : base;
+    var multM = rest.match(/^\s*[x×]\s*(\d+(\.\d+)?)/i);
+    if(multM) return base * parseFloat(multM[1]);
+    // "€25+25" (an extra fee, a second person's share written separately,
+    // etc.) sums every +N that follows the base amount — same "what's
+    // actually owed" reasoning as x above, just addition instead of
+    // multiplication.
+    var total = base;
+    var addRe = /\+\s*(\d+(\.\d+)?)/g, addM;
+    while((addM = addRe.exec(rest))){ total += parseFloat(addM[1]); }
+    return total;
   }
   function formatMoney(n){
     n = Math.round(n * 100) / 100;
