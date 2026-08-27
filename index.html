@@ -701,13 +701,20 @@
     body { padding: 16px 10px; }
     /* The month sidebar becomes a horizontal bar flush to the top instead
        of a vertical strip on the left — same primary bookmark, just
-       rotated to hang from the top edge; scrolls sideways if there are
-       more months than fit. Pills (secondary bookmarks) stack directly
-       below it — JS keeps both bars' exact heights in sync via
-       syncBarLayout() since month/option counts change dynamically. */
+       rotated to hang from the top edge. Pills (secondary bookmarks)
+       stack directly below it — JS keeps both bars' exact heights in
+       sync via syncBarLayout() since month/option counts change
+       dynamically. */
     .month-sidebar { position:fixed; top:0; left:0; right:0; width:auto; height:auto;
       flex-direction:row; gap:8px; padding:0 8px 8px; overflow-x:auto; z-index:35; }
-    .month-segment { flex:0 0 auto; min-width:88px; min-height:0; padding:10px 8px;
+    /* flex-grow (not flex:0 0 auto) — a single month used to sit as an
+       88px tab with the rest of the bar showing blank page behind it;
+       growing lets it fill the whole width instead, and divides evenly
+       between multiple months rather than leaving them all pinned to
+       their own minimum. flex-shrink:0 with min-width still holds each
+       segment to a legible floor and falls back to the existing
+       horizontal scroll once there are too many to keep dividing. */
+    .month-segment { flex:1 0 88px; min-width:88px; min-height:0; padding:10px 8px;
       border-radius:0 0 14px 14px; }
     .seg-label { writing-mode:horizontal-tb; transform:none; font-size:12px; letter-spacing:.05em; }
     .month-segment.current::before { top:0; right:5px; bottom:5px; left:5px;
@@ -794,11 +801,18 @@
   .actionMenuThemeRow { display:flex; align-items:center; gap:8px; padding:9px 10px; }
   .actionMenuThemeLabel { flex:1; font-size:13px; font-weight:700; color:var(--ink); }
   .actionMenuThemeRow .theme-dot { width:22px; height:22px; }
-  .lang-btn { width:auto; height:22px; padding:0 7px; border-radius:999px; border:2px solid transparent;
-    background:var(--bg); color:var(--ink); font-size:10px; font-weight:700; letter-spacing:.03em;
-    cursor:pointer; transition:border-color .15s ease; }
-  .lang-btn:hover { opacity:.8; }
-  .lang-btn.active { border-color:var(--ink); }
+  .lang-select { height:26px; padding:0 22px 0 8px; border-radius:999px;
+    border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit;
+    font-size:12px; font-weight:700; cursor:pointer;
+    /* Plain-arrow SVG instead of the OS-native chevron, same reasoning as
+       the custom-drawn checkbox elsewhere: appearance:none clears the
+       native control chrome (which varies loudly across browsers/OSes)
+       so this reads as one of the app's own controls, not a stock form
+       widget. */
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239b8fc0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 6px center; background-size:14px; }
+  .lang-select:hover { opacity:.85; }
   /* Shared modal-overlay chrome — used by both Manage Access and Print, so
      the second modal didn't need to re-derive this from scratch. */
   .modal-overlay { display:none; position:fixed; inset:0; z-index:9998;
@@ -937,9 +951,19 @@
       </div>
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_language">Language</span>
-        <button type="button" class="lang-btn" data-lang="en">EN</button>
-        <button type="button" class="lang-btn" data-lang="it">IT</button>
-        <button type="button" class="lang-btn" data-lang="es">ES</button>
+        <!-- Each option's own label is its language's own name for itself
+             (an endonym — "Italiano", not "Italian"), not translated into
+             whatever language is currently active, so it stays findable
+             even if you can't read the current UI language. A native
+             select rather than a custom widget: it already does what a
+             short "search as you type a letter" list needs, and scales
+             fine as more languages are added without needing its own
+             search UI. -->
+        <select id="langSelect" class="lang-select">
+          <option value="en">English</option>
+          <option value="it">Italiano</option>
+          <option value="es">Español</option>
+        </select>
       </div>
       <div class="actionMenuDivider"></div>
       <button type="button" id="appSignOutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span data-i18n="menu_signout">Sign out</span></button>
@@ -2609,9 +2633,56 @@
       });
     }
     li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
+    li.querySelectorAll('.line').forEach(function(lineEl){
+      lineEl.addEventListener('blur', function(){
+        if(/\d{1,2}:\d{2}/.test(lineEl.textContent)) reorderActivityByStartTime(li);
+      });
+    });
     renderLinks(li);
     renderPhoto(li);
     renderBooked(li);
+  }
+
+  // Extracts an activity's start time (minutes since midnight) from
+  // whichever of its .line elements has one, e.g. "🕒 18:20 - 21:55" —
+  // only the FIRST hh:mm in the line counts (the start, not the end).
+  // Returns null for an activity with no parseable time (a plain note
+  // line, or the untouched "🕒 time" placeholder), which excludes it
+  // from the comparisons below rather than treating it as very early.
+  function activityStartMinutes(li){
+    var lines = li.querySelectorAll(':scope > .line');
+    for(var i = 0; i < lines.length; i++){
+      var m = lines[i].textContent.match(/(\d{1,2}):(\d{2})/);
+      if(m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+    return null;
+  }
+  // Nudges an activity to sit in start-time order among its day's other
+  // activities — adjacent swaps only (repositioning relative to whichever
+  // neighbor it's actually out of order with), not a full re-sort of the
+  // day, so entries that were never touched keep their exact relative
+  // order. A tie (equal start time) or a neighbor with no parseable time
+  // of its own stops the walk in that direction rather than guessing —
+  // "prefer minimal change over change if not needed".
+  function reorderActivityByStartTime(li){
+    var mins = activityStartMinutes(li);
+    if(mins == null) return;
+    var acts = li.parentElement;
+    if(!acts || !acts.classList.contains('acts')) return;
+    var prev = li.previousElementSibling;
+    while(prev && !prev.classList.contains('act-span-ghost')){
+      var prevMins = activityStartMinutes(prev);
+      if(prevMins == null || prevMins <= mins) break;
+      acts.insertBefore(li, prev);
+      prev = li.previousElementSibling;
+    }
+    var next = li.nextElementSibling;
+    while(next && !next.classList.contains('act-span-ghost')){
+      var nextMins = activityStartMinutes(next);
+      if(nextMins == null || nextMins >= mins) break;
+      acts.insertBefore(next, li);
+      next = li.nextElementSibling;
+    }
   }
 
   function newActivityLi(){
@@ -3861,9 +3932,8 @@
     });
     var saveBtnLabelEl = document.getElementById('saveBtnLabel');
     if(saveBtnLabelEl) saveBtnLabelEl.textContent = IS_HOSTED ? t('menu_download') : t('menu_save');
-    document.querySelectorAll('.lang-btn').forEach(function(b){
-      b.classList.toggle('active', b.getAttribute('data-lang') === currentLang);
-    });
+    var langSelectEl = document.getElementById('langSelect');
+    if(langSelectEl) langSelectEl.value = currentLang;
     // Only actually open when an owner has the panel up — harmless no-op
     // otherwise, and avoids a stray Firebase read on every language switch.
     if(manageList && manageList.children.length) renderMemberList();
@@ -3898,9 +3968,8 @@
       em.textContent = holidayRangeText(getHolidays(panel), d.year, d.month);
     });
   }
-  document.querySelectorAll('.lang-btn').forEach(function(btn){
-    btn.addEventListener('click', function(){ applyLanguage(btn.getAttribute('data-lang')); });
-  });
+  var langSelectEl = document.getElementById('langSelect');
+  if(langSelectEl) langSelectEl.addEventListener('change', function(){ applyLanguage(this.value); });
   (function initLanguage(){
     var saved = 'en';
     try { saved = localStorage.getItem(LANG_KEY) || 'en'; } catch(e){}
