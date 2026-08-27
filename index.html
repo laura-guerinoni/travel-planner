@@ -3606,8 +3606,18 @@
     // viewport-relative target back into that frame, or the header would
     // land 30-40px further down than intended, by however far .wrap's
     // own top sits below y=0.
+    //
+    // getBoundingClientRect().top is itself relative to the current
+    // scroll position, not the document — adding scrollY back converts
+    // it to .wrap's scroll-INDEPENDENT offset from the top of the page.
+    // Without this, calling syncBarLayout() (on resize, or after any
+    // content change) while the page happened to be scrolled down used
+    // a large negative wrapTop, which made target - wrapTop balloon into
+    // a huge padding-top — a real bug that shipped: hundreds of pixels
+    // of blank space between the pills bar and the weekday header,
+    // reproduced by scrolling partway down and firing a resize event.
     var GAP = 14;
-    var wrapTop = wrapEl.getBoundingClientRect().top;
+    var wrapTop = wrapEl.getBoundingClientRect().top + window.scrollY;
     var pillsBottom = sidebarH + pillsH;
     var target = pillsBottom + GAP;
     wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
