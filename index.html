@@ -800,6 +800,16 @@
       background:var(--line); color:var(--ink); border-radius:6px; width:30px; height:26px; padding:0; cursor:pointer; }
     .editicon svg { width:15px; height:15px; }
     .editicon:active { background:var(--primary); color:#fff; }
+    /* Direct tap-to-edit on these specific fields is disabled now that
+       .editicon opens a proper modal for all of them — pointer-events
+       (not removing contenteditable in JS) so it degrades cleanly with
+       the existing breakpoint rather than needing its own viewport check,
+       and the tap instead falls through to the card underneath, which is
+       exactly what wireDragStarter's long-press-drag already listens on.
+       .loc (the day's own location text) is deliberately NOT included —
+       there's no modal covering that field yet, so disabling it here
+       would remove the only way to edit it on mobile. */
+    .acts li .title, .acts li .line, .acts li .price-val, .acts li .price-note { pointer-events:none; }
     .icon-btn { width: 34px; height: 34px; }
     .icon-btn svg { width: 18px; height: 18px; }
   }
@@ -1077,13 +1087,29 @@
              controls which symbol NEW amounts get, not a retroactive
              rewrite of whatever a price field already says. -->
         <select id="currencySelect" class="lang-select">
-          <option value="EUR">EUR €</option>
-          <option value="USD">USD $</option>
-          <option value="GBP">GBP £</option>
-          <option value="JPY">JPY ¥</option>
-          <option value="CHF">CHF Fr.</option>
-          <option value="CAD">CAD CA$</option>
-          <option value="AUD">AUD A$</option>
+          <optgroup label="Europe">
+            <option value="EUR">EUR €</option>
+            <option value="GBP">GBP £</option>
+            <option value="CHF">CHF Fr.</option>
+          </optgroup>
+          <optgroup label="Americas">
+            <option value="USD">USD $</option>
+            <option value="CAD">CAD CA$</option>
+            <option value="BRL">BRL R$</option>
+            <option value="MXN">MXN MX$</option>
+          </optgroup>
+          <optgroup label="Asia">
+            <option value="JPY">JPY ¥</option>
+            <option value="CNY">CNY CN¥</option>
+            <option value="INR">INR ₹</option>
+          </optgroup>
+          <optgroup label="Africa">
+            <option value="ZAR">ZAR R</option>
+            <option value="NGN">NGN ₦</option>
+          </optgroup>
+          <optgroup label="Oceania">
+            <option value="AUD">AUD A$</option>
+          </optgroup>
         </select>
       </div>
       <div class="actionMenuDivider"></div>
@@ -1446,8 +1472,15 @@
   // free-typed text, the same way switching language doesn't touch typed
   // activity content either. ----
   var CURRENCY_KEY = 'travelPlannerCurrency';
+  // Main currencies spanning Europe, the Americas, Asia, Africa, and
+  // Oceania — not an exhaustive ISO list, same "little dropdown" scope
+  // as the language picker.
   var CURRENCIES = {
-    EUR: '€', USD: '$', GBP: '£', JPY: '¥', CHF: 'Fr.', CAD: 'CA$', AUD: 'A$'
+    EUR: '€', GBP: '£', CHF: 'Fr.',
+    USD: '$', CAD: 'CA$', BRL: 'R$', MXN: 'MX$',
+    JPY: '¥', CNY: 'CN¥', INR: '₹',
+    ZAR: 'R', NGN: '₦',
+    AUD: 'A$'
   };
   var currentCurrency = 'EUR';
   function currencySymbol(){ return CURRENCIES[currentCurrency] || CURRENCIES.EUR; }
