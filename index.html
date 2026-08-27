@@ -1072,6 +1072,12 @@
       </div>
       <label for="fabAddDaySelect" class="fabadd-label" data-i18n="fabadd_day_label">Day</label>
       <select id="fabAddDaySelect" class="fabadd-select"></select>
+      <label for="fabAddTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
+      <select id="fabAddTagSelect" class="fabadd-select"></select>
+      <label for="fabAddTimeInput" class="fabadd-label" data-i18n="fabadd_time_label">Time</label>
+      <input type="time" id="fabAddTimeInput" class="fabadd-select" />
+      <label for="fabAddAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
+      <input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" />
       <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
     </div>
   </div>
@@ -1387,7 +1393,8 @@
       cleardaytk_title: 'Clear this day?',
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
       cleardaytk_confirm: 'Clear day',
-      fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_confirm: 'Add activity'
+      fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_type_label: 'Type',
+      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1406,7 +1413,8 @@
       cleardaytk_title: 'Svuotare questo giorno?',
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
       cleardaytk_confirm: 'Svuota giorno',
-      fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_confirm: 'Aggiungi attività'
+      fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_type_label: 'Tipo',
+      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1425,7 +1433,8 @@
       cleardaytk_title: '¿Vaciar este día?',
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
       cleardaytk_confirm: 'Vaciar día',
-      fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_confirm: 'Añadir actividad'
+      fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_type_label: 'Tipo',
+      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad'
     }
   };
   var currentLang = 'en';
@@ -4458,6 +4467,9 @@
   var mobileAddFab = document.getElementById('mobileAddFab');
   var fabAddPanel = document.getElementById('fabAddPanel');
   var fabAddDaySelect = document.getElementById('fabAddDaySelect');
+  var fabAddTagSelect = document.getElementById('fabAddTagSelect');
+  var fabAddTimeInput = document.getElementById('fabAddTimeInput');
+  var fabAddAmountInput = document.getElementById('fabAddAmountInput');
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
@@ -4479,6 +4491,17 @@
       if(daynum.textContent === defaultDay) opt.selected = true;
       fabAddDaySelect.appendChild(opt);
     });
+    if(fabAddTagSelect){
+      fabAddTagSelect.innerHTML = '';
+      TAGS.forEach(function(tg, idx){
+        var opt = document.createElement('option');
+        opt.value = String(idx);
+        opt.textContent = tg.icon + ' ' + tg.name;
+        fabAddTagSelect.appendChild(opt);
+      });
+    }
+    if(fabAddTimeInput) fabAddTimeInput.value = '';
+    if(fabAddAmountInput) fabAddAmountInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
   if(mobileAddFab) mobileAddFab.addEventListener('click', openFabAdd);
@@ -4486,6 +4509,9 @@
   if(fabAddConfirmBtn) fabAddConfirmBtn.addEventListener('click', function(){
     var panel = document.querySelector('.panel.on');
     var day = fabAddDaySelect ? fabAddDaySelect.value : null;
+    var tagIdx = fabAddTagSelect ? fabAddTagSelect.value : null;
+    var timeVal = fabAddTimeInput ? fabAddTimeInput.value : '';
+    var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
     closeFabAdd();
     if(!panel || !day) return;
     var cells = panel.querySelectorAll('.cell:not(.empty)');
@@ -4497,10 +4523,39 @@
     if(!cell) return;
     var addBtn = cell.querySelector(':scope > .addact');
     if(!addBtn) return;
+    // Reuses the exact same creation path as the day's own "+ Add
+    // activity" button (ensureLoc/ensureActs/newActivityLi/
+    // attachItemControls, all already correctly wired) rather than
+    // building a fresh <li> by hand — then patches in whatever the modal
+    // was actually asked for, same as if the person had edited a freshly
+    // added blank activity themselves.
     addBtn.click();
     var acts = cell.querySelector(':scope > .acts');
     var newLi = acts ? acts.lastElementChild : null;
-    if(newLi) newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if(newLi){
+      if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
+        var tg = TAGS[tagIdx];
+        var chip = newLi.querySelector('.chip');
+        if(chip){
+          chip.setAttribute('data-icon', tg.icon);
+          chip.setAttribute('data-name', tg.name);
+          chip.style.background = tg.bg;
+          chip.style.color = tg.fg;
+          chip.textContent = tg.icon + ' ' + tg.name;
+        }
+      }
+      if(timeVal){
+        var lineEl = newLi.querySelector('.line');
+        if(lineEl) lineEl.textContent = '🕒 ' + timeVal;
+        reorderActivityByStartTime(newLi);
+      }
+      if(amountVal !== ''){
+        var priceVal = newLi.querySelector('.price-val');
+        if(priceVal) priceVal.textContent = '€' + amountVal;
+      }
+      recomputeCell(cell);
+      newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
   });
 
   function downloadCopy(htmlStr){
