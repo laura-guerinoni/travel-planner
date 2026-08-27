@@ -201,30 +201,30 @@
      unchecked sibling flush left, an inconsistent jump between the two
      states. Same padding always, background/radius still conditional. */
   .acts li { font-size:11px; padding:6px; border-radius:8px; }
-  /* .tagrow holds the tag chip on the left and .tagctl (the item menu +
-     booked checkbox) pinned to the right via margin-left:auto — .chip and
-     .booked-check both stay findable via plain (not ":scope >") lookups
-     elsewhere (extractActivity, renderPhoto's anchor, the span-ghost
-     clone, attachItemControls) since they're one level deeper than <li>
-     now. margin-bottom moved off .chip itself (still 0 there) onto
-     .tagrow, so a flex item's own margin doesn't throw off
-     align-items:center against .tagctl. flex-wrap:wrap so a long tag
-     name plus the photo/ticket icons plus the checkbox — more than this
-     row always has room for — wraps cleanly onto a second line instead
-     of overflowing; the chip itself is first and short enough to always
-     stay on the first line. .photoicon/.ticketicon get order:2 (below)
-     so the checkbox — order:1, right after the chip — is what stays put
-     alongside the tag when space runs out, and the photo/ticket icons
-     (order:2, least essential at a glance) are what drop to the second
-     line instead, regardless of their actual DOM order (icons are
-     inserted between the chip and .tagctl — see renderPhoto/renderTicket
-     — for reasons unrelated to visual wrap priority). row-gap only
-     matters once it actually wraps. */
-  .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; }
+  /* .tagrow holds the tag chip (and, right after it in DOM order, any
+     photo/ticket icon — see renderPhoto/renderTicket) with .tagctl (the
+     item menu/edit/booked checkbox) pinned to its top-right corner.
+     .chip and .booked-check both stay findable via plain (not ":scope >")
+     lookups elsewhere (extractActivity, renderPhoto's anchor, the
+     span-ghost clone, attachItemControls) since they're one level deeper
+     than <li> now.
+     .tagctl is position:absolute rather than a normal flex sibling —
+     ordinary flex-wrap can only wrap trailing items, so pinning it via
+     margin-left:auto to the far right meant IT was what got pushed onto
+     a second line once the row ran out of room, not whichever photo/
+     ticket icon actually didn't fit. Taking it out of flow entirely
+     means it always stays in the corner, and the chip + any icons behind
+     it (still ordinary flex-wrap children) wrap independently — the icon
+     sits right next to the chip when there's room, and drops to its own
+     line, still right under the chip, only once there genuinely isn't.
+     padding-right on .tagrow reserves room for .tagctl at its usual
+     width so chip/icon text on the first line never renders underneath
+     it — sized for the widest case (3 icons, on mobile) since a little
+     extra unused space on narrower cases is harmless. */
+  .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; position:relative; padding-right:104px; }
   .tagrow .chip { margin-bottom:0; }
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; }
-  .tagctl { order:1; margin-left:auto; display:flex; align-items:center; gap:6px; }
-  .tagrow > .photoicon, .tagrow > .ticketicon { order:2; }
+  .tagctl { position:absolute; top:0; right:0; display:flex; align-items:center; gap:6px; }
   /* Fully custom rather than accent-color — a native unchecked checkbox
      renders with a heavy, dark OS-drawn border regardless of accent-color
      (that only themes the checked/filled state), which read as far more
@@ -1600,11 +1600,13 @@
   // ---- currency: a local-only display preference, same footing as the
   // theme/language pickers right next to it in the menu — not part of the
   // synced plan. Controls the symbol used for newly-created amounts
-  // (a fresh activity's default price, the FAB modal) and for every
-  // app-COMPUTED total (day badges, budget list, option pill totals, all
-  // via formatMoney) — never a retroactive rewrite of a price field's own
-  // free-typed text, the same way switching language doesn't touch typed
-  // activity content either. ----
+  // (a fresh activity's default price, the FAB modal), every app-COMPUTED
+  // total (day badges, budget list, option pill totals, all via
+  // formatMoney), AND every already-typed price-val's own leading symbol
+  // (see refreshAllMoneyDisplays) — switching currency should read the
+  // same everywhere, not just in the totals. Only the number and any
+  // x2/+25 math after the symbol are ever preserved verbatim; nothing
+  // else about a price field's own typed text is touched. ----
   var CURRENCY_KEY = 'travelPlannerCurrency';
   // Main currencies spanning Europe, the Americas, Asia, Africa, and
   // Oceania — not an exhaustive ISO list, same "little dropdown" scope
@@ -1618,11 +1620,29 @@
   };
   var currentCurrency = 'EUR';
   function currencySymbol(){ return CURRENCIES[currentCurrency] || CURRENCIES.EUR; }
+  // Swaps just the LEADING currency symbol off a price-val's own text —
+  // ".price-val" is always "<symbol><number>[x2|+25...]" (never prose;
+  // any note text lives in the separate .price-note sibling instead), so
+  // stripping whichever known symbol starts it and prepending the new one
+  // is safe: the number and any x2/+25 math after it survive untouched.
+  // Longest-first so e.g. "CA$"/"MX$" match ahead of a bare "$".
+  var CURRENCY_SYMBOL_RE = new RegExp('^\\s*(' +
+    Object.keys(CURRENCIES).map(function(k){ return CURRENCIES[k]; })
+      .filter(function(v, i, arr){ return arr.indexOf(v) === i; })
+      .sort(function(a, b){ return b.length - a.length; })
+      .map(function(sym){ return sym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); })
+      .join('|')
+  + ')');
   // Re-stamps every currently-rendered computed total (day badges/costs,
-  // pill prices, budget list) with the new symbol — recomputeCell() does
-  // this per day and already cascades into recomputePanel() for the
-  // pill/budget totals, so sweeping every day cell covers all of it.
+  // pill prices, budget list) AND every activity's own typed price with
+  // the new symbol — recomputeCell() does the former per day and already
+  // cascades into recomputePanel() for the pill/budget totals, so
+  // sweeping every day cell covers all of that; .price-val is swept
+  // separately since recomputeCell only reads it, never rewrites it.
   function refreshAllMoneyDisplays(){
+    document.querySelectorAll('.price-val').forEach(function(pv){
+      pv.textContent = currencySymbol() + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
+    });
     document.querySelectorAll('.cell:not(.empty)').forEach(recomputeCell);
   }
   function applyCurrency(code){
