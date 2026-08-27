@@ -757,16 +757,39 @@
     .month-segment.current::before { top:0; right:5px; bottom:5px; left:5px;
       border-radius:0 0 11px 11px; border-width:2px; border-color:rgba(255,255,255,.85);
       border-style:none dashed dashed dashed; }
-    .seg-add { top:50%; left:4px; bottom:auto; transform:translateY(-50%); }
+    /* Its own "add another month" moved into the FAB's menu (see below) —
+       hover never really worked as a reveal gesture on touch anyway. */
+    .seg-add { display:none !important; }
     .seg-remove { top:50%; right:4px; left:auto; bottom:auto; transform:translateY(-50%); }
 
-    .pills { left:0; right:0; gap: 6px; padding:8px 8px 10px; }
-    .pill { font-size: 13px; padding: 8px 12px 10px; }
+    /* Sheet-tabs-at-the-bottom, the way Google Sheets does it on mobile —
+       a horizontally scrollable single row (not the desktop's wrapping
+       multi-row layout) anchored to the bottom edge instead of stacked
+       under the month bar at the top. right:70px reserves room for the
+       round "+" (#mobileAddFab below), which sits fixed alongside it
+       rather than inside the scrolling row itself — Sheets' own "+" stays
+       put while its tabs scroll underneath/before it, not scrolling away
+       with them. */
+    .pills { left:0; right:70px; top:auto; bottom:0; gap:8px;
+      flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto;
+      padding:10px 8px; }
+    /* Top-rounded, not bottom — hanging off the bottom edge now, the
+       opposite edge from before, so the rounded corners point the
+       opposite way too (same "rounded at the edge pointing away from
+       what it's attached to" idea as the month segments). */
+    .pill { font-size: 13px; padding: 8px 12px 10px; border-radius:12px 12px 0 0; }
+    .pill.on::after { top:4px; bottom:0; border-radius:9px 9px 0 0;
+      border-top:2px dashed rgba(255,255,255,.85); border-bottom:none; }
+    /* Its own "add alternative"/"add holiday period" menu moved into the
+       FAB's (see below) — one "+" instead of two competing for the same
+       corner of the screen. */
+    #addOptionBtn { display:none !important; }
     #actionMenu { top: 10px; right: 10px; }
-    /* Lifted clear of the FAB below rather than sharing its corner. */
-    #statusBar { right: 10px; bottom: 84px; }
+    /* Lifted clear of the bottom bar below rather than sharing its
+       corner. */
+    #statusBar { right: 10px; bottom: 76px; }
     #mobileAddFab { display:flex; align-items:center; justify-content:center;
-      position:fixed; right:16px; bottom:16px; z-index:56; width:56px; height:56px;
+      position:fixed; right:10px; bottom:10px; z-index:56; width:56px; height:56px;
       border-radius:50%; border:none; background:var(--primary); color:#fff;
       box-shadow:0 4px 14px rgba(0,0,0,.3); cursor:pointer; }
     #mobileAddFab svg { width:26px; height:26px; }
@@ -4132,6 +4155,29 @@
     if(!pillsEl || !wrapEl) return;
     var isMobile = window.matchMedia('(max-width:720px)').matches;
     var sidebarH = (isMobile && sidebarEl) ? sidebarEl.getBoundingClientRect().height : 0;
+    var wrapTop = wrapEl.getBoundingClientRect().top + window.scrollY;
+    var GAP = 14;
+
+    if(isMobile){
+      // Pills (and the FAB, now living inside them — see the mobile
+      // media query) sit at the BOTTOM on mobile, not stacked below the
+      // month bar like on desktop — .wrap's padding-top only needs to
+      // clear the month bar itself, and .grid.heads (the sticky weekday
+      // header .pills-gapfill exists to paper a seam in front of) is
+      // display:none on mobile anyway, so none of that machinery applies
+      // here. A new padding-bottom instead clears the fixed bottom bar
+      // so scrolled content never ends up hidden behind it.
+      pillsEl.style.top = '';
+      var target = sidebarH + GAP;
+      wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
+      document.documentElement.style.setProperty('--pills-height', target + 'px');
+      document.documentElement.style.setProperty('--pills-bottom', '0px');
+      document.documentElement.style.setProperty('--pills-gap', '0px');
+      var pillsH = pillsEl.getBoundingClientRect().height;
+      wrapEl.style.paddingBottom = (pillsH + 12) + 'px';
+      return;
+    }
+    wrapEl.style.paddingBottom = '';
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
     // The SAME target (sidebarH + pillsH + GAP, a position measured from
@@ -4154,8 +4200,6 @@
     // a huge padding-top — a real bug that shipped: hundreds of pixels
     // of blank space between the pills bar and the weekday header,
     // reproduced by scrolling partway down and firing a resize event.
-    var GAP = 14;
-    var wrapTop = wrapEl.getBoundingClientRect().top + window.scrollY;
     var pillsBottom = sidebarH + pillsH;
     var target = pillsBottom + GAP;
     wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
@@ -4671,7 +4715,51 @@
     if(fabAddAmountInput) fabAddAmountInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
-  if(mobileAddFab) mobileAddFab.addEventListener('click', openFabAdd);
+  // The FAB itself now opens a small menu (activity/alternative/holiday
+  // period/month, in that order) rather than jumping straight to the
+  // add-activity modal — it absorbs what used to be three separate "+"
+  // buttons (the FAB, #addOptionBtn next to the pills, and each month
+  // segment's own .seg-add), all hidden on mobile now (see the media
+  // query) since this one menu covers everything they did.
+  if(mobileAddFab) mobileAddFab.addEventListener('click', function(e){
+    e.stopPropagation();
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    function menuRow(label, fn){
+      var r = document.createElement('div');
+      r.className = 'itemmenu-row';
+      r.textContent = label;
+      r.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        closePop();
+        fn();
+      });
+      pop.appendChild(r);
+    }
+    menuRow('+ Add activity', openFabAdd);
+    menuRow('+ Add alternative', function(){
+      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+      var d = getPanelDate(activePanel);
+      createOption(d.year, d.month);
+    });
+    menuRow('+ Add holiday period', function(){
+      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+      if(activePanel) addHolidayToPanel(activePanel);
+    });
+    menuRow('+ Add month', function(){
+      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+      var d = getPanelDate(activePanel);
+      openMonthPickerPopover(mobileAddFab, d.year, d.month, 'Add', function(newYear, newMonth){
+        var newPanel = createOption(newYear, newMonth);
+        document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
+        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
+        document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
+        newPanel.classList.add('on');
+      });
+    });
+    positionPopover(pop, mobileAddFab);
+  });
   if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
   if(fabAddConfirmBtn) fabAddConfirmBtn.addEventListener('click', function(){
     var panel = document.querySelector('.panel.on');
