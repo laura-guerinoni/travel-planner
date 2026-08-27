@@ -303,7 +303,8 @@
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .pills-gapfill, .month-sidebar, #statusBar,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
-    #switchPlanBtn, #printPanel, #photoLightbox,
+    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel,
+    .photoicon, .ticketicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
        only the hover-driven "swap for clear day" behavior is screen-only,
@@ -745,6 +746,36 @@
     .cell.empty { display: none; }
     .grid.banner-row .banner { grid-column: 1 !important; }
     .cellhead { gap: 8px; }
+
+    /* Larger tap targets for every icon-only control on an activity, and
+       correspondingly larger text so the icons don't read as oversized
+       next to it — both were sized for a mouse pointer's precision, not
+       a fingertip (the ~44px minimum comfortable touch target most
+       mobile guidelines converge on). */
+    .acts li { font-size: 13px; }
+    .chip { font-size: 12px; padding: 3px 10px; }
+    .title { font-size: 14px; }
+    /* ::before as an invisible enlarged hit-area, not padding on the
+       icon itself — padding would grow the element's own box and throw
+       off the vertical-align:middle tuning against the chip (see the
+       icons' own rule for why); an absolutely-positioned pseudo-element
+       sits outside normal layout flow entirely, so the visible glyph's
+       size and alignment stay exactly as tuned. */
+    .photoicon::before, .ticketicon::before {
+      content: ''; position: absolute; inset: -11px;
+    }
+    .photoicon > svg, .ticketicon > svg { width: 18px; height: 18px; }
+    .booked-check { width: 20px; height: 20px; }
+    .booked-check:checked::after {
+      left: 5.7px; top: 1.8px; width: 4.7px; height: 9.5px; border-width: 0 1.8px 1.8px 0;
+    }
+    /* Always visible, not hover-gated — touch has no real hover state;
+       relying on it either hides the button entirely or (on the phones
+       that fake a hover on first tap) needs a tap-it-twice workaround,
+       neither of which is a real substitute for it just being there. */
+    .itemmenu-btn { visibility: visible; width: 30px; height: 26px; font-size: 14px; }
+    .icon-btn { width: 34px; height: 34px; }
+    .icon-btn svg { width: 18px; height: 18px; }
   }
 
   /* Color-mode picker: two circular swatches, each a fixed 3-way conic
@@ -869,6 +900,16 @@
   #printPanel legend { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:0 4px; }
   #printPanel label { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); padding:4px 0; cursor:pointer; }
   #printGoBtn { width:100%; }
+
+  #clearDayConfirmMsg { font-size:13px; color:var(--ink); margin:0 0 14px; line-height:1.4; }
+  /* Wide letter-spacing + centered, same idea as a PIN-entry field — the
+     4 required digits should read as individual, deliberately-typed
+     characters, not just another line of prose. */
+  .clearday-confirm-input { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:8px;
+    border:1px solid var(--line); font:inherit; font-size:18px; letter-spacing:.4em; text-align:center;
+    margin-bottom:12px; }
+  .clearday-confirm-btn { width:100%; }
+  .clearday-confirm-btn:disabled { opacity:.5; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -937,6 +978,17 @@
       <label><input type="radio" name="printOrientation" value="landscape" /> <span data-i18n="print_landscape">Landscape</span></label>
     </fieldset>
     <button type="button" id="printGoBtn" class="modal-primary-btn" data-i18n="print_go">Print / Save as PDF</button>
+  </div>
+</div>
+<div id="clearDayConfirmPanel" class="modal-overlay">
+  <div class="map-inner">
+    <div class="map-header">
+      <h2 data-i18n="cleardaytk_title">Clear this day?</h2>
+      <button type="button" id="clearDayConfirmCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <p id="clearDayConfirmMsg" data-i18n="cleardaytk_msg">This day has a photo or ticket attached — clearing it will delete those too. Type 1111 to confirm.</p>
+    <input type="text" id="clearDayConfirmInput" class="clearday-confirm-input" inputmode="numeric" autocomplete="off" placeholder="1111" />
+    <button type="button" id="clearDayConfirmBtn" class="modal-primary-btn clearday-confirm-btn" disabled data-i18n="cleardaytk_confirm">Clear day</button>
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
@@ -1294,7 +1346,10 @@
       add_location: '+ Add location', add_activity: '+ Add activity', clear_day: '✕ clear day',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
-      act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked'
+      act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked',
+      cleardaytk_title: 'Clear this day?',
+      cleardaytk_msg: 'This day has a photo or ticket attached — clearing it will delete those too. Type 1111 to confirm.',
+      cleardaytk_confirm: 'Clear day'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1309,7 +1364,10 @@
       add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: '✕ Svuota',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
-      act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione'
+      act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione',
+      cleardaytk_title: 'Svuotare questo giorno?',
+      cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato — svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
+      cleardaytk_confirm: 'Svuota giorno'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1324,7 +1382,10 @@
       add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: '✕ Vaciar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
-      act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva'
+      act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva',
+      cleardaytk_title: '¿Vaciar este día?',
+      cleardaytk_msg: 'Este día tiene una foto o un billete adjunto — vaciarlo también los eliminará. Escribe 1111 para confirmar.',
+      cleardaytk_confirm: 'Vaciar día'
     }
   };
   var currentLang = 'en';
@@ -3015,6 +3076,30 @@
     if(cell.querySelector(':scope > .loc')) return true;
     return !!cell.querySelector(':scope > .acts > li:not(.act-span-ghost)');
   }
+  // A ghost (a multi-day activity's read-only echo elsewhere) never
+  // carries its own photo/ticket — the real attachment lives on its
+  // start day, untouched by clearing this one — so only real activities
+  // count here.
+  function cellHasAttachments(cell){
+    var acts = cell.querySelector(':scope > .acts');
+    if(!acts) return false;
+    return Array.prototype.some.call(acts.querySelectorAll(':scope > li:not(.act-span-ghost)'), function(li){
+      return li.hasAttribute('data-img') || li.hasAttribute('data-ticket');
+    });
+  }
+  function doClearDay(cell){
+    var loc = cell.querySelector(':scope > .loc');
+    var acts = cell.querySelector(':scope > .acts');
+    var cost = cell.querySelector(':scope > .cost');
+    if(loc) loc.remove();
+    if(acts) acts.remove();
+    if(cost) cost.remove();
+    cell.classList.remove('active');
+    recomputePanel(cell.closest('.panel'));
+    refreshHoliCell(cell);
+    var clearBtn = cell.querySelector(':scope > .cleardaybtn');
+    if(clearBtn) clearBtn.classList.toggle('has-content', cellHasContent(cell));
+  }
   function swapCellContent(a, b){
     var aLoc = a.querySelector(':scope > .loc'), aActs = a.querySelector(':scope > .acts'), aCost = a.querySelector(':scope > .cost');
     var bLoc = b.querySelector(':scope > .loc'), bActs = b.querySelector(':scope > .acts'), bCost = b.querySelector(':scope > .cost');
@@ -3171,16 +3256,8 @@
     });
 
     clearBtn.addEventListener('click', function(){
-      var loc = cell.querySelector(':scope > .loc');
-      var acts = cell.querySelector(':scope > .acts');
-      var cost = cell.querySelector(':scope > .cost');
-      if(loc) loc.remove();
-      if(acts) acts.remove();
-      if(cost) cost.remove();
-      cell.classList.remove('active');
-      recomputePanel(cell.closest('.panel'));
-      refreshHoliCell(cell);
-      refreshClear();
+      if(cellHasAttachments(cell)) openClearDayConfirm(cell);
+      else doClearDay(cell);
     });
 
     cell.appendChild(clearBtn);
@@ -4243,6 +4320,40 @@
     clearPrintScope();
     document.body.classList.remove('print-list');
   });
+
+  // ---- clear-day confirmation: only shown when the day being cleared
+  // actually has a photo/ticket attached (see cellHasAttachments) — an
+  // empty or plain-text day still clears on the first click, same as
+  // before. Typing the exact digits (not just an OK/Cancel) is
+  // deliberately more friction than a normal confirm() for an action
+  // that's otherwise a single accidental click away from losing an
+  // attachment that can't be recovered from within the app. ----
+  var clearDayConfirmPanel = document.getElementById('clearDayConfirmPanel');
+  var clearDayConfirmInput = document.getElementById('clearDayConfirmInput');
+  var clearDayConfirmBtn = document.getElementById('clearDayConfirmBtn');
+  var clearDayConfirmCloseX = document.getElementById('clearDayConfirmCloseX');
+  var pendingClearCell = null;
+  function closeClearDayConfirm(){
+    pendingClearCell = null;
+    if(clearDayConfirmPanel) clearDayConfirmPanel.classList.remove('show');
+  }
+  function openClearDayConfirm(cell){
+    pendingClearCell = cell;
+    if(clearDayConfirmInput) clearDayConfirmInput.value = '';
+    if(clearDayConfirmBtn) clearDayConfirmBtn.disabled = true;
+    if(clearDayConfirmPanel) clearDayConfirmPanel.classList.add('show');
+    if(clearDayConfirmInput) clearDayConfirmInput.focus();
+  }
+  if(clearDayConfirmInput) clearDayConfirmInput.addEventListener('input', function(){
+    if(clearDayConfirmBtn) clearDayConfirmBtn.disabled = clearDayConfirmInput.value !== '1111';
+  });
+  if(clearDayConfirmBtn) clearDayConfirmBtn.addEventListener('click', function(){
+    if(!pendingClearCell || clearDayConfirmInput.value !== '1111') return;
+    var cell = pendingClearCell;
+    closeClearDayConfirm();
+    doClearDay(cell);
+  });
+  if(clearDayConfirmCloseX) clearDayConfirmCloseX.addEventListener('click', closeClearDayConfirm);
 
   function downloadCopy(htmlStr){
     var blob = new Blob([htmlStr], { type: 'text/html' });
