@@ -1054,9 +1054,9 @@
 <div class="wrap">
   <header>
     <div class="pills">
-      <button type="button" class="pill on" data-opt="option-3"><span class="pill-name">1.Poland</span> <span class="pill-price">€186</span><span class="pill-remove" title="Remove option">×</span></button><button class="pill" data-opt="option-1" type="button"><span class="pill-name">1. Slovakia · Hungary · Poland</span> <span class="pill-price">€997</span><span class="pill-remove" title="Remove option">×</span></button>
-      <button class="pill" data-opt="option-2" type="button"><span class="pill-name">2. Hungary · Poland</span> <span class="pill-price">€786</span><span class="pill-remove" title="Remove option">×</span></button>
-      <button class="pill add" id="addOptionBtn" type="button" title="Add option">+</button>
+      <button type="button" class="pill on" data-opt="option-3"><span class="pill-name">1.Poland</span> <span class="pill-price">€186</span><span class="pill-remove" title="Remove alternative">×</span></button><button class="pill" data-opt="option-1" type="button"><span class="pill-name">1. Slovakia · Hungary · Poland</span> <span class="pill-price">€997</span><span class="pill-remove" title="Remove alternative">×</span></button>
+      <button class="pill" data-opt="option-2" type="button"><span class="pill-name">2. Hungary · Poland</span> <span class="pill-price">€786</span><span class="pill-remove" title="Remove alternative">×</span></button>
+      <button class="pill add" id="addOptionBtn" type="button" title="Add alternative">+</button>
     </div>
   </header>
   <div id="actionMenu">
@@ -3866,14 +3866,14 @@
     var newPill = document.createElement('button');
     newPill.type = 'button'; newPill.className = 'pill';
     newPill.setAttribute('data-opt', 'option-' + n);
-    newPill.innerHTML = '<span class="pill-name">' + displayNum + '. New option</span> <span class="pill-price">' + formatMoney(0) + '</span>' +
-      '<span class="pill-remove" title="Remove option">&times;</span>';
+    newPill.innerHTML = '<span class="pill-name">' + displayNum + '. New alternative</span> <span class="pill-price">' + formatMoney(0) + '</span>' +
+      '<span class="pill-remove" title="Remove alternative">&times;</span>';
     pillsWrap.insertBefore(newPill, document.getElementById('addOptionBtn'));
 
     var budgetList = document.querySelector('.budget ul');
     var li = document.createElement('li');
     li.setAttribute('data-opt', 'option-' + n);
-    li.innerHTML = '<span><span class="budget-name">' + displayNum + '. New option</span></span><strong>' + formatMoney(0) + '</strong>';
+    li.innerHTML = '<span><span class="budget-name">' + displayNum + '. New alternative</span></span><strong>' + formatMoney(0) + '</strong>';
     budgetList.appendChild(li);
 
     clone.querySelectorAll('.grid .cell').forEach(attachCellControls);
@@ -3910,7 +3910,7 @@
     newPill.type = 'button'; newPill.className = 'pill';
     newPill.setAttribute('data-opt', 'option-' + n);
     newPill.innerHTML = '<span class="pill-name"></span> <span class="pill-price"></span>' +
-      '<span class="pill-remove" title="Remove option">&times;</span>';
+      '<span class="pill-remove" title="Remove alternative">&times;</span>';
     newPill.querySelector('.pill-name').textContent = srcName;
     newPill.querySelector('.pill-price').textContent = srcPrice;
     srcPill.insertAdjacentElement('afterend', newPill);
@@ -3987,7 +3987,7 @@
         });
         pop.appendChild(r);
       }
-      menuRow('+ Add option', function(){
+      menuRow('+ Add alternative', function(){
         var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
         var d = getPanelDate(activePanel);
         createOption(d.year, d.month);
@@ -4068,11 +4068,11 @@
     });
     var totalOptions = document.querySelectorAll('.pill[data-opt]').length;
     if(opts.length >= totalOptions){
-      window.alert("Can't remove the only month/option left.");
+      window.alert("Can't remove the only month/alternative left.");
       return;
     }
     var label = formatMonthLabel(year, month, 1);
-    if(!window.confirm('Remove ' + label + ' and all ' + opts.length + ' option(s) in it? This can\'t be undone.')) return;
+    if(!window.confirm('Remove ' + label + ' and all ' + opts.length + ' alternative(s) in it? This can\'t be undone.')) return;
     opts.forEach(function(opt){
       var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
       var panel = document.getElementById('panel-' + opt);
@@ -4196,13 +4196,13 @@
       var segColor = SEG_COLORS[idx % SEG_COLORS.length];
       colorByKey[s.key] = segColor;
       seg.style.background = segColor;
-      seg.title = 'Click to show only this month\'s options';
+      seg.title = 'Click to show only this month\'s alternatives';
       seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
 
       var label = document.createElement('span');
       label.className = 'seg-label';
       label.textContent = formatMonthLabel(s.year, s.month, seen.length);
-      label.title = 'Click to show this month\'s options — double-click to change the month';
+      label.title = 'Click to show this month\'s alternatives — double-click to change the month';
       // Single click just navigates, same as clicking anywhere else on the
       // tab (most of the tab's visible area IS the label, so without this
       // almost every click on the tab was opening the month-change popover
@@ -4245,7 +4245,7 @@
 
       var removeBtn = document.createElement('button');
       removeBtn.type = 'button'; removeBtn.className = 'seg-remove jsctl'; removeBtn.textContent = '✕';
-      removeBtn.title = 'Remove this month and all its options';
+      removeBtn.title = 'Remove this month and all its alternatives';
       removeBtn.addEventListener('click', function(e){
         e.stopPropagation();
         removeMonth(s.year, s.month);
@@ -5352,14 +5352,14 @@
       pill.type = 'button';
       pill.className = 'pill' + (on ? ' on' : '');
       pill.setAttribute('data-opt', o.id);
-      pill.innerHTML = '<span class="pill-name"></span> <span class="pill-price">\u20ac0</span>' +
-        '<span class="pill-remove" title="Remove option">&times;</span>';
+      pill.innerHTML = '<span class="pill-name"></span> <span class="pill-price">' + formatMoney(0) + '</span>' +
+        '<span class="pill-remove" title="Remove alternative">&times;</span>';
       pill.querySelector('.pill-name').textContent = o.nm || '';
       if(addOptBtn) pillsWrap.insertBefore(pill, addOptBtn); else pillsWrap.appendChild(pill);
 
       var li = document.createElement('li');
       li.setAttribute('data-opt', o.id);
-      li.innerHTML = '<span><span class="budget-name"></span></span><strong>\u20ac0</strong>';
+      li.innerHTML = '<span><span class="budget-name"></span></span><strong>' + formatMoney(0) + '</strong>';
       var wrapSpan = li.querySelector(':scope > span');
       wrapSpan.querySelector('.budget-name').textContent = (o.bn != null ? o.bn : (o.nm || ''));
       var rangeText = holidayRangeText(o.h, o.y, o.m);
