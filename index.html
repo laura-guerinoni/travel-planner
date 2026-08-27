@@ -559,6 +559,13 @@
      low against the chip. */
   .photoicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .photoicon > svg { width:14px; height:14px; }
+  /* Same alignment treatment as .photoicon, just its own icon — sits
+     right after it (or the chip, if there's no photo) rather than a
+     fixed slot, so an activity with only one of the two never leaves a
+     gap where the other would've been. */
+  .ticketicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
+  .ticketicon > svg { width:14px; height:14px; }
+  .ticketicon:hover { color:var(--primary); }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
@@ -2089,11 +2096,15 @@
   // the rest of the menu.
   var ICON_CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
   var ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-  // Counts photo reads/resizes currently in flight (see pickImage below) —
-  // isLocallyBusy() treats any nonzero count as "don't apply a remote
-  // snapshot right now", the same way it already does for a focused field
-  // or an open popover.
-  var photoUploadBusy = 0;
+  // A ticket/boarding-pass glyph (perforated stub), distinct from the
+  // photo icon — this is for a document (QR code, boarding pass, PDF
+  // ticket), not a scenic photo of the place.
+  var ICON_TICKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>';
+  // Counts photo/ticket reads/resizes currently in flight (see pickImage
+  // and pickTicket below) — isLocallyBusy() treats any nonzero count as
+  // "don't apply a remote snapshot right now", the same way it already
+  // does for a focused field or an open popover.
+  var fileUploadBusy = 0;
 
   function removePhotoFromLi(li){
     if(!window.confirm('Remove this photo?')) return false;
@@ -2206,7 +2217,7 @@
     var cellhead = li.closest('.cell') && li.closest('.cell').querySelector(':scope > .cellhead');
     if(cellhead) frag.appendChild(cellhead.cloneNode(true));
     var clone = li.cloneNode(true);
-    clone.querySelectorAll('.photoicon, .itemmenu-btn, .booked-check').forEach(function(el){ el.remove(); });
+    clone.querySelectorAll('.photoicon, .ticketicon, .itemmenu-btn, .booked-check').forEach(function(el){ el.remove(); });
     clone.querySelectorAll('[contenteditable]').forEach(function(el){ el.removeAttribute('contenteditable'); });
     clone.className = 'photobox-activity';
     frag.appendChild(clone);
@@ -2366,7 +2377,7 @@
         // upload, detaching `li` before setAttribute below ever runs. The
         // photo would then silently vanish: set on a node nothing renders,
         // in a subtree the save-triggering MutationObserver isn't watching
-        // any more either, so no error, no retry, nothing. photoUploadBusy
+        // any more either, so no error, no retry, nothing. fileUploadBusy
         // closes that gap the same way localEditUntil does for a normal
         // keystroke, just spanning the whole async read+resize instead of
         // firing only after the fact.
@@ -2379,21 +2390,126 @@
         // safety net picks it up shortly after, once localEditUntil has
         // actually been armed — same as every other busy-condition-just-
         // ended case that doesn't have its own natural completion hook.
-        photoUploadBusy++;
+        fileUploadBusy++;
         var reader = new FileReader();
         reader.onload = function(){
           resizeImageDataUrl(reader.result, 1600, 0.82).then(function(resized){
-            photoUploadBusy--;
+            fileUploadBusy--;
             li.setAttribute('data-img', resized);
             renderPhoto(li);
           });
         };
-        reader.onerror = function(){ photoUploadBusy--; };
+        reader.onerror = function(){ fileUploadBusy--; };
         reader.readAsDataURL(file);
       }
       input.remove();
     });
     input.click();
+  }
+
+  // ---- ticket attachment: a QR code, boarding pass, or PDF ticket kept
+  // on the activity itself, separate from .photoicon's scenic photo ----
+  // Encoded size (base64 runs ~33% bigger than the raw file), not the
+  // raw file size — this is what actually lands in the synced Firebase
+  // tree, which is what the cap is protecting.
+  var TICKET_MAX_PDF_BYTES = 4 * 1024 * 1024;
+  function pickTicket(li){
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,application/pdf';
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.addEventListener('change', function(){
+      var file = input.files[0];
+      if(file){
+        if(file.type === 'application/pdf'){
+          if(file.size > TICKET_MAX_PDF_BYTES){
+            window.alert('That PDF is too large (max 4MB). Try a smaller file, or a photo of the ticket instead.');
+          } else {
+            fileUploadBusy++;
+            var pdfReader = new FileReader();
+            pdfReader.onload = function(){
+              fileUploadBusy--;
+              li.setAttribute('data-ticket', pdfReader.result);
+              renderTicket(li);
+            };
+            pdfReader.onerror = function(){ fileUploadBusy--; };
+            pdfReader.readAsDataURL(file);
+          }
+        } else {
+          // Higher max dimension/quality than a scenic photo (see
+          // pickImage above) — a ticket's QR code or fine-print text
+          // needs to stay legible, which matters less for a photo of a
+          // view.
+          fileUploadBusy++;
+          var imgReader = new FileReader();
+          imgReader.onload = function(){
+            resizeImageDataUrl(imgReader.result, 2000, 0.9).then(function(resized){
+              fileUploadBusy--;
+              li.setAttribute('data-ticket', resized);
+              renderTicket(li);
+            });
+          };
+          imgReader.onerror = function(){ fileUploadBusy--; };
+          imgReader.readAsDataURL(file);
+        }
+      }
+      input.remove();
+    });
+    input.click();
+  }
+  function removeTicketFromLi(li){
+    if(!window.confirm('Remove this ticket?')) return;
+    li.removeAttribute('data-ticket');
+    renderTicket(li);
+  }
+  function renderTicket(li){
+    var url = li.getAttribute('data-ticket') || '';
+    var existing = li.querySelector('.ticketicon');
+    if(!url){
+      if(existing) existing.remove();
+      return;
+    }
+    if(!existing){
+      existing = document.createElement('span');
+      existing.className = 'ticketicon';
+      existing.title = 'View ticket';
+      existing.innerHTML = ICON_TICKET;
+      existing.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        openTicket(li);
+      });
+      // Sits right after whichever of chip/photoicon is present, same
+      // anchor logic as renderPhoto — one level inside .tagrow now, not
+      // a direct child of <li>.
+      var photoicon = li.querySelector('.photoicon');
+      var chip = li.querySelector('.chip');
+      var tagrow = li.querySelector('.tagrow');
+      if(photoicon) photoicon.insertAdjacentElement('afterend', existing);
+      else if(chip) chip.insertAdjacentElement('afterend', existing);
+      else if(tagrow) tagrow.insertBefore(existing, tagrow.firstChild);
+      else li.insertBefore(existing, li.firstChild);
+    }
+  }
+  // Opens the ticket in a new tab. A raw data: URL is unreliable for
+  // window.open in several browsers (some block a data: URL as a new
+  // tab's top-level navigation outright) — converting to a Blob and an
+  // Object URL first opens exactly like any other same-origin resource,
+  // for both an image and a browser-native-rendered PDF.
+  function openTicket(li){
+    var url = li.getAttribute('data-ticket');
+    if(!url) return;
+    var m = url.match(/^data:([^;]+);base64,(.*)$/);
+    if(!m){ window.open(url, '_blank'); return; }
+    var mime = m[1];
+    var binary = atob(m[2]);
+    var bytes = new Uint8Array(binary.length);
+    for(var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    var blob = new Blob([bytes], { type: mime });
+    var objUrl = URL.createObjectURL(blob);
+    window.open(objUrl, '_blank');
+    setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 60000);
   }
 
   // ---- tag picker ----
@@ -2557,6 +2673,10 @@
     });
     row('↗  Links', function(){ openLinkManager(li, anchorEl); });
     row('📷  Photo', function(){ pickImage(li); });
+    row('🎫  ' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
+    if(li.hasAttribute('data-ticket')){
+      row('✕  Remove ticket', function(){ removeTicketFromLi(li); });
+    }
     row(li.hasAttribute('data-booked') ? '✕  ' + t('act_unmark_booked') : '✓  ' + t('act_mark_booked'), function(){
       if(li.hasAttribute('data-booked')) li.removeAttribute('data-booked');
       else li.setAttribute('data-booked', '1');
@@ -2645,6 +2765,7 @@
     });
     renderLinks(li);
     renderPhoto(li);
+    renderTicket(li);
     renderBooked(li);
   }
 
@@ -4419,6 +4540,8 @@
     if(links.length) a.u = links;
     var img = li.getAttribute('data-img');
     if(img) a.g = img;
+    var ticket = li.getAttribute('data-ticket');
+    if(ticket) a.tk = ticket;
     if(li.hasAttribute('data-booked')) a.bk = 1;
     return a;
   }
@@ -4528,6 +4651,7 @@
     }
     if(a.u && a.u.length) li.setAttribute('data-links', JSON.stringify(a.u));
     if(a.g) li.setAttribute('data-img', a.g);
+    if(a.tk) li.setAttribute('data-ticket', a.tk);
     if(a.bk) li.setAttribute('data-booked', '1');
     var span = lines.length ? parseSpanFromLine(lines[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
@@ -4753,7 +4877,7 @@
   var localEditUntil = 0;
 
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-booked', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'data-booked', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
@@ -4814,7 +4938,7 @@
     if(ae && ae.isContentEditable && ae.matches && ae.matches(EDITABLE_SEL + ', .pill-name')) return true;
     if(pillDrag || cellDrag || actDrag || dragState) return true;
     if(openPop) return true;
-    if(photoUploadBusy > 0) return true;
+    if(fileUploadBusy > 0) return true;
     if(Date.now() < localEditUntil) return true;
     return false;
   }
