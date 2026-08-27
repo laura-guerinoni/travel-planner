@@ -301,7 +301,7 @@
     .panel.print-hide, .budget li.print-hide { display:none !important; }
     .panel::before { content:attr(data-print-label); display:block;
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
-    .pills, .pills-gapfill, .month-sidebar, #statusBar,
+    .pills, .pills-gapfill, .month-sidebar, #statusBar, #mobileAddFab,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
     #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel,
     .photoicon, .ticketicon,
@@ -438,6 +438,12 @@
   .save-status { font-size:11px; color:var(--muted); text-align:right; max-width:160px; min-height:14px; }
   .save-status.changelink { text-decoration:underline; cursor:pointer; }
   .save-status.save-status-error { color:#c0392b; font-weight:700; }
+  /* Mobile-only floating action button — a native-app-style shortcut to
+     add an activity to whichever day is currently at the top of the
+     scrolled view, instead of hunting down that day's own
+     "+ Add activity" button somewhere in the grid. Hidden by default;
+     the mobile media query below turns it on. */
+  #mobileAddFab { display:none; }
 
   .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; touch-action:none; }
   .pill.dragging { opacity:.55; cursor:grabbing; }
@@ -743,7 +749,14 @@
     .pills { left:0; right:0; gap: 6px; padding:8px 8px 10px; }
     .pill { font-size: 13px; padding: 8px 12px 10px; }
     #actionMenu { top: 10px; right: 10px; }
-    #statusBar { right: 10px; bottom: 10px; }
+    /* Lifted clear of the FAB below rather than sharing its corner. */
+    #statusBar { right: 10px; bottom: 84px; }
+    #mobileAddFab { display:flex; align-items:center; justify-content:center;
+      position:fixed; right:16px; bottom:16px; z-index:56; width:56px; height:56px;
+      border-radius:50%; border:none; background:var(--primary); color:#fff;
+      box-shadow:0 4px 14px rgba(0,0,0,.3); cursor:pointer; }
+    #mobileAddFab svg { width:26px; height:26px; }
+    #mobileAddFab:active { opacity:.85; }
     h1 { font-size: 26px; }
     .grid.heads { display: none; }
     .grid { grid-template-columns: 1fr; gap: 8px; }
@@ -1042,6 +1055,9 @@
     <span id="changeFileBtn" class="save-status changelink" style="display:none;">change save location</span>
     <span id="presenceCount" class="save-status presence-count"></span>
   </div>
+  <button type="button" id="mobileAddFab" title="Add activity" aria-label="Add activity">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
   <section class="panel" id="panel-option-1" data-holiday-start="12" data-holiday-end="25">
     <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 3 / 8;">Holiday — time off · Aug 12–25</div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell active"><div class="cellhead"><span class="daynum">12</span><span class="wd">Wed</span></div><p class="loc">Košice → Budapestt</p><ul class="acts"><li>
                 <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
@@ -4397,6 +4413,35 @@
     doClearDay(cell);
   });
   if(clearDayConfirmCloseX) clearDayConfirmCloseX.addEventListener('click', closeClearDayConfirm);
+
+  // ---- mobile floating "+" — adds an activity to whichever day is
+  // currently at the top of the scrolled view, standing in for hunting
+  // down that day's own "+ Add activity" button somewhere in the grid ----
+  function findCurrentMobileCell(){
+    var panel = document.querySelector('.panel.on');
+    if(!panel) return null;
+    // Just below the fixed month/pills bars (--pills-height, kept in sync
+    // by syncBarLayout) plus a little headroom — the first day whose
+    // bottom edge hasn't scrolled past that line yet is whichever one the
+    // user is actually looking at right now.
+    var refY = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pills-height')) || 0) + 24;
+    var cells = panel.querySelectorAll('.cell:not(.empty)');
+    for(var i = 0; i < cells.length; i++){
+      if(cells[i].getBoundingClientRect().bottom > refY) return cells[i];
+    }
+    return cells.length ? cells[cells.length - 1] : null;
+  }
+  var mobileAddFab = document.getElementById('mobileAddFab');
+  if(mobileAddFab) mobileAddFab.addEventListener('click', function(){
+    var cell = findCurrentMobileCell();
+    if(!cell) return;
+    var addBtn = cell.querySelector(':scope > .addact');
+    if(!addBtn) return;
+    addBtn.click();
+    var acts = cell.querySelector(':scope > .acts');
+    var newLi = acts ? acts.lastElementChild : null;
+    if(newLi) newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
 
   function downloadCopy(htmlStr){
     var blob = new Blob([htmlStr], { type: 'text/html' });
