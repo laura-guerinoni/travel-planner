@@ -208,8 +208,14 @@
      clone, attachItemControls) since they're one level deeper than <li>
      now. margin-bottom moved off .chip itself (still 0 there) onto
      .tagrow, so a flex item's own margin doesn't throw off
-     align-items:center against .tagctl. */
-  .tagrow { display:flex; align-items:center; margin-bottom:3px; }
+     align-items:center against .tagctl. flex-wrap:wrap so a long tag
+     name plus the photo/ticket icons plus the checkbox — more than this
+     row always has room for — wraps cleanly onto a second line instead
+     of overflowing; the chip itself is first and short enough to always
+     stay on the first line, so it's whatever comes after it (the icons,
+     the checkbox) that drops down when there's no space left, not the
+     tag. row-gap only matters once it actually wraps. */
+  .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; }
   .tagrow .chip { margin-bottom:0; }
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; }
   .tagctl { margin-left:auto; display:flex; align-items:center; gap:6px; }
@@ -1997,6 +2003,38 @@
         if(!existingKeys[key]){ TAGS.push(t); existingKeys[key] = true; added = true; }
       });
       if(added) TAGDATA_EL.textContent = JSON.stringify(TAGS, null, 2);
+    } catch(e){}
+  }
+
+  // A saved tag list can end up with two entries sharing the same name
+  // but a different icon (e.g. an older/corrupted copy of a built-in
+  // like "Stay" surviving alongside the current one, keyed differently
+  // by mergeDefaultTags above since its own key includes the icon) —
+  // shows up in the tag picker as the same name listed twice, one of
+  // them often broken-looking. Keeps one entry per name: whichever
+  // matches the current built-in definition for that name if there is
+  // one, otherwise whichever occurrence came first.
+  function dedupeTagsByName(){
+    try {
+      var defaultsByName = {};
+      JSON.parse(DEFAULT_TAGS_JSON).forEach(function(t){ defaultsByName[t.name] = t; });
+      var kept = {}, deduped = [], changed = false;
+      TAGS.forEach(function(t){
+        var existing = kept[t.name];
+        if(!existing){
+          kept[t.name] = t;
+          deduped.push(t);
+          return;
+        }
+        changed = true;
+        var def = defaultsByName[t.name];
+        var thisIsCanonical = def && t.icon === def.icon && t.bg === def.bg && t.fg === def.fg;
+        if(thisIsCanonical && existing !== t){
+          deduped[deduped.indexOf(existing)] = t;
+          kept[t.name] = t;
+        }
+      });
+      if(changed){ TAGS.length = 0; Array.prototype.push.apply(TAGS, deduped); TAGDATA_EL.textContent = JSON.stringify(TAGS, null, 2); }
     } catch(e){}
   }
 
@@ -5987,6 +6025,7 @@
           if(val.updatedAt) lastSeenUpdatedAt = val.updatedAt;
           applyRemoteSnapshot(val);
           mergeDefaultTags();
+          dedupeTagsByName();
           // Self-heal old data saved before captureUndoSnapshot() started
           // stripping per-browser layout styling (padding-top/top) from
           // what gets stored: if what's now on the page (cleaned) differs
