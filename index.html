@@ -415,23 +415,22 @@
   .monthpop .addbtn { width:100%; border:none; background:var(--primary); color:#fff; border-radius:6px;
     padding:7px; font:inherit; font-weight:700; cursor:pointer; }
 
-  /* No touch-action:none here — that unconditionally blocked the
-     browser's own touch scrolling over the day-number label/location
-     line, drag intent or not. wireDragStarter's own long-press gate (see
-     its own comment) is what distinguishes a drag from a scroll on
-     touch — a real press-and-hold, not just any pointerdown. */
+  /* Desktop only here (see below for the mobile equivalent, which is
+     permanently touch-action:none instead — see wireTouchScrollOrDrag's
+     own comment for why touch can't use this same "leave it permissive"
+     approach). */
   .cellhead-draggable { cursor:grab; }
   .cell-dragging { opacity:.45; }
   .cell-dragover { outline:2px dashed var(--primary); outline-offset:2px; }
   .act-dragging { opacity:.45; }
-  /* Applied the moment the drag actually engages (see wireDragStarter's
-     onStart) — on touch that's right when the long press completes,
-     before any movement, so lifting a finger and pausing gives a clear
-     "this is grabbed now, drag it up or down" confirmation instead of
-     the first sign of anything happening being the item already moving
-     under your finger. .act-dragging/.cell-dragging (the opacity fade)
-     still layer on top once actual movement starts. outline, not
-     border — doesn't affect the box's own layout/padding. */
+  /* Applied the moment the drag actually engages (mouse: wireDragStarter's
+     onStart; touch: wireTouchScrollOrDrag's, right when the long press
+     completes) — before any movement, so lifting a finger and pausing
+     gives a clear "this is grabbed now, drag it up or down" confirmation
+     instead of the first sign of anything happening being the item
+     already moving under your finger. .act-dragging/.cell-dragging (the
+     opacity fade) still layer on top once actual movement starts.
+     outline, not border — doesn't affect the box's own layout/padding. */
   .act-armed, .cell-armed { outline:2px dashed var(--primary); outline-offset:2px; }
 
   /* The "…" trigger stays top-right on its own now — status text moved to
@@ -854,8 +853,9 @@
        (not removing contenteditable in JS) so it degrades cleanly with
        the existing breakpoint rather than needing its own viewport check,
        and the tap instead falls through to the card underneath, which is
-       exactly what wireDragStarter's long-press-drag already listens on.
-       .loc (the day's own location text) is deliberately NOT included —
+       exactly what wireTouchScrollOrDrag's long-press-drag already
+       listens on. .loc (the day's own location text) is deliberately
+       NOT included —
        there's no modal covering that field yet, so disabling it here
        would remove the only way to edit it on mobile (a plain tap to
        focus it still works fine alongside the long-press-drag — a tap-
@@ -869,6 +869,15 @@
        immediately back off before a drag could start. */
     .acts li, .cellhead-draggable, .loc {
       -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+    /* Permanent, not toggled at any point during a touch — a browser
+       decides whether to run its own scroll for a touch using whatever
+       touch-action was already in effect when that touch began, and
+       nothing set afterward (however early) changes that for the same
+       touch. So scrolling through these two exact regions is driven by
+       hand instead (see wireTouchScrollOrDrag) — this has to line up
+       exactly with what its shouldSkip lets through, or a touch landing
+       in the gap between the two gets no scrolling at all. */
+    .acts li, .cellhead-draggable, .loc { touch-action:none; }
     .icon-btn { width: 34px; height: 34px; }
     .icon-btn svg { width: 18px; height: 18px; }
   }
@@ -3107,19 +3116,20 @@
     // different activity's title, which is what made the "..." menu/
     // "+ Add activity" hover controls look stuck showing on whatever was
     // last focused, for days no longer even being hovered). Mouse
-    // engages immediately from anywhere. Touch presses and holds
-    // (wireDragStarter's own long-press) directly on the activity itself
-    // — a single continuous press-then-drag, not a separate tap-to-select
-    // step first — with the touch-action lock in engage() (see
-    // wireDragStarter's own comment) and the callout suppression above
-    // keeping the actual drag reliable once the hold completes.
-    wireDragStarter(li, {
+    // engages immediately from anywhere (wireDragStarter). Touch presses
+    // and holds directly on the activity too, a single continuous
+    // press-then-drag — but goes through wireTouchScrollOrDrag instead,
+    // which also takes over scrolling by hand for real (see its own
+    // comment for why a single continuous gesture needs that).
+    var actDragOpts = {
       shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
       onEnd: onActDragEnd
-    });
+    };
+    wireDragStarter(li, actDragOpts);
+    wireTouchScrollOrDrag(li, actDragOpts);
 
     var chip = li.querySelector('.chip');
     if(chip){
@@ -3341,77 +3351,126 @@
   }
 
   // Shared pointerdown-based drag starter for both an activity and a day
-  // (see the two call sites below) — mouse/pen engage a drag as soon as
-  // movement crosses a small threshold, same as before, but touch waits
-  // for a genuine long press (holding still past longPressMs) first.
-  // Touch has no separate "grab handle" gesture the way a mouse does — any
-  // finger movement is normally how you scroll — so engaging a drag from
-  // the first few pixels of movement fought with just trying to scroll
-  // past the thing. Movement before the long press completes cancels it
-  // and leaves the pointer alone, so the browser's own scroll takes over
-  // exactly like it would if this listener weren't here at all.
-  var DRAG_LONG_PRESS_MS = 450;
-  // 8px was too tight for a real finger — ordinary hold-still tremor on a
-  // phone regularly exceeds that within the 450ms window, tripping the
-  // cancel-to-scroll path before the long press ever gets a chance to
-  // complete, which read as "I scroll instead of dragging."
-  var DRAG_TOUCH_CANCEL_PX = 18;
+  // (see the two call sites below), mouse/pen only — engages a drag as
+  // soon as movement crosses a small threshold. Touch goes through
+  // wireTouchScrollOrDrag instead (see its own comment for why).
   function wireDragStarter(el, opts){
     el.addEventListener('pointerdown', function(e){
+      if(e.pointerType === 'touch') return;
       if(opts.shouldSkip && opts.shouldSkip(e)) return;
-      var startX = e.clientX, startY = e.clientY, pid = e.pointerId, engaged = false, longPressTimer = null;
+      var startX = e.clientX, startY = e.clientY, pid = e.pointerId, engaged = false;
       function cleanup(){
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.removeEventListener('pointercancel', onUp);
-        if(e.pointerType === 'touch') el.style.touchAction = '';
-      }
-      function engage(ev){
-        engaged = true;
-        if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
-        // preventDefault() on a pointermove alone isn't reliably enough to
-        // stop a touch scroll once the browser's own gesture recognizer
-        // has already committed to panning — and on a real device it
-        // commits fast. Locking touch-action to none right here, the
-        // instant the long press completes with (by definition) no
-        // meaningful movement yet, heads that off before the browser
-        // ever gets to decide — this is why moving down after the
-        // outline appears was just scrolling the page with nothing
-        // actually dragged.
-        if(e.pointerType === 'touch') el.style.touchAction = 'none';
-        opts.onStart(e);
-        if(ev) onMove(ev);
       }
       function onMove(ev){
         if(ev.pointerId !== pid) return;
         if(!engaged){
           var dx = Math.abs(ev.clientX - startX), dy = Math.abs(ev.clientY - startY);
-          if(e.pointerType === 'touch'){
-            if(dx > DRAG_TOUCH_CANCEL_PX || dy > DRAG_TOUCH_CANCEL_PX){
-              if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
-              cleanup();
-            }
-            return;
-          }
           if(dx < opts.moveThreshold && dy < opts.moveThreshold) return;
-          engage(ev);
-          return;
+          engaged = true;
+          opts.onStart(e);
         }
         ev.preventDefault();
         opts.onMove(ev);
       }
       function onUp(ev){
-        if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
         cleanup();
         if(engaged) opts.onEnd(ev);
       }
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
       document.addEventListener('pointercancel', onUp);
-      if(e.pointerType === 'touch'){
-        longPressTimer = setTimeout(function(){ longPressTimer = null; engage(null); }, DRAG_LONG_PRESS_MS);
-      }
     });
+  }
+
+  var DRAG_LONG_PRESS_MS = 450;
+  // 8px was too tight for a real finger — ordinary hold-still tremor on a
+  // phone regularly exceeds that within the 450ms window.
+  var DRAG_TOUCH_CANCEL_PX = 18;
+  // touch-action can't be changed mid-gesture — confirmed: a browser
+  // decides whether to allow its own scrolling using whatever touch-action
+  // was already in effect at the moment a touch begins, and nothing set
+  // afterward (however early, however little has moved) affects that same
+  // touch. That ruled out every "wait for a long press, THEN lock
+  // touch-action" approach — by the time the long press completes, it's
+  // already too late to matter for the touch already in progress.
+  //
+  // So touch-action:none is set permanently here (see the mobile media
+  // query) on the activity/day surfaces, and scrolling through them is
+  // driven by hand instead of the browser's own: real movement before the
+  // long press completes is treated as "wants to scroll" and fed straight
+  // into window.scrollBy (with a simple momentum coast on release, same
+  // idea as native inertial scrolling); holding still for the long press
+  // instead arms a drag, exactly like wireDragStarter's mouse path.
+  function wireTouchScrollOrDrag(el, opts){
+    el.addEventListener('pointerdown', function(e){
+      if(e.pointerType !== 'touch') return;
+      if(opts.shouldSkip && opts.shouldSkip(e)) return;
+      stopMomentum();
+      var startX = e.clientX, startY = e.clientY, pid = e.pointerId;
+      var lastY = e.clientY, lastT = Date.now(), velocity = 0;
+      var mode = null; // null (undecided) | 'scroll' | 'drag'
+      function cleanup(){
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
+        if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+      }
+      function onMove(ev){
+        if(ev.pointerId !== pid) return;
+        var now = Date.now(), dt = now - lastT, deltaY = ev.clientY - lastY;
+        if(!mode){
+          var dx = Math.abs(ev.clientX - startX), dy = Math.abs(ev.clientY - startY);
+          if(dx <= DRAG_TOUCH_CANCEL_PX && dy <= DRAG_TOUCH_CANCEL_PX) return;
+          mode = 'scroll';
+          if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+        }
+        if(mode === 'scroll'){
+          window.scrollBy(0, -deltaY);
+          if(dt > 0) velocity = deltaY / dt;
+        } else {
+          ev.preventDefault();
+          opts.onMove(ev);
+        }
+        lastY = ev.clientY; lastT = now;
+      }
+      function onUp(ev){
+        cleanup();
+        if(mode === 'scroll') startMomentum(velocity);
+        else if(mode === 'drag') opts.onEnd(ev);
+      }
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+      var longPressTimer = setTimeout(function(){
+        longPressTimer = null;
+        if(mode) return; // already committed to a scroll
+        mode = 'drag';
+        opts.onStart(e);
+      }, DRAG_LONG_PRESS_MS);
+    });
+  }
+  // Basic inertial coast after a hand-scrolled release — decays the
+  // velocity captured from the last move each frame until it's
+  // imperceptible, so lifting mid-flick doesn't feel like it stopped dead
+  // the way a plain 1:1 tracker would.
+  var momentumRAF = null;
+  function startMomentum(v){
+    if(Math.abs(v) < 0.02) return;
+    var lastT = Date.now();
+    function tick(){
+      var now = Date.now(), dt = now - lastT;
+      lastT = now;
+      window.scrollBy(0, -v * dt);
+      v *= 0.95;
+      momentumRAF = Math.abs(v) > 0.02 ? requestAnimationFrame(tick) : null;
+    }
+    momentumRAF = requestAnimationFrame(tick);
+  }
+  function stopMomentum(){
+    if(momentumRAF){ cancelAnimationFrame(momentumRAF); momentumRAF = null; }
   }
 
   // Auto-scrolls the page while a day/activity drag is in progress and
@@ -3450,25 +3509,31 @@
   // what's in them. Pressing anywhere from the day-number header down
   // through the location line can start the drag (not the activities
   // list below, which has its own drag via attachItemControls, nor the
-  // day's own buttons). Mouse engages immediately, same as always. Touch
-  // presses and holds directly on the cell, same single continuous
-  // press-then-drag as activities above — no separate tap-to-select
-  // step. A light tap on the location text still just focuses it to
-  // edit, same reasoning as activities: a normal tap-release is well
-  // under the long-press window so it never reads as drag intent.
+  // day's own buttons). Mouse engages immediately (wireDragStarter).
+  // Touch presses and holds directly on the cell too, through
+  // wireTouchScrollOrDrag same as activities. A light tap on the
+  // location text still just focuses it to edit — a normal tap-release
+  // is well under the long-press window so it never reads as drag
+  // intent.
   var cellDrag = null;
   function attachCellDragHandle(cell){
     if(cell.dataset.dragWired) return;
     cell.dataset.dragWired = '1';
     var head = cell.querySelector(':scope > .cellhead');
     if(head) head.classList.add('cellhead-draggable');
-    wireDragStarter(cell, {
-      shouldSkip: function(e){ return e.target.closest('.acts, .addact, .cleardaybtn, a'); },
+    var cellDragOpts = {
+      // Positive match, not an exclusion list — this needs to be exactly
+      // the region touch-action:none is applied to below (see the mobile
+      // CSS), or a touch landing in the gap between them would get
+      // neither native scroll nor a working manual one.
+      shouldSkip: function(e){ return !e.target.closest('.cellhead-draggable, .loc'); },
       moveThreshold: 6,
       onStart: function(e){ cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false }; cell.classList.add('cell-armed'); },
       onMove: onCellDragMove,
       onEnd: onCellDragEnd
-    });
+    };
+    wireDragStarter(cell, cellDragOpts);
+    wireTouchScrollOrDrag(cell, cellDragOpts);
   }
   function onCellDragMove(e){
     if(!cellDrag) return;
