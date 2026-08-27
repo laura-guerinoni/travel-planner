@@ -303,8 +303,8 @@
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .pills-gapfill, .month-sidebar, #statusBar, #mobileAddFab,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
-    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel, #fabAddPanel,
-    .photoicon, .ticketicon,
+    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel, #fabAddPanel, #editActPanel,
+    .photoicon, .ticketicon, .editicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
        only the hover-driven "swap for clear day" behavior is screen-only,
@@ -492,6 +492,11 @@
      after you'd already moved on to a different day. */
   li:hover .itemmenu-btn { visibility:visible; }
   .itemmenu-btn:hover { background:var(--primary); color:#fff; }
+  /* Mobile-only (see the media query below) — opens the bigger Edit
+     activity modal instead of needing to tap each tiny inline field
+     (title/description/time/price) precisely enough on a touchscreen.
+     Hidden by default; desktop keeps direct inline editing as-is. */
+  .editicon { display:none; }
   /* No dedicated drag handle any more — grabbing anywhere on the activity
      that isn't one of its actual controls (tag, checkbox, menu, a link,
      or editable text) starts the drag; see the li pointerdown listener in
@@ -791,6 +796,10 @@
        that fake a hover on first tap) needs a tap-it-twice workaround,
        neither of which is a real substitute for it just being there. */
     .itemmenu-btn { visibility: visible; width: 30px; height: 26px; font-size: 14px; }
+    .editicon { display:flex; align-items:center; justify-content:center; border:none;
+      background:var(--line); color:var(--ink); border-radius:6px; width:30px; height:26px; padding:0; cursor:pointer; }
+    .editicon svg { width:15px; height:15px; }
+    .editicon:active { background:var(--primary); color:#fff; }
     .icon-btn { width: 34px; height: 34px; }
     .icon-btn svg { width: 18px; height: 18px; }
   }
@@ -932,6 +941,13 @@
     text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px; }
   .fabadd-select { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:8px;
     border:1px solid var(--line); font:inherit; font-size:14px; margin-bottom:14px; background:var(--card); color:var(--ink); }
+  /* Start time always required, end time left blank for a single time
+     rather than a range (see reorderActivityByStartTime/formatMoney-style
+     "no separate toggle needed" reasoning — an empty end field already
+     says "just one time" on its own). */
+  .fabadd-time-row { display:flex; align-items:center; gap:8px; }
+  .fabadd-time-row .fabadd-select { margin-bottom:14px; }
+  .fabadd-time-sep { color:var(--muted); font-weight:700; }
   .fabadd-confirm-btn { width:100%; }
 </style>
 </head>
@@ -1052,6 +1068,24 @@
           <option value="es">Español</option>
         </select>
       </div>
+      <div class="actionMenuThemeRow">
+        <span class="actionMenuThemeLabel" data-i18n="menu_currency">Currency</span>
+        <!-- The main travel/reserve currencies, not every ISO code there
+             is — same "little dropdown, not a search widget" reasoning as
+             the language picker right above. Local-only preference (like
+             theme/language), not part of the synced plan itself: it only
+             controls which symbol NEW amounts get, not a retroactive
+             rewrite of whatever a price field already says. -->
+        <select id="currencySelect" class="lang-select">
+          <option value="EUR">EUR €</option>
+          <option value="USD">USD $</option>
+          <option value="GBP">GBP £</option>
+          <option value="JPY">JPY ¥</option>
+          <option value="CHF">CHF Fr.</option>
+          <option value="CAD">CAD CA$</option>
+          <option value="AUD">AUD A$</option>
+        </select>
+      </div>
       <div class="actionMenuDivider"></div>
       <button type="button" id="appSignOutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span data-i18n="menu_signout">Sign out</span></button>
     </div>
@@ -1075,10 +1109,39 @@
       <label for="fabAddTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
       <select id="fabAddTagSelect" class="fabadd-select"></select>
       <label for="fabAddTimeInput" class="fabadd-label" data-i18n="fabadd_time_label">Time</label>
-      <input type="time" id="fabAddTimeInput" class="fabadd-select" />
+      <div class="fabadd-time-row">
+        <input type="time" id="fabAddTimeInput" class="fabadd-select" />
+        <span class="fabadd-time-sep" aria-hidden="true">–</span>
+        <input type="time" id="fabAddTimeEndInput" class="fabadd-select" title="End time (optional)" />
+      </div>
       <label for="fabAddAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
       <input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" />
       <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
+    </div>
+  </div>
+  <div id="editActPanel" class="modal-overlay">
+    <div class="map-inner">
+      <div class="map-header">
+        <h2 data-i18n="editact_title">Edit activity</h2>
+        <button type="button" id="editActCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+      </div>
+      <label for="editActTitleInput" class="fabadd-label" data-i18n="editact_title_label">Title</label>
+      <input type="text" id="editActTitleInput" class="fabadd-select" />
+      <label for="editActTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
+      <select id="editActTagSelect" class="fabadd-select"></select>
+      <label for="editActDescInput" class="fabadd-label" data-i18n="editact_desc_label">Description</label>
+      <input type="text" id="editActDescInput" class="fabadd-select" />
+      <label for="editActTimeInput" class="fabadd-label" data-i18n="fabadd_time_label">Time</label>
+      <div class="fabadd-time-row">
+        <input type="time" id="editActTimeInput" class="fabadd-select" />
+        <span class="fabadd-time-sep" aria-hidden="true">–</span>
+        <input type="time" id="editActTimeEndInput" class="fabadd-select" title="End time (optional)" />
+      </div>
+      <label for="editActAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
+      <input type="number" id="editActAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" />
+      <label for="editActNoteInput" class="fabadd-label" data-i18n="editact_note_label">Note</label>
+      <input type="text" id="editActNoteInput" class="fabadd-select" />
+      <button type="button" id="editActSaveBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="editact_save">Save</button>
     </div>
   </div>
   <section class="panel" id="panel-option-1" data-holiday-start="12" data-holiday-end="25">
@@ -1374,11 +1437,40 @@
   // color theme doesn't touch it either. Declared this early (before
   // reattachAll()/attachCellControls() are even defined below) since those
   // call t() while building the "+ Add location" etc. buttons on load. ----
+  // ---- currency: a local-only display preference, same footing as the
+  // theme/language pickers right next to it in the menu — not part of the
+  // synced plan. Controls the symbol used for newly-created amounts
+  // (a fresh activity's default price, the FAB modal) and for every
+  // app-COMPUTED total (day badges, budget list, option pill totals, all
+  // via formatMoney) — never a retroactive rewrite of a price field's own
+  // free-typed text, the same way switching language doesn't touch typed
+  // activity content either. ----
+  var CURRENCY_KEY = 'travelPlannerCurrency';
+  var CURRENCIES = {
+    EUR: '€', USD: '$', GBP: '£', JPY: '¥', CHF: 'Fr.', CAD: 'CA$', AUD: 'A$'
+  };
+  var currentCurrency = 'EUR';
+  function currencySymbol(){ return CURRENCIES[currentCurrency] || CURRENCIES.EUR; }
+  // Re-stamps every currently-rendered computed total (day badges/costs,
+  // pill prices, budget list) with the new symbol — recomputeCell() does
+  // this per day and already cascades into recomputePanel() for the
+  // pill/budget totals, so sweeping every day cell covers all of it.
+  function refreshAllMoneyDisplays(){
+    document.querySelectorAll('.cell:not(.empty)').forEach(recomputeCell);
+  }
+  function applyCurrency(code){
+    currentCurrency = CURRENCIES[code] ? code : 'EUR';
+    var currencySelectEl = document.getElementById('currencySelect');
+    if(currencySelectEl) currencySelectEl.value = currentCurrency;
+    try { localStorage.setItem(CURRENCY_KEY, currentCurrency); } catch(e){}
+    refreshAllMoneyDisplays();
+  }
+
   var LANG_KEY = 'travelPlannerLang';
   var TRANSLATIONS = {
     en: {
       menu_save: 'Save', menu_download: 'Download', menu_manage: 'Manage access', menu_print: 'Print',
-      menu_theme: 'Theme', menu_language: 'Language', menu_signout: 'Sign out',
+      menu_theme: 'Theme', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
       manage_title: 'Manage access', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
@@ -1394,11 +1486,13 @@
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
       cleardaytk_confirm: 'Clear day',
       fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_type_label: 'Type',
-      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity'
+      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity',
+      editact_title: 'Edit activity', editact_title_label: 'Title', editact_desc_label: 'Description',
+      editact_note_label: 'Note', editact_save: 'Save'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
-      menu_theme: 'Tema', menu_language: 'Lingua', menu_signout: 'Esci',
+      menu_theme: 'Tema', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
       manage_title: 'Gestisci accesso', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
@@ -1414,11 +1508,13 @@
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
       cleardaytk_confirm: 'Svuota giorno',
       fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_type_label: 'Tipo',
-      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività'
+      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività',
+      editact_title: 'Modifica attività', editact_title_label: 'Titolo', editact_desc_label: 'Descrizione',
+      editact_note_label: 'Nota', editact_save: 'Salva'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
-      menu_theme: 'Tema', menu_language: 'Idioma', menu_signout: 'Cerrar sesión',
+      menu_theme: 'Tema', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
       manage_title: 'Gestionar acceso', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
@@ -1434,7 +1530,9 @@
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
       cleardaytk_confirm: 'Vaciar día',
       fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_type_label: 'Tipo',
-      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad'
+      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad',
+      editact_title: 'Editar actividad', editact_title_label: 'Título', editact_desc_label: 'Descripción',
+      editact_note_label: 'Nota', editact_save: 'Guardar'
     }
   };
   var currentLang = 'en';
@@ -1996,8 +2094,8 @@
   }
   function formatMoney(n){
     n = Math.round(n * 100) / 100;
-    if (Math.round(n) === n) return '€' + Math.round(n);
-    return '€' + n.toFixed(2);
+    if (Math.round(n) === n) return currencySymbol() + Math.round(n);
+    return currencySymbol() + n.toFixed(2);
   }
 
   function recomputeCell(cell){
@@ -2210,6 +2308,7 @@
   // photo icon — this is for a document (QR code, boarding pass, PDF
   // ticket), not a scenic photo of the place.
   var ICON_TICKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>';
+  var ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
   // Counts photo/ticket reads/resizes currently in flight (see pickImage
   // and pickTicket below) — isLocallyBusy() treats any nonzero count as
   // "don't apply a remote snapshot right now", the same way it already
@@ -2811,18 +2910,27 @@
     if(tagctl) tagctl.insertBefore(menuBtn, tagctl.firstChild);
     else li.insertBefore(menuBtn, li.firstChild);
 
+    var editBtn = document.createElement('button');
+    editBtn.type = 'button'; editBtn.className = 'editicon jsctl';
+    editBtn.title = t('editact_title'); editBtn.setAttribute('aria-label', t('editact_title'));
+    editBtn.innerHTML = ICON_EDIT;
+    editBtn.addEventListener('click', function(e){ e.stopPropagation(); openEditAct(li); });
+    if(tagctl) tagctl.insertBefore(editBtn, tagctl.firstChild);
+    else li.insertBefore(editBtn, li.firstChild);
+
     // No dedicated drag handle any more — pointerdown anywhere on the
     // activity that isn't one of its actual controls (tag, checkbox,
-    // menu, a link, or editable text) can turn into a drag, via the
-    // shared wireDragStarter (see its own comment — preventDefault below
-    // it, not this pointerdown, is deliberate: doing it eagerly on every
-    // pointerdown blocked the browser's own default click behavior for
-    // ANY click elsewhere on the page, including the blur that normally
-    // ends editing a different activity's title, which is what made the
-    // "..." menu/"+ Add activity" hover controls look stuck showing on
-    // whatever was last focused, for days no longer even being hovered).
+    // menu, edit button, a link, or editable text) can turn into a drag,
+    // via the shared wireDragStarter (see its own comment — preventDefault
+    // below it, not this pointerdown, is deliberate: doing it eagerly on
+    // every pointerdown blocked the browser's own default click behavior
+    // for ANY click elsewhere on the page, including the blur that
+    // normally ends editing a different activity's title, which is what
+    // made the "..." menu/"+ Add activity" hover controls look stuck
+    // showing on whatever was last focused, for days no longer even being
+    // hovered).
     wireDragStarter(li, {
-      shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, a, [contenteditable="true"]'); },
+      shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; },
       onMove: onActDragMove,
@@ -2941,7 +3049,7 @@
     price.className = 'price';
     var priceVal = document.createElement('span');
     priceVal.className = 'price-val';
-    priceVal.textContent = '€0';
+    priceVal.textContent = currencySymbol() + '0';
     price.appendChild(priceVal);
 
     li.appendChild(tagrow); li.appendChild(title); li.appendChild(line); li.appendChild(price);
@@ -3709,14 +3817,14 @@
     var newPill = document.createElement('button');
     newPill.type = 'button'; newPill.className = 'pill';
     newPill.setAttribute('data-opt', 'option-' + n);
-    newPill.innerHTML = '<span class="pill-name">' + displayNum + '. New option</span> <span class="pill-price">€0</span>' +
+    newPill.innerHTML = '<span class="pill-name">' + displayNum + '. New option</span> <span class="pill-price">' + formatMoney(0) + '</span>' +
       '<span class="pill-remove" title="Remove option">&times;</span>';
     pillsWrap.insertBefore(newPill, document.getElementById('addOptionBtn'));
 
     var budgetList = document.querySelector('.budget ul');
     var li = document.createElement('li');
     li.setAttribute('data-opt', 'option-' + n);
-    li.innerHTML = '<span><span class="budget-name">' + displayNum + '. New option</span></span><strong>€0</strong>';
+    li.innerHTML = '<span><span class="budget-name">' + displayNum + '. New option</span></span><strong>' + formatMoney(0) + '</strong>';
     budgetList.appendChild(li);
 
     clone.querySelectorAll('.grid .cell').forEach(attachCellControls);
@@ -4266,6 +4374,14 @@
     try { saved = localStorage.getItem(LANG_KEY) || 'en'; } catch(e){}
     applyLanguage(saved);
   })();
+  var currencySelectEl = document.getElementById('currencySelect');
+  if(currencySelectEl) currencySelectEl.addEventListener('change', function(){ applyCurrency(this.value); });
+  (function initCurrency(){
+    var saved = 'EUR';
+    try { saved = localStorage.getItem(CURRENCY_KEY) || 'EUR'; } catch(e){}
+    currentCurrency = CURRENCIES[saved] ? saved : 'EUR';
+    if(currencySelectEl) currencySelectEl.value = currentCurrency;
+  })();
 
   document.addEventListener('input', function(e){
     if(e.target.classList && e.target.classList.contains('price-val')){
@@ -4469,6 +4585,7 @@
   var fabAddDaySelect = document.getElementById('fabAddDaySelect');
   var fabAddTagSelect = document.getElementById('fabAddTagSelect');
   var fabAddTimeInput = document.getElementById('fabAddTimeInput');
+  var fabAddTimeEndInput = document.getElementById('fabAddTimeEndInput');
   var fabAddAmountInput = document.getElementById('fabAddAmountInput');
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
@@ -4501,6 +4618,7 @@
       });
     }
     if(fabAddTimeInput) fabAddTimeInput.value = '';
+    if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
     if(fabAddAmountInput) fabAddAmountInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
@@ -4511,6 +4629,7 @@
     var day = fabAddDaySelect ? fabAddDaySelect.value : null;
     var tagIdx = fabAddTagSelect ? fabAddTagSelect.value : null;
     var timeVal = fabAddTimeInput ? fabAddTimeInput.value : '';
+    var timeEndVal = fabAddTimeEndInput ? fabAddTimeEndInput.value : '';
     var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
     closeFabAdd();
     if(!panel || !day) return;
@@ -4546,16 +4665,144 @@
       }
       if(timeVal){
         var lineEl = newLi.querySelector('.line');
-        if(lineEl) lineEl.textContent = '🕒 ' + timeVal;
+        // An end time makes it a range; left blank, just the one time —
+        // same "🕒 " convention (and the same first-hh:mm-is-the-start
+        // parsing reorderActivityByStartTime already relies on) either way.
+        if(lineEl) lineEl.textContent = '🕒 ' + timeVal + (timeEndVal ? ' - ' + timeEndVal : '');
         reorderActivityByStartTime(newLi);
       }
       if(amountVal !== ''){
         var priceVal = newLi.querySelector('.price-val');
-        if(priceVal) priceVal.textContent = '€' + amountVal;
+        if(priceVal) priceVal.textContent = currencySymbol() + amountVal;
       }
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
+  });
+
+  // ---- mobile "edit activity" modal — the small .editicon pencil button
+  // (see attachItemControls) opens this instead of needing to tap each
+  // tiny inline field (title/description/time/price) precisely enough on
+  // a touchscreen. Reads/writes the exact same DOM the inline fields do,
+  // so nothing about how an activity is stored changes — this is just an
+  // easier way to reach the same edit. ----
+  var editActPanel = document.getElementById('editActPanel');
+  var editActTitleInput = document.getElementById('editActTitleInput');
+  var editActTagSelect = document.getElementById('editActTagSelect');
+  var editActDescInput = document.getElementById('editActDescInput');
+  var editActTimeInput = document.getElementById('editActTimeInput');
+  var editActTimeEndInput = document.getElementById('editActTimeEndInput');
+  var editActAmountInput = document.getElementById('editActAmountInput');
+  var editActNoteInput = document.getElementById('editActNoteInput');
+  var editActCloseX = document.getElementById('editActCloseX');
+  var editActSaveBtn = document.getElementById('editActSaveBtn');
+  var editingLi = null;
+  function closeEditAct(){
+    editingLi = null;
+    if(editActPanel) editActPanel.classList.remove('show');
+  }
+  function openEditAct(li){
+    if(!editActPanel || !editActTagSelect) return;
+    editingLi = li;
+    var chip = li.querySelector('.chip');
+    var titleEl = li.querySelector('.title');
+    var lines = Array.prototype.slice.call(li.querySelectorAll(':scope > .line'));
+    var timeLine = lines.find(function(l){ return /\d{1,2}:\d{2}/.test(l.textContent); });
+    var descLine = lines.find(function(l){ return l !== timeLine; });
+    var priceValEl = li.querySelector('.price-val');
+    var priceNoteEl = li.querySelector('.price-note');
+
+    editActTitleInput.value = titleEl ? titleEl.textContent : '';
+    editActTagSelect.innerHTML = '';
+    TAGS.forEach(function(tg, idx){
+      var opt = document.createElement('option');
+      opt.value = String(idx);
+      opt.textContent = tg.icon + ' ' + tg.name;
+      if(chip && chip.getAttribute('data-icon') === tg.icon && chip.getAttribute('data-name') === tg.name) opt.selected = true;
+      editActTagSelect.appendChild(opt);
+    });
+    editActDescInput.value = descLine ? descLine.textContent : '';
+    var timeMatch = timeLine ? timeLine.textContent.match(/(\d{1,2}:\d{2})(?:\s*-\s*(\d{1,2}:\d{2}))?/) : null;
+    editActTimeInput.value = timeMatch ? timeMatch[1] : '';
+    editActTimeEndInput.value = timeMatch && timeMatch[2] ? timeMatch[2] : '';
+    editActAmountInput.value = priceValEl ? parseMoney(priceValEl.textContent) : '';
+    editActNoteInput.value = priceNoteEl ? priceNoteEl.textContent : '';
+
+    editActPanel.classList.add('show');
+  }
+  if(editActCloseX) editActCloseX.addEventListener('click', closeEditAct);
+  if(editActSaveBtn) editActSaveBtn.addEventListener('click', function(){
+    var li = editingLi;
+    if(!li){ closeEditAct(); return; }
+    var tagIdx = editActTagSelect ? editActTagSelect.value : null;
+    var titleVal = editActTitleInput ? editActTitleInput.value : '';
+    var descVal = editActDescInput ? editActDescInput.value.trim() : '';
+    var timeVal = editActTimeInput ? editActTimeInput.value : '';
+    var timeEndVal = editActTimeEndInput ? editActTimeEndInput.value : '';
+    var amountVal = editActAmountInput ? editActAmountInput.value : '';
+    var noteVal = editActNoteInput ? editActNoteInput.value.trim() : '';
+    closeEditAct();
+
+    if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
+      var tg = TAGS[tagIdx];
+      var chip = li.querySelector('.chip');
+      if(chip){
+        chip.setAttribute('data-icon', tg.icon);
+        chip.setAttribute('data-name', tg.name);
+        chip.style.background = tg.bg;
+        chip.style.color = tg.fg;
+        chip.textContent = tg.icon + ' ' + tg.name;
+      }
+    }
+    var titleEl = li.querySelector('.title');
+    if(titleEl) titleEl.textContent = titleVal;
+
+    // Lines are rebuilt from scratch (description, then time) rather than
+    // patched in place — simpler than reconciling against however many
+    // .line elements happened to already exist, and matches exactly what
+    // buildActivityLi() itself would produce for the same content.
+    li.querySelectorAll(':scope > .line').forEach(function(l){ l.remove(); });
+    var priceEl = li.querySelector(':scope > .price');
+    var newLines = [];
+    if(descVal) newLines.push(descVal);
+    if(timeVal) newLines.push('🕒 ' + timeVal + (timeEndVal ? ' - ' + timeEndVal : ''));
+    newLines.forEach(function(txt){
+      var sp = document.createElement('span');
+      sp.className = 'line';
+      sp.textContent = txt;
+      if(priceEl) li.insertBefore(sp, priceEl); else li.appendChild(sp);
+    });
+
+    if(amountVal !== ''){
+      if(!priceEl){
+        priceEl = document.createElement('span');
+        priceEl.className = 'price';
+        var pv = document.createElement('span');
+        pv.className = 'price-val';
+        priceEl.appendChild(pv);
+        li.appendChild(priceEl);
+      }
+      var priceValEl = priceEl.querySelector('.price-val');
+      if(priceValEl) priceValEl.textContent = currencySymbol() + amountVal;
+      var priceNoteEl = priceEl.querySelector('.price-note');
+      if(noteVal){
+        if(!priceNoteEl){
+          priceEl.appendChild(document.createTextNode(' '));
+          priceNoteEl = document.createElement('em');
+          priceNoteEl.className = 'price-note';
+          priceEl.appendChild(priceNoteEl);
+        }
+        priceNoteEl.textContent = noteVal;
+      } else if(priceNoteEl){
+        priceNoteEl.remove();
+      }
+    } else if(priceEl){
+      priceEl.remove();
+    }
+
+    if(timeVal) reorderActivityByStartTime(li);
+    var cell = li.closest('.cell');
+    if(cell){ recomputeCell(cell); updateCellAllBooked(cell); }
   });
 
   function downloadCopy(htmlStr){
