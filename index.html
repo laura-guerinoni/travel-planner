@@ -303,7 +303,7 @@
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .pills-gapfill, .month-sidebar, #statusBar, #mobileAddFab,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
-    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel,
+    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel, #fabAddPanel,
     .photoicon, .ticketicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
@@ -927,6 +927,12 @@
     margin-bottom:12px; }
   .clearday-confirm-btn { width:100%; }
   .clearday-confirm-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+  .fabadd-label { display:block; font-size:12px; font-weight:700; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px; }
+  .fabadd-select { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:8px;
+    border:1px solid var(--line); font:inherit; font-size:14px; margin-bottom:14px; background:var(--card); color:var(--ink); }
+  .fabadd-confirm-btn { width:100%; }
 </style>
 </head>
 <body>
@@ -1058,6 +1064,17 @@
   <button type="button" id="mobileAddFab" title="Add activity" aria-label="Add activity">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
+  <div id="fabAddPanel" class="modal-overlay">
+    <div class="map-inner">
+      <div class="map-header">
+        <h2 data-i18n="fabadd_title">Add activity</h2>
+        <button type="button" id="fabAddCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+      </div>
+      <label for="fabAddDaySelect" class="fabadd-label" data-i18n="fabadd_day_label">Day</label>
+      <select id="fabAddDaySelect" class="fabadd-select"></select>
+      <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
+    </div>
+  </div>
   <section class="panel" id="panel-option-1" data-holiday-start="12" data-holiday-end="25">
     <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid banner-row"><div class="banner" style="grid-column: 3 / 8;">Holiday — time off · Aug 12–25</div></div><div class="grid week"><div class="cell"><div class="cellhead"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell active"><div class="cellhead"><span class="daynum">12</span><span class="wd">Wed</span></div><p class="loc">Košice → Budapestt</p><ul class="acts"><li>
                 <span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span>
@@ -1369,7 +1386,8 @@
       act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked',
       cleardaytk_title: 'Clear this day?',
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
-      cleardaytk_confirm: 'Clear day'
+      cleardaytk_confirm: 'Clear day',
+      fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_confirm: 'Add activity'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1387,7 +1405,8 @@
       act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione',
       cleardaytk_title: 'Svuotare questo giorno?',
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
-      cleardaytk_confirm: 'Svuota giorno'
+      cleardaytk_confirm: 'Svuota giorno',
+      fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_confirm: 'Aggiungi attività'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1405,7 +1424,8 @@
       act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva',
       cleardaytk_title: '¿Vaciar este día?',
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
-      cleardaytk_confirm: 'Vaciar día'
+      cleardaytk_confirm: 'Vaciar día',
+      fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_confirm: 'Añadir actividad'
     }
   };
   var currentLang = 'en';
@@ -4414,9 +4434,13 @@
   });
   if(clearDayConfirmCloseX) clearDayConfirmCloseX.addEventListener('click', closeClearDayConfirm);
 
-  // ---- mobile floating "+" — adds an activity to whichever day is
-  // currently at the top of the scrolled view, standing in for hunting
-  // down that day's own "+ Add activity" button somewhere in the grid ----
+  // ---- mobile floating "+" — opens a small modal asking which day to add
+  // the activity to (defaulting to whichever day is currently at the top
+  // of the scrolled view), rather than silently adding to a guessed day.
+  // The guess-and-add-immediately version of this shipped first and
+  // turned out wrong often enough (and its repeated smooth-scroll-into-
+  // view, one per tap, could fight a manual scroll already in progress)
+  // that a one-tap confirm is worth the extra step. ----
   function findCurrentMobileCell(){
     var panel = document.querySelector('.panel.on');
     if(!panel) return null;
@@ -4432,8 +4456,44 @@
     return cells.length ? cells[cells.length - 1] : null;
   }
   var mobileAddFab = document.getElementById('mobileAddFab');
-  if(mobileAddFab) mobileAddFab.addEventListener('click', function(){
-    var cell = findCurrentMobileCell();
+  var fabAddPanel = document.getElementById('fabAddPanel');
+  var fabAddDaySelect = document.getElementById('fabAddDaySelect');
+  var fabAddCloseX = document.getElementById('fabAddCloseX');
+  var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
+  function closeFabAdd(){
+    if(fabAddPanel) fabAddPanel.classList.remove('show');
+  }
+  function openFabAdd(){
+    var panel = document.querySelector('.panel.on');
+    if(!panel || !fabAddDaySelect) return;
+    var defaultCell = findCurrentMobileCell();
+    var defaultDay = defaultCell ? defaultCell.querySelector(':scope > .cellhead > .daynum').textContent : null;
+    fabAddDaySelect.innerHTML = '';
+    panel.querySelectorAll('.cell:not(.empty)').forEach(function(cell){
+      var daynum = cell.querySelector(':scope > .cellhead > .daynum');
+      var wd = cell.querySelector(':scope > .cellhead > .wd');
+      if(!daynum) return;
+      var opt = document.createElement('option');
+      opt.value = daynum.textContent;
+      opt.textContent = daynum.textContent + (wd ? ' · ' + wd.textContent : '');
+      if(daynum.textContent === defaultDay) opt.selected = true;
+      fabAddDaySelect.appendChild(opt);
+    });
+    if(fabAddPanel) fabAddPanel.classList.add('show');
+  }
+  if(mobileAddFab) mobileAddFab.addEventListener('click', openFabAdd);
+  if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
+  if(fabAddConfirmBtn) fabAddConfirmBtn.addEventListener('click', function(){
+    var panel = document.querySelector('.panel.on');
+    var day = fabAddDaySelect ? fabAddDaySelect.value : null;
+    closeFabAdd();
+    if(!panel || !day) return;
+    var cells = panel.querySelectorAll('.cell:not(.empty)');
+    var cell = null;
+    for(var i = 0; i < cells.length; i++){
+      var daynum = cells[i].querySelector(':scope > .cellhead > .daynum');
+      if(daynum && daynum.textContent === day){ cell = cells[i]; break; }
+    }
     if(!cell) return;
     var addBtn = cell.querySelector(':scope > .addact');
     if(!addBtn) return;
