@@ -415,23 +415,30 @@
   .monthpop .addbtn { width:100%; border:none; background:var(--primary); color:#fff; border-radius:6px;
     padding:7px; font:inherit; font-weight:700; cursor:pointer; }
 
-  /* No touch-action:none — that unconditionally blocked the browser's
-     own touch scrolling over the day-number label, drag intent or not.
-     wireDragStarter's own long-press gate (see its own comment) is what
-     actually distinguishes a drag from a scroll on touch now. */
+  /* No touch-action:none here — that unconditionally blocked the
+     browser's own touch scrolling over the day-number label, drag intent
+     or not. Touch no longer drags from anywhere on this element at all
+     (see attachCellDragHandle's shouldSkip) — it goes through tap-to-
+     select (.cell-selected below) then the dedicated .cell-drag-handle,
+     which CAN safely be touch-action:none since it's a small, unambiguous
+     target rather than the scroll surface itself. */
   .cellhead-draggable { cursor:grab; }
   .cell-dragging { opacity:.45; }
   .cell-dragover { outline:2px dashed var(--primary); outline-offset:2px; }
   .act-dragging { opacity:.45; }
   /* Applied the moment the drag actually engages (see wireDragStarter's
-     onStart) — on touch that's right when the long press completes,
-     before any movement, so lifting a finger and pausing gives a clear
-     "this is grabbed now, drag it up or down" confirmation instead of
-     the first sign of anything happening being the item already moving
-     under your finger. .act-dragging (the opacity fade) still layers on
-     top once actual movement starts. outline, not border — doesn't
-     affect the box's own layout/padding. */
+     onStart) — before any movement, so lifting a finger and pausing gives
+     a clear "this is grabbed now, drag it up or down" confirmation
+     instead of the first sign of anything happening being the item
+     already moving under your finger. .act-dragging (the opacity fade)
+     still layers on top once actual movement starts. outline, not
+     border — doesn't affect the box's own layout/padding. */
   .act-armed { outline:2px dashed var(--primary); outline-offset:2px; }
+  /* Tap-to-select state (mobile touch drag entry point) — same dashed
+     language as .act-armed/.cell-dragover, applied while waiting for the
+     user to actually grab the handle that appears alongside it. */
+  .cell-selected, .act-selected { outline:2px dashed var(--primary); outline-offset:2px; }
+  .cell-drag-handle, .act-drag-handle { display:none; }
 
   /* The "…" trigger stays top-right on its own now — status text moved to
      #statusBar (bottom-right) and everything else that used to be its own
@@ -848,15 +855,27 @@
       background:var(--line); color:var(--ink); border-radius:6px; width:30px; height:26px; padding:0; cursor:pointer; }
     .editicon svg { width:15px; height:15px; }
     .editicon:active { background:var(--primary); color:#fff; }
+    /* The handle only exists in the DOM to be revealed once its cell/
+       activity is tap-selected (see .cell-selected/.act-selected above) —
+       touch-action:none is safe here specifically because it's a small,
+       dedicated target reached only after that explicit tap, not the
+       scroll surface itself. */
+    .cell-selected .cell-drag-handle, .act-selected .act-drag-handle {
+      display:flex; align-items:center; justify-content:center; border:none;
+      background:var(--primary); color:#fff; border-radius:6px; width:34px; height:30px;
+      padding:0; cursor:grab; touch-action:none; }
+    .cell-drag-handle svg, .act-drag-handle svg { width:17px; height:17px; }
+    .act-drag-handle { margin-right:6px; flex-shrink:0; }
     /* Direct tap-to-edit on these specific fields is disabled now that
        .editicon opens a proper modal for all of them — pointer-events
        (not removing contenteditable in JS) so it degrades cleanly with
        the existing breakpoint rather than needing its own viewport check,
        and the tap instead falls through to the card underneath, which is
-       exactly what wireDragStarter's long-press-drag already listens on.
-       .loc (the day's own location text) is deliberately NOT included —
-       there's no modal covering that field yet, so disabling it here
-       would remove the only way to edit it on mobile. */
+       now the tap-to-select-then-drag-handle flow above rather than a
+       long-press (see attachItemControls' shouldSkip). .loc (the day's
+       own location text) is deliberately NOT included — there's no modal
+       covering that field yet, so disabling it here would remove the
+       only way to edit it on mobile. */
     .acts li .title, .acts li .line, .acts li .price-val, .acts li .price-note { pointer-events:none; }
     .icon-btn { width: 34px; height: 34px; }
     .icon-btn svg { width: 18px; height: 18px; }
@@ -2319,6 +2338,14 @@
     }
   });
 
+  // Tapping anywhere outside the currently selected cell/activity (and
+  // outside its own now-visible handle) cancels the tap-to-select drag
+  // flow — same "tap away to dismiss" convention as popovers above.
+  document.addEventListener('click', function(e){
+    if(selectedDragCell && !e.target.closest('.cell-selected, .cell-drag-handle')) deselectCellDrag();
+    if(selectedDragAct && !e.target.closest('.act-selected, .act-drag-handle')) deselectActDrag();
+  });
+
   // Shared popover placement: anchor below-left of the trigger element, then
   // clamp so it can't run off the right/bottom edge on narrow (mobile) viewports.
   function positionPopover(pop, anchorEl){
@@ -3005,23 +3032,41 @@
     if(tagctl) tagctl.insertBefore(editBtn, tagctl.firstChild);
     else li.insertBefore(editBtn, li.firstChild);
 
-    // No dedicated drag handle any more — pointerdown anywhere on the
-    // activity that isn't one of its actual controls (tag, checkbox,
-    // menu, edit button, a link, or editable text) can turn into a drag,
-    // via the shared wireDragStarter (see its own comment — preventDefault
-    // below it, not this pointerdown, is deliberate: doing it eagerly on
-    // every pointerdown blocked the browser's own default click behavior
-    // for ANY click elsewhere on the page, including the blur that
-    // normally ends editing a different activity's title, which is what
-    // made the "..." menu/"+ Add activity" hover controls look stuck
-    // showing on whatever was last focused, for days no longer even being
-    // hovered).
+    // Mouse: pointerdown anywhere on the activity that isn't one of its
+    // actual controls (tag, checkbox, menu, edit button, a link, or
+    // editable text) can turn into a drag, via the shared wireDragStarter
+    // (see its own comment — preventDefault below it, not this
+    // pointerdown, is deliberate: doing it eagerly on every pointerdown
+    // blocked the browser's own default click behavior for ANY click
+    // elsewhere on the page, including the blur that normally ends
+    // editing a different activity's title, which is what made the
+    // "..." menu/"+ Add activity" hover controls look stuck showing on
+    // whatever was last focused, for days no longer even being hovered).
+    // Touch is skipped entirely here — it goes through the tap-to-select
+    // + dedicated handle flow below instead (see isMobileUI's comment).
     wireDragStarter(li, {
-      shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
+      shouldSkip: function(e){ return e.pointerType === 'touch' || e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, .act-drag-handle, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
       onEnd: onActDragEnd
+    });
+    li.addEventListener('click', function(e){
+      if(!isMobileUI() || e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, .act-drag-handle, a, [contenteditable="true"]')) return;
+      selectActForDrag(li);
+    });
+    var dragHandle = document.createElement('button');
+    dragHandle.type = 'button'; dragHandle.className = 'act-drag-handle';
+    dragHandle.title = 'Drag to move'; dragHandle.setAttribute('aria-label', 'Drag to move');
+    dragHandle.innerHTML = ICON_DRAG_HANDLE;
+    dragHandle.addEventListener('click', function(e){ e.stopPropagation(); });
+    li.insertBefore(dragHandle, li.firstChild);
+    wireDragStarter(dragHandle, {
+      immediate: true,
+      moveThreshold: 5,
+      onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
+      onMove: onActDragMove,
+      onEnd: function(e){ onActDragEnd(); deselectActDrag(); }
     });
 
     var chip = li.querySelector('.chip');
@@ -3278,7 +3323,7 @@
         if(ev.pointerId !== pid) return;
         if(!engaged){
           var dx = Math.abs(ev.clientX - startX), dy = Math.abs(ev.clientY - startY);
-          if(e.pointerType === 'touch'){
+          if(e.pointerType === 'touch' && !opts.immediate){
             if(dx > DRAG_TOUCH_CANCEL_PX || dy > DRAG_TOUCH_CANCEL_PX){
               if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
               cleanup();
@@ -3300,10 +3345,46 @@
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
       document.addEventListener('pointercancel', onUp);
-      if(e.pointerType === 'touch'){
+      // opts.immediate is for small dedicated drag handles reached only
+      // after an explicit tap-to-select — intent is already unambiguous
+      // there, so touch engages the same way mouse always has (no long
+      // press, no race against native scroll) instead of waiting out the
+      // timer below, which is only for touch starting anywhere on a much
+      // larger surface that also needs to keep scrolling normally.
+      if(e.pointerType === 'touch' && !opts.immediate){
         longPressTimer = setTimeout(function(){ longPressTimer = null; engage(null); }, DRAG_LONG_PRESS_MS);
       }
     });
+  }
+
+  function isMobileUI(){ return window.matchMedia('(max-width:720px)').matches; }
+
+  // Touch dragging (day cells and activities, below) races the browser's
+  // own native scroll on any real device and reliably loses — there's no
+  // dedicated handle on the whole draggable surface, so touch-action has
+  // to stay permissive there for scrolling to work at all, which means
+  // the browser can commit to a scroll on its own before a JS long-press
+  // timer ever gets a say. Google-Sheets-style tap-to-select-then-drag
+  // sidesteps the race entirely: selecting is a plain tap (never
+  // ambiguous with scrolling), and only the small handle that then
+  // appears is actually draggable — safe to lock down with
+  // touch-action:none since it's a dedicated target, not the scroll
+  // surface itself.
+  var ICON_DRAG_HANDLE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+  var selectedDragCell = null, selectedDragAct = null;
+  function deselectCellDrag(){ if(selectedDragCell){ selectedDragCell.classList.remove('cell-selected'); selectedDragCell = null; } }
+  function deselectActDrag(){ if(selectedDragAct){ selectedDragAct.classList.remove('act-selected'); selectedDragAct = null; } }
+  function selectCellForDrag(head){
+    if(selectedDragCell === head){ deselectCellDrag(); return; }
+    deselectCellDrag(); deselectActDrag();
+    head.classList.add('cell-selected');
+    selectedDragCell = head;
+  }
+  function selectActForDrag(li){
+    if(selectedDragAct === li){ deselectActDrag(); return; }
+    deselectCellDrag(); deselectActDrag();
+    li.classList.add('act-selected');
+    selectedDragAct = li;
   }
 
   // Drag one day onto another to swap their full content (location,
@@ -3317,10 +3398,28 @@
     head.dataset.dragWired = '1';
     head.classList.add('cellhead-draggable');
     wireDragStarter(head, {
+      shouldSkip: function(e){ return e.pointerType === 'touch'; },
       moveThreshold: 6,
       onStart: function(e){ cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false }; },
       onMove: onCellDragMove,
       onEnd: onCellDragEnd
+    });
+    head.addEventListener('click', function(e){
+      if(!isMobileUI() || e.target.closest('.cell-drag-handle')) return;
+      selectCellForDrag(head);
+    });
+    var handle = document.createElement('button');
+    handle.type = 'button'; handle.className = 'cell-drag-handle';
+    handle.title = 'Drag to swap days'; handle.setAttribute('aria-label', 'Drag to swap days');
+    handle.innerHTML = ICON_DRAG_HANDLE;
+    handle.addEventListener('click', function(e){ e.stopPropagation(); });
+    head.appendChild(handle);
+    wireDragStarter(handle, {
+      immediate: true,
+      moveThreshold: 6,
+      onStart: function(e){ cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false }; },
+      onMove: onCellDragMove,
+      onEnd: function(e){ onCellDragEnd(e); deselectCellDrag(); }
     });
   }
   function onCellDragMove(e){
