@@ -498,9 +498,21 @@
   .acts li [contenteditable="true"] { cursor:text; }
   .acts li .chip, .acts li .booked-check, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
 
+  /* width:max-content (not a fixed 160px) — a fixed width let a longer
+     row's nowrap text spill past the menu's own edge in some languages
+     (Italian "Segna come prenotato" is wider than the English original
+     it was sized for), with the row's own hover highlight stopping at
+     the old fixed boundary instead of covering the overflowing text —
+     min/max keep it from looking too narrow with short rows or
+     unreasonably wide. */
   .itemmenu { position:absolute; z-index:55; background:var(--card); border:1px solid var(--line);
-    border-radius:10px; padding:4px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px; width:160px; }
-  .itemmenu-row { padding:6px 8px; border-radius:6px; cursor:pointer; white-space:nowrap; }
+    border-radius:10px; padding:4px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px;
+    width:max-content; min-width:160px; max-width:260px; }
+  /* No white-space:nowrap — with .itemmenu's own width now max-content
+     (capped at 260px), nowrap here would just let a row wider than that
+     cap overflow past the menu's edge instead of wrapping onto a second
+     line, the exact failure mode this is fixing. */
+  .itemmenu-row { padding:6px 8px; border-radius:6px; cursor:pointer; }
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
