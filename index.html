@@ -862,14 +862,25 @@
        release is well under the hold window, so it never reads as drag
        intent). */
     .acts li .title, .acts li .line, .acts li .price-val, .acts li .price-note { pointer-events:none; }
-    /* Without this, holding still for the long press is exactly what
-       iOS/Android's own text-selection callout (magnifier + "Copy"
-       popup) also waits for — it was winning the race a beat after
-       wireDragStarter's own timer, hijacking the touch and cancelling
-       the pointer sequence, which showed up as .act-armed/.cell-armed
-       flashing on then immediately back off before a drag could start. */
+    /* Defends against iOS/Android's own text-selection callout
+       (magnifier + "Copy" popup) stepping in on a hold, same idea as
+       the touch-action:none right below — belt and suspenders, since
+       either one alone should already stop it from hijacking the touch
+       once something's selected for drag. */
     .acts li, .cellhead-draggable, .loc {
       -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+    /* The actual fix for the touch-vs-scroll race: once something is
+       selected (.act-armed/.cell-armed, see attachItemControls/
+       attachCellDragHandle's click listeners), it's no longer ambiguous
+       whether the NEXT touch on it means "drag" or "just scrolling past"
+       — the explicit tap that selected it already settled that. Locking
+       touch-action to none from that point on means the browser never
+       gets a chance to start its own scroll for that next touch at all,
+       which a same-gesture preventDefault() can't reliably undo once
+       native panning has already committed. Everything NOT currently
+       selected keeps its default touch-action, so scrolling past it is
+       untouched. */
+    .act-armed, .cell-armed { touch-action:none; }
     .icon-btn { width: 34px; height: 34px; }
     .icon-btn svg { width: 18px; height: 18px; }
   }
@@ -3108,15 +3119,32 @@
     // different activity's title, which is what made the "..." menu/
     // "+ Add activity" hover controls look stuck showing on whatever was
     // last focused, for days no longer even being hovered). Mouse
-    // engages immediately; touch needs a long press first (see
-    // wireDragStarter's own comment) so a plain tap/scroll never turns
-    // into an accidental drag.
+    // engages immediately from anywhere, same as it always has — desktop
+    // has no scroll-vs-drag ambiguity to protect against. Touch is the
+    // same Google-Sheets two-step: a plain tap selects the activity
+    // first (see the click listener below, .act-armed is reused as the
+    // "selected" state), and only once it's selected does touching it
+    // again engage a drag — by then intent is already unambiguous, so
+    // it can engage immediately too (opts.immediate), no long-press
+    // needed, and .act-armed's own touch-action:none (mobile CSS) is
+    // already in effect before that second touch even starts, so there's
+    // no race against native scroll left to lose.
     wireDragStarter(li, {
-      shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
+      shouldSkip: function(e){
+        if(e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]')) return true;
+        return e.pointerType === 'touch' && !li.classList.contains('act-armed');
+      },
+      immediate: true,
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
       onEnd: onActDragEnd
+    });
+    li.addEventListener('click', function(e){
+      if(!isMobileUI() || e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]')) return;
+      if(li.classList.contains('act-armed')){ li.classList.remove('act-armed'); return; }
+      deselectDragTargets();
+      li.classList.add('act-armed');
     });
 
     var chip = li.querySelector('.chip');
@@ -3406,17 +3434,33 @@
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
       document.addEventListener('pointercancel', onUp);
-      // opts.immediate is for small dedicated drag handles reached only
-      // after an explicit tap-to-select — intent is already unambiguous
-      // there, so touch engages the same way mouse always has (no long
-      // press, no race against native scroll) instead of waiting out the
-      // timer below, which is only for touch starting anywhere on a much
-      // larger surface that also needs to keep scrolling normally.
+      // opts.immediate is for touches that already passed through an
+      // explicit tap-to-select (shouldSkip only lets them through once
+      // selected) — intent is already unambiguous there, so touch
+      // engages the same way mouse always has (no long press, no race
+      // against native scroll) instead of waiting out the timer below,
+      // which is only for touch starting anywhere on a surface that
+      // still needs to keep scrolling normally for everyone else.
       if(e.pointerType === 'touch' && !opts.immediate){
         longPressTimer = setTimeout(function(){ longPressTimer = null; engage(null); }, DRAG_LONG_PRESS_MS);
       }
     });
   }
+
+  function isMobileUI(){ return window.matchMedia('(max-width:720px)').matches; }
+  // .act-armed/.cell-armed double as the "selected for drag" state on
+  // touch (see attachItemControls/attachCellDragHandle's click
+  // listeners) — only one thing selected at a time.
+  function deselectDragTargets(){
+    document.querySelectorAll('.act-armed, .cell-armed').forEach(function(el){
+      el.classList.remove('act-armed', 'cell-armed');
+    });
+  }
+  // Tapping anywhere outside the currently selected activity/cell cancels
+  // the selection — same "tap away to dismiss" convention as popovers.
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.act-armed, .cell-armed')) deselectDragTargets();
+  });
 
   // Auto-scrolls the page while a day/activity drag is in progress and
   // the pointer sits near the top or bottom edge of the viewport, so you
@@ -3454,10 +3498,14 @@
   // what's in them. Pressing anywhere from the day-number header down
   // through the location line can start the drag (not the activities
   // list below, which has its own drag via attachItemControls, nor the
-  // day's own buttons); a light tap on the location text still just
-  // focuses it to edit, same reasoning as activities below — a normal
-  // tap-release is well under the long-press window so it never reads
-  // as drag intent.
+  // day's own buttons). Mouse engages immediately, same as always.
+  // Touch is the same select-then-drag two-step as activities (see
+  // attachItemControls' own comment) — a plain tap selects the day
+  // first (.cell-armed), and only then does touching it again engage a
+  // drag, immediately, with touch-action:none already active from the
+  // selection itself. A light tap on the location text still just
+  // focuses it to edit either way — a tap-release never reaches the
+  // "already selected" gate below since selecting IS the tap.
   var cellDrag = null;
   function attachCellDragHandle(cell){
     if(cell.dataset.dragWired) return;
@@ -3465,11 +3513,21 @@
     var head = cell.querySelector(':scope > .cellhead');
     if(head) head.classList.add('cellhead-draggable');
     wireDragStarter(cell, {
-      shouldSkip: function(e){ return e.target.closest('.acts, .addact, .cleardaybtn, a'); },
+      shouldSkip: function(e){
+        if(e.target.closest('.acts, .addact, .cleardaybtn, a')) return true;
+        return e.pointerType === 'touch' && !cell.classList.contains('cell-armed');
+      },
+      immediate: true,
       moveThreshold: 6,
       onStart: function(e){ cellDrag = { cell: cell, startX: e.clientX, startY: e.clientY, moved: false }; cell.classList.add('cell-armed'); },
       onMove: onCellDragMove,
       onEnd: onCellDragEnd
+    });
+    cell.addEventListener('click', function(e){
+      if(!isMobileUI() || e.target.closest('.acts, .addact, .cleardaybtn, a')) return;
+      if(cell.classList.contains('cell-armed')){ cell.classList.remove('cell-armed'); return; }
+      deselectDragTargets();
+      cell.classList.add('cell-armed');
     });
   }
   function onCellDragMove(e){
