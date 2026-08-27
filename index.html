@@ -454,7 +454,11 @@
      the mobile media query below turns it on. */
   #mobileAddFab { display:none; }
 
-  .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; touch-action:none; }
+  /* No touch-action:none — same reasoning as .cellhead-draggable above:
+     reorder-drag only ever engages for non-touch pointers now, so this
+     was just blocking the mobile pills bar's own native horizontal
+     scroll for no benefit. */
+  .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; }
   .pill.dragging { opacity:.55; cursor:grabbing; }
   /* Stays on one line and lets the pill grow wider instead — without
      this, editing a name could squeeze the contenteditable span down to
@@ -780,7 +784,8 @@
     .pills { left:0; right:0; top:auto; bottom:0; gap:8px;
       flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto;
       padding:10px 74px 10px 8px; box-shadow:0 -2px 8px rgba(0,0,0,.15);
-      scrollbar-width:none; -ms-overflow-style:none; }
+      scrollbar-width:none; -ms-overflow-style:none;
+      -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; }
     /* Hide the scrollbar itself (WebKit/Blink) — scrolling still works,
        there's just no visible track/thumb cluttering the tab strip. */
     .pills::-webkit-scrollbar { display:none; }
@@ -3249,7 +3254,11 @@
   // and leaves the pointer alone, so the browser's own scroll takes over
   // exactly like it would if this listener weren't here at all.
   var DRAG_LONG_PRESS_MS = 450;
-  var DRAG_TOUCH_CANCEL_PX = 8;
+  // 8px was too tight for a real finger — ordinary hold-still tremor on a
+  // phone regularly exceeds that within the 450ms window, tripping the
+  // cancel-to-scroll path before the long press ever gets a chance to
+  // complete, which read as "I scroll instead of dragging."
+  var DRAG_TOUCH_CANCEL_PX = 18;
   function wireDragStarter(el, opts){
     el.addEventListener('pointerdown', function(e){
       if(opts.shouldSkip && opts.shouldSkip(e)) return;
@@ -4735,7 +4744,9 @@
   // query) since this one menu covers everything they did.
   if(mobileAddFab) mobileAddFab.addEventListener('click', function(e){
     e.stopPropagation();
+    var alreadyOpen = openPop && openPop.classList.contains('fab-menu');
     closePop();
+    if(alreadyOpen) return;
     var pop = document.createElement('div');
     pop.className = 'itemmenu fab-menu';
     function menuRow(label, fn){
