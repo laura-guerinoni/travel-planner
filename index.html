@@ -162,6 +162,14 @@
     min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; }
   .cell.empty { background:transparent; border:none; min-height:0; }
   .cell.active { border-color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  /* Whole day tints green once every real activity in it is booked — a
+     JS-toggled class (see updateCellAllBooked), not a :has() expression:
+     the natural selector needs :has() nested inside another :has(), which
+     every engine rejects as an invalid selector (a hard CSS restriction,
+     not a support gap). */
+  .cell.all-booked {
+    background:rgba(63,217,109,.14);
+  }
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
   .wd { font-size:11px; color:var(--muted); }
@@ -1865,7 +1873,26 @@
       }
       badge.textContent = formatMoney(sum);
     }
+    updateCellAllBooked(cell);
     recomputePanel(cell.closest('.panel'));
+  }
+
+  // Tints the whole day once every real activity in it is booked — plain
+  // JS toggling a class rather than a CSS :has() expression, because the
+  // natural selector for "no activity is missing a checked checkbox" is
+  // :not(:has(...)) nested inside the cell's own :has(...), and :has()
+  // can't contain another :has() in its argument (a hard CSS restriction,
+  // not a support gap — every engine throws on it). Ghosts (a multi-day
+  // activity's read-only echo elsewhere) have no checkbox of their own
+  // and don't count. Called from recomputeCell (covers add/delete/drag,
+  // anything that changes which activities are even in the cell) and
+  // directly from the checkbox's own change handler (recomputeCell isn't
+  // otherwise triggered by just checking a box).
+  function updateCellAllBooked(cell){
+    var real = Array.prototype.slice.call(cell.querySelectorAll(':scope > .acts > li'))
+      .filter(function(li){ return !li.classList.contains('act-span-ghost'); });
+    var allBooked = real.length > 0 && real.every(function(li){ return li.hasAttribute('data-booked'); });
+    cell.classList.toggle('all-booked', allBooked);
   }
 
   // Matched by data-opt (not DOM position) everywhere, so pills, panels, and
@@ -2549,6 +2576,8 @@
         if(bookedCheck.checked) li.setAttribute('data-booked', '1');
         else li.removeAttribute('data-booked');
         renderBooked(li);
+        var cell = li.closest('.cell');
+        if(cell) updateCellAllBooked(cell);
       });
     }
     li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
