@@ -166,9 +166,17 @@
      JS-toggled class (see updateCellAllBooked), not a :has() expression:
      the natural selector needs :has() nested inside another :has(), which
      every engine rejects as an invalid selector (a hard CSS restriction,
-     not a support gap). */
+     not a support gap).
+     Same opaque var(--card) base + translucent gradient as the checked
+     activity cards themselves (see .acts li below) — a plain rgba()
+     here replaces .cell's own opaque background with the shorthand
+     (background resets background-image too), so the tint ends up
+     blended against the page behind the cell instead of white, a
+     visibly different, slightly duller green than the activity cards'
+     own tint sitting on white. */
   .cell.all-booked {
-    background:rgba(63,217,109,.14);
+    background-color:var(--card);
+    background-image:linear-gradient(rgba(63,217,109,.14), rgba(63,217,109,.14));
   }
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
