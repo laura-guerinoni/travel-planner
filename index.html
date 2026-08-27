@@ -423,6 +423,15 @@
   .cell-dragging { opacity:.45; }
   .cell-dragover { outline:2px dashed var(--primary); outline-offset:2px; }
   .act-dragging { opacity:.45; }
+  /* Applied the moment the drag actually engages (see wireDragStarter's
+     onStart) — on touch that's right when the long press completes,
+     before any movement, so lifting a finger and pausing gives a clear
+     "this is grabbed now, drag it up or down" confirmation instead of
+     the first sign of anything happening being the item already moving
+     under your finger. .act-dragging (the opacity fade) still layers on
+     top once actual movement starts. outline, not border — doesn't
+     affect the box's own layout/padding. */
+  .act-armed { outline:2px dashed var(--primary); outline-offset:2px; }
 
   /* The "…" trigger stays top-right on its own now — status text moved to
      #statusBar (bottom-right) and everything else that used to be its own
@@ -2971,7 +2980,7 @@
     wireDragStarter(li, {
       shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
       moveThreshold: 5,
-      onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; },
+      onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
       onEnd: onActDragEnd
     });
@@ -3409,6 +3418,7 @@
     else acts.appendChild(actDrag.li);
   }
   function onActDragEnd(){
+    if(actDrag) actDrag.li.classList.remove('act-armed');
     if(actDrag && actDrag.moved){
       actDrag.li.classList.remove('act-dragging');
       var newCell = actDrag.li.closest('.cell');
