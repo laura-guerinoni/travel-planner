@@ -862,6 +862,14 @@
        release is well under the hold window, so it never reads as drag
        intent). */
     .acts li .title, .acts li .line, .acts li .price-val, .acts li .price-note { pointer-events:none; }
+    /* Without this, holding still for the long press is exactly what
+       iOS/Android's own text-selection callout (magnifier + "Copy"
+       popup) also waits for — it was winning the race a beat after
+       wireDragStarter's own timer, hijacking the touch and cancelling
+       the pointer sequence, which showed up as .act-armed/.cell-armed
+       flashing on then immediately back off before a drag could start. */
+    .acts li, .cellhead-draggable, .loc {
+      -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
     .icon-btn { width: 34px; height: 34px; }
     .icon-btn svg { width: 18px; height: 18px; }
   }
