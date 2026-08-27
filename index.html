@@ -225,6 +225,15 @@
   .acts li:has(> .tagrow .booked-check:checked) {
     background:rgba(63,217,109,.14);
   }
+  /* Once the whole day is already green (.cell.all-booked), an
+     activity's own tint on top of that read as a visibly darker second
+     green box rather than one consistent color — the two opacities
+     stacking. Once every activity is booked they're always ALL tinted
+     (that's what earns the cell its own tint in the first place), so
+     turning this off here just removes the double-up, not the color. */
+  .cell.all-booked .acts li:has(> .tagrow .booked-check:checked) {
+    background:transparent;
+  }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
 
