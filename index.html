@@ -221,18 +221,17 @@
   /* Checking an activity tints the whole card, not just the checkbox —
      easy to spot what's already sorted at a glance among a busy day.
      Padding/radius are shared with every activity (see .acts li above)
-     so this never shifts anything, only colors it. */
+     so this never shifts anything, only colors it.
+     Opaque var(--card) base + translucent gradient on top (same trick
+     as the holiday .banner elsewhere), not a plain translucent
+     background — a plain rgba() here would show a visibly DARKER green
+     once the whole day also earns its own tint (.cell.all-booked, right
+     below), the two translucent layers stacking instead of reading as
+     one consistent color. This renders identically whether the card
+     sits on a white cell or an already-green one. */
   .acts li:has(> .tagrow .booked-check:checked) {
-    background:rgba(63,217,109,.14);
-  }
-  /* Once the whole day is already green (.cell.all-booked), an
-     activity's own tint on top of that read as a visibly darker second
-     green box rather than one consistent color — the two opacities
-     stacking. Once every activity is booked they're always ALL tinted
-     (that's what earns the cell its own tint in the first place), so
-     turning this off here just removes the double-up, not the color. */
-  .cell.all-booked .acts li:has(> .tagrow .booked-check:checked) {
-    background:transparent;
+    background-color:var(--card);
+    background-image:linear-gradient(rgba(63,217,109,.14), rgba(63,217,109,.14));
   }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
