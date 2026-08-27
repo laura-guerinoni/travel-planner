@@ -223,7 +223,14 @@
      extra unused space on narrower cases is harmless. */
   .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; position:relative; padding-right:104px; }
   .tagrow .chip { margin-bottom:0; }
-  .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; }
+  /* flex-shrink:0/white-space:nowrap — as a flex item of .tagrow, a chip
+     with no explicit width otherwise shrinks to fit whatever space is
+     left once .tagrow's padding-right (reserved for the pinned .tagctl)
+     eats into it, wrapping its own text one syllable per line instead of
+     just staying its natural pill shape. The row wrapping (an icon
+     dropping to its own line) is exactly what should happen when space
+     runs out — the chip itself never should. */
+  .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; flex-shrink:0; white-space:nowrap; }
   .tagctl { position:absolute; top:0; right:0; display:flex; align-items:center; gap:6px; }
   /* Fully custom rather than accent-color — a native unchecked checkbox
      renders with a heavy, dark OS-drawn border regardless of accent-color
