@@ -605,6 +605,20 @@
   .ticketicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .ticketicon > svg { width:14px; height:14px; }
   .ticketicon:hover { color:var(--primary); }
+  /* Shown instead of .ticketicon when an activity has no ticket yet —
+     same slot (see renderTicket), a dashed circle around the same
+     outline icon rather than a bare glyph so an empty, tappable slot
+     reads more clearly than .ticketicon's plain icon would if it were
+     just always there whether or not anything's attached. Tapping it
+     calls pickTicket directly, the same file picker the "..." menu's
+     own "Ticket" row already opens — this is a shortcut alongside that,
+     not a replacement for it. */
+  .ticket-add-btn { position:relative; top:-2px; display:inline-flex; align-items:center; justify-content:center;
+    vertical-align:middle; margin-left:4px; width:18px; height:18px; border-radius:50%;
+    border:1.5px dashed var(--muted); color:var(--muted); cursor:pointer;
+    transition:border-color .12s, background .12s, color .12s; }
+  .ticket-add-btn svg { width:10px; height:10px; }
+  .ticket-add-btn:hover { border-style:solid; border-color:var(--primary); background:var(--bg); color:var(--primary); }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
@@ -835,10 +849,12 @@
        icons' own rule for why); an absolutely-positioned pseudo-element
        sits outside normal layout flow entirely, so the visible glyph's
        size and alignment stay exactly as tuned. */
-    .photoicon::before, .ticketicon::before {
+    .photoicon::before, .ticketicon::before, .ticket-add-btn::before {
       content: ''; position: absolute; inset: -11px;
     }
     .photoicon > svg, .ticketicon > svg { width: 18px; height: 18px; }
+    .ticket-add-btn { width: 22px; height: 22px; }
+    .ticket-add-btn svg { width: 12px; height: 12px; }
     /* Always visible, not hover-gated — touch has no real hover state;
        relying on it either hides the button entirely or (on the phones
        that fake a hover on first tap) needs a tap-it-twice workaround,
@@ -2877,8 +2893,10 @@
   function renderTicket(li){
     var url = li.getAttribute('data-ticket') || '';
     var existing = li.querySelector('.ticketicon');
+    var addBtn = li.querySelector('.ticket-add-btn');
     if(!url){
       if(existing) existing.remove();
+      if(addBtn) addBtn.style.display = '';
       // A ticket is what marks an activity (and, once every activity in
       // it has one, the whole day) as booked now — removing it can take
       // the day out of all-booked, so that has to be re-checked here too.
@@ -2886,6 +2904,7 @@
       if(cellAfterRemove) updateCellAllBooked(cellAfterRemove);
       return;
     }
+    if(addBtn) addBtn.style.display = 'none';
     if(!existing){
       existing = document.createElement('span');
       existing.className = 'ticketicon';
@@ -3173,7 +3192,7 @@
     // which also takes over scrolling by hand for real (see its own
     // comment for why a single continuous gesture needs that).
     var actDragOpts = {
-      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
+      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, .editicon, .ticket-add-btn, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
@@ -3189,6 +3208,22 @@
         e.stopPropagation();
         openTagPicker(chip);
       });
+    }
+    // A one-tap shortcut for attaching a ticket, sitting right next to
+    // the chip instead of needing the "..." menu — same outline-then-
+    // filled-in idea as the tag chip itself picking up a color once set.
+    // Shown/hidden by renderTicket based on whether a ticket exists;
+    // this is only ever created once, then toggled.
+    if(chip && !li.querySelector('.ticket-add-btn')){
+      var ticketAddBtn = document.createElement('span');
+      ticketAddBtn.className = 'ticket-add-btn';
+      ticketAddBtn.title = 'Add ticket';
+      ticketAddBtn.innerHTML = ICON_TICKET;
+      ticketAddBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        pickTicket(li);
+      });
+      chip.insertAdjacentElement('afterend', ticketAddBtn);
     }
     li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
     li.querySelectorAll('.line').forEach(function(lineEl){
