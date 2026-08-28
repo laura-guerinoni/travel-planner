@@ -107,6 +107,12 @@
   .pill .pill-price { display:inline-block; opacity:1; background:rgba(0,0,0,.08);
     border-radius:999px; padding:2px 8px; font-size:12px; }
   .pill.on .pill-price { background:rgba(255,255,255,.25); }
+  /* Day–day only (no month/year — both are obvious from the calendar
+     already showing) — only present when the option actually has a
+     holiday/time-off span set (see holidayRangeShort); empty otherwise,
+     so an option without one just has one less thing between name and
+     price. */
+  .pill-dates:not(:empty) { font-size:11px; margin:0 2px; }
   /* Extra padding-right (9px, vs the base 6px) so the × sits centered
      between the price pill and the dashed border's own inset right edge
      (4px in from the pill) instead of crowding the dashed line — only
@@ -597,16 +603,20 @@
      long as something inside it still held focus. */
   .cell:hover .addloc { display:block; }
   .cell:has(> .loc) .addloc { display:none; }
-  /* Day-level "..."/"+" controls, sitting in .cellhead's top-right corner
-     (that space freed up once the total moved down into .loc — see
-     above). Same hidden-until-hover, stays-visible-while-its-own-popover-
-     is-open language as .itemmenu-btn on an activity row, just smaller
-     and icon-only; .daymenu-btn additionally only shows once there's
-     something on the day worth clearing/moving (.has-content), same
-     gating the old inline trash button had. */
+  /* Day-level "..."/"+" controls, sitting right after the weekday label in
+     .cellhead (that space freed up once the total moved down into .loc —
+     see above) — .cellhead's own flex gap is what spaces them, not a
+     margin of their own, so they sit flush with no extra offset. Same
+     hidden-until-hover, stays-visible-while-its-own-popover-is-open
+     language as .itemmenu-btn on an activity row (down to matching its
+     border-radius exactly), just smaller and icon-only, and with no
+     background at rest — only on hover/while open; .daymenu-btn
+     additionally only shows once there's something on the day worth
+     clearing/moving (.has-content), same gating the old inline trash
+     button had. */
   .dayaddbtn, .daymenu-btn { visibility:hidden; display:inline-flex; align-items:center; justify-content:center;
-    flex:0 0 20px; width:20px; height:20px; margin-left:4px; border:none; border-radius:50%;
-    background:var(--bg); color:var(--ink); padding:0; cursor:pointer; }
+    flex:0 0 20px; width:20px; height:20px; border:none; border-radius:6px;
+    background:none; color:var(--ink); padding:0; cursor:pointer; }
   .dayaddbtn svg, .daymenu-btn svg { width:12px; height:12px; display:block; }
   .cell:hover .dayaddbtn { visibility:visible; }
   .dayaddbtn:hover { background:var(--primary); color:#fff; }
@@ -3139,7 +3149,7 @@
     pop.appendChild(loadingRow);
     positionPopover(pop, anchorEl);
 
-    loadMemberAvatarData(true).then(function(data){
+    function render(data){
       if(openPop !== pop) return;
       pop.innerHTML = '';
       if(!data.members.length){
@@ -3177,7 +3187,16 @@
       // the popover's size changed, so it needs repositioning or a tall
       // list could run off the bottom of the viewport.
       positionPopover(pop, anchorEl);
-    });
+    }
+    // Render from whatever's already cached first — instant, no
+    // "Loading…" flash, if this isn't the first popover opened this
+    // session. A background refresh still catches an invite/promote/
+    // remove that happened moments ago in Manage access, re-rendering
+    // when it lands; only fired when there was actually a cache to show
+    // first, so a cold start doesn't fire the fetch twice.
+    var hadCache = !!memberAvatarDataPromise;
+    loadMemberAvatarData().then(render);
+    if(hadCache) loadMemberAvatarData(true).then(render);
   }
 
   // ---- who's paying: an activity's price can be assigned to one person
@@ -3226,7 +3245,7 @@
     pop.appendChild(loadingRow);
     positionPopover(pop, anchorEl);
 
-    loadMemberAvatarData(true).then(function(data){
+    function render(data){
       if(openPop !== pop) return;
       pop.innerHTML = '';
       var priceVal = li.querySelector(':scope > .price > .price-val');
@@ -3283,7 +3302,17 @@
       });
       refreshHeader();
       positionPopover(pop, anchorEl);
-    });
+    }
+    // Render from the cache first — instant, no "Loading…" flash, if
+    // this isn't the first popover opened this session. Unlike the
+    // participant picker (see openParticipantPicker), the background
+    // refresh here only updates the cache silently, without re-rendering
+    // this popover — its rows are live <input>s, and rebuilding them out
+    // from under the user mid-keystroke would drop focus and interrupt
+    // typing.
+    var hadCache = !!memberAvatarDataPromise;
+    loadMemberAvatarData().then(render);
+    if(hadCache) loadMemberAvatarData(true);
   }
 
   // ---- photo ----
@@ -6808,6 +6837,16 @@
     if(!s || !e) return '';
     return '· ' + MONTH_FULL[month - 1] + ' ' + s + ' – ' + e + ', ' + year;
   }
+  // Same span as holidayRangeText, for the pill instead of the budget
+  // row — day–day only, no month/year (both already obvious from the
+  // calendar the pill switches to).
+  function holidayRangeShort(hol){
+    if(!hol || !hol.length) return '';
+    var s = hol[0].start, e = hol[0].end;
+    hol.forEach(function(h){ if(h.start < s) s = h.start; if(h.end > e) e = h.end; });
+    if(!s || !e) return '';
+    return s + '–' + e;
+  }
 
   function applyContentModel(model){
     if(!model || !Array.isArray(model.options) || !model.options.length) return false;
@@ -6878,9 +6917,10 @@
       pill.type = 'button';
       pill.className = 'pill' + (on ? ' on' : '');
       pill.setAttribute('data-opt', o.id);
-      pill.innerHTML = '<span class="pill-name"></span> <span class="pill-price">' + formatMoney(0) + '</span>' +
+      pill.innerHTML = '<span class="pill-name"></span><span class="pill-dates"></span> <span class="pill-price">' + formatMoney(0) + '</span>' +
         '<span class="pill-remove" title="Remove alternative">&times;</span>';
       pill.querySelector('.pill-name').textContent = o.nm || '';
+      pill.querySelector('.pill-dates').textContent = holidayRangeShort(o.h);
       if(addOptBtn) pillsWrap.insertBefore(pill, addOptBtn); else pillsWrap.appendChild(pill);
 
       var li = document.createElement('li');
