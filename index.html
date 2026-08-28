@@ -657,6 +657,14 @@
   .photoicon .photopreview, .ticketicon .photopreview { display:block; max-width:min(30vw, 420px); max-height:34vh;
     object-fit:contain; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     border:2px solid var(--card); background:#fff; }
+  /* A PDF ticket's preview (see buildTicketPreviewWrap/dataUrlToBlobUrl)
+     — an <iframe> instead of an <img>, so it needs an explicit width/
+     height rather than object-fit sizing off the media's own natural
+     dimensions. Same border/shadow treatment as .photopreview either
+     way, so the two read as the same kind of thing. */
+  .ticketpdf-preview { display:block; width:min(30vw, 420px); height:34vh;
+    border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+    border:2px solid var(--card); background:#fff; }
   /* Sits on top of the preview thumbnail itself rather than beside it, so
      the two actions are reachable from the same hover area that reveals
      the thumbnail in the first place — no separate hover target to find. */
@@ -2944,62 +2952,96 @@
       else if(tagrow) tagrow.insertBefore(existing, tagrow.firstChild);
       else li.insertBefore(existing, li.firstChild);
     }
-    // A PDF ticket can't be shown as an <img>, so it keeps the plain
-    // click-to-open-in-a-new-tab behavior above with no hover preview;
-    // an image ticket gets the exact same hover-preview treatment as
-    // .photoicon (see renderPhoto) — same wrap/img/ctl classes, just
-    // "expand" opens the ticket (no lightbox for these) and "delete"
-    // removes the ticket instead of the photo. Re-checked on every call
-    // (not just at creation), since "Replace ticket" can swap an image
-    // for a PDF or back without the .ticketicon node itself changing.
+    // An image ticket gets the exact same hover-preview treatment as
+    // .photoicon (see renderPhoto) — same wrap/img/ctl classes. A PDF
+    // ticket can't be shown as an <img>, so it gets a small iframe
+    // pointing at a Blob URL instead — every mainstream browser has a
+    // built-in PDF viewer that renders happily inside one, no extra
+    // library needed. Either way "expand" opens the ticket (no
+    // ticket-specific lightbox exists) and "delete" removes the ticket
+    // rather than a photo. Re-checked on every call (not just at
+    // creation), since "Replace ticket" can swap an image for a PDF or
+    // back without the .ticketicon node itself changing — buildPreviewWrap
+    // rebuilds the wrap if it's carrying the wrong element type for what
+    // the ticket is now.
     var wrap = existing.querySelector('.photopreview-wrap');
-    if(/^data:image\//.test(url)){
+    var isImage = /^data:image\//.test(url);
+    var isPdf = /^data:application\/pdf/.test(url);
+    if(isImage){
+      if(wrap && !wrap.querySelector('img')){ wrap.remove(); wrap = null; }
       if(!wrap){
-        wrap = document.createElement('span');
-        wrap.className = 'photopreview-wrap';
-        var img = document.createElement('img');
-        img.className = 'photopreview';
-        wrap.appendChild(img);
-
-        var ctl = document.createElement('span');
-        ctl.className = 'photoctl';
-        var expandBtn = document.createElement('button');
-        expandBtn.type = 'button'; expandBtn.title = 'View larger'; expandBtn.setAttribute('aria-label', 'View larger');
-        expandBtn.innerHTML = ICON_EXPAND;
-        expandBtn.addEventListener('click', function(ev){ ev.stopPropagation(); openTicket(li); });
-        var deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button'; deleteBtn.title = 'Remove ticket'; deleteBtn.setAttribute('aria-label', 'Remove ticket');
-        deleteBtn.innerHTML = ICON_TRASH;
-        deleteBtn.addEventListener('click', function(ev){ ev.stopPropagation(); removeTicketFromLi(li); });
-        ctl.appendChild(expandBtn);
-        ctl.appendChild(deleteBtn);
-        wrap.appendChild(ctl);
-
+        wrap = buildTicketPreviewWrap(li, 'img');
         existing.appendChild(wrap);
       }
       wrap.querySelector('img').src = url;
+    } else if(isPdf){
+      if(wrap && !wrap.querySelector('.ticketpdf-preview')){ wrap.remove(); wrap = null; }
+      if(!wrap){
+        wrap = buildTicketPreviewWrap(li, 'pdf');
+        existing.appendChild(wrap);
+      }
+      var frameEl = wrap.querySelector('.ticketpdf-preview');
+      if(frameEl.dataset.srcUrl !== url){
+        if(frameEl.src) URL.revokeObjectURL(frameEl.src);
+        frameEl.src = dataUrlToBlobUrl(url);
+        frameEl.dataset.srcUrl = url;
+      }
     } else if(wrap){
       wrap.remove();
     }
     var cell = li.closest('.cell');
     if(cell) updateCellAllBooked(cell);
   }
-  // Opens the ticket in a new tab. A raw data: URL is unreliable for
-  // window.open in several browsers (some block a data: URL as a new
-  // tab's top-level navigation outright) — converting to a Blob and an
-  // Object URL first opens exactly like any other same-origin resource,
-  // for both an image and a browser-native-rendered PDF.
-  function openTicket(li){
-    var url = li.getAttribute('data-ticket');
-    if(!url) return;
+  function buildTicketPreviewWrap(li, kind){
+    var wrap = document.createElement('span');
+    wrap.className = 'photopreview-wrap';
+    var previewEl;
+    if(kind === 'img'){
+      previewEl = document.createElement('img');
+      previewEl.className = 'photopreview';
+    } else {
+      previewEl = document.createElement('iframe');
+      previewEl.className = 'ticketpdf-preview';
+      previewEl.title = 'Ticket preview';
+    }
+    wrap.appendChild(previewEl);
+
+    var ctl = document.createElement('span');
+    ctl.className = 'photoctl';
+    var expandBtn = document.createElement('button');
+    expandBtn.type = 'button'; expandBtn.title = 'View larger'; expandBtn.setAttribute('aria-label', 'View larger');
+    expandBtn.innerHTML = ICON_EXPAND;
+    expandBtn.addEventListener('click', function(ev){ ev.stopPropagation(); openTicket(li); });
+    var deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button'; deleteBtn.title = 'Remove ticket'; deleteBtn.setAttribute('aria-label', 'Remove ticket');
+    deleteBtn.innerHTML = ICON_TRASH;
+    deleteBtn.addEventListener('click', function(ev){ ev.stopPropagation(); removeTicketFromLi(li); });
+    ctl.appendChild(expandBtn);
+    ctl.appendChild(deleteBtn);
+    wrap.appendChild(ctl);
+    return wrap;
+  }
+  // A raw data: URL is unreliable for window.open/iframe src in several
+  // browsers (some block a data: URL as a new tab's top-level navigation,
+  // or as a framed document, outright) — converting to a Blob and an
+  // Object URL first behaves exactly like any other same-origin
+  // resource, for both an image and a browser-native-rendered PDF.
+  function dataUrlToBlobUrl(url){
     var m = url.match(/^data:([^;]+);base64,(.*)$/);
-    if(!m){ window.open(url, '_blank'); return; }
+    if(!m) return url;
     var mime = m[1];
     var binary = atob(m[2]);
     var bytes = new Uint8Array(binary.length);
     for(var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     var blob = new Blob([bytes], { type: mime });
-    var objUrl = URL.createObjectURL(blob);
+    return URL.createObjectURL(blob);
+  }
+  // Opens the ticket in a new tab.
+  function openTicket(li){
+    var url = li.getAttribute('data-ticket');
+    if(!url) return;
+    var objUrl = dataUrlToBlobUrl(url);
+    if(objUrl === url){ window.open(url, '_blank'); return; }
     window.open(objUrl, '_blank');
     setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 60000);
   }
