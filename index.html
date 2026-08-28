@@ -3026,7 +3026,13 @@
   function findTimeLine(li){
     var lines = li.querySelectorAll(':scope > .line');
     for(var i = 0; i < lines.length; i++){
-      if(/\d{1,2}:\d{2}/.test(lines[i].textContent)) return lines[i];
+      // The 🕒 prefix marks a line as occupying the time slot even when
+      // its text has no parseable digits yet (legacy placeholder content
+      // like a bare "🕒 time") — without this, that slot silently reads
+      // as "notes" instead (see findDescLine), which both hides the
+      // "Add notes" option that should show and offers a redundant
+      // "Add time" for a slot that already has something in it.
+      if(/🕒/.test(lines[i].textContent) || /\d{1,2}:\d{2}/.test(lines[i].textContent)) return lines[i];
     }
     return null;
   }
@@ -3165,31 +3171,31 @@
 
     var hasMissing = false;
     if(!findTimeLine(li)){
-      row('Add time', function(){ addMissingField(li, 'time'); });
+      row('+  Add time', function(){ addMissingField(li, 'time'); });
       hasMissing = true;
     }
     var priceEl = li.querySelector(':scope > .price');
     if(!priceEl){
-      row('Add amount', function(){ addMissingField(li, 'amount'); });
+      row('+  Add amount', function(){ addMissingField(li, 'amount'); });
       hasMissing = true;
     }
     if(!findDescLine(li)){
-      row('Add notes', function(){ addMissingField(li, 'notes'); });
+      row('+  Add notes', function(){ addMissingField(li, 'notes'); });
       hasMissing = true;
     }
     if(hasMissing) divider();
 
-    row((li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
+    row('🎫  ' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
     if(li.hasAttribute('data-ticket')){
-      row('Remove ticket', function(){ removeTicketFromLi(li); });
+      row('✕  Remove ticket', function(){ removeTicketFromLi(li); });
     }
-    row('Links', function(){ openLinkManager(li, anchorEl); });
-    row('Photo', function(){ pickImage(li); });
+    row('↗  Links', function(){ openLinkManager(li, anchorEl); });
+    row('📷  Photo', function(){ pickImage(li); });
     divider();
 
-    row('Move up', function(){ moveActBy(li, -1); });
-    row('Move down', function(){ moveActBy(li, 1); });
-    row('Delete activity', function(){ deleteActivityLi(li); }, true);
+    row('↑  Move up', function(){ moveActBy(li, -1); });
+    row('↓  Move down', function(){ moveActBy(li, 1); });
+    row('✕  Delete activity', function(){ deleteActivityLi(li); }, true);
 
     positionPopover(pop, anchorEl);
   }
