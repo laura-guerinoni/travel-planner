@@ -202,36 +202,29 @@
      states. Same padding always, background/radius still conditional. */
   .acts li { font-size:11px; padding:6px; border-radius:8px; }
   /* .tagrow holds the tag chip (and, right after it in DOM order, any
-     photo/ticket icon — see renderPhoto/renderTicket) with .tagctl (the
-     item menu/edit/booked checkbox) pinned to its top-right corner.
-     .chip and .booked-check both stay findable via plain (not ":scope >")
-     lookups elsewhere (extractActivity, renderPhoto's anchor, the
-     span-ghost clone, attachItemControls) since they're one level deeper
-     than <li> now.
-     .tagctl is position:absolute rather than a normal flex sibling —
-     ordinary flex-wrap can only wrap trailing items, so pinning it via
-     margin-left:auto to the far right meant IT was what got pushed onto
-     a second line once the row ran out of room, not whichever photo/
-     ticket icon actually didn't fit. Taking it out of flow entirely
-     means it always stays in the corner, and the chip + any icons behind
-     it (still ordinary flex-wrap children) wrap independently — the icon
-     sits right next to the chip when there's room, and drops to its own
-     line, still right under the chip, only once there genuinely isn't.
-     padding-right on .tagrow reserves room for .tagctl at its usual
-     width so chip/icon text on the first line never renders underneath
-     it — sized for the widest case (3 icons, on mobile) since a little
-     extra unused space on narrower cases is harmless. */
-  .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; position:relative; padding-right:104px; }
+     photo/ticket icon — see renderPhoto/renderTicket) on the left, with
+     .tagctl (the item menu/edit/booked checkbox) pinned to the right via
+     margin-left:auto. .chip and .booked-check both stay findable via
+     plain (not ":scope >") lookups elsewhere (extractActivity,
+     renderPhoto's anchor, the span-ghost clone, attachItemControls)
+     since they're one level deeper than <li> now.
+     Deliberately NOT position:absolute for .tagctl — that briefly shipped
+     to make it the icon (not the checkbox) that wraps on overflow, but
+     broke badly on a real device: its containing block didn't resolve
+     to .tagrow the way it did in testing, and the checkbox rendered
+     detached, off in the corner of some much wider ancestor instead of
+     its own activity row. An ordinary flex child can never escape its
+     flex container's bounds like that, so plain flow wins even though it
+     means the checkbox (not just the icon) is occasionally what wraps to
+     its own line when a row is genuinely too tight for everything. */
+  .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; }
   .tagrow .chip { margin-bottom:0; }
-  /* flex-shrink:0/white-space:nowrap — as a flex item of .tagrow, a chip
-     with no explicit width otherwise shrinks to fit whatever space is
-     left once .tagrow's padding-right (reserved for the pinned .tagctl)
-     eats into it, wrapping its own text one syllable per line instead of
-     just staying its natural pill shape. The row wrapping (an icon
-     dropping to its own line) is exactly what should happen when space
-     runs out — the chip itself never should. */
+  /* flex-shrink:0/white-space:nowrap so a chip never shrinks to fit
+     whatever space is left and wraps its own text one syllable per line
+     — row wrapping (something dropping to its own line) is what should
+     happen when space runs out, the chip itself never should. */
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; flex-shrink:0; white-space:nowrap; }
-  .tagctl { position:absolute; top:0; right:0; display:flex; align-items:center; gap:6px; }
+  .tagctl { margin-left:auto; display:flex; align-items:center; gap:6px; }
   /* Fully custom rather than accent-color — a native unchecked checkbox
      renders with a heavy, dark OS-drawn border regardless of accent-color
      (that only themes the checked/filled state), which read as far more
