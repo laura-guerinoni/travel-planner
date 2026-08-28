@@ -647,6 +647,22 @@
     background:var(--ink); color:#fff; font-size:11px; font-weight:400; white-space:nowrap;
     opacity:0; pointer-events:none; transition:opacity .1s; transition-delay:0s; z-index:20; }
   .ticket-add-btn:hover::after { opacity:1; transition-delay:.25s; }
+  /* Time/notes/amount are all optional per activity — an unfilled one is
+     simply never in the DOM (see syncFieldAddButtons), so there's nothing
+     to click to fill it back in. These are that affordance: one small
+     "+ field" row per currently-missing field, revealed on hover like
+     .itemmenu-btn/.ticket-add-btn right next to them, sitting in the
+     exact spot the real field would occupy once added. display (not
+     visibility) since these sit in the vertical li flow, not a fixed-
+     height row — there's no layout to preserve while hidden, unlike the
+     icon row. Desktop only: mobile already covers "add a field that
+     wasn't there" via the pencil icon's #editActPanel modal, which shows
+     every field regardless of current value (see the mobile override
+     below). */
+  .field-add-btn { display:none; font-size:12px; color:var(--muted); cursor:pointer;
+    width:max-content; border-bottom:1px dashed var(--muted); }
+  .field-add-btn:hover { color:var(--primary); border-bottom-color:var(--primary); }
+  li:hover .field-add-btn { display:block; }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
@@ -906,6 +922,10 @@
        release is well under the hold window, so it never reads as drag
        intent). */
     .acts li .title, .acts li .line, .acts li .price-val, .acts li .price-note { pointer-events:none; }
+    /* Same reasoning: the pencil icon's modal already lets you fill in a
+       missing time/notes/amount on mobile, no separate "+" row needed
+       (and there's no real :hover to reveal it on touch anyway). */
+    .field-add-btn { display:none !important; }
     /* Stops iOS/Android's own text-selection callout (magnifier + "Copy"
        popup) from stepping in during the long press and hijacking the
        touch — it was winning that race a beat after wireDragStarter's
@@ -1706,7 +1726,8 @@
       fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_type_label: 'Type',
       fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity',
       editact_title: 'Edit activity', editact_title_label: 'Title', editact_desc_label: 'Description',
-      editact_note_label: 'Note', editact_save: 'Save'
+      editact_note_label: 'Note', editact_save: 'Save',
+      add_time_field: '+ time', add_notes_field: '+ notes', add_amount_field: '+ amount'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1727,7 +1748,8 @@
       fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_type_label: 'Tipo',
       fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività',
       editact_title: 'Modifica attività', editact_title_label: 'Titolo', editact_desc_label: 'Descrizione',
-      editact_note_label: 'Nota', editact_save: 'Salva'
+      editact_note_label: 'Nota', editact_save: 'Salva',
+      add_time_field: '+ orario', add_notes_field: '+ note', add_amount_field: '+ importo'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1748,7 +1770,8 @@
       fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_type_label: 'Tipo',
       fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad',
       editact_title: 'Editar actividad', editact_title_label: 'Título', editact_desc_label: 'Descripción',
-      editact_note_label: 'Nota', editact_save: 'Guardar'
+      editact_note_label: 'Nota', editact_save: 'Guardar',
+      add_time_field: '+ hora', add_notes_field: '+ notas', add_amount_field: '+ importe'
     }
   };
   var currentLang = 'en';
@@ -3152,6 +3175,141 @@
     positionPopover(pop, anchorEl);
   }
 
+  // ---- optional per-activity fields (time / notes / amount): each is
+  // only ever in the DOM when it has content — buildActivityLi/
+  // extractActivity already work this way (see their own comments), this
+  // just gives desktop a way to add one back once it's missing, via a
+  // small "+ field" row that stands in its place. Mobile doesn't need
+  // this — the pencil icon's modal already shows every field regardless
+  // of whether it currently has a value. ----
+  function findTimeLine(li){
+    var lines = li.querySelectorAll(':scope > .line');
+    for(var i = 0; i < lines.length; i++){
+      if(/\d{1,2}:\d{2}/.test(lines[i].textContent)) return lines[i];
+    }
+    return null;
+  }
+  function findDescLine(li){
+    var timeLine = findTimeLine(li);
+    var lines = li.querySelectorAll(':scope > .line');
+    for(var i = 0; i < lines.length; i++){
+      if(lines[i] !== timeLine) return lines[i];
+    }
+    return null;
+  }
+  // A "🕒" with nothing typed after it (the state right after clicking
+  // "+ time", before any digits land) counts as empty same as a blank
+  // notes line — stripping the emoji before the trim check covers both
+  // with one rule instead of needing to know which kind of line this is.
+  function lineIsEmpty(lineEl){
+    return lineEl.textContent.replace(/🕒/g, '').trim() === '';
+  }
+  function priceValIsEmpty(priceValEl){
+    return priceValEl.textContent.replace(/[^\d.,-]/g, '').trim() === '';
+  }
+  function placeCaretAtEnd(el){
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  function mkFieldAddBtn(cls, label, onClick){
+    var btn = document.createElement('span');
+    btn.className = 'field-add-btn ' + cls;
+    btn.textContent = label;
+    btn.tabIndex = 0;
+    btn.addEventListener('click', function(e){ e.stopPropagation(); onClick(); });
+    return btn;
+  }
+  // Adds whichever of the three "+ field" rows are currently missing
+  // (removing any stale ones first, so this is safe to call repeatedly —
+  // e.g. after a field gets pruned back out on blur). Never touches a
+  // field that already exists; clicking a row only ever removes that one
+  // row and inserts the real field in its place, so the other two stay
+  // exactly where they were without needing a re-sync.
+  function syncFieldAddButtons(li){
+    li.querySelectorAll(':scope > .field-add-btn').forEach(function(b){ b.remove(); });
+    var timeLine = findTimeLine(li);
+    var descLine = findDescLine(li);
+    var priceEl = li.querySelector(':scope > .price');
+
+    // Anchors are re-queried fresh (not captured once above) because
+    // inserting the notes button can change what "the time slot" resolves
+    // to for the time button right after it — each lookup has to see
+    // whatever the previous insertion just put in place. Each combined
+    // selector matches either the real field or its own "+" placeholder,
+    // whichever currently occupies that slot; querySelector returns
+    // whichever comes first in document order either way.
+    function priceSlotAnchor(){ return li.querySelector(':scope > .price, :scope > .field-add-btn.amount-add') || null; }
+    function timeSlotAnchor(){ return li.querySelector(':scope > .line, :scope > .field-add-btn.time-add') || priceSlotAnchor(); }
+
+    if(!descLine){
+      var notesBtn = mkFieldAddBtn('notes-add', t('add_notes_field'), function(){
+        var line = document.createElement('span');
+        line.className = 'line';
+        li.insertBefore(line, timeSlotAnchor());
+        makeEditable(line);
+        line.focus();
+        notesBtn.remove();
+      });
+      li.insertBefore(notesBtn, timeSlotAnchor());
+    }
+    if(!timeLine){
+      var timeBtn = mkFieldAddBtn('time-add', t('add_time_field'), function(){
+        var line = document.createElement('span');
+        line.className = 'line';
+        line.textContent = '🕒 ';
+        li.insertBefore(line, priceSlotAnchor());
+        makeEditable(line);
+        line.focus();
+        placeCaretAtEnd(line);
+        timeBtn.remove();
+      });
+      li.insertBefore(timeBtn, priceSlotAnchor());
+    }
+    if(!priceEl){
+      var amtBtn = mkFieldAddBtn('amount-add', t('add_amount_field'), function(){
+        var pe = document.createElement('span'); pe.className = 'price';
+        var pv = document.createElement('span'); pv.className = 'price-val';
+        pv.textContent = currencySymbol();
+        pe.appendChild(pv);
+        li.appendChild(pe);
+        makeEditable(pv);
+        pv.focus();
+        placeCaretAtEnd(pv);
+        amtBtn.remove();
+      });
+      li.appendChild(amtBtn);
+    }
+  }
+  // Fields left empty just don't show (see the block comment above) — this
+  // is the other half of that: whenever an optional field loses its last
+  // real content, on blur, drop the now-empty node and put its "+" row
+  // back. Delegated on document (not attached per-node in
+  // attachItemControls) so it still applies to .line/.price-val elements
+  // created later — by a field-add-btn's own click handler above, or by
+  // editActSaveBtn's modal rebuilding lines from scratch.
+  document.addEventListener('focusout', function(e){
+    var el = e.target;
+    if(!el || !el.classList) return;
+    if(el.classList.contains('line')){
+      var li = el.parentElement;
+      if(li && li.tagName === 'LI' && !li.classList.contains('act-span-ghost') && lineIsEmpty(el)){
+        el.remove();
+        syncFieldAddButtons(li);
+      }
+    } else if(el.classList.contains('price-val')){
+      var li2 = el.closest('li');
+      if(li2 && !li2.classList.contains('act-span-ghost') && priceValIsEmpty(el)){
+        var priceEl = el.closest('.price');
+        if(priceEl) priceEl.remove();
+        syncFieldAddButtons(li2);
+      }
+    }
+  });
+
   // Activities saved before .tagrow/.tagctl existed have their chip (and
   // any photo/ticket icon) sitting as loose direct children of <li>
   // instead of grouped into that one flex row — nothing then keeps the
@@ -3262,6 +3420,7 @@
     renderLinks(li);
     renderPhoto(li);
     renderTicket(li);
+    syncFieldAddButtons(li);
   }
 
   // Extracts an activity's start time (minutes since midnight) from
@@ -3332,18 +3491,13 @@
     title.className = 'title';
     title.textContent = 'New activity';
 
-    var line = document.createElement('span');
-    line.className = 'line';
-    line.textContent = '🕒 time';
-
-    var price = document.createElement('span');
-    price.className = 'price';
-    var priceVal = document.createElement('span');
-    priceVal.className = 'price-val';
-    priceVal.textContent = currencySymbol() + '0';
-    price.appendChild(priceVal);
-
-    li.appendChild(tagrow); li.appendChild(title); li.appendChild(line); li.appendChild(price);
+    // Time, notes, and amount all start out unset — each is optional per
+    // activity (see syncFieldAddButtons) and only added to the DOM once
+    // it actually has a value, rather than seeded with placeholder text
+    // like "🕒 time"/"€0" that reads as real content until someone
+    // notices it isn't. attachItemControls' own syncFieldAddButtons call
+    // right after this fills in the "+ time"/"+ notes"/"+ amount" rows.
+    li.appendChild(tagrow); li.appendChild(title);
     return li;
   }
 
@@ -5140,17 +5294,35 @@
         }
       }
       if(timeVal){
-        var lineEl = newLi.querySelector('.line');
+        // newActivityLi() no longer seeds a placeholder .line — time is
+        // optional and only in the DOM once it has a real value (see
+        // syncFieldAddButtons) — so this may need to create it, not just
+        // fill it in.
+        var lineEl = newLi.querySelector(':scope > .line');
+        if(!lineEl){
+          lineEl = document.createElement('span');
+          lineEl.className = 'line';
+          makeEditable(lineEl);
+          newLi.insertBefore(lineEl, newLi.querySelector(':scope > .price') || null);
+        }
         // An end time makes it a range; left blank, just the one time —
         // same "🕒 " convention (and the same first-hh:mm-is-the-start
         // parsing reorderActivityByStartTime already relies on) either way.
-        if(lineEl) lineEl.textContent = '🕒 ' + timeVal + (timeEndVal ? ' - ' + timeEndVal : '');
+        lineEl.textContent = '🕒 ' + timeVal + (timeEndVal ? ' - ' + timeEndVal : '');
         reorderActivityByStartTime(newLi);
       }
       if(amountVal !== ''){
-        var priceVal = newLi.querySelector('.price-val');
-        if(priceVal) priceVal.textContent = currencySymbol() + amountVal;
+        var priceVal = newLi.querySelector(':scope > .price .price-val');
+        if(!priceVal){
+          var priceEl = document.createElement('span'); priceEl.className = 'price';
+          priceVal = document.createElement('span'); priceVal.className = 'price-val';
+          makeEditable(priceVal);
+          priceEl.appendChild(priceVal);
+          newLi.appendChild(priceEl);
+        }
+        priceVal.textContent = currencySymbol() + amountVal;
       }
+      syncFieldAddButtons(newLi);
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
@@ -5277,6 +5449,7 @@
     }
 
     if(timeVal) reorderActivityByStartTime(li);
+    syncFieldAddButtons(li);
     var cell = li.closest('.cell');
     if(cell){ recomputeCell(cell); updateCellAllBooked(cell); }
   });
