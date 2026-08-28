@@ -187,7 +187,6 @@
      how much content follows. */
   .daytotal-badge { margin-left:auto; font-size:11px; font-weight:700; color:var(--muted);
     background:var(--bg); border-radius:999px; padding:2px 8px; white-space:nowrap; }
-  .cell:hover .daytotal-badge.has-content { visibility:hidden; }
   /* padding-left matches .acts li's own padding (see below) — an
      activity's real content now sits 6px further right than .loc used
      to, since that padding lives on the li itself, not the cell; without
@@ -315,8 +314,7 @@
     .photoicon, .ticketicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
-       only the hover-driven "swap for clear day" behavior is screen-only,
-       and .cleardaybtn is already covered by .jsctl above regardless. */
+       .cleardaybtn is already covered by .jsctl above regardless. */
     .daytotal-badge { display:inline-block !important; visibility:visible !important; }
     /* Grid view only: each day's own "Sat"/"Sun" label is redundant with
        its column's MON/TUE/... header directly above it, and dropping it
@@ -591,17 +589,16 @@
   .cell:hover .addact { display:block; }
   .cell:hover .addloc { display:block; }
   .cell:has(> .loc) .addloc { display:none; }
-  /* Sits directly over .daytotal-badge's own spot (same top-right corner
-     of .cellhead) rather than its own separate location, so hovering the
-     day swaps "€135" for "Clear day" in place — the control that clears
-     everything replaces the summary of everything there is to clear,
-     which should read as "this affects the whole day" rather than a
-     generic small icon floating in a corner. */
-  .cleardaybtn { display:none; position:absolute; top:8px; right:8px; border:none;
-    background:var(--bg); color:#c0392b; font-size:11px; font-weight:700; border-radius:999px;
-    padding:2px 8px; cursor:pointer; white-space:nowrap; }
+  /* Sits in .cellhead right after .daytotal-badge (see recomputeCell,
+     which always inserts a fresh badge before this button so DOM order
+     stays badge-then-trash) — the total stays put and this small icon
+     appears alongside it on hover, instead of replacing it. */
+  .cleardaybtn { display:none; align-items:center; justify-content:center; flex:0 0 20px;
+    width:20px; height:20px; margin-left:4px; border:none; border-radius:50%;
+    background:var(--bg); color:#c0392b; padding:0; cursor:pointer; }
+  .cleardaybtn svg { width:12px; height:12px; display:block; }
   .cleardaybtn.has-content { display:none; }
-  .cell:hover .cleardaybtn.has-content { display:inline-block; }
+  .cell:hover .cleardaybtn.has-content { display:inline-flex; }
 
   [contenteditable="true"] { border-radius:4px; }
   [contenteditable="true"]:hover { background:rgba(217,102,63,.06); }
@@ -611,11 +608,40 @@
   .acts li:hover .photopreview { display:block; }
 
   .linkicons { display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle; }
-  .linkarrow { text-decoration:none; font-size:11px; line-height:1; color:var(--primary); cursor:pointer; }
+  .linkarrow { position:relative; text-decoration:none; font-size:11px; line-height:1; color:var(--primary); cursor:pointer; }
   .linkarrow:hover { text-decoration:underline; }
+  /* Same wrap/positioning language as .photopreview-wrap — a link has no
+     image to show, so the "preview" is the destination itself (domain +
+     full URL) in a card styled to match, rather than an embedded iframe
+     of the target site (most travel/booking sites block being framed
+     anyway, and it'd fire a request to the destination on every hover). */
+  .linkarrow .linkpreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
+    top:100%; margin-top:6px; }
+  .linkarrow:hover .linkpreview-wrap { display:block; }
+  .linkpreview { display:block; width:min(30vw, 320px); max-width:80vw; box-sizing:border-box;
+    border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25); text-align:left;
+    border:2px solid var(--card); background:#fff; padding:10px 12px; }
+  .linkpreview-domain { display:block; font-weight:700; font-size:13px; color:var(--ink); text-decoration:none; }
+  .linkpreview-url { display:block; font-size:11px; color:var(--muted); margin-top:4px;
+    overflow-wrap:anywhere; word-break:break-all; text-decoration:none; }
   .linkadd { font-size:10px; color:var(--muted); cursor:pointer; border:1px dashed var(--line); border-radius:4px;
     padding:0 3px; line-height:14px; }
   .linkadd:hover { color:var(--primary); border-color:var(--primary); }
+
+  /* One small face per participant (see renderParticipants), reusing the
+     exact same avatarSvgFor markup as the "Manage access" list — sits as
+     its own row at the bottom of the activity, after time/amount/notes,
+     not squeezed into the tagrow with the other icons. */
+  .act-participants { display:flex; gap:4px; margin-top:4px; }
+  .act-participants .participant-avatar { width:18px; height:18px; border-radius:50%; overflow:hidden; flex:0 0 18px; }
+  .act-participants .participant-avatar svg { display:block; width:100%; height:100%; }
+  .participant-picker { width:240px; max-height:280px; overflow-y:auto; }
+  .participant-picker-row { display:flex; align-items:center; gap:8px; padding:6px 8px;
+    border-radius:6px; cursor:pointer; font-size:13px; }
+  .participant-picker-row:hover { background:var(--bg); }
+  .participant-picker-row .participant-avatar { width:22px; height:22px; border-radius:50%; overflow:hidden; flex:0 0 22px; }
+  .participant-picker-row .participant-avatar svg { display:block; width:100%; height:100%; }
+  .participant-picker-email { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 
   /* vertical-align:middle lines the icon's own box up with the chip's,
      but the chip's emoji glyph (its tallest content) sits slightly
@@ -662,7 +688,11 @@
      height rather than object-fit sizing off the media's own natural
      dimensions. Same border/shadow treatment as .photopreview either
      way, so the two read as the same kind of thing. */
-  .ticketpdf-preview { display:block; width:min(30vw, 420px); height:34vh;
+  /* Taller than .photopreview's 34vh — a photo is judged at a glance, but
+     a multi-page ticket needs enough height for Chrome's built-in PDF
+     viewer to show its own scrollbar/toolbar instead of just cropping the
+     page (see the #toolbar=1 fragment on the iframe's src, in renderTicket). */
+  .ticketpdf-preview { display:block; width:min(30vw, 420px); height:55vh;
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     border:2px solid var(--card); background:#fff; }
   /* Sits on top of the preview thumbnail itself rather than beside it, so
@@ -2616,7 +2646,10 @@
       if(!badge){
         badge = document.createElement('span');
         badge.className = 'daytotal-badge has-content';
-        cell.querySelector(':scope > .cellhead').appendChild(badge);
+        var cellheadEl = cell.querySelector(':scope > .cellhead');
+        var clearBtnEl = cellheadEl.querySelector(':scope > .cleardaybtn');
+        if(clearBtnEl) cellheadEl.insertBefore(badge, clearBtnEl);
+        else cellheadEl.appendChild(badge);
       }
       badge.textContent = formatMoney(sum);
     }
@@ -2689,6 +2722,7 @@
       a.target = '_blank'; a.rel = 'noopener';
       a.href = url; a.title = url;
       a.textContent = '↗';
+      a.appendChild(buildLinkPreviewWrap(url));
       wrap.appendChild(a);
     });
     var chip = li.querySelector('.chip');
@@ -2696,6 +2730,25 @@
     if(chip) chip.insertAdjacentElement('afterend', wrap);
     else if(tagrow) tagrow.insertBefore(wrap, tagrow.firstChild);
     else li.insertBefore(wrap, li.firstChild);
+  }
+
+  function buildLinkPreviewWrap(url){
+    var previewWrap = document.createElement('span');
+    previewWrap.className = 'linkpreview-wrap';
+    var card = document.createElement('span');
+    card.className = 'linkpreview';
+    var hostname = url;
+    try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch(e){}
+    var domain = document.createElement('span');
+    domain.className = 'linkpreview-domain';
+    domain.textContent = hostname;
+    var urlLine = document.createElement('span');
+    urlLine.className = 'linkpreview-url';
+    urlLine.textContent = url;
+    card.appendChild(domain);
+    card.appendChild(urlLine);
+    previewWrap.appendChild(card);
+    return previewWrap;
   }
 
   var openPop = null;
@@ -2785,6 +2838,138 @@
     positionPopover(pop, anchorEl);
   }
 
+  // ---- participants: who's coming to this specific activity, picked
+  // from whoever currently has access to the plan (see "Manage access").
+  // Stored as an array of the same sanitized member keys /members and
+  // /avatars already use, so no extra lookup table is needed to go from
+  // a participant back to their email/role/avatar. ----
+  function getParticipants(li){
+    try{ var v = JSON.parse(li.getAttribute('data-participants') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setParticipants(li, keys){
+    if(keys.length) li.setAttribute('data-participants', JSON.stringify(keys));
+    else li.removeAttribute('data-participants');
+    renderParticipants(li);
+  }
+  // Memoized: every activity's renderParticipants call (there can be many,
+  // all firing during the same reattachAll() pass) shares one fetch
+  // instead of one each. Pass forceRefresh to get current data — used by
+  // the picker, which needs to reflect an invite/promote/remove that
+  // might have just happened in "Manage access" moments earlier.
+  var memberAvatarDataPromise = null;
+  function loadMemberAvatarData(forceRefresh){
+    if(!memberAvatarDataPromise || forceRefresh){
+      // firebase.database() itself can throw synchronously (not just
+      // reject) if no app was ever initialized — same gotcha fixed in
+      // saveAvatarOverride/removeAvatarOverride. Wrapped so that always
+      // resolves into the .catch() fallback below instead of leaving the
+      // picker stuck on "Loading…" with an uncaught exception.
+      var fetchPromise;
+      try {
+        fetchPromise = Promise.all([
+          firebase.database().ref('members').once('value'),
+          firebase.database().ref('avatars').once('value').catch(function(){ return null; })
+        ]);
+      } catch(err){
+        fetchPromise = Promise.reject(err);
+      }
+      memberAvatarDataPromise = fetchPromise.then(function(snaps){
+        var val = snaps[0].val() || {};
+        var avatarsVal = (snaps[1] && snaps[1].val()) || {};
+        var members = Object.keys(val).map(function(key){ return { key: key, email: key.replace(/,/g, '.'), role: val[key] }; });
+        return { members: members, avatars: avatarsVal };
+      }).catch(function(err){
+        console.warn('Load member/avatar data failed', err);
+        return { members: [], avatars: {} };
+      });
+    }
+    return memberAvatarDataPromise;
+  }
+  function renderParticipants(li){
+    var keys = getParticipants(li);
+    var existing = li.querySelector(':scope > .act-participants');
+    if(!keys.length){
+      if(existing) existing.remove();
+      return;
+    }
+    loadMemberAvatarData().then(function(data){
+      // The li can be long gone by the time this resolves (content
+      // reloaded from a remote snapshot, this activity deleted, etc.) —
+      // writing into a detached node would just be silently pointless,
+      // but re-checking data-participants fresh (rather than trusting
+      // the `keys` this closure captured) also covers the case where
+      // it changed again while this fetch was still in flight.
+      if(!li.isConnected) return;
+      var freshKeys = getParticipants(li);
+      var wrap = li.querySelector(':scope > .act-participants');
+      if(wrap) wrap.remove();
+      if(!freshKeys.length) return;
+      wrap = document.createElement('div');
+      wrap.className = 'act-participants';
+      freshKeys.forEach(function(key){
+        var member = data.members.filter(function(m){ return m.key === key; })[0];
+        var email = member ? member.email : key.replace(/,/g, '.');
+        var face = document.createElement('span');
+        face.className = 'participant-avatar';
+        face.title = email;
+        face.innerHTML = avatarSvgFor(email, data.avatars[key]);
+        wrap.appendChild(face);
+      });
+      li.appendChild(wrap);
+    });
+  }
+  function openParticipantPicker(li, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu participant-picker';
+    var loadingRow = document.createElement('div');
+    loadingRow.className = 'itemmenu-row';
+    loadingRow.textContent = 'Loading…';
+    pop.appendChild(loadingRow);
+    positionPopover(pop, anchorEl);
+
+    loadMemberAvatarData(true).then(function(data){
+      if(openPop !== pop) return;
+      pop.innerHTML = '';
+      if(!data.members.length){
+        var empty = document.createElement('div');
+        empty.className = 'itemmenu-row';
+        empty.textContent = 'No one has access yet';
+        pop.appendChild(empty);
+      }
+      data.members.forEach(function(m){
+        var row = document.createElement('label');
+        row.className = 'participant-picker-row';
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = getParticipants(li).indexOf(m.key) !== -1;
+        checkbox.addEventListener('click', function(e){ e.stopPropagation(); });
+        checkbox.addEventListener('change', function(){
+          var arr = getParticipants(li);
+          var idx = arr.indexOf(m.key);
+          if(checkbox.checked){ if(idx === -1) arr.push(m.key); }
+          else if(idx !== -1){ arr.splice(idx, 1); }
+          setParticipants(li, arr);
+        });
+        row.appendChild(checkbox);
+        var face = document.createElement('span');
+        face.className = 'participant-avatar';
+        face.innerHTML = avatarSvgFor(m.email, data.avatars[m.key]);
+        row.appendChild(face);
+        var label = document.createElement('span');
+        label.className = 'participant-picker-email';
+        label.textContent = m.email;
+        row.appendChild(label);
+        pop.appendChild(row);
+      });
+      // Content just went from a single loading row to a full list —
+      // the popover's size changed, so it needs repositioning or a tall
+      // list could run off the bottom of the viewport.
+      positionPopover(pop, anchorEl);
+    });
+  }
+
   // ---- photo ----
   // Same plain-line SVG style as the "…" menu's icons (stroke, not fill,
   // no emoji) rather than each control inventing its own visual language.
@@ -2801,6 +2986,9 @@
   // ticket), not a scenic photo of the place.
   var ICON_TICKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>';
   var ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+  // Same "two people" glyph as the Manage access button itself, reused
+  // for the item menu's Add/Edit participants row.
+  var ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
   // Counts photo/ticket reads/resizes currently in flight (see pickImage
   // and pickTicket below) — isLocallyBusy() treats any nonzero count as
   // "don't apply a remote snapshot right now", the same way it already
@@ -3215,8 +3403,15 @@
       }
       var frameEl = wrap.querySelector('.ticketpdf-preview');
       if(frameEl.dataset.srcUrl !== url){
-        if(frameEl.src) URL.revokeObjectURL(frameEl.src);
-        frameEl.src = dataUrlToBlobUrl(url);
+        if(frameEl.dataset.blobUrl) URL.revokeObjectURL(frameEl.dataset.blobUrl);
+        var blobUrl = dataUrlToBlobUrl(url);
+        frameEl.dataset.blobUrl = blobUrl;
+        // #toolbar=1 keeps Chrome's built-in PDF viewer chrome (and with
+        // it, its own scrollbar) visible even in this small a box — left
+        // to its default, the viewer sometimes drops that chrome once the
+        // frame is short, leaving a multi-page ticket cropped with no way
+        // to reach anything past the first page.
+        frameEl.src = blobUrl + '#toolbar=1';
         frameEl.dataset.srcUrl = url;
       }
     } else if(wrap){
@@ -3605,11 +3800,12 @@
     }
     row(icon('↗') + 'Add link', function(){ openLinkManager(li, anchorEl); });
     row(icon(ICON_CAMERA) + (li.hasAttribute('data-img') ? 'Replace photo' : 'Add photo'), function(){ pickImage(li); });
+    row(icon(ICON_PEOPLE) + (getParticipants(li).length ? 'Edit participants' : 'Add participants'), function(){ openParticipantPicker(li, anchorEl); });
     divider();
 
     row(icon('↑') + 'Move up', function(){ moveActBy(li, -1); });
     row(icon('↓') + 'Move down', function(){ moveActBy(li, 1); });
-    row(icon('✕') + 'Delete activity', function(){ deleteActivityLi(li); }, true);
+    row(icon(ICON_TRASH) + 'Delete activity', function(){ deleteActivityLi(li); }, true);
 
     pop._anchorEl = anchorEl;
     anchorEl.style.visibility = 'visible';
@@ -3717,6 +3913,7 @@
     renderLinks(li);
     renderPhoto(li);
     renderTicket(li);
+    renderParticipants(li);
     markNotesLine(li);
   }
 
@@ -4161,7 +4358,7 @@
     cell.classList.remove('active');
     recomputePanel(cell.closest('.panel'));
     refreshHoliCell(cell);
-    var clearBtn = cell.querySelector(':scope > .cleardaybtn');
+    var clearBtn = cell.querySelector('.cleardaybtn');
     if(clearBtn) clearBtn.classList.toggle('has-content', cellHasContent(cell));
   }
   function swapCellContent(a, b){
@@ -4179,8 +4376,8 @@
     b.classList.toggle('active', !!aLoc);
     refreshHoliCell(a); refreshHoliCell(b);
     recomputeCell(a); recomputeCell(b);
-    var aClear = a.querySelector(':scope > .cleardaybtn'); if(aClear) aClear.classList.toggle('has-content', cellHasContent(a));
-    var bClear = b.querySelector(':scope > .cleardaybtn'); if(bClear) bClear.classList.toggle('has-content', cellHasContent(b));
+    var aClear = a.querySelector('.cleardaybtn'); if(aClear) aClear.classList.toggle('has-content', cellHasContent(a));
+    var bClear = b.querySelector('.cleardaybtn'); if(bClear) bClear.classList.toggle('has-content', cellHasContent(b));
     var swapPanel = a.closest('.panel');
     if(swapPanel) renderActivitySpans(swapPanel);
   }
@@ -4248,7 +4445,7 @@
       if(newCell !== actDrag.originCell){
         recomputeCell(newCell);
         refreshHoliCell(newCell);
-        var newClear = newCell.querySelector(':scope > .cleardaybtn');
+        var newClear = newCell.querySelector('.cleardaybtn');
         if(newClear) newClear.classList.toggle('has-content', true);
         if(actDrag.originCell.querySelectorAll(':scope > .acts li').length === 0){
           refreshHoliCell(actDrag.originCell);
@@ -4275,8 +4472,9 @@
     addLocBtn.textContent = t('add_location');
 
     var clearBtn = document.createElement('button');
-    clearBtn.type = 'button'; clearBtn.className = 'cleardaybtn jsctl'; clearBtn.dataset.i18n = 'clear_day';
-    clearBtn.textContent = t('clear_day');
+    clearBtn.type = 'button'; clearBtn.className = 'cleardaybtn jsctl';
+    clearBtn.innerHTML = ICON_TRASH;
+    clearBtn.title = t('clear_day'); clearBtn.setAttribute('aria-label', t('clear_day'));
 
     function refreshClear(){
       clearBtn.classList.toggle('has-content', cellHasContent(cell));
@@ -4341,7 +4539,7 @@
       else doClearDay(cell);
     });
 
-    cell.appendChild(clearBtn);
+    cell.querySelector(':scope > .cellhead').appendChild(clearBtn);
     cell.appendChild(addLocBtn);
     cell.appendChild(addBtn);
     refreshClear();
@@ -6065,6 +6263,8 @@
     if(img) a.g = img;
     var ticket = li.getAttribute('data-ticket');
     if(ticket) a.tk = ticket;
+    var participants = getParticipants(li);
+    if(participants.length) a.pt = participants;
     return a;
   }
 
@@ -6174,6 +6374,7 @@
     if(a.u && a.u.length) li.setAttribute('data-links', JSON.stringify(a.u));
     if(a.g) li.setAttribute('data-img', a.g);
     if(a.tk) li.setAttribute('data-ticket', a.tk);
+    if(a.pt && a.pt.length) li.setAttribute('data-participants', JSON.stringify(a.pt));
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     return li;
@@ -6229,8 +6430,7 @@
         });
         if(!cell) return;
         var day = days[key] || {};
-        var anchor = cell.querySelector(':scope > .cleardaybtn') ||
-                     cell.querySelector(':scope > .addloc') ||
+        var anchor = cell.querySelector(':scope > .addloc') ||
                      cell.querySelector(':scope > .addact') || null;
         if(day.loc != null){
           var loc = document.createElement('p');
@@ -6255,7 +6455,7 @@
         // without this, has-content stays stuck at "false" for every day
         // populated this way — i.e. on every Firebase sync and undo/redo
         // restore — regardless of what's actually on the day.
-        var clear = cell.querySelector(':scope > .cleardaybtn');
+        var clear = cell.querySelector('.cleardaybtn');
         if(clear) clear.classList.toggle('has-content', cellHasContent(cell));
       });
 
