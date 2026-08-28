@@ -279,6 +279,14 @@
   .budget li:not(.budget-filtered-out):not(:has(~ li:not(.budget-filtered-out))) { border-bottom:none; }
   .budget em { color:var(--muted); font-style:normal; }
   .budget strong { color:var(--primary); }
+  /* Payment overview reuses .budget's own card/list styling (see above) —
+     just per-person rows (face + email) instead of per-option ones, and
+     an "Unassigned" row in muted rather than --primary. */
+  .payment-overview .payov-person { display:flex; align-items:center; gap:8px; min-width:0; }
+  .payment-overview .payov-person .participant-avatar { width:22px; height:22px; border-radius:50%; overflow:hidden; flex:0 0 22px; }
+  .payment-overview .payov-person .participant-avatar svg { display:block; width:100%; height:100%; }
+  .payment-overview .payov-person span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .payment-overview li.payov-unassigned strong { color:var(--muted); }
   .fine { color:var(--muted); font-size:12px; margin:10px 0 0; }
   footer { margin-top:28px; text-align:center; color:var(--muted); font-size:13px; }
   /* Print / Save as PDF. Page size+orientation come from a dynamically
@@ -666,6 +674,26 @@
   .participant-picker-row .participant-avatar { width:22px; height:22px; border-radius:50%; overflow:hidden; flex:0 0 22px; }
   .participant-picker-row .participant-avatar svg { display:block; width:100%; height:100%; }
   .participant-picker-email { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+  /* Sits right inside .price, after price-val/price-note — a small,
+     muted-by-default control (matches .linkarrow's own resting color)
+     that tints to --primary once at least one person has a share of
+     this amount assigned (see renderPaySplit), same "changes appearance
+     once it has content" language as .ticketicon/.photoicon. */
+  .payicon { display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
+  .payicon svg { width:13px; height:13px; }
+  .payicon:hover { color:var(--primary); }
+  .payicon.has-pay { color:var(--primary); }
+  .paysplit { width:260px; max-height:320px; overflow-y:auto; }
+  .paysplit-header { padding:6px 10px; font-size:12px; font-weight:700; color:var(--muted); }
+  .paysplit-header.over { color:#c0392b; }
+  .paysplit-row { display:flex; align-items:center; gap:8px; padding:6px 8px; font-size:13px; }
+  .paysplit-row .participant-avatar { width:22px; height:22px; border-radius:50%; overflow:hidden; flex:0 0 22px; }
+  .paysplit-row .participant-avatar svg { display:block; width:100%; height:100%; }
+  .paysplit-email { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .paysplit-amount { width:64px; box-sizing:border-box; border:1px solid var(--line); border-radius:6px;
+    padding:3px 6px; font-size:12px; text-align:right; color:var(--ink); background:var(--bg); }
+  .paysplit-amount:focus { outline:1px solid var(--primary); background:#fff; }
 
   /* vertical-align:middle lines the icon's own box up with the chip's,
      but the chip's emoji glyph (its tallest content) sits slightly
@@ -1566,9 +1594,17 @@
   </section><section class="panel on" id="panel-option-3" data-year="2026" data-month="8">
     <div class="grid heads"><div class="wdhead">Mon</div><div class="wdhead">Tue</div><div class="wdhead">Wed</div><div class="wdhead">Thu</div><div class="wdhead">Fri</div><div class="wdhead">Sat</div><div class="wdhead">Sun</div></div><div class="grid week"><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">1</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">2</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">3</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">4</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">5</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">6</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">7</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">8</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">9</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">10</span><span class="wd">Mon</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">11</span><span class="wd">Tue</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">12</span><span class="wd">Wed</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">13</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">14</span><span class="wd">Fri</span></div></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">15</span><span class="wd">Sat</span></div><p class="loc">New location</p><ul class="acts"><li><span class="chip" data-icon="🚌" data-name="Bus" style="background: rgb(63, 217, 109); color: rgb(20, 33, 61); cursor: pointer;">🚌 Bus</span><span class="title">Kosice -&gt; Zakopanie&nbsp;</span><span class="line">🕒 18:20 - 21:55</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">16</span><span class="wd">Sun</span></div><p class="loc">Zakopane</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">Kosice -&gt; Zakopanie&nbsp;</span><span class="line">🕒 11:15 - 14:35</span><span class="price"><span class="price-val">€45x2</span></span></li><li><span class="chip" data-icon="♨️" data-name="Thermal" style="background: rgb(201, 106, 63); color: rgb(255, 255, 255); cursor: pointer;">♨️ Thermal</span><span class="title">Terme Chochołów</span><span class="line">🕒 4 hours</span><span class="price"><span class="price-val">€30</span></span></li><li><span class="chip" data-icon="🏛️" data-name="City" style="background: rgb(232, 227, 213); color: rgb(58, 58, 70); cursor: pointer;">🏛️ City</span><span class="title">Gubałówka Market</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li><li data-links="[&quot;https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;&quot;]"><span class="chip" data-icon="🏨" data-name="Stay" style="background: rgb(79, 174, 139); color: rgb(255, 255, 255); cursor: pointer;">🏨 Stay</span><span class="linkicons"><a class="linkarrow" target="_blank" rel="noopener" href="https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;" title="https://www.booking.com/hotel/pl/willa-orla-zakopane.it.html?aid=2423011&amp;label=part-kayak%3Atype-precheck%3Adev-web%3Aorair-MIL%3Adestair-KSC%3Aorco-IT%3Adestco-SK%3Aadpc-BDC-PRE_it_IT_FFDCMP2%3Aloc-it&amp;sid=56240cf0ed9c9fe6729242a824461934&amp;all_sr_blocks=17543110_89064756_2_1_0&amp;checkin=2026-08-16&amp;checkout=2026-08-17&amp;dest_id=-538221&amp;dest_type=city&amp;dist=0&amp;group_adults=2&amp;group_children=0&amp;hapos=1&amp;highlighted_blocks=17543110_89064756_2_1_0&amp;hpos=1&amp;matching_block_id=17543110_89064756_2_1_0&amp;nflt=mealplan%3D1&amp;no_rooms=1&amp;req_adults=2&amp;req_children=0&amp;room1=A%2CA&amp;sb_price_type=total&amp;sr_order=price&amp;sr_pri_blocks=17543110_89064756_2_1_0__26050&amp;srepoch=1785867646&amp;srpvid=038b80e006a40de3&amp;type=total&amp;ucfs=1&amp;">↗</a></span><span class="title">Willa Orla</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€60</span></span></li></ul><p class="cost">Day total €135</p></div></div><div class="grid week"><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">17</span><span class="wd">Mon</span></div><p class="loc">Zakopan</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">Zakopane - Kraków Gł.</span><span class="line">🕒 15:53-17:51</span><span class="price"><span class="price-val">€13x2</span></span></li></ul><p class="cost">Day total €13</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">18</span><span class="wd">Tue</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">19</span><span class="wd">Wed</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">20</span><span class="wd">Thu</span></div><p class="loc">Cracovia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">21</span><span class="wd">Fri</span></div><p class="loc">Varsavia</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">22</span><span class="wd">Sat</span></div><p class="loc">Varsavia</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">23</span><span class="wd">Sun</span></div><p class="loc">Danzica</p><ul class="acts"><li><span class="chip" data-icon="🚆" data-name="Train" style="background: rgb(74, 134, 197); color: rgb(255, 255, 255); cursor: pointer;">🚆 Train</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€0</span></span></li></ul><p class="cost">Day total €0</p></div></div><div class="grid week"><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">24</span><span class="wd">Mon</span></div><p class="loc">Danzica</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">25</span><span class="wd">Tue</span></div><p class="loc">Danzica</p><ul class="acts"></ul></div><div class="cell active"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">26</span><span class="wd">Wed</span></div><p class="loc">Danzica + Ritorno</p><ul class="acts"><li><span class="chip" data-icon="✈️" data-name="Flight" style="background: rgb(122, 110, 201); color: rgb(255, 255, 255); cursor: pointer;">✈️ Flight</span><span class="title">New activity</span><span class="line">🕒 time</span><span class="price"><span class="price-val">€38</span></span></li></ul><p class="cost">Day total €38</p></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">27</span><span class="wd">Thu</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">28</span><span class="wd">Fri</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">29</span><span class="wd">Sat</span></div></div><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">30</span><span class="wd">Sun</span></div></div></div><div class="grid week"><div class="cell"><div class="cellhead cellhead-draggable" style="touch-action: none;"><span class="daynum">31</span><span class="wd">Mon</span></div></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div></div>
   </section>
-  <h2 data-i18n="budget_overview">Budget overview</h2>
+  <h2 id="budgetOverviewTitle" data-i18n="budget_overview">Budget overview</h2>
   <div class="budget">
     <ul><li data-opt="option-3"><span><span class="budget-name">1.Poland</span></span><strong>€186</strong></li><li data-opt="option-1"><span><span class="budget-name">1. Slovakia · Hungary · Poland</span> <em>· August 12 – 25, 2026</em></span><strong>€997</strong></li><li data-opt="option-2"><span><span class="budget-name">2. Hungary · Poland</span> <em>· August 15 – 24, 2026</em></span><strong>€786</strong></li></ul>
+  </div>
+  <!-- Shown instead of Budget overview, only once at least one activity's
+       amount in the currently active option has a payment assigned (see
+       renderPaymentOverview) — otherwise stays hidden and Budget overview
+       is what's visible, same as before this existed. -->
+  <h2 id="paymentOverviewTitle" data-i18n="payment_overview" style="display:none">Payment overview</h2>
+  <div class="budget payment-overview" id="paymentOverview" style="display:none">
+    <ul></ul>
   </div>
 </div>
 <script id="tagData" type="application/json">
@@ -1766,6 +1802,8 @@
       print_go: 'Print / Save as PDF',
       add_location: '+ Add location', add_activity: '+ Add activity', clear_day: 'Clear day',
       day_menu: 'Day options', move_day: 'Move to another day',
+      assign_payment: 'Assign payment', paysplit_remaining: 'Unassigned:',
+      payment_overview: 'Payment overview', payment_unassigned: 'Unassigned',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
       cleardaytk_title: 'Clear this day?',
@@ -1788,6 +1826,8 @@
       print_go: 'Stampa / Salva come PDF',
       add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: 'Svuota giorno',
       day_menu: 'Opzioni giorno', move_day: 'Sposta in un altro giorno',
+      assign_payment: 'Assegna pagamento', paysplit_remaining: 'Non assegnato:',
+      payment_overview: 'Riepilogo pagamenti', payment_unassigned: 'Non assegnato',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
       cleardaytk_title: 'Svuotare questo giorno?',
@@ -1810,6 +1850,8 @@
       print_go: 'Imprimir / Guardar como PDF',
       add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: 'Vaciar día',
       day_menu: 'Opciones del día', move_day: 'Mover a otro día',
+      assign_payment: 'Asignar pago', paysplit_remaining: 'Sin asignar:',
+      payment_overview: 'Resumen de pagos', payment_unassigned: 'Sin asignar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
       cleardaytk_title: '¿Vaciar este día?',
@@ -2534,6 +2576,7 @@
     document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'panel-' + id); });
     var newPanel = document.getElementById('panel-' + id);
     if(newPanel){ var nd = getPanelDate(newPanel); filterPillsByMonth(nd.year, nd.month); }
+    renderPaymentOverview();
   });
 
   // Renaming a pill is a double-click action (single click always
@@ -2740,6 +2783,99 @@
       var strong = budgetLi.querySelector('strong');
       if(strong) strong.textContent = formatMoney(sum);
     }
+    renderPaymentOverview();
+  }
+
+  // Sums each activity's payment split (see getPaySplits) by person, for
+  // every real activity in one panel — whatever of an activity's price
+  // isn't covered by any split (all of it, if none is set at all) counts
+  // as unassigned. Ghosts (a multi-day activity's echo elsewhere) are
+  // skipped — the real split lives on the start day only.
+  function computePaymentTotals(panel){
+    var totals = {}, unassigned = 0, anyAssigned = false;
+    if(!panel) return { totals: totals, unassigned: unassigned, anyAssigned: anyAssigned };
+    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li:not(.act-span-ghost)').forEach(function(li){
+      var priceVal = li.querySelector(':scope > .price > .price-val');
+      var total = priceVal ? parseMoney(priceVal.textContent) : 0;
+      var splits = getPaySplits(li);
+      if(splits.length) anyAssigned = true;
+      var assignedSum = 0;
+      splits.forEach(function(s){
+        totals[s.k] = (totals[s.k] || 0) + s.a;
+        assignedSum += s.a;
+      });
+      var remainder = total - assignedSum;
+      if(remainder > 0.004) unassigned += remainder;
+    });
+    return { totals: totals, unassigned: unassigned, anyAssigned: anyAssigned };
+  }
+
+  // Swaps Budget overview for Payment overview (see the two sections in
+  // the markup) as soon as the currently active option has at least one
+  // payment assigned anywhere in it — otherwise Budget overview is what's
+  // shown, exactly as before this feature existed. Called from
+  // recomputePanel (any price/split change) and on switching which
+  // option is active (see the pill click handler).
+  function renderPaymentOverview(){
+    var panel = document.querySelector('.panel.on');
+    var budgetTitle = document.getElementById('budgetOverviewTitle');
+    var budgetDiv = document.querySelector('.budget:not(.payment-overview)');
+    var payTitle = document.getElementById('paymentOverviewTitle');
+    var payDiv = document.getElementById('paymentOverview');
+    if(!payDiv || !payTitle || !budgetTitle || !budgetDiv) return;
+    var result = computePaymentTotals(panel);
+    if(!result.anyAssigned){
+      payTitle.style.display = 'none';
+      payDiv.style.display = 'none';
+      budgetTitle.style.display = '';
+      budgetDiv.style.display = '';
+      return;
+    }
+    budgetTitle.style.display = 'none';
+    budgetDiv.style.display = 'none';
+    payTitle.style.display = '';
+    payDiv.style.display = '';
+    loadMemberAvatarData().then(function(data){
+      // The active option (or its data) could have changed while this
+      // fetch was in flight — recompute fresh rather than trust the
+      // closured `result`, and bail if payment tracking got toggled off
+      // in the meantime (already hidden above).
+      var current = document.querySelector('.panel.on');
+      var fresh = computePaymentTotals(current);
+      if(!fresh.anyAssigned) return;
+      var ul = payDiv.querySelector('ul');
+      ul.innerHTML = '';
+      Object.keys(fresh.totals).forEach(function(key){
+        var member = data.members.filter(function(m){ return m.key === key; })[0];
+        var email = member ? member.email : key.replace(/,/g, '.');
+        var li = document.createElement('li');
+        var left = document.createElement('span');
+        left.className = 'payov-person';
+        var face = document.createElement('span');
+        face.className = 'participant-avatar';
+        face.innerHTML = avatarSvgFor(email, data.avatars[key]);
+        left.appendChild(face);
+        var label = document.createElement('span');
+        label.textContent = email;
+        left.appendChild(label);
+        li.appendChild(left);
+        var strong = document.createElement('strong');
+        strong.textContent = formatMoney(fresh.totals[key]);
+        li.appendChild(strong);
+        ul.appendChild(li);
+      });
+      if(fresh.unassigned > 0.004){
+        var uli = document.createElement('li');
+        uli.className = 'payov-unassigned';
+        var uleft = document.createElement('span');
+        uleft.textContent = t('payment_unassigned');
+        uli.appendChild(uleft);
+        var ustrong = document.createElement('strong');
+        ustrong.textContent = formatMoney(fresh.unassigned);
+        uli.appendChild(ustrong);
+        ul.appendChild(uli);
+      }
+    });
   }
 
   // ---- links (multiple per activity) ----
@@ -3044,6 +3180,112 @@
     });
   }
 
+  // ---- who's paying: an activity's price can be assigned to one person
+  // (who fronted the whole amount) or split unevenly across several —
+  // one data shape covers both, an array of {k: memberKey, a: amount}
+  // entries, independent of .act-participants (paying for something and
+  // being on the activity are different questions). Whatever of the
+  // price isn't covered by any entry is what Payment overview counts as
+  // unassigned (see computePaymentTotals). ----
+  function getPaySplits(li){
+    try{ var v = JSON.parse(li.getAttribute('data-pay') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setPaySplits(li, splits){
+    var clean = splits.filter(function(s){ return s.a > 0; });
+    if(clean.length) li.setAttribute('data-pay', JSON.stringify(clean));
+    else li.removeAttribute('data-pay');
+    renderPaySplit(li);
+    // Unlike ticket/photo/participants, this can change whether Payment
+    // overview should even be showing at all (see renderPaymentOverview)
+    // — not just its totals — and nothing else on this path (no price
+    // change) would otherwise trigger a recompute.
+    renderPaymentOverview();
+  }
+  function renderPaySplit(li){
+    var priceEl = li.querySelector(':scope > .price');
+    if(!priceEl) return;
+    var icon = priceEl.querySelector(':scope > .payicon');
+    if(!icon){
+      icon = document.createElement('span');
+      icon.className = 'payicon';
+      icon.innerHTML = ICON_WALLET;
+      icon.title = t('assign_payment'); icon.setAttribute('aria-label', t('assign_payment'));
+      icon.addEventListener('click', function(ev){ ev.stopPropagation(); openPaySplitPopover(li, icon); });
+      priceEl.appendChild(icon);
+    }
+    icon.classList.toggle('has-pay', getPaySplits(li).length > 0);
+  }
+  function openPaySplitPopover(li, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu paysplit';
+    var loadingRow = document.createElement('div');
+    loadingRow.className = 'itemmenu-row';
+    loadingRow.textContent = 'Loading…';
+    pop.appendChild(loadingRow);
+    positionPopover(pop, anchorEl);
+
+    loadMemberAvatarData(true).then(function(data){
+      if(openPop !== pop) return;
+      pop.innerHTML = '';
+      var priceVal = li.querySelector(':scope > .price > .price-val');
+      var total = priceVal ? parseMoney(priceVal.textContent) : 0;
+      var splits = getPaySplits(li);
+      var header = document.createElement('div');
+      header.className = 'paysplit-header';
+      pop.appendChild(header);
+      function refreshHeader(){
+        var assigned = splits.reduce(function(sum, s){ return sum + s.a; }, 0);
+        var remaining = total - assigned;
+        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining);
+        header.classList.toggle('over', remaining < 0);
+      }
+      if(!data.members.length){
+        var empty = document.createElement('div');
+        empty.className = 'itemmenu-row';
+        empty.textContent = 'No one has access yet';
+        pop.appendChild(empty);
+      }
+      data.members.forEach(function(m){
+        var row = document.createElement('div');
+        row.className = 'paysplit-row';
+        var face = document.createElement('span');
+        face.className = 'participant-avatar';
+        face.innerHTML = avatarSvgFor(m.email, data.avatars[m.key]);
+        row.appendChild(face);
+        var label = document.createElement('span');
+        label.className = 'paysplit-email';
+        label.textContent = m.email;
+        row.appendChild(label);
+        var existing = splits.filter(function(s){ return s.k === m.key; })[0];
+        var input = document.createElement('input');
+        input.type = 'text'; input.inputMode = 'decimal';
+        input.className = 'paysplit-amount';
+        input.placeholder = '0';
+        input.value = existing ? existing.a : '';
+        input.addEventListener('click', function(e){ e.stopPropagation(); });
+        input.addEventListener('input', function(){
+          var amt = parseFloat(String(input.value).replace(',', '.'));
+          var idx = -1;
+          splits.forEach(function(s, i){ if(s.k === m.key) idx = i; });
+          if(!isNaN(amt) && amt > 0){
+            if(idx === -1) splits.push({ k: m.key, a: amt });
+            else splits[idx].a = amt;
+          } else if(idx !== -1){
+            splits.splice(idx, 1);
+          }
+          refreshHeader();
+          setPaySplits(li, splits);
+        });
+        row.appendChild(input);
+        pop.appendChild(row);
+      });
+      refreshHeader();
+      positionPopover(pop, anchorEl);
+    });
+  }
+
   // ---- photo ----
   // Same plain-line SVG style as the "…" menu's icons (stroke, not fill,
   // no emoji) rather than each control inventing its own visual language.
@@ -3063,6 +3305,10 @@
   // Same "two people" glyph as the Manage access button itself, reused
   // for the item menu's Add/Edit participants row.
   var ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  // A wallet glyph — for the small control on an activity's price that
+  // assigns who's paying (or splitting) that amount (see renderPaySplit/
+  // openPaySplitPopover).
+  var ICON_WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h3v-4Z"/></svg>';
   // Counts photo/ticket reads/resizes currently in flight (see pickImage
   // and pickTicket below) — isLocallyBusy() treats any nonzero count as
   // "don't apply a remote snapshot right now", the same way it already
@@ -3777,6 +4023,7 @@
       priceEl.appendChild(priceVal);
       li.insertBefore(priceEl, findDescLine(li) || null);
       makeEditable(priceVal);
+      renderPaySplit(li);
       priceVal.focus();
       placeCaretAtEnd(priceVal);
     } else if(kind === 'notes'){
@@ -3811,6 +4058,9 @@
     if(priceVal && priceValIsEmpty(priceVal)){
       var priceEl = priceVal.closest('.price');
       if(priceEl) priceEl.remove();
+      // Nothing left to assign a share of — a payment split with no price
+      // behind it would just be silently stale data.
+      li.removeAttribute('data-pay');
     }
     markNotesLine(li);
   });
@@ -3990,6 +4240,7 @@
     renderPhoto(li);
     renderTicket(li);
     renderParticipants(li);
+    renderPaySplit(li);
     markNotesLine(li);
   }
 
@@ -5535,6 +5786,7 @@
     renderMonthSidebar();
     var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
     if(activePanel){ var d0 = getPanelDate(activePanel); filterPillsByMonth(d0.year, d0.month); }
+    renderPaymentOverview();
   }
   reattachAll();
   // In hosted mode this recomputes the placeholder content, harmlessly —
@@ -6421,6 +6673,8 @@
     if(ticket) a.tk = ticket;
     var participants = getParticipants(li);
     if(participants.length) a.pt = participants;
+    var paySplits = getPaySplits(li);
+    if(paySplits.length) a.py = paySplits;
     return a;
   }
 
@@ -6538,6 +6792,7 @@
     if(a.g) li.setAttribute('data-img', a.g);
     if(a.tk) li.setAttribute('data-ticket', a.tk);
     if(a.pt && a.pt.length) li.setAttribute('data-participants', JSON.stringify(a.pt));
+    if(a.py && a.py.length) li.setAttribute('data-pay', JSON.stringify(a.py));
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     return li;
