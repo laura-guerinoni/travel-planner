@@ -623,15 +623,18 @@
   .ticketicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .ticketicon > svg { width:14px; height:14px; }
   .ticketicon:hover { color:var(--primary); }
-  .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
+  /* Shared with .ticketicon (an image ticket gets the same hover preview
+     as a photo — see renderTicket) — same wrap/img/ctl classes either
+     way, so this CSS doesn't need to be duplicated per icon. */
+  .photoicon .photopreview-wrap, .ticketicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
-     wrap is a DOM child of .photoicon (even though it renders below it),
-     so :hover here still covers moving the pointer down into the preview
-     to reach the expand/delete buttons; it just no longer pops up from
+     wrap is a DOM child of the icon (even though it renders below it), so
+     :hover here still covers moving the pointer down into the preview to
+     reach the expand/delete buttons; it just no longer pops up from
      hovering an unrelated control elsewhere on the row, like the item's
      own "⋯" menu button. */
-  .photoicon:hover .photopreview-wrap { display:block; }
+  .photoicon:hover .photopreview-wrap, .ticketicon:hover .photopreview-wrap { display:block; }
   /* ~30% of the viewport width on hover, not the old fixed 220px thumbnail
      — big enough to actually judge the photo without opening the full
      lightbox, capped so it can't blow past a reasonable size on a huge
@@ -643,7 +646,7 @@
      cropped (object-fit:cover) or letterboxed inside an oddly wide box
      that didn't match it (object-fit:contain) — neither actually showed
      the photo at a natural, appropriately-shaped size. */
-  .photoicon .photopreview { display:block; max-width:min(30vw, 420px); max-height:34vh;
+  .photoicon .photopreview, .ticketicon .photopreview { display:block; max-width:min(30vw, 420px); max-height:34vh;
     object-fit:contain; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     border:2px solid var(--card); background:#fff; }
   /* Sits on top of the preview thumbnail itself rather than beside it, so
@@ -2897,6 +2900,43 @@
       else if(chip) chip.insertAdjacentElement('afterend', existing);
       else if(tagrow) tagrow.insertBefore(existing, tagrow.firstChild);
       else li.insertBefore(existing, li.firstChild);
+    }
+    // A PDF ticket can't be shown as an <img>, so it keeps the plain
+    // click-to-open-in-a-new-tab behavior above with no hover preview;
+    // an image ticket gets the exact same hover-preview treatment as
+    // .photoicon (see renderPhoto) — same wrap/img/ctl classes, just
+    // "expand" opens the ticket (no lightbox for these) and "delete"
+    // removes the ticket instead of the photo. Re-checked on every call
+    // (not just at creation), since "Replace ticket" can swap an image
+    // for a PDF or back without the .ticketicon node itself changing.
+    var wrap = existing.querySelector('.photopreview-wrap');
+    if(/^data:image\//.test(url)){
+      if(!wrap){
+        wrap = document.createElement('span');
+        wrap.className = 'photopreview-wrap';
+        var img = document.createElement('img');
+        img.className = 'photopreview';
+        wrap.appendChild(img);
+
+        var ctl = document.createElement('span');
+        ctl.className = 'photoctl';
+        var expandBtn = document.createElement('button');
+        expandBtn.type = 'button'; expandBtn.title = 'View larger'; expandBtn.setAttribute('aria-label', 'View larger');
+        expandBtn.innerHTML = ICON_EXPAND;
+        expandBtn.addEventListener('click', function(ev){ ev.stopPropagation(); openTicket(li); });
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button'; deleteBtn.title = 'Remove ticket'; deleteBtn.setAttribute('aria-label', 'Remove ticket');
+        deleteBtn.innerHTML = ICON_TRASH;
+        deleteBtn.addEventListener('click', function(ev){ ev.stopPropagation(); removeTicketFromLi(li); });
+        ctl.appendChild(expandBtn);
+        ctl.appendChild(deleteBtn);
+        wrap.appendChild(ctl);
+
+        existing.appendChild(wrap);
+      }
+      wrap.querySelector('img').src = url;
+    } else if(wrap){
+      wrap.remove();
     }
     var cell = li.closest('.cell');
     if(cell) updateCellAllBooked(cell);
