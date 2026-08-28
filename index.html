@@ -162,8 +162,9 @@
     min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; }
   .cell.empty { background:transparent; border:none; min-height:0; }
   .cell.active { border-color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.06); }
-  /* Whole day tints green once every real activity in it is booked — a
-     JS-toggled class (see updateCellAllBooked), not a :has() expression:
+  /* Whole day tints green once every real activity in it has a ticket
+     attached — a JS-toggled class (see updateCellAllBooked), not a
+     :has() expression:
      the natural selector needs :has() nested inside another :has(), which
      every engine rejects as an invalid selector (a hard CSS restriction,
      not a support gap).
@@ -195,28 +196,28 @@
   .loc { margin:6px 0; padding-left:6px; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
-  /* Padding lives here unconditionally, not only on a checked activity —
-     it used to appear only once .booked-check:checked was true, so
-     checking one visibly nudged its own content over and left every
-     unchecked sibling flush left, an inconsistent jump between the two
-     states. Same padding always, background/radius still conditional. */
+  /* Padding lives here unconditionally, not only on a ticketed activity —
+     it used to appear only once it had a ticket, so attaching one
+     visibly nudged its own content over and left every ticket-less
+     sibling flush left, an inconsistent jump between the two states.
+     Same padding always, background/radius still conditional. */
   .acts li { font-size:11px; padding:6px; border-radius:8px; }
   /* .tagrow holds the tag chip (and, right after it in DOM order, any
      photo/ticket icon — see renderPhoto/renderTicket) on the left, with
-     .tagctl (the item menu/edit/booked checkbox) pinned to the right via
-     margin-left:auto. .chip and .booked-check both stay findable via
-     plain (not ":scope >") lookups elsewhere (extractActivity,
-     renderPhoto's anchor, the span-ghost clone, attachItemControls)
-     since they're one level deeper than <li> now.
+     .tagctl (the item menu/edit icon) pinned to the right via
+     margin-left:auto. .chip stays findable via plain (not ":scope >")
+     lookups elsewhere (extractActivity, renderPhoto's anchor, the
+     span-ghost clone, attachItemControls) since it's one level deeper
+     than <li> now.
      Deliberately NOT position:absolute for .tagctl — that briefly shipped
-     to make it the icon (not the checkbox) that wraps on overflow, but
-     broke badly on a real device: its containing block didn't resolve
-     to .tagrow the way it did in testing, and the checkbox rendered
-     detached, off in the corner of some much wider ancestor instead of
-     its own activity row. An ordinary flex child can never escape its
-     flex container's bounds like that, so plain flow wins even though it
-     means the checkbox (not just the icon) is occasionally what wraps to
-     its own line when a row is genuinely too tight for everything. */
+     to make it the icon (not .tagctl) that wraps on overflow, but broke
+     badly on a real device: its containing block didn't resolve to
+     .tagrow the way it did in testing, and .tagctl rendered detached,
+     off in the corner of some much wider ancestor instead of its own
+     activity row. An ordinary flex child can never escape its flex
+     container's bounds like that, so plain flow wins even though it
+     means .tagctl (not just the icon) is occasionally what wraps to its
+     own line when a row is genuinely too tight for everything. */
   .tagrow { display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; margin-bottom:3px; }
   .tagrow .chip { margin-bottom:0; }
   /* flex-shrink:0/white-space:nowrap so a chip never shrinks to fit
@@ -225,31 +226,22 @@
      happen when space runs out, the chip itself never should. */
   .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; flex-shrink:0; white-space:nowrap; }
   .tagctl { margin-left:auto; display:flex; align-items:center; gap:6px; }
-  /* Fully custom rather than accent-color — a native unchecked checkbox
-     renders with a heavy, dark OS-drawn border regardless of accent-color
-     (that only themes the checked/filled state), which read as far more
-     visually loud than everything else on the row. appearance:none clears
-     that so the light var(--line) border below is the only outline. */
-  .booked-check { -webkit-appearance:none; appearance:none; cursor:pointer;
-    width:15px; height:15px; margin:0; border:1.5px solid var(--line); border-radius:4px;
-    background:var(--card); position:relative; vertical-align:middle; }
-  .booked-check:checked { background:#2e7d4f; border-color:#2e7d4f; }
-  .booked-check:checked::after {
-    content:''; position:absolute; left:4px; top:1.3px; width:3.3px; height:6.7px;
-    border:solid #fff; border-width:0 1.3px 1.3px 0; transform:rotate(45deg);
-  }
-  /* Checking an activity tints the whole card, not just the checkbox —
-     easy to spot what's already sorted at a glance among a busy day.
-     Padding/radius are shared with every activity (see .acts li above)
-     so this never shifts anything, only colors it.
-     Opaque var(--card) base + translucent gradient on top (same trick
-     as the holiday .banner elsewhere), not a plain translucent
-     background — a plain rgba() here would show a visibly DARKER green
-     once the whole day also earns its own tint (.cell.all-booked, right
-     below), the two translucent layers stacking instead of reading as
-     one consistent color. This renders identically whether the card
-     sits on a white cell or an already-green one. */
-  .acts li:has(> .tagrow .booked-check:checked) {
+  /* Attaching a ticket tints the whole card, not just its own icon — a
+     ticket is the actual evidence a reservation exists, so that's what
+     "booked" means now rather than a separate manual toggle (dropped —
+     it read as "already experienced", like a to-do list checkmark,
+     which is the wrong signal for something booked for later). easy to
+     spot what's already sorted at a glance among a busy day. Padding/
+     radius are shared with every activity (see .acts li above) so this
+     never shifts anything, only colors it. Opaque var(--card) base +
+     translucent gradient on top (same trick as the holiday .banner
+     elsewhere), not a plain translucent background — a plain rgba()
+     here would show a visibly DARKER green once the whole day also
+     earns its own tint (.cell.all-booked, right below), the two
+     translucent layers stacking instead of reading as one consistent
+     color. This renders identically whether the card sits on a white
+     cell or an already-green one. */
+  .acts li[data-ticket] {
     background-color:var(--card);
     background-image:linear-gradient(rgba(63,217,109,.14), rgba(63,217,109,.14));
   }
@@ -537,7 +529,7 @@
      checkbox — same specificity fight). */
   .acts li.act-span-ghost { cursor:default; padding:4px 6px; }
   .acts li [contenteditable="true"] { cursor:text; }
-  .acts li .chip, .acts li .booked-check, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
+  .acts li .chip, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
 
   /* width:max-content (not a fixed 160px) — a fixed width let a longer
      row's nowrap text spill past the menu's own edge in some languages
@@ -847,10 +839,6 @@
       content: ''; position: absolute; inset: -11px;
     }
     .photoicon > svg, .ticketicon > svg { width: 18px; height: 18px; }
-    .booked-check { width: 20px; height: 20px; }
-    .booked-check:checked::after {
-      left: 5.7px; top: 1.8px; width: 4.7px; height: 9.5px; border-width: 0 1.8px 1.8px 0;
-    }
     /* Always visible, not hover-gated — touch has no real hover state;
        relying on it either hides the button entirely or (on the phones
        that fake a hover on first tap) needs a tap-it-twice workaround,
@@ -1668,7 +1656,6 @@
       add_location: '+ Add location', add_activity: '+ Add activity', clear_day: '✕ clear day',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
-      act_mark_booked: 'Mark as booked', act_unmark_booked: 'Unmark as booked',
       cleardaytk_title: 'Clear this day?',
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
       cleardaytk_confirm: 'Clear day',
@@ -1690,7 +1677,6 @@
       add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: '✕ Svuota',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
-      act_mark_booked: 'Segna come prenotato', act_unmark_booked: 'Rimuovi prenotazione',
       cleardaytk_title: 'Svuotare questo giorno?',
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
       cleardaytk_confirm: 'Svuota giorno',
@@ -1712,7 +1698,6 @@
       add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: '✕ Vaciar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
-      act_mark_booked: 'Marcar como reservado', act_unmark_booked: 'Quitar reserva',
       cleardaytk_title: '¿Vaciar este día?',
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
       cleardaytk_confirm: 'Vaciar día',
@@ -2386,12 +2371,12 @@
   // activity's read-only echo elsewhere) have no checkbox of their own
   // and don't count. Called from recomputeCell (covers add/delete/drag,
   // anything that changes which activities are even in the cell) and
-  // directly from the checkbox's own change handler (recomputeCell isn't
-  // otherwise triggered by just checking a box).
+  // directly from renderTicket (recomputeCell isn't otherwise triggered
+  // by just attaching/removing a ticket).
   function updateCellAllBooked(cell){
     var real = Array.prototype.slice.call(cell.querySelectorAll(':scope > .acts > li'))
       .filter(function(li){ return !li.classList.contains('act-span-ghost'); });
-    var allBooked = real.length > 0 && real.every(function(li){ return li.hasAttribute('data-booked'); });
+    var allBooked = real.length > 0 && real.every(function(li){ return li.hasAttribute('data-ticket'); });
     cell.classList.toggle('all-booked', allBooked);
   }
 
@@ -2604,18 +2589,6 @@
     existing.querySelector('img').src = url;
   }
 
-  // The booked checkbox (see .tagctl in buildActivityLi/newActivityLi) is
-  // the only booked indicator now — no separate badge to keep in sync,
-  // just its own checked state against the underlying data-booked
-  // attribute, whichever of the checkbox/item-menu actually changed it.
-  function renderBooked(li){
-    var check = li.querySelector('.booked-check');
-    if(!check) return;
-    var booked = li.hasAttribute('data-booked');
-    check.checked = booked;
-    check.title = t(booked ? 'act_unmark_booked' : 'act_mark_booked');
-  }
-
   // ---- photo lightbox: "make bigger", with prev/next across every other
   // photo in the same option/month and the connected activity's details up
   // top, so the picture is never shown without the context of what it's
@@ -2654,7 +2627,7 @@
     var cellhead = li.closest('.cell') && li.closest('.cell').querySelector(':scope > .cellhead');
     if(cellhead) frag.appendChild(cellhead.cloneNode(true));
     var clone = li.cloneNode(true);
-    clone.querySelectorAll('.photoicon, .ticketicon, .itemmenu-btn, .booked-check').forEach(function(el){ el.remove(); });
+    clone.querySelectorAll('.photoicon, .ticketicon, .itemmenu-btn').forEach(function(el){ el.remove(); });
     clone.querySelectorAll('[contenteditable]').forEach(function(el){ el.removeAttribute('contenteditable'); });
     clone.className = 'photobox-activity';
     frag.appendChild(clone);
@@ -2906,6 +2879,11 @@
     var existing = li.querySelector('.ticketicon');
     if(!url){
       if(existing) existing.remove();
+      // A ticket is what marks an activity (and, once every activity in
+      // it has one, the whole day) as booked now — removing it can take
+      // the day out of all-booked, so that has to be re-checked here too.
+      var cellAfterRemove = li.closest('.cell');
+      if(cellAfterRemove) updateCellAllBooked(cellAfterRemove);
       return;
     }
     if(!existing){
@@ -2928,6 +2906,8 @@
       else if(tagrow) tagrow.insertBefore(existing, tagrow.firstChild);
       else li.insertBefore(existing, li.firstChild);
     }
+    var cell = li.closest('.cell');
+    if(cell) updateCellAllBooked(cell);
   }
   // Opens the ticket in a new tab. A raw data: URL is unreliable for
   // window.open in several browsers (some block a data: URL as a new
@@ -3114,11 +3094,6 @@
     if(li.hasAttribute('data-ticket')){
       row('✕  Remove ticket', function(){ removeTicketFromLi(li); });
     }
-    row(li.hasAttribute('data-booked') ? '✕  ' + t('act_unmark_booked') : '✓  ' + t('act_mark_booked'), function(){
-      if(li.hasAttribute('data-booked')) li.removeAttribute('data-booked');
-      else li.setAttribute('data-booked', '1');
-      renderBooked(li);
-    });
     row('✕  Delete activity', function(){
       var cell = li.closest('.cell');
       var panel = cell.closest('.panel');
@@ -3133,10 +3108,12 @@
   // Activities saved before .tagrow/.tagctl existed have their chip (and
   // any photo/ticket icon) sitting as loose direct children of <li>
   // instead of grouped into that one flex row — nothing then keeps the
-  // tag, icons, menu and checkbox on a single line together, which is
-  // why an old activity's chip could drop onto its own line above
-  // everything else. Normalizes into the current structure once, the
-  // first time attachItemControls touches it.
+  // tag, icons, and menu on a single line together, which is why an old
+  // activity's chip could drop onto its own line above everything else.
+  // Normalizes into the current structure once, the first time
+  // attachItemControls touches it. A stray :scope > .booked-check from
+  // before the booked checkbox was dropped entirely is discarded rather
+  // than carried forward — there's nowhere left in the UI for it.
   function migrateActivityStructure(li){
     if(li.querySelector(':scope > .tagrow')) return;
     var chip = li.querySelector(':scope > .chip');
@@ -3152,14 +3129,8 @@
     var tagctl = document.createElement('span');
     tagctl.className = 'tagctl';
     tagrow.appendChild(tagctl);
-    var bookedCheck = li.querySelector(':scope > .booked-check');
-    if(bookedCheck) tagctl.appendChild(bookedCheck);
-    else {
-      bookedCheck = document.createElement('input');
-      bookedCheck.type = 'checkbox';
-      bookedCheck.className = 'booked-check jsctl';
-      tagctl.appendChild(bookedCheck);
-    }
+    var strayBookedCheck = li.querySelector(':scope > .booked-check');
+    if(strayBookedCheck) strayBookedCheck.remove();
   }
 
   function attachItemControls(li){
@@ -3179,10 +3150,17 @@
     if(tagctl) tagctl.insertBefore(editBtn, tagctl.firstChild);
     else li.insertBefore(editBtn, li.firstChild);
 
+    // A leftover checkbox from before the booked checkbox was dropped
+    // entirely (see .acts li[data-ticket] above) — a ticket is what
+    // marks an activity booked now, nothing left in the UI to wire this
+    // up to.
+    var staleBookedCheck = li.querySelector('.booked-check');
+    if(staleBookedCheck) staleBookedCheck.remove();
+
     // Pointerdown anywhere on the activity that isn't one of its actual
-    // controls (tag, checkbox, menu, edit button, a link, or editable
-    // text) can turn into a drag, via the shared wireDragStarter (see its
-    // own comment — preventDefault below it, not this pointerdown, is
+    // controls (tag, menu, edit button, a link, or editable text) can
+    // turn into a drag, via the shared wireDragStarter (see its own
+    // comment — preventDefault below it, not this pointerdown, is
     // deliberate: doing it eagerly on every pointerdown blocked the
     // browser's own default click behavior for ANY click elsewhere on
     // the page, including the blur that normally ends editing a
@@ -3195,7 +3173,7 @@
     // which also takes over scrolling by hand for real (see its own
     // comment for why a single continuous gesture needs that).
     var actDragOpts = {
-      shouldSkip: function(e){ return e.target.closest('.chip, .booked-check, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
+      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
@@ -3212,17 +3190,6 @@
         openTagPicker(chip);
       });
     }
-    var bookedCheck = li.querySelector('.booked-check');
-    if(bookedCheck){
-      bookedCheck.addEventListener('click', function(e){ e.stopPropagation(); });
-      bookedCheck.addEventListener('change', function(){
-        if(bookedCheck.checked) li.setAttribute('data-booked', '1');
-        else li.removeAttribute('data-booked');
-        renderBooked(li);
-        var cell = li.closest('.cell');
-        if(cell) updateCellAllBooked(cell);
-      });
-    }
     li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
     li.querySelectorAll('.line').forEach(function(lineEl){
       lineEl.addEventListener('blur', function(){
@@ -3232,7 +3199,6 @@
     renderLinks(li);
     renderPhoto(li);
     renderTicket(li);
-    renderBooked(li);
   }
 
   // Extracts an activity's start time (minutes since midnight) from
@@ -3297,11 +3263,6 @@
     tagrow.appendChild(chip);
     var tagctl = document.createElement('span');
     tagctl.className = 'tagctl';
-    var bookedCheck = document.createElement('input');
-    bookedCheck.type = 'checkbox';
-    bookedCheck.className = 'booked-check jsctl';
-    bookedCheck.title = t('act_mark_booked');
-    tagctl.appendChild(bookedCheck);
     tagrow.appendChild(tagctl);
 
     var title = document.createElement('span');
@@ -5555,7 +5516,6 @@
     if(img) a.g = img;
     var ticket = li.getAttribute('data-ticket');
     if(ticket) a.tk = ticket;
-    if(li.hasAttribute('data-booked')) a.bk = 1;
     return a;
   }
 
@@ -5619,20 +5579,11 @@
       chip.textContent = (a.i || '') + ' ' + (a.n || '');
       tagrow.appendChild(chip);
     }
-    // Pinned to the right of the tag (see .tagctl) — a one-click way to
-    // mark booked, kept in sync with the item menu's own toggle by
-    // renderBooked(). .chip and .booked-check are one level deeper than
-    // <li> now (inside .tagrow/.tagctl), so extractActivity/renderPhoto's
-    // anchor/the span-ghost clone all use plain '.chip' lookups rather
-    // than ':scope > .chip'.
+    // .chip is one level deeper than <li> now (inside .tagrow/.tagctl),
+    // so extractActivity/renderPhoto's anchor/the span-ghost clone all
+    // use plain '.chip' lookups rather than ':scope > .chip'.
     var tagctl = document.createElement('span');
     tagctl.className = 'tagctl';
-    var bookedCheck = document.createElement('input');
-    bookedCheck.type = 'checkbox';
-    bookedCheck.className = 'booked-check jsctl';
-    bookedCheck.title = t('act_mark_booked');
-    if(a.bk) bookedCheck.checked = true;
-    tagctl.appendChild(bookedCheck);
     tagrow.appendChild(tagctl);
     li.appendChild(tagrow);
     var title = document.createElement('span');
@@ -5665,7 +5616,6 @@
     if(a.u && a.u.length) li.setAttribute('data-links', JSON.stringify(a.u));
     if(a.g) li.setAttribute('data-img', a.g);
     if(a.tk) li.setAttribute('data-ticket', a.tk);
-    if(a.bk) li.setAttribute('data-booked', '1');
     var span = lines.length ? parseSpanFromLine(lines[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     return li;
@@ -5890,7 +5840,7 @@
   var localEditUntil = 0;
 
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'data-booked', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
