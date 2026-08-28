@@ -617,7 +617,11 @@
      anyway, and it'd fire a request to the destination on every hover). */
   .linkarrow .linkpreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
-  .linkarrow:hover .linkpreview-wrap { display:block; }
+  /* JS-toggled .show class (see attachHoverReveal), same as .photopreview-
+     wrap above, rather than plain :hover — same reasoning: crossing from
+     the small icon into the wider preview below it can drop :hover mid-
+     transition. */
+  .linkpreview-wrap.show { display:block; }
   .linkpreview { display:block; width:min(30vw, 320px); max-width:80vw; box-sizing:border-box;
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25); text-align:left;
     border:2px solid var(--card); background:#fff; padding:10px 12px; }
@@ -633,8 +637,15 @@
      its own row at the bottom of the activity, after time/amount/notes,
      not squeezed into the tagrow with the other icons. */
   .act-participants { display:flex; gap:4px; margin-top:4px; }
-  .act-participants .participant-avatar { width:18px; height:18px; border-radius:50%; overflow:hidden; flex:0 0 18px; }
-  .act-participants .participant-avatar svg { display:block; width:100%; height:100%; }
+  .act-participants .participant-avatar { position:relative; width:18px; height:18px; border-radius:50%; overflow:visible; flex:0 0 18px; }
+  .act-participants .participant-avatar svg { display:block; width:100%; height:100%; border-radius:50%; overflow:hidden; }
+  /* Same styled-tooltip language as the rest of the app rather than the
+     native title attribute, which is slow to appear and unstyled — see
+     .linkpreview-wrap above for the same pattern on the link icon. */
+  .act-participants .participant-tooltip { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
+    bottom:100%; margin-bottom:6px; white-space:nowrap; background:var(--ink); color:#fff;
+    font-size:11px; font-weight:600; padding:4px 8px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,.2); }
+  .act-participants .participant-avatar:hover .participant-tooltip { display:block; }
   .participant-picker { width:240px; max-height:280px; overflow-y:auto; }
   .participant-picker-row { display:flex; align-items:center; gap:8px; padding:6px 8px;
     border-radius:6px; cursor:pointer; font-size:13px; }
@@ -662,13 +673,14 @@
      way, so this CSS doesn't need to be duplicated per icon. */
   .photoicon .photopreview-wrap, .ticketicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
-  /* Scoped to the icon itself, not the whole activity row — .photopreview-
-     wrap is a DOM child of the icon (even though it renders below it), so
-     :hover here still covers moving the pointer down into the preview to
-     reach the expand/delete buttons; it just no longer pops up from
-     hovering an unrelated control elsewhere on the row, like the item's
-     own "⋯" menu button. */
-  .photoicon:hover .photopreview-wrap, .ticketicon:hover .photopreview-wrap { display:block; }
+  /* Shown via a JS-toggled .show class (see attachHoverReveal) rather than
+     plain CSS :hover — moving the pointer from the small icon down into
+     the preview below it can lose :hover for a frame or two mid-crossing,
+     especially over a PDF ticket's <iframe> content, which made the
+     preview vanish right as you tried to reach it. A short grace period
+     before hiding (shared with mouseleave on the wrap itself) absorbs
+     that gap instead. */
+  .photopreview-wrap.show { display:block; }
   /* ~30% of the viewport width on hover, not the old fixed 220px thumbnail
      — big enough to actually judge the photo without opening the full
      lightbox, capped so it can't blow past a reasonable size on a huge
@@ -689,9 +701,9 @@
      dimensions. Same border/shadow treatment as .photopreview either
      way, so the two read as the same kind of thing. */
   /* Taller than .photopreview's 34vh — a photo is judged at a glance, but
-     a multi-page ticket needs enough height for Chrome's built-in PDF
-     viewer to show its own scrollbar/toolbar instead of just cropping the
-     page (see the #toolbar=1 fragment on the iframe's src, in renderTicket). */
+     a multi-page ticket needs enough height to actually scroll through
+     (see the #toolbar=0 fragment on the iframe's src, in renderTicket,
+     which hides Chrome's own toolbar but leaves scrolling intact). */
   .ticketpdf-preview { display:block; width:min(30vw, 420px); height:55vh;
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     border:2px solid var(--card); background:#fff; }
@@ -2709,6 +2721,29 @@
     renderLinks(li);
   }
 
+  // Shared by the photo/ticket/link hover previews (.photopreview-wrap,
+  // .linkpreview-wrap): a plain CSS :hover swap can drop hover state for a
+  // frame or two while the pointer crosses from the small trigger icon
+  // into the (wider, offset-below) preview, especially over a PDF
+  // ticket's <iframe> content — the preview would vanish right as the
+  // user tried to reach it. A short grace period before hiding, shared
+  // between the trigger and the wrap itself, absorbs that gap.
+  function attachHoverReveal(triggerEl, wrap){
+    var hideTimer = null;
+    function show(){
+      if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+      wrap.classList.add('show');
+    }
+    function scheduleHide(){
+      if(hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(function(){ wrap.classList.remove('show'); hideTimer = null; }, 250);
+    }
+    triggerEl.addEventListener('mouseenter', show);
+    triggerEl.addEventListener('mouseleave', scheduleHide);
+    wrap.addEventListener('mouseenter', show);
+    wrap.addEventListener('mouseleave', scheduleHide);
+  }
+
   function renderLinks(li){
     var links = getLinks(li);
     var wrap = li.querySelector(':scope > .linkicons');
@@ -2722,7 +2757,9 @@
       a.target = '_blank'; a.rel = 'noopener';
       a.href = url; a.title = url;
       a.textContent = '↗';
-      a.appendChild(buildLinkPreviewWrap(url));
+      var linkPreview = buildLinkPreviewWrap(url);
+      a.appendChild(linkPreview);
+      attachHoverReveal(a, linkPreview);
       wrap.appendChild(a);
     });
     var chip = li.querySelector('.chip');
@@ -2912,8 +2949,12 @@
         var email = member ? member.email : key.replace(/,/g, '.');
         var face = document.createElement('span');
         face.className = 'participant-avatar';
-        face.title = email;
+        face.setAttribute('aria-label', email);
         face.innerHTML = avatarSvgFor(email, data.avatars[key]);
+        var tooltip = document.createElement('span');
+        tooltip.className = 'participant-tooltip';
+        tooltip.textContent = email;
+        face.appendChild(tooltip);
         wrap.appendChild(face);
       });
       li.appendChild(wrap);
@@ -3040,6 +3081,7 @@
       ctl.appendChild(expandBtn);
       ctl.appendChild(deleteBtn);
       wrap.appendChild(ctl);
+      attachHoverReveal(existing, wrap);
 
       existing.appendChild(wrap);
       // .chip lives inside .tagrow now (see buildActivityLi/newActivityLi),
@@ -3393,6 +3435,7 @@
       if(!wrap){
         wrap = buildTicketPreviewWrap(li, 'img');
         existing.appendChild(wrap);
+        attachHoverReveal(existing, wrap);
       }
       wrap.querySelector('img').src = url;
     } else if(isPdf){
@@ -3400,18 +3443,18 @@
       if(!wrap){
         wrap = buildTicketPreviewWrap(li, 'pdf');
         existing.appendChild(wrap);
+        attachHoverReveal(existing, wrap);
       }
       var frameEl = wrap.querySelector('.ticketpdf-preview');
       if(frameEl.dataset.srcUrl !== url){
         if(frameEl.dataset.blobUrl) URL.revokeObjectURL(frameEl.dataset.blobUrl);
         var blobUrl = dataUrlToBlobUrl(url);
         frameEl.dataset.blobUrl = blobUrl;
-        // #toolbar=1 keeps Chrome's built-in PDF viewer chrome (and with
-        // it, its own scrollbar) visible even in this small a box — left
-        // to its default, the viewer sometimes drops that chrome once the
-        // frame is short, leaving a multi-page ticket cropped with no way
-        // to reach anything past the first page.
-        frameEl.src = blobUrl + '#toolbar=1';
+        // #toolbar=0 hides Chrome's own PDF viewer toolbar (print, download,
+        // rotate, …) so the only controls shown are ours (.photoctl's
+        // enlarge/delete) — it only hides that chrome, scrolling through a
+        // multi-page ticket still works fine without it.
+        frameEl.src = blobUrl + '#toolbar=0';
         frameEl.dataset.srcUrl = url;
       }
     } else if(wrap){
