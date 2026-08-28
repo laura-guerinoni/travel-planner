@@ -1021,12 +1021,17 @@
     color:var(--ink); cursor:pointer; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px;
     white-space:nowrap; }
   #manageAccessList button.map-make-owner:hover { border-color:var(--primary); color:var(--primary); }
+  /* A small deterministic face per member (see avatarSvgFor) — purely
+     decorative, so the list is easier to scan at a glance than a wall
+     of plain addresses. Same email always draws the same face. */
+  #manageAccessList .map-avatar { flex:0 0 28px; width:28px; height:28px; border-radius:50%; overflow:hidden; }
+  #manageAccessList .map-avatar svg { display:block; width:100%; height:100%; }
   /* Truncated with an ellipsis rather than wrapped — a long address
      wrapping mid-word into a cramped second line, squeezed next to the
      role/action buttons which stay on one line regardless, read as
      broken rather than just long. The full address is still available
      via the title tooltip. */
-  #manageAccessList li > span:first-child { flex:1; min-width:0; overflow:hidden;
+  #manageAccessList .map-email { flex:1; min-width:0; overflow:hidden;
     white-space:nowrap; text-overflow:ellipsis; }
   #manageAccessList .map-row-actions { display:flex; align-items:center; gap:6px; flex:none; }
   #manageAccessAddForm { display:flex; gap:6px; margin-bottom:8px; }
@@ -1914,6 +1919,54 @@
     if(managePanel) managePanel.classList.remove('show');
   }
 
+  // ---- member avatars: a small deterministic cartoon face per email —
+  // same address always draws the same face (hair color, eye color,
+  // mouth, short/long hair), purely to make the access list easier to
+  // scan at a glance than a wall of plain addresses. No photo upload, no
+  // external avatar service — just a hash of the email string. ----
+  var AVATAR_HAIR_COLORS = ['#2B2B2B', '#5B3A29', '#D9B877', '#A85432', '#B8B0A8', '#5DA0D9', '#8B6FC9'];
+  var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
+  var AVATAR_SKIN = '#F0D3AC';
+  var AVATAR_MOUTH_COLOR = '#8A5A42';
+  function hashEmailForAvatar(email){
+    var h = 0;
+    for(var i = 0; i < email.length; i++){ h = (h * 31 + email.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+  function avatarSvgFor(email){
+    var h = hashEmailForAvatar(email);
+    var hairColor = AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
+    var eyeColor = AVATAR_EYE_COLORS[(h >> 3) % AVATAR_EYE_COLORS.length];
+    var mouthType = (h >> 6) % 4;
+    var longHair = (h >> 8) % 2 === 0;
+    var mouthPath;
+    if(mouthType === 0){
+      mouthPath = '<path d="M 25 41 Q 32 47 39 41" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    } else if(mouthType === 1){
+      mouthPath = '<path d="M 26 42 L 38 42" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    } else if(mouthType === 2){
+      mouthPath = '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
+    } else {
+      mouthPath = '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    }
+    // Two flowing side locks, drawn before the head so they sit behind
+    // it — only added for the "long hair" half of the coin flip; short
+    // hair is just the cap path at the end, on its own.
+    var longHairSvg = longHair
+      ? '<path d="M 13 30 C 6 35 4 46 7 55 C 8 59 13 60 15 57 C 17 51 14 40 17 30 Z" fill="' + hairColor + '"/>' +
+        '<path d="M 51 30 C 58 35 60 46 57 55 C 56 59 51 60 49 57 C 47 51 50 40 47 30 Z" fill="' + hairColor + '"/>'
+      : '';
+    return '<svg viewBox="0 0 64 64" aria-hidden="true">' +
+      '<circle cx="32" cy="32" r="30" fill="var(--bg)"/>' +
+      longHairSvg +
+      '<circle cx="32" cy="34" r="18" fill="' + AVATAR_SKIN + '"/>' +
+      '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
+      '<circle cx="38" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
+      mouthPath +
+      '<path d="M 13 34 A 19 22 0 0 1 51 34 Q 44 24 32 27 Q 20 24 13 34 Z" fill="' + hairColor + '"/>' +
+      '</svg>';
+  }
+
   function renderMemberList(){
     if(!manageList) return;
     if(manageErrorEl) manageErrorEl.textContent = '';
@@ -1931,7 +1984,12 @@
       manageList.innerHTML = '';
       rows.forEach(function(row){
         var li = document.createElement('li');
+        var avatar = document.createElement('span');
+        avatar.className = 'map-avatar';
+        avatar.innerHTML = avatarSvgFor(row.email);
+        li.appendChild(avatar);
         var label = document.createElement('span');
+        label.className = 'map-email';
         label.textContent = row.email;
         label.title = row.email;
         li.appendChild(label);
