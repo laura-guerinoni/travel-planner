@@ -311,7 +311,7 @@
       font-size:18px; font-weight:700; margin:0 0 12px; color:#000; }
     .pills, .pills-gapfill, .month-sidebar, #statusBar, #mobileAddFab,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
-    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel, #fabAddPanel,
+    #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel, #fabAddPanel, #editActPanel,
     .photoicon, .ticketicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
@@ -515,6 +515,12 @@
   .acts li.act-span-ghost { cursor:default; padding:4px 6px; }
   .acts li [contenteditable="true"] { cursor:text; }
   .acts li .chip, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
+  /* Mobile-only (see the media query below) — opens a form popup instead
+     of needing to tap each tiny inline field precisely enough on a
+     touchscreen, where direct tap-to-edit is disabled (see the mobile
+     pointer-events override on .title/.line/.price-val/.price-note).
+     Hidden by default; desktop keeps direct inline editing as-is. */
+  .editicon { display:none; }
 
   /* Lives in .tagctl (see .tagrow above), pinned to the right of the tag
      — visibility (not display), same reasoning as .pill-remove elsewhere:
@@ -554,14 +560,16 @@
      (capped at 260px), nowrap here would just let a row wider than that
      cap overflow past the menu's edge instead of wrapping onto a second
      line, the exact failure mode this is fixing. */
-  .itemmenu-row { padding:6px 8px; border-radius:6px; cursor:pointer; }
+  .itemmenu-row { display:flex; align-items:center; padding:6px 8px; border-radius:6px; cursor:pointer; }
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
-  /* Ticket/Photo rows use the same SVGs as .ticketicon/.photoicon (see
-     openItemMenu) rather than an emoji like the other rows, so the icon
-     matches exactly what's already on the card once one's attached. */
-  .itemmenu-icon { display:inline-flex; align-items:center; vertical-align:-3px; margin-right:6px; }
+  /* Every row's leading icon/glyph — a real SVG (ticket/photo, reusing
+     .ticketicon/.photoicon's own icons — see openItemMenu) or a plain
+     character (+, ↑, ↓, ✕, ↗) for the rest — sits in the same
+     fixed-width column so every row's label lines up at the same left
+     edge regardless of how wide that particular glyph happens to be. */
+  .itemmenu-icon { flex:0 0 20px; display:inline-flex; align-items:center; justify-content:center; }
   .itemmenu-icon svg { width:14px; height:14px; }
   /* Separates the menu's 3 sections: missing fields you can add, then
      ticket/links/photo, then move/delete — only the first divider is
@@ -866,11 +874,21 @@
        neither of which is a real substitute for it just being there. */
     .itemmenu-btn { visibility: visible; width: 30px; height: 26px; font-size: 14px; }
     .itemmenu { max-width: min(280px, calc(100vw - 24px)); }
-    /* Direct tap-to-edit stays enabled here too (unlike an earlier
-       version of this) — the "..." menu only ever handles adding a
-       field that's currently missing (see openItemMenu) or an
-       activity-level action; editing a field that already has a value
-       is a plain tap on it either way, same as desktop. */
+    .editicon { display:flex; align-items:center; justify-content:center; border:none;
+      background:var(--line); color:var(--ink); border-radius:6px; width:30px; height:26px; padding:0; cursor:pointer; }
+    .editicon svg { width:15px; height:15px; }
+    .editicon:active { background:var(--primary); color:#fff; }
+    /* Direct tap-to-edit on these specific fields is disabled here —
+       .editicon opens the popup for all of them instead. Pointer-events
+       (not removing contenteditable in JS) so it degrades cleanly with
+       the existing breakpoint rather than needing its own viewport
+       check, and the tap instead falls through to the card underneath,
+       which is exactly what wireTouchScrollOrDrag's long-press-drag
+       already listens on. .loc (the day's own location text) is
+       deliberately NOT included — there's no popup covering that field,
+       so disabling it here would remove the only way to edit it on
+       mobile. */
+    .acts li .title, .acts li .line, .acts li .price-val, .acts li .price-note { pointer-events:none; }
     /* Stops iOS/Android's own text-selection callout (magnifier + "Copy"
        popup) from stepping in during the long press and hijacking the
        touch — it was winning that race a beat after wireDragStarter's
@@ -1226,6 +1244,25 @@
       <label for="fabAddAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
       <input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" />
       <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
+    </div>
+  </div>
+  <div id="editActPanel" class="modal-overlay">
+    <div class="map-inner">
+      <div class="map-header">
+        <h2 data-i18n="editact_title">Edit activity</h2>
+        <button type="button" id="editActCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+      </div>
+      <label for="editActTitleInput" class="fabadd-label" data-i18n="editact_title_label">Title</label>
+      <input type="text" id="editActTitleInput" class="fabadd-select" />
+      <label for="editActTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
+      <select id="editActTagSelect" class="fabadd-select"></select>
+      <label for="editActTimeInput" class="fabadd-label" data-i18n="fabadd_time_label">Time</label>
+      <input type="text" id="editActTimeInput" class="fabadd-select" placeholder="14:00" />
+      <label for="editActAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
+      <input type="text" id="editActAmountInput" class="fabadd-select" inputmode="decimal" placeholder="0" />
+      <label for="editActNotesInput" class="fabadd-label" data-i18n="editact_notes_label">Notes</label>
+      <input type="text" id="editActNotesInput" class="fabadd-select" />
+      <button type="button" id="editActSaveBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="editact_save">Save</button>
     </div>
   </div>
   <section class="panel" id="panel-option-1" data-holiday-start="12" data-holiday-end="25">
@@ -1644,7 +1681,9 @@
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
       cleardaytk_confirm: 'Clear day',
       fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_type_label: 'Type',
-      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity'
+      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity',
+      editact_title: 'Edit activity', editact_title_label: 'Title', editact_notes_label: 'Notes',
+      editact_save: 'Save'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1663,7 +1702,9 @@
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
       cleardaytk_confirm: 'Svuota giorno',
       fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_type_label: 'Tipo',
-      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività'
+      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività',
+      editact_title: 'Modifica attività', editact_title_label: 'Titolo', editact_notes_label: 'Note',
+      editact_save: 'Salva'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1682,7 +1723,9 @@
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
       cleardaytk_confirm: 'Vaciar día',
       fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_type_label: 'Tipo',
-      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad'
+      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad',
+      editact_title: 'Editar actividad', editact_title_label: 'Título', editact_notes_label: 'Notas',
+      editact_save: 'Guardar'
     }
   };
   var currentLang = 'en';
@@ -3256,18 +3299,24 @@
       pop.appendChild(d);
     }
 
+    // Every row's leading glyph is wrapped in .itemmenu-icon — an SVG
+    // for ticket/photo (see below), a plain character for the rest —
+    // so they all occupy the same fixed-width column and every label
+    // starts at the same left edge (see .itemmenu-icon).
+    function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
+
     var hasMissing = false;
     if(!findTimeLine(li)){
-      row('+  Add time', function(){ addMissingField(li, 'time'); });
+      row(icon('+') + 'Add time', function(){ addMissingField(li, 'time'); });
       hasMissing = true;
     }
     var priceEl = li.querySelector(':scope > .price');
     if(!priceEl){
-      row('+  Add amount', function(){ addMissingField(li, 'amount'); });
+      row(icon('+') + 'Add amount', function(){ addMissingField(li, 'amount'); });
       hasMissing = true;
     }
     if(!findDescLine(li)){
-      row('+  Add notes', function(){ addMissingField(li, 'notes'); });
+      row(icon('+') + 'Add notes', function(){ addMissingField(li, 'notes'); });
       hasMissing = true;
     }
     if(hasMissing) divider();
@@ -3275,17 +3324,17 @@
     // Same SVGs as .ticketicon/.photoicon already render on the card
     // once a ticket/photo is attached — reusing them here (instead of an
     // emoji, like the other rows) so the icon matches exactly.
-    row('<span class="itemmenu-icon">' + ICON_TICKET + '</span>' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Add ticket'), function(){ pickTicket(li); });
+    row(icon(ICON_TICKET) + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Add ticket'), function(){ pickTicket(li); });
     if(li.hasAttribute('data-ticket')){
-      row('✕  Remove ticket', function(){ removeTicketFromLi(li); });
+      row(icon('✕') + 'Remove ticket', function(){ removeTicketFromLi(li); });
     }
-    row('↗  Add link', function(){ openLinkManager(li, anchorEl); });
-    row('<span class="itemmenu-icon">' + ICON_CAMERA + '</span>Add photo', function(){ pickImage(li); });
+    row(icon('↗') + 'Add link', function(){ openLinkManager(li, anchorEl); });
+    row(icon(ICON_CAMERA) + (li.hasAttribute('data-img') ? 'Replace photo' : 'Add photo'), function(){ pickImage(li); });
     divider();
 
-    row('↑  Move up', function(){ moveActBy(li, -1); });
-    row('↓  Move down', function(){ moveActBy(li, 1); });
-    row('✕  Delete activity', function(){ deleteActivityLi(li); }, true);
+    row(icon('↑') + 'Move up', function(){ moveActBy(li, -1); });
+    row(icon('↓') + 'Move down', function(){ moveActBy(li, 1); });
+    row(icon('✕') + 'Delete activity', function(){ deleteActivityLi(li); }, true);
 
     pop._anchorEl = anchorEl;
     anchorEl.style.visibility = 'visible';
@@ -3335,6 +3384,14 @@
     if(tagctl) tagctl.insertBefore(menuBtn, tagctl.firstChild);
     else li.insertBefore(menuBtn, li.firstChild);
 
+    var editBtn = document.createElement('button');
+    editBtn.type = 'button'; editBtn.className = 'editicon jsctl';
+    editBtn.title = t('editact_title'); editBtn.setAttribute('aria-label', t('editact_title'));
+    editBtn.innerHTML = ICON_EDIT;
+    editBtn.addEventListener('click', function(e){ e.stopPropagation(); openEditAct(li); });
+    if(tagctl) tagctl.insertBefore(editBtn, tagctl.firstChild);
+    else li.insertBefore(editBtn, li.firstChild);
+
     // A leftover checkbox from before the booked checkbox was dropped
     // entirely (see .acts li[data-ticket] above) — a ticket is what
     // marks an activity booked now, nothing left in the UI to wire this
@@ -3358,7 +3415,7 @@
     // also takes over scrolling by hand for real (see its own comment
     // for why a single continuous gesture needs that).
     var actDragOpts = {
-      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, a, [contenteditable="true"]'); },
+      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
@@ -5315,6 +5372,124 @@
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
+  });
+
+  // ---- mobile "edit activity" popup — the .editicon pencil button (see
+  // attachItemControls) opens this instead of needing to tap each tiny
+  // inline field precisely enough on a touchscreen, where direct
+  // tap-to-edit is disabled (see the mobile pointer-events override).
+  // Reads/writes the exact same DOM the "..." menu's add-field rows and
+  // desktop's direct inline editing do (see findTimeLine/findDescLine/
+  // addMissingField), so nothing about how an activity is stored changes
+  // between the three editing surfaces. ----
+  var editActPanel = document.getElementById('editActPanel');
+  var editActTitleInput = document.getElementById('editActTitleInput');
+  var editActTagSelect = document.getElementById('editActTagSelect');
+  var editActTimeInput = document.getElementById('editActTimeInput');
+  var editActAmountInput = document.getElementById('editActAmountInput');
+  var editActNotesInput = document.getElementById('editActNotesInput');
+  var editActCloseX = document.getElementById('editActCloseX');
+  var editActSaveBtn = document.getElementById('editActSaveBtn');
+  var editingLi = null;
+  function closeEditAct(){
+    editingLi = null;
+    if(editActPanel) editActPanel.classList.remove('show');
+  }
+  function openEditAct(li){
+    if(!editActPanel || !editActTagSelect) return;
+    editingLi = li;
+    var chip = li.querySelector('.chip');
+    var titleEl = li.querySelector('.title');
+    var timeLine = findTimeLine(li);
+    var descLine = findDescLine(li);
+    var priceValEl = li.querySelector(':scope > .price > .price-val');
+
+    editActTitleInput.value = titleEl ? titleEl.textContent : '';
+    editActTagSelect.innerHTML = '';
+    TAGS.forEach(function(tg, idx){
+      var opt = document.createElement('option');
+      opt.value = String(idx);
+      opt.textContent = tg.icon + ' ' + tg.name;
+      if(chip && chip.getAttribute('data-icon') === tg.icon && chip.getAttribute('data-name') === tg.name) opt.selected = true;
+      editActTagSelect.appendChild(opt);
+    });
+    editActTimeInput.value = timeLine ? timeLine.textContent.replace(/^🕒\s*/, '') : '';
+    // Raw price-val text minus the currency symbol, not parseMoney's
+    // computed total — parseMoney folds a "€45x2" style entry down to
+    // 90, which would silently overwrite the "x2" someone typed the
+    // moment this popup is opened and saved without touching amount.
+    editActAmountInput.value = priceValEl ? priceValEl.textContent.replace(CURRENCY_SYMBOL_RE, '') : '';
+    editActNotesInput.value = descLine ? descLine.textContent : '';
+
+    editActPanel.classList.add('show');
+  }
+  if(editActCloseX) editActCloseX.addEventListener('click', closeEditAct);
+  if(editActSaveBtn) editActSaveBtn.addEventListener('click', function(){
+    var li = editingLi;
+    if(!li){ closeEditAct(); return; }
+    var tagIdx = editActTagSelect ? editActTagSelect.value : null;
+    var titleVal = editActTitleInput ? editActTitleInput.value : '';
+    var timeVal = editActTimeInput ? editActTimeInput.value.trim() : '';
+    var amountVal = editActAmountInput ? editActAmountInput.value.trim() : '';
+    var notesVal = editActNotesInput ? editActNotesInput.value.trim() : '';
+    closeEditAct();
+
+    if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
+      var tg = TAGS[tagIdx];
+      var chip = li.querySelector('.chip');
+      if(chip){
+        chip.setAttribute('data-icon', tg.icon);
+        chip.setAttribute('data-name', tg.name);
+        chip.style.background = tg.bg;
+        chip.style.color = tg.fg;
+        chip.textContent = tg.icon + ' ' + tg.name;
+      }
+    }
+    var titleEl = li.querySelector('.title');
+    if(titleEl) titleEl.textContent = titleVal;
+
+    // Lines are rebuilt from scratch (notes, then time) rather than
+    // patched in place — matches exactly what addMissingField/direct
+    // editing already produce: notes before time before price.
+    li.querySelectorAll(':scope > .line').forEach(function(l){ l.remove(); });
+    var priceEl = li.querySelector(':scope > .price');
+    if(notesVal){
+      var descSpan = document.createElement('span');
+      descSpan.className = 'line';
+      descSpan.textContent = notesVal;
+      li.insertBefore(descSpan, priceEl || null);
+    }
+    if(timeVal){
+      var timeSpan = document.createElement('span');
+      timeSpan.className = 'line';
+      timeSpan.textContent = '🕒 ' + timeVal;
+      li.insertBefore(timeSpan, priceEl || null);
+    }
+
+    if(amountVal){
+      if(!priceEl){
+        priceEl = document.createElement('span');
+        priceEl.className = 'price';
+        var pv = document.createElement('span');
+        pv.className = 'price-val';
+        priceEl.appendChild(pv);
+        li.appendChild(priceEl);
+      }
+      var priceValEl = priceEl.querySelector('.price-val');
+      if(priceValEl) priceValEl.textContent = currencySymbol() + amountVal;
+    } else if(priceEl){
+      priceEl.remove();
+    }
+
+    if(timeVal) reorderActivityByStartTime(li);
+    updateActivitySpan(li);
+    markNotesLine(li);
+    if(li.hasAttribute('data-span-start')){
+      var spanPanel = li.closest('.panel');
+      if(spanPanel) renderActivitySpans(spanPanel);
+    }
+    var cell = li.closest('.cell');
+    if(cell){ recomputeCell(cell); updateCellAllBooked(cell); }
   });
 
   function downloadCopy(htmlStr){
