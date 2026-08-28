@@ -1024,8 +1024,29 @@
   /* A small deterministic face per member (see avatarSvgFor) — purely
      decorative, so the list is easier to scan at a glance than a wall
      of plain addresses. Same email always draws the same face. */
-  #manageAccessList .map-avatar { flex:0 0 28px; width:28px; height:28px; border-radius:50%; overflow:hidden; }
+  #manageAccessList .map-avatar { flex:0 0 28px; width:28px; height:28px; border-radius:50%; overflow:hidden; cursor:pointer; }
   #manageAccessList .map-avatar svg { display:block; width:100%; height:100%; }
+  /* The avatar customization popover (see openAvatarEditor) — reuses
+     .itemmenu's own card styling (border/shadow/radius), just wider to
+     fit a row of swatches without wrapping awkwardly. */
+  /* z-index above .modal-overlay's own 9998 — the avatar sitting inside
+     "Manage access" is itself inside that overlay, but positionPopover
+     appends this to document.body as a sibling of the overlay, not a
+     child of it, so it needs to out-rank the overlay explicitly or it
+     renders invisibly behind it. */
+  .avatar-editor { width:220px; padding:10px; z-index:9999; }
+  .avatar-editor-preview { width:48px; height:48px; margin:0 auto 8px; border-radius:50%; overflow:hidden; }
+  .avatar-editor-preview svg { display:block; width:100%; height:100%; }
+  .avatar-editor-row { margin-bottom:8px; }
+  .avatar-editor-label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .avatar-editor-opts { display:flex; flex-wrap:wrap; gap:6px; }
+  .avatar-editor-opt { border:1.5px solid transparent; background:var(--bg); border-radius:6px;
+    padding:3px 7px; font-size:12px; color:var(--ink); cursor:pointer; }
+  .avatar-editor-opt.active { border-color:var(--primary); }
+  .avatar-editor-opt.avatar-swatch { width:20px; height:20px; padding:0; border-radius:50%; }
+  .avatar-editor-reset { width:100%; border:none; background:transparent; color:var(--muted);
+    font-size:12px; text-decoration:underline; cursor:pointer; padding:2px 0; }
+  .avatar-editor-reset:hover { color:var(--ink); }
   /* Truncated with an ellipsis rather than wrapped — a long address
      wrapping mid-word into a cramped second line, squeezed next to the
      role/action buttons which stay on one line regardless, read as
@@ -1919,13 +1940,16 @@
     if(managePanel) managePanel.classList.remove('show');
   }
 
-  // ---- member avatars: a small deterministic cartoon face per email —
-  // same address always draws the same face (hair color, eye color,
-  // mouth, short/long hair), purely to make the access list easier to
-  // scan at a glance than a wall of plain addresses. No photo upload, no
-  // external avatar service — just a hash of the email string. ----
+  // ---- member avatars: a small cartoon face per email — hair color, eye
+  // color, mouth, and short/long hair default to a hash of the address
+  // (so a not-yet-customized person still gets a stable, distinct face),
+  // but any of those can be overridden per person via openAvatarEditor —
+  // saved to /avatars (keyed the same sanitized way as /members) so a
+  // customization is visible to every collaborator, not just whoever set
+  // it. No photo upload, no external avatar service either way. ----
   var AVATAR_HAIR_COLORS = ['#2B2B2B', '#5B3A29', '#D9B877', '#A85432', '#B8B0A8', '#5DA0D9', '#8B6FC9'];
   var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
+  var AVATAR_MOUTH_TYPES = [0, 1, 2, 3];
   var AVATAR_SKIN = '#F0D3AC';
   var AVATAR_MOUTH_COLOR = '#8A5A42';
   function hashEmailForAvatar(email){
@@ -1933,22 +1957,22 @@
     for(var i = 0; i < email.length; i++){ h = (h * 31 + email.charCodeAt(i)) >>> 0; }
     return h;
   }
-  function avatarSvgFor(email){
+  function mouthPathFor(mouthType){
+    if(mouthType === 0) return '<path d="M 25 41 Q 32 47 39 41" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(mouthType === 1) return '<path d="M 26 42 L 38 42" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
+    return '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+  }
+  // override (optional): { hair, eyes, mouthType, longHair } — any field
+  // left unset falls back to that field's own hash-derived default, so a
+  // person can customize just their hair color and still get a random
+  // (but stable) mouth/eyes/length.
+  function avatarSvgFor(email, override){
     var h = hashEmailForAvatar(email);
-    var hairColor = AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
-    var eyeColor = AVATAR_EYE_COLORS[(h >> 3) % AVATAR_EYE_COLORS.length];
-    var mouthType = (h >> 6) % 4;
-    var longHair = (h >> 8) % 2 === 0;
-    var mouthPath;
-    if(mouthType === 0){
-      mouthPath = '<path d="M 25 41 Q 32 47 39 41" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    } else if(mouthType === 1){
-      mouthPath = '<path d="M 26 42 L 38 42" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    } else if(mouthType === 2){
-      mouthPath = '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
-    } else {
-      mouthPath = '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    }
+    var hairColor = (override && override.hair) || AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
+    var eyeColor = (override && override.eyes) || AVATAR_EYE_COLORS[(h >> 3) % AVATAR_EYE_COLORS.length];
+    var mouthType = (override && override.mouthType != null) ? override.mouthType : (h >> 6) % 4;
+    var longHair = (override && override.longHair != null) ? override.longHair : (h >> 8) % 2 === 0;
     // Two flowing side locks, drawn before the head so they sit behind
     // it — only added for the "long hair" half of the coin flip; short
     // hair is just the cap path at the end, on its own.
@@ -1962,16 +1986,151 @@
       '<circle cx="32" cy="34" r="18" fill="' + AVATAR_SKIN + '"/>' +
       '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
       '<circle cx="38" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
-      mouthPath +
+      mouthPathFor(mouthType) +
       '<path d="M 13 34 A 19 22 0 0 1 51 34 Q 44 24 32 27 Q 20 24 13 34 Z" fill="' + hairColor + '"/>' +
       '</svg>';
+  }
+  // firebase.database() itself can throw synchronously (not just reject),
+  // e.g. if no app was ever initialized — try/catch here so a save
+  // failure never breaks whatever UI flow triggered it (closing the
+  // popover, updating the preview) even if the write itself doesn't land.
+  function saveAvatarOverride(key, override){
+    try {
+      firebase.database().ref('avatars/' + key).set(override).catch(function(err){
+        console.warn('Save avatar customization failed — check the /avatars security rule', err);
+      });
+    } catch(err){
+      console.warn('Save avatar customization failed', err);
+    }
+  }
+  function removeAvatarOverride(key){
+    try {
+      firebase.database().ref('avatars/' + key).remove().catch(function(err){
+        console.warn('Reset avatar customization failed', err);
+      });
+    } catch(err){
+      console.warn('Reset avatar customization failed', err);
+    }
+  }
+  // Click the avatar in the list to open this. Every choice saves and
+  // re-renders immediately (both the popover's own preview and the
+  // row's avatar in the list behind it) rather than waiting for a
+  // confirm step, so trying a few combinations is just clicking around.
+  function openAvatarEditor(email, key, rowAvatarEl, initialOverride){
+    closePop();
+    var current = {
+      hair: initialOverride && initialOverride.hair,
+      eyes: initialOverride && initialOverride.eyes,
+      mouthType: initialOverride && initialOverride.mouthType,
+      longHair: initialOverride && initialOverride.longHair
+    };
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu avatar-editor';
+
+    var preview = document.createElement('div');
+    preview.className = 'avatar-editor-preview';
+    pop.appendChild(preview);
+
+    function refresh(){
+      var svg = avatarSvgFor(email, current);
+      preview.innerHTML = svg;
+      rowAvatarEl.innerHTML = svg;
+    }
+    refresh();
+
+    // Every option button registers a check here instead of only getting
+    // its "active" class at build time — picking a new hair color (say)
+    // needs the ring to move off the old swatch and onto the new one,
+    // not just update the preview, so this re-evaluates all of them
+    // after every pick rather than rebuilding the whole popover.
+    var activeTrackers = [];
+    function refreshActiveStates(){
+      activeTrackers.forEach(function(tr){ tr.btn.classList.toggle('active', tr.check()); });
+    }
+
+    function pick(field, value){
+      current[field] = value;
+      refresh();
+      refreshActiveStates();
+      saveAvatarOverride(key, current);
+    }
+
+    function row(label, items, activeCheck, onPick){
+      var r = document.createElement('div');
+      r.className = 'avatar-editor-row';
+      var lab = document.createElement('span');
+      lab.className = 'avatar-editor-label';
+      lab.textContent = label;
+      r.appendChild(lab);
+      var opts = document.createElement('div');
+      opts.className = 'avatar-editor-opts';
+      items.forEach(function(item){
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'avatar-editor-opt';
+        item.build(btn);
+        btn.addEventListener('click', function(e){ e.stopPropagation(); onPick(item); });
+        opts.appendChild(btn);
+        activeTrackers.push({ btn: btn, check: function(){ return activeCheck(item); } });
+      });
+      r.appendChild(opts);
+      pop.appendChild(r);
+    }
+
+    row('Hair color', AVATAR_HAIR_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
+      function(item){ return item.value === current.hair; },
+      function(item){ pick('hair', item.value); });
+
+    row('Eye color', AVATAR_EYE_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
+      function(item){ return item.value === current.eyes; },
+      function(item){ pick('eyes', item.value); });
+
+    row('Mouth', AVATAR_MOUTH_TYPES.map(function(mt){ return { value: mt, build: function(btn){ btn.innerHTML = '<svg viewBox="18 32 28 18" width="22" height="14">' + mouthPathFor(mt) + '</svg>'; } }; }),
+      function(item){ return item.value === current.mouthType; },
+      function(item){ pick('mouthType', item.value); });
+
+    row('Hair length', [
+        { value: false, build: function(btn){ btn.textContent = 'Short'; } },
+        { value: true, build: function(btn){ btn.textContent = 'Long'; } }
+      ],
+      function(item){ return item.value === current.longHair; },
+      function(item){ pick('longHair', item.value); });
+
+    refreshActiveStates();
+
+    var resetRow = document.createElement('div');
+    resetRow.className = 'avatar-editor-row';
+    var resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'avatar-editor-reset';
+    resetBtn.textContent = 'Reset to default';
+    resetBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      current = { hair: undefined, eyes: undefined, mouthType: undefined, longHair: undefined };
+      refresh();
+      removeAvatarOverride(key);
+      closePop();
+    });
+    resetRow.appendChild(resetBtn);
+    pop.appendChild(resetRow);
+
+    positionPopover(pop, rowAvatarEl);
   }
 
   function renderMemberList(){
     if(!manageList) return;
     if(manageErrorEl) manageErrorEl.textContent = '';
-    firebase.database().ref('members').once('value').then(function(snap){
-      var val = snap.val() || {};
+    Promise.all([
+      firebase.database().ref('members').once('value'),
+      // A missing/permission-denied /avatars read just means nobody's
+      // customized anything yet (or the security rule isn't set up) —
+      // fall back to an empty object rather than let it fail the whole
+      // list load, since the hash-derived default still works fine
+      // either way.
+      firebase.database().ref('avatars').once('value').catch(function(){ return null; })
+    ]).then(function(snaps){
+      var val = snaps[0].val() || {};
+      var avatarOverrides = (snaps[1] && snaps[1].val()) || {};
       var rows = Object.keys(val).map(function(key){
         return { key: key, email: key.replace(/,/g, '.'), role: val[key] };
       });
@@ -1986,7 +2145,13 @@
         var li = document.createElement('li');
         var avatar = document.createElement('span');
         avatar.className = 'map-avatar';
-        avatar.innerHTML = avatarSvgFor(row.email);
+        var avatarOverride = avatarOverrides[row.key];
+        avatar.innerHTML = avatarSvgFor(row.email, avatarOverride);
+        avatar.title = 'Customize avatar';
+        avatar.addEventListener('click', function(e){
+          e.stopPropagation();
+          openAvatarEditor(row.email, row.key, avatar, avatarOverride);
+        });
         li.appendChild(avatar);
         var label = document.createElement('span');
         label.className = 'map-email';
