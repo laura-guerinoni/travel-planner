@@ -624,12 +624,18 @@
      chip's own emoji baseline quirk (see their own comment), which
      doesn't apply to this circle's different shape/box; .tagrow's own
      align-items:center already centers it correctly on its own. */
-  .ticket-add-btn { position:relative; display:inline-flex; align-items:center; justify-content:center;
+  .ticket-add-btn { visibility:hidden; position:relative; display:inline-flex; align-items:center; justify-content:center;
     vertical-align:middle; margin-left:4px; width:18px; height:18px; border-radius:50%;
     border:1.5px dashed var(--muted); color:var(--muted); cursor:pointer;
     transition:border-color .12s, background .12s, color .12s; }
   .ticket-add-btn svg { width:10px; height:10px; }
   .ticket-add-btn:hover { border-style:solid; border-color:var(--primary); background:var(--bg); color:var(--primary); }
+  /* Hidden until you hover the activity it belongs to, same as
+     .itemmenu-btn/.editicon right next to it — visibility (not
+     display), so it doesn't shift anything when it appears, and JS's
+     own display:none/'' toggle for "has a ticket or not" (see
+     renderTicket) still composes fine on top of this either way. */
+  li:hover .ticket-add-btn { visibility:visible; }
   /* A custom tooltip instead of relying on the title attribute — the
      browser's own hover delay before a native tooltip shows (upwards of
      a second, sometimes closer to what felt like 3s) is fixed and not
@@ -875,7 +881,7 @@
       content: ''; position: absolute; inset: -11px;
     }
     .photoicon > svg, .ticketicon > svg { width: 18px; height: 18px; }
-    .ticket-add-btn { width: 22px; height: 22px; }
+    .ticket-add-btn { visibility:visible; width: 22px; height: 22px; }
     .ticket-add-btn svg { width: 12px; height: 12px; }
     /* Always visible, not hover-gated — touch has no real hover state;
        relying on it either hides the button entirely or (on the phones
