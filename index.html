@@ -1994,9 +1994,19 @@
   // e.g. if no app was ever initialized — try/catch here so a save
   // failure never breaks whatever UI flow triggered it (closing the
   // popover, updating the preview) even if the write itself doesn't land.
+  // override normally carries all four keys with `undefined` for
+  // whichever traits haven't been picked yet (see openAvatarEditor's
+  // `current`) — the Firebase SDK's .set() throws if the object it's
+  // given contains an `undefined` property, so those get stripped out
+  // here rather than sent as-is; a person who's only picked a hair color
+  // ends up saving just { hair: '#...' }, not all four keys.
   function saveAvatarOverride(key, override){
+    var clean = {};
+    Object.keys(override).forEach(function(k){
+      if(override[k] !== undefined) clean[k] = override[k];
+    });
     try {
-      firebase.database().ref('avatars/' + key).set(override).catch(function(err){
+      firebase.database().ref('avatars/' + key).set(clean).catch(function(err){
         console.warn('Save avatar customization failed — check the /avatars security rule', err);
       });
     } catch(err){
