@@ -247,6 +247,10 @@
   }
   .title { display:block; font-weight:600; }
   .line { display:block; color:var(--muted); }
+  /* The notes line specifically (not the time line — both share .line,
+     see markNotesLine) reads as free-text commentary rather than
+     structured data, so it gets the same treatment as .price-note. */
+  .line.notes-line { font-style:italic; }
 
   /* a multi-day activity's read-only echo on the days after its start —
      the real, editable copy only lives on the start day */
@@ -531,6 +535,10 @@
      specifically reported as looking "on" all the time on mobile even
      when nothing was actually happening. */
   .itemmenu-btn:active { background:var(--primary); color:#fff; }
+  /* Set alongside the visibility override in openItemMenu, for exactly
+     as long as this button's own menu is open — same look as :hover/
+     :active, so it reads as "selected", not just "still there". */
+  .itemmenu-btn.open { background:var(--primary); color:#fff; }
 
   /* width:max-content (not a fixed 160px) — a fixed width let a longer
      row's nowrap text spill past the menu's own edge in some languages
@@ -2413,7 +2421,10 @@
   // path), fixes that without needing every future popover to remember it.
   function closePop(){
     if(openPop){
-      if(openPop._anchorEl) openPop._anchorEl.style.visibility = '';
+      if(openPop._anchorEl){
+        openPop._anchorEl.style.visibility = '';
+        openPop._anchorEl.classList.remove('open');
+      }
       openPop.remove();
       openPop = null;
       tryApplyPendingRemoteUpdate();
@@ -3063,6 +3074,15 @@
     }
     return null;
   }
+  // Re-derives which .line (if any) is the notes line and marks only
+  // that one italic (see .line.notes-line) — re-run wherever a line's
+  // content could have just changed, since findDescLine's classification
+  // is by content, not a fixed slot.
+  function markNotesLine(li){
+    li.querySelectorAll(':scope > .line').forEach(function(l){ l.classList.remove('notes-line'); });
+    var descLine = findDescLine(li);
+    if(descLine) descLine.classList.add('notes-line');
+  }
 
   function moveActBy(li, dir){
     if(dir < 0){
@@ -3115,6 +3135,7 @@
       makeEditable(timeSpan);
       timeSpan.addEventListener('blur', function(){
         if(/\d{1,2}:\d{2}/.test(timeSpan.textContent)) reorderActivityByStartTime(li);
+        markNotesLine(li);
       });
       timeSpan.focus();
       placeCaretAtEnd(timeSpan);
@@ -3134,29 +3155,35 @@
       notesSpan.className = 'line';
       li.appendChild(notesSpan);
       makeEditable(notesSpan);
+      notesSpan.addEventListener('blur', function(){ markNotesLine(li); });
       notesSpan.focus();
+      markNotesLine(li);
     }
   }
   // Fields left empty just don't show (buildActivityLi/extractActivity
   // already work this way — see their own comments); this is the other
-  // half of that, for a field that HAD content and lost it: on blur, if
-  // it's now empty, drop the node so the "⋯" menu offers to add it back
-  // next time (see openItemMenu) instead of leaving a visibly blank row.
+  // half of that, for a field that HAD content and lost it: once focus
+  // leaves the activity entirely (not just moving from one of its own
+  // fields to another — see the relatedTarget check), drop any of its
+  // .line/.price-val that are now empty, so the "⋯" menu offers to add
+  // them back next time (see openItemMenu) instead of leaving a visibly
+  // blank row sitting there. Scoped to the whole li, not just whichever
+  // one field triggered this, so a newActivityLi()-seeded time/amount
+  // that never got individually focused (the person only typed a title
+  // and moved on) still gets cleared out — not just ones edited then
+  // emptied back out by hand.
   document.addEventListener('focusout', function(e){
-    var el = e.target;
-    if(!el || !el.classList) return;
-    if(el.classList.contains('line')){
-      var li = el.parentElement;
-      if(li && li.tagName === 'LI' && !li.classList.contains('act-span-ghost') && lineIsEmpty(el)){
-        el.remove();
-      }
-    } else if(el.classList.contains('price-val')){
-      var li2 = el.closest('li');
-      if(li2 && !li2.classList.contains('act-span-ghost') && priceValIsEmpty(el)){
-        var priceEl = el.closest('.price');
-        if(priceEl) priceEl.remove();
-      }
+    var li = e.target && e.target.closest && e.target.closest('.acts > li');
+    if(!li || li.classList.contains('act-span-ghost')) return;
+    var next = e.relatedTarget;
+    if(next && li.contains(next)) return;
+    li.querySelectorAll(':scope > .line').forEach(function(l){ if(lineIsEmpty(l)) l.remove(); });
+    var priceVal = li.querySelector(':scope > .price > .price-val');
+    if(priceVal && priceValIsEmpty(priceVal)){
+      var priceEl = priceVal.closest('.price');
+      if(priceEl) priceEl.remove();
     }
+    markNotesLine(li);
   });
 
   // The "..." menu — 3 sections, 2 dividers: whichever of time/amount/
@@ -3208,12 +3235,12 @@
     // Same SVGs as .ticketicon/.photoicon already render on the card
     // once a ticket/photo is attached — reusing them here (instead of an
     // emoji, like the other rows) so the icon matches exactly.
-    row('<span class="itemmenu-icon">' + ICON_TICKET + '</span>' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
+    row('<span class="itemmenu-icon">' + ICON_TICKET + '</span>' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Add ticket'), function(){ pickTicket(li); });
     if(li.hasAttribute('data-ticket')){
       row('✕  Remove ticket', function(){ removeTicketFromLi(li); });
     }
-    row('↗  Links', function(){ openLinkManager(li, anchorEl); });
-    row('<span class="itemmenu-icon">' + ICON_CAMERA + '</span>Photo', function(){ pickImage(li); });
+    row('↗  Add link', function(){ openLinkManager(li, anchorEl); });
+    row('<span class="itemmenu-icon">' + ICON_CAMERA + '</span>Add photo', function(){ pickImage(li); });
     divider();
 
     row('↑  Move up', function(){ moveActBy(li, -1); });
@@ -3222,6 +3249,7 @@
 
     pop._anchorEl = anchorEl;
     anchorEl.style.visibility = 'visible';
+    anchorEl.classList.add('open');
     positionPopover(pop, anchorEl);
   }
 
@@ -3311,11 +3339,13 @@
     li.querySelectorAll('.line').forEach(function(lineEl){
       lineEl.addEventListener('blur', function(){
         if(/\d{1,2}:\d{2}/.test(lineEl.textContent)) reorderActivityByStartTime(li);
+        markNotesLine(li);
       });
     });
     renderLinks(li);
     renderPhoto(li);
     renderTicket(li);
+    markNotesLine(li);
   }
 
   // Extracts an activity's start time (minutes since midnight) from
@@ -3386,13 +3416,25 @@
     title.className = 'title';
     title.textContent = 'New activity';
 
-    // Time, notes, and amount all start out unset — each is optional per
-    // activity and only added to the DOM once it actually has a value,
-    // rather than seeded with placeholder text like "🕒 time"/"€0" that
-    // reads as real content until someone notices it isn't. The "..."
-    // menu offers to add whichever of these is missing (see
-    // openItemMenu/addMissingField).
-    li.appendChild(tagrow); li.appendChild(title);
+    // Time and amount start out as empty (not missing) fields, ready to
+    // fill in right away — notes stays out entirely, reachable via the
+    // "..." menu's "Add notes" only if actually wanted. If either time
+    // or amount is left untouched, the focusout pruning listener (see
+    // its own comment) drops it back out once focus leaves this
+    // activity, same "hide if empty" rule as everywhere else — the "..."
+    // menu offers to add it back at that point (see openItemMenu).
+    var line = document.createElement('span');
+    line.className = 'line';
+    line.textContent = '🕒 ';
+
+    var price = document.createElement('span');
+    price.className = 'price';
+    var priceVal = document.createElement('span');
+    priceVal.className = 'price-val';
+    priceVal.textContent = currencySymbol();
+    price.appendChild(priceVal);
+
+    li.appendChild(tagrow); li.appendChild(title); li.appendChild(line); li.appendChild(price);
     return li;
   }
 
@@ -3906,6 +3948,20 @@
       recomputeCell(cell);
       refreshHoliCell(cell);
       refreshClear();
+      // Selected (not just focused) so typing a real name immediately
+      // replaces the "New activity" placeholder instead of appending to
+      // it. Also what lets the seeded-but-untouched time/amount fields
+      // (see newActivityLi) get pruned if the person renames this and
+      // moves on without ever touching them — the focusout pruning
+      // listener only fires once something inside the li has been
+      // focused at all.
+      var titleEl = li.querySelector('.title');
+      titleEl.focus();
+      var range = document.createRange();
+      range.selectNodeContents(titleEl);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
     });
 
     clearBtn.addEventListener('click', function(){
@@ -5189,10 +5245,9 @@
         }
       }
       if(timeVal){
-        // newActivityLi() doesn't seed a placeholder .line — time is
-        // optional and only in the DOM once it has a real value (see
-        // addMissingField) — so this may need to create it, not just
-        // fill it in.
+        // newActivityLi() already seeds an empty .line for time, but the
+        // null-guard stays here in case that ever changes again — this
+        // shouldn't assume it exists.
         var lineEl = newLi.querySelector(':scope > .line');
         if(!lineEl){
           lineEl = document.createElement('span');
