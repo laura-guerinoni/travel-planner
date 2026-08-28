@@ -550,6 +550,11 @@
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
+  /* Ticket/Photo rows use the same SVGs as .ticketicon/.photoicon (see
+     openItemMenu) rather than an emoji like the other rows, so the icon
+     matches exactly what's already on the card once one's attached. */
+  .itemmenu-icon { display:inline-flex; align-items:center; vertical-align:-3px; margin-right:6px; }
+  .itemmenu-icon svg { width:14px; height:14px; }
   /* Separates the menu's 3 sections: missing fields you can add, then
      ticket/links/photo, then move/delete — only the first divider is
      conditional (see openItemMenu), since section 1 only exists when
@@ -2399,7 +2404,21 @@
   }
 
   var openPop = null;
-  function closePop(){ if(openPop){ openPop.remove(); openPop = null; tryApplyPendingRemoteUpdate(); } }
+  // A popover's own trigger (e.g. an .itemmenu-btn, only visibile on
+  // li:hover) can otherwise vanish mid-use — the popover itself lives in
+  // document.body, not inside the li, so moving the mouse off the li and
+  // into the popover un-hovers the li and hides the button while its
+  // own menu is still open. Forcing the trigger visible for as long as
+  // its popover is open, and letting go the moment it closes (by any
+  // path), fixes that without needing every future popover to remember it.
+  function closePop(){
+    if(openPop){
+      if(openPop._anchorEl) openPop._anchorEl.style.visibility = '';
+      openPop.remove();
+      openPop = null;
+      tryApplyPendingRemoteUpdate();
+    }
+  }
   document.addEventListener('click', function(e){
     if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
        !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn')){
@@ -3084,26 +3103,21 @@
   // Creates the field a "⋯" menu row offered to add (see openItemMenu)
   // and drops the cursor straight into it — direct inline editing from
   // there on, same as any field that already had a value.
+  // Display order is always time, then amount, then notes — so whichever
+  // field is being added has to land before whatever of the later two
+  // already exists, not just before .price specifically.
   function addMissingField(li, kind){
     if(kind === 'time'){
       var timeSpan = document.createElement('span');
       timeSpan.className = 'line';
       timeSpan.textContent = '🕒 ';
-      li.insertBefore(timeSpan, li.querySelector(':scope > .price') || null);
+      li.insertBefore(timeSpan, li.querySelector(':scope > .price') || findDescLine(li) || null);
       makeEditable(timeSpan);
       timeSpan.addEventListener('blur', function(){
         if(/\d{1,2}:\d{2}/.test(timeSpan.textContent)) reorderActivityByStartTime(li);
       });
       timeSpan.focus();
       placeCaretAtEnd(timeSpan);
-    } else if(kind === 'notes'){
-      var notesSpan = document.createElement('span');
-      notesSpan.className = 'line';
-      // Notes sits before the time line, matching buildActivityLi's own
-      // rendering order for the two.
-      li.insertBefore(notesSpan, findTimeLine(li) || li.querySelector(':scope > .price') || null);
-      makeEditable(notesSpan);
-      notesSpan.focus();
     } else if(kind === 'amount'){
       var priceEl = document.createElement('span');
       priceEl.className = 'price';
@@ -3111,10 +3125,16 @@
       priceVal.className = 'price-val';
       priceVal.textContent = currencySymbol();
       priceEl.appendChild(priceVal);
-      li.appendChild(priceEl);
+      li.insertBefore(priceEl, findDescLine(li) || null);
       makeEditable(priceVal);
       priceVal.focus();
       placeCaretAtEnd(priceVal);
+    } else if(kind === 'notes'){
+      var notesSpan = document.createElement('span');
+      notesSpan.className = 'line';
+      li.appendChild(notesSpan);
+      makeEditable(notesSpan);
+      notesSpan.focus();
     }
   }
   // Fields left empty just don't show (buildActivityLi/extractActivity
@@ -3185,18 +3205,23 @@
     }
     if(hasMissing) divider();
 
-    row('🎫  ' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
+    // Same SVGs as .ticketicon/.photoicon already render on the card
+    // once a ticket/photo is attached — reusing them here (instead of an
+    // emoji, like the other rows) so the icon matches exactly.
+    row('<span class="itemmenu-icon">' + ICON_TICKET + '</span>' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
     if(li.hasAttribute('data-ticket')){
       row('✕  Remove ticket', function(){ removeTicketFromLi(li); });
     }
     row('↗  Links', function(){ openLinkManager(li, anchorEl); });
-    row('📷  Photo', function(){ pickImage(li); });
+    row('<span class="itemmenu-icon">' + ICON_CAMERA + '</span>Photo', function(){ pickImage(li); });
     divider();
 
     row('↑  Move up', function(){ moveActBy(li, -1); });
     row('↓  Move down', function(){ moveActBy(li, 1); });
     row('✕  Delete activity', function(){ deleteActivityLi(li); }, true);
 
+    pop._anchorEl = anchorEl;
+    anchorEl.style.visibility = 'visible';
     positionPopover(pop, anchorEl);
   }
 
@@ -5569,13 +5594,21 @@
     title.className = 'title';
     title.textContent = a.t || '';
     li.appendChild(title);
+    // Display order is always time, then amount, then notes — regardless
+    // of what order the two .line strings happen to sit in within a.l
+    // (see extractActivity, which just reads them back out in whatever
+    // DOM order this produces).
     var lines = a.l || [];
-    lines.forEach(function(txt){
+    var isTimeText = function(txt){ return /🕒/.test(txt) || /\d{1,2}:\d{2}/.test(txt); };
+    var timeTexts = lines.filter(isTimeText);
+    var descTexts = lines.filter(function(txt){ return !isTimeText(txt); });
+    function appendLine(txt){
       var sp = document.createElement('span');
       sp.className = 'line';
       sp.textContent = txt;
       li.appendChild(sp);
-    });
+    }
+    timeTexts.forEach(appendLine);
     if(a.p != null || a.pn != null){
       var price = document.createElement('span');
       price.className = 'price';
@@ -5592,10 +5625,11 @@
       }
       li.appendChild(price);
     }
+    descTexts.forEach(appendLine);
     if(a.u && a.u.length) li.setAttribute('data-links', JSON.stringify(a.u));
     if(a.g) li.setAttribute('data-img', a.g);
     if(a.tk) li.setAttribute('data-ticket', a.tk);
-    var span = lines.length ? parseSpanFromLine(lines[0]) : null;
+    var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     return li;
   }
