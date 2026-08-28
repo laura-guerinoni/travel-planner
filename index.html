@@ -308,7 +308,7 @@
     .pills, .pills-gapfill, .month-sidebar, #statusBar, #mobileAddFab,
     #authGate, #ownerControls, #actionMenu, #manageAccessPanel,
     #switchPlanBtn, #printPanel, #photoLightbox, #clearDayConfirmPanel, #fabAddPanel,
-    .photoicon, .ticketicon, .act-editpop,
+    .photoicon, .ticketicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
        only the hover-driven "swap for clear day" behavior is screen-only,
@@ -510,14 +510,27 @@
      checkbox — same specificity fight). */
   .acts li.act-span-ghost { cursor:default; padding:4px 6px; }
   .acts li [contenteditable="true"] { cursor:text; }
-  .acts li .chip, .acts li a { cursor:pointer; }
-  /* The whole card is a click target now (opens the field/actions
-     popover — see openActEditPop), so a hover cue on the card itself
-     matters, not just on individual controls inside it. Box-shadow
-     (not background-color) so it layers correctly over a ticketed
-     activity's own background-image tint (see .acts li[data-ticket]
-     above) instead of being painted underneath and staying invisible. */
-  .acts li:hover { box-shadow:inset 0 0 0 999px rgba(0,0,0,.035); }
+  .acts li .chip, .acts li .itemmenu-btn, .acts li a { cursor:pointer; }
+
+  /* Lives in .tagctl (see .tagrow above), pinned to the right of the tag
+     — visibility (not display), same reasoning as .pill-remove elsewhere:
+     it still occupies its layout space at all times so nothing next to
+     it shifts sideways when this fades in. */
+  .itemmenu-btn { visibility:hidden; border:none; background:none; color:var(--ink); border-radius:6px;
+    font-size:12px; font-weight:800; width:20px; height:18px; line-height:18px; padding:0; cursor:pointer; }
+  /* Hover only, deliberately no :focus-within fallback — clicking this
+     button leaves it focused (native button behavior), and focus doesn't
+     clear just because the mouse moved elsewhere, which is what made
+     this look stuck showing after you'd already moved on to a different
+     day. */
+  li:hover .itemmenu-btn { visibility:visible; }
+  .itemmenu-btn:hover { background:var(--primary); color:#fff; }
+  /* Touch has no hover to show this on, so :active (a real press, not
+     just resting there — see the mobile visibility override below)
+     covers it there. No background at rest either way — this was
+     specifically reported as looking "on" all the time on mobile even
+     when nothing was actually happening. */
+  .itemmenu-btn:active { background:var(--primary); color:#fff; }
 
   /* width:max-content (not a fixed 160px) — a fixed width let a longer
      row's nowrap text spill past the menu's own edge in some languages
@@ -537,6 +550,11 @@
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
+  /* Separates the menu's 3 sections: missing fields you can add, then
+     ticket/links/photo, then move/delete — only the first divider is
+     conditional (see openItemMenu), since section 1 only exists when
+     something's actually missing. */
+  .itemmenu-divider { height:1px; background:var(--line); margin:4px 6px; }
   /* The mobile "+" FAB's own menu — bigger, more touch-friendly text than
      the other small popovers this class is shared with (item menu, pill
      context menu), so it gets its own row size via this extra class
@@ -592,23 +610,6 @@
   .ticketicon { position:relative; top:-2px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
   .ticketicon > svg { width:14px; height:14px; }
   .ticketicon:hover { color:var(--primary); }
-  /* The activity edit popover — opened by clicking anywhere on an
-     activity that isn't one of its own controls (see the li click
-     listener in attachItemControls). Same visual language as .itemmenu
-     right below (border/shadow/radius), just wider to fit labeled
-     inputs. Field rows sit above a divider; action rows below it reuse
-     .itemmenu-row verbatim so their hover/danger styling matches the
-     old "⋯" menu's exactly. */
-  .act-editpop { position:absolute; z-index:55; background:var(--card); border:1px solid var(--line);
-    border-radius:10px; padding:8px; box-shadow:0 10px 28px rgba(0,0,0,.18); font-size:13px; width:260px; }
-  .act-editpop-field { display:flex; align-items:center; gap:8px; padding:4px; }
-  .act-editpop-field label { flex:0 0 50px; color:var(--muted); font-size:12px; }
-  .act-editpop-field input { flex:1; min-width:0; border:1px solid var(--line); border-radius:6px;
-    padding:4px 6px; font-size:13px; font-family:inherit; color:var(--ink); background:var(--bg); }
-  .act-editpop-field input:focus { outline:1px solid var(--primary); border-color:var(--primary); }
-  .act-editpop-divider { height:1px; background:var(--line); margin:6px 4px; }
-  .act-editpop .itemmenu-row { display:flex; align-items:center; gap:8px; }
-  .act-editpop .itemmenu-row svg { width:14px; height:14px; flex:0 0 auto; }
   .photoicon .photopreview-wrap { display:none; position:absolute; z-index:60; left:50%; transform:translateX(-50%);
     top:100%; margin-top:6px; }
   /* Scoped to the icon itself, not the whole activity row — .photopreview-
@@ -843,12 +844,17 @@
       content: ''; position: absolute; inset: -11px;
     }
     .photoicon > svg, .ticketicon > svg { width: 18px; height: 18px; }
-    /* Same activity-click-opens-the-popover interaction as desktop (see
-       attachItemControls' li click listener and openActEditPop) — no
-       mobile-specific override needed here any more now that editing
-       isn't inline contenteditable text a touch would need special
-       handling to reach. */
-    .act-editpop { width: min(280px, calc(100vw - 24px)); }
+    /* Always visible, not hover-gated — touch has no real hover state;
+       relying on it either hides the button entirely or (on the phones
+       that fake a hover on first tap) needs a tap-it-twice workaround,
+       neither of which is a real substitute for it just being there. */
+    .itemmenu-btn { visibility: visible; width: 30px; height: 26px; font-size: 14px; }
+    .itemmenu { max-width: min(280px, calc(100vw - 24px)); }
+    /* Direct tap-to-edit stays enabled here too (unlike an earlier
+       version of this) — the "..." menu only ever handles adding a
+       field that's currently missing (see openItemMenu) or an
+       activity-level action; editing a field that already has a value
+       is a plain tap on it either way, same as desktop. */
     /* Stops iOS/Android's own text-selection callout (magnifier + "Copy"
        popup) from stepping in during the long press and hijacking the
        touch — it was winning that race a beat after wireDragStarter's
@@ -1622,8 +1628,7 @@
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
       cleardaytk_confirm: 'Clear day',
       fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_type_label: 'Type',
-      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity',
-      editact_title_label: 'Title', editact_notes_label: 'Notes'
+      fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
@@ -1642,8 +1647,7 @@
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
       cleardaytk_confirm: 'Svuota giorno',
       fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_type_label: 'Tipo',
-      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività',
-      editact_title_label: 'Titolo', editact_notes_label: 'Note'
+      fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
@@ -1662,8 +1666,7 @@
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
       cleardaytk_confirm: 'Vaciar día',
       fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_type_label: 'Tipo',
-      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad',
-      editact_title_label: 'Título', editact_notes_label: 'Notas'
+      fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad'
     }
   };
   var currentLang = 'en';
@@ -2014,12 +2017,7 @@
   // rename mode. STRIP_CONTENTEDITABLE_SEL covers it too, for the save/undo
   // snapshot cleanup that strips contenteditable markers regardless of
   // which element happens to be mid-edit at that moment.
-  // .title/.line/.price-val/.price-note used to be permanently
-  // contenteditable in place; activity fields are edited through
-  // openActEditPop's popover now (see attachItemControls), not inline
-  // on the card, so they're gone from this list — .loc/.budget-name are
-  // unrelated to activities and keep editing in place as before.
-  var EDITABLE_SEL = '.loc, .budget-name';
+  var EDITABLE_SEL = '.title, .line, .loc, .price-val, .price-note, .budget-name';
   var STRIP_CONTENTEDITABLE_SEL = EDITABLE_SEL + ', .pill-name';
 
   // ---- month/year: each panel has its own calendar, generated on the fly
@@ -2401,16 +2399,10 @@
   }
 
   var openPop = null;
-  // A popover that edits something in place (openActEditPop) sets its own
-  // _onClose to commit whatever's in its fields back onto the li — every
-  // path that ends a popover's life (an outside click below, a row's own
-  // action, opening a different popover) funnels through here, so there's
-  // one place that guarantees a commit instead of needing each caller to
-  // remember it.
-  function closePop(){ if(openPop){ if(openPop._onClose) openPop._onClose(); openPop.remove(); openPop = null; tryApplyPendingRemoteUpdate(); } }
+  function closePop(){ if(openPop){ openPop.remove(); openPop = null; tryApplyPendingRemoteUpdate(); } }
   document.addEventListener('click', function(e){
     if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
-       !e.target.closest('.linkbtn')){
+       !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn')){
       closePop();
     }
   });
@@ -3030,7 +3022,7 @@
   // "12/08-15/08" span-range, since parseSpanFromLine searches anywhere in
   // the text, not just from the start); the notes line is whatever .line
   // is left over. At most one of each is ever rendered (see
-  // commitActEditPop), so "the other one" is unambiguous.
+  // addMissingField), so "the other one" is unambiguous.
   function findTimeLine(li){
     var lines = li.querySelectorAll(':scope > .line');
     for(var i = 0; i < lines.length; i++){
@@ -3064,135 +3056,142 @@
     if(panel) renderActivitySpans(panel);
   }
 
-  // Writes the popover's 4 fields back onto the li exactly the way
-  // buildActivityLi/extractActivity already expect them: a blank field
-  // just isn't rendered at all (see their own comments), same "hide if
-  // empty" rule as everywhere else. Amount is read/written via the raw
-  // price-val text (minus its currency symbol), not parseMoney's
-  // computed total — parseMoney folds a "€45x2" style entry down to 90,
-  // which would silently overwrite the "x2" a person typed the moment
-  // they opened and closed the popover without touching the field.
-  function commitActEditPop(li, titleInput, timeInput, amountInput, notesInput){
-    var titleEl = li.querySelector(':scope > .title');
-    if(titleEl) titleEl.textContent = titleInput.value;
-
-    var timeVal = timeInput.value.trim();
-    var notesVal = notesInput.value.trim();
-    var amountVal = amountInput.value.trim();
-
-    li.querySelectorAll(':scope > .line').forEach(function(l){ l.remove(); });
-    var priceEl = li.querySelector(':scope > .price');
-    // Notes line first, then time line — matches buildActivityLi's own
-    // rendering order for the two.
-    if(notesVal){
-      var descSpan = document.createElement('span');
-      descSpan.className = 'line';
-      descSpan.textContent = notesVal;
-      li.insertBefore(descSpan, priceEl || null);
-    }
-    if(timeVal){
+  // A "🕒" with nothing typed after it (the state right after
+  // addMissingField creates a time line, before any digits land) counts
+  // as empty same as a blank notes line — stripping the emoji before the
+  // trim check covers both without needing to know which kind of line
+  // this is.
+  function lineIsEmpty(lineEl){
+    return lineEl.textContent.replace(/🕒/g, '').trim() === '';
+  }
+  function priceValIsEmpty(priceValEl){
+    return priceValEl.textContent.replace(/[^\d.,-]/g, '').trim() === '';
+  }
+  function placeCaretAtEnd(el){
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  // Creates the field a "⋯" menu row offered to add (see openItemMenu)
+  // and drops the cursor straight into it — direct inline editing from
+  // there on, same as any field that already had a value.
+  function addMissingField(li, kind){
+    if(kind === 'time'){
       var timeSpan = document.createElement('span');
       timeSpan.className = 'line';
-      timeSpan.textContent = '🕒 ' + timeVal;
-      li.insertBefore(timeSpan, priceEl || null);
+      timeSpan.textContent = '🕒 ';
+      li.insertBefore(timeSpan, li.querySelector(':scope > .price') || null);
+      makeEditable(timeSpan);
+      timeSpan.addEventListener('blur', function(){
+        if(/\d{1,2}:\d{2}/.test(timeSpan.textContent)) reorderActivityByStartTime(li);
+      });
+      timeSpan.focus();
+      placeCaretAtEnd(timeSpan);
+    } else if(kind === 'notes'){
+      var notesSpan = document.createElement('span');
+      notesSpan.className = 'line';
+      // Notes sits before the time line, matching buildActivityLi's own
+      // rendering order for the two.
+      li.insertBefore(notesSpan, findTimeLine(li) || li.querySelector(':scope > .price') || null);
+      makeEditable(notesSpan);
+      notesSpan.focus();
+    } else if(kind === 'amount'){
+      var priceEl = document.createElement('span');
+      priceEl.className = 'price';
+      var priceVal = document.createElement('span');
+      priceVal.className = 'price-val';
+      priceVal.textContent = currencySymbol();
+      priceEl.appendChild(priceVal);
+      li.appendChild(priceEl);
+      makeEditable(priceVal);
+      priceVal.focus();
+      placeCaretAtEnd(priceVal);
     }
-
-    if(amountVal){
-      if(!priceEl){
-        priceEl = document.createElement('span');
-        priceEl.className = 'price';
-        var pv = document.createElement('span');
-        pv.className = 'price-val';
-        priceEl.appendChild(pv);
-        li.appendChild(priceEl);
-      }
-      var priceValEl = priceEl.querySelector('.price-val');
-      if(priceValEl) priceValEl.textContent = currencySymbol() + amountVal;
-    } else if(priceEl){
-      priceEl.remove();
-    }
-
-    if(timeVal) reorderActivityByStartTime(li);
-    updateActivitySpan(li);
-    if(li.hasAttribute('data-span-start')){
-      var spanPanel = li.closest('.panel');
-      if(spanPanel) renderActivitySpans(spanPanel);
-    }
-    var cell = li.closest('.cell');
-    if(cell){ recomputeCell(cell); updateCellAllBooked(cell); }
   }
+  // Fields left empty just don't show (buildActivityLi/extractActivity
+  // already work this way — see their own comments); this is the other
+  // half of that, for a field that HAD content and lost it: on blur, if
+  // it's now empty, drop the node so the "⋯" menu offers to add it back
+  // next time (see openItemMenu) instead of leaving a visibly blank row.
+  document.addEventListener('focusout', function(e){
+    var el = e.target;
+    if(!el || !el.classList) return;
+    if(el.classList.contains('line')){
+      var li = el.parentElement;
+      if(li && li.tagName === 'LI' && !li.classList.contains('act-span-ghost') && lineIsEmpty(el)){
+        el.remove();
+      }
+    } else if(el.classList.contains('price-val')){
+      var li2 = el.closest('li');
+      if(li2 && !li2.classList.contains('act-span-ghost') && priceValIsEmpty(el)){
+        var priceEl = el.closest('.price');
+        if(priceEl) priceEl.remove();
+      }
+    }
+  });
 
-  // ---- unified activity editor: click anywhere on an activity that isn't
-  // one of its own controls (chip/photo/ticket icon/a link — see the li
-  // click listener in attachItemControls) opens one popover with its
-  // fields (title/time/amount/notes, always shown, blank if unset) above
-  // a divider of actions (photo/ticket/delete/links/move up/move down).
-  // Replaces the old "..." menu and the pencil-icon modal — editing and
-  // activity-level actions live in exactly one place now, on both desktop
-  // and mobile (click and tap are the same gesture here). Closing it, by
-  // any path — clicking elsewhere, clicking the activity again, opening a
-  // different popover — commits the fields via closePop's _onClose hook. ----
-  function openActEditPop(li){
+  // The "..." menu — 3 sections, 2 dividers: whichever of time/amount/
+  // notes is currently missing (only present when at least one is, since
+  // an all-filled activity has nothing to add), then ticket/links/photo
+  // (always shown), then move up/down/delete. Rebuilt fresh on every
+  // open rather than kept in sync, since which fields are missing can
+  // only have changed via direct editing on the card since the last
+  // time this was open anyway.
+  function openItemMenu(li, anchorEl){
     closePop();
     var pop = document.createElement('div');
-    pop.className = 'act-editpop';
-    pop._forLi = li;
-
-    function field(labelKey, value, placeholder){
-      var wrap = document.createElement('div');
-      wrap.className = 'act-editpop-field';
-      var lab = document.createElement('label');
-      lab.textContent = t(labelKey);
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.value = value || '';
-      if(placeholder) input.placeholder = placeholder;
-      wrap.appendChild(lab); wrap.appendChild(input);
-      pop.appendChild(wrap);
-      return input;
-    }
-
-    var titleEl = li.querySelector(':scope > .title');
-    var timeLine = findTimeLine(li);
-    var descLine = findDescLine(li);
-    var priceValEl = li.querySelector(':scope > .price > .price-val');
-
-    var titleInput = field('editact_title_label', titleEl ? titleEl.textContent : '');
-    var timeInput = field('fabadd_time_label', timeLine ? timeLine.textContent.replace(/^🕒\s*/, '') : '', '14:00');
-    var amountInput = field('fabadd_amount_label', priceValEl ? priceValEl.textContent.replace(CURRENCY_SYMBOL_RE, '') : '', '0');
-    var notesInput = field('editact_notes_label', descLine ? descLine.textContent : '');
-
-    var divider = document.createElement('div');
-    divider.className = 'act-editpop-divider';
-    pop.appendChild(divider);
+    pop.className = 'itemmenu';
 
     function row(html, fn, danger){
       var r = document.createElement('div');
       r.className = 'itemmenu-row' + (danger ? ' danger' : '');
       r.innerHTML = html;
-      r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
+      r.addEventListener('click', function(e){
+        e.stopPropagation();
+        closePop();
+        fn();
+      });
       pop.appendChild(r);
       return r;
     }
-
-    // Same icons as .photoicon/.ticketicon already render when a photo/
-    // ticket is attached, just wrapped in a span here rather than SVG
-    // attrs on the row itself, so the icon reads identically wherever it
-    // shows up.
-    row('<span>' + ICON_CAMERA + '</span><span>Photo</span>', function(){ pickImage(li); });
-    row('<span>' + ICON_TICKET + '</span><span>' + (li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket') + '</span>', function(){ pickTicket(li); });
-    if(li.hasAttribute('data-ticket')){
-      row('✕ Remove ticket', function(){ removeTicketFromLi(li); });
+    function divider(){
+      var d = document.createElement('div');
+      d.className = 'itemmenu-divider';
+      pop.appendChild(d);
     }
-    row('✕ Delete activity', function(){ deleteActivityLi(li); }, true);
-    row('↗ Links', function(){ openLinkManager(li, li); });
-    row('↑ Move up', function(){ moveActBy(li, -1); });
-    row('↓ Move down', function(){ moveActBy(li, 1); });
 
-    pop._onClose = function(){ commitActEditPop(li, titleInput, timeInput, amountInput, notesInput); };
+    var hasMissing = false;
+    if(!findTimeLine(li)){
+      row('Add time', function(){ addMissingField(li, 'time'); });
+      hasMissing = true;
+    }
+    var priceEl = li.querySelector(':scope > .price');
+    if(!priceEl){
+      row('Add amount', function(){ addMissingField(li, 'amount'); });
+      hasMissing = true;
+    }
+    if(!findDescLine(li)){
+      row('Add notes', function(){ addMissingField(li, 'notes'); });
+      hasMissing = true;
+    }
+    if(hasMissing) divider();
 
-    positionPopover(pop, li);
-    titleInput.focus();
+    row((li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket'), function(){ pickTicket(li); });
+    if(li.hasAttribute('data-ticket')){
+      row('Remove ticket', function(){ removeTicketFromLi(li); });
+    }
+    row('Links', function(){ openLinkManager(li, anchorEl); });
+    row('Photo', function(){ pickImage(li); });
+    divider();
+
+    row('Move up', function(){ moveActBy(li, -1); });
+    row('Move down', function(){ moveActBy(li, 1); });
+    row('Delete activity', function(){ deleteActivityLi(li); }, true);
+
+    positionPopover(pop, anchorEl);
   }
 
   // Activities saved before .tagrow/.tagctl existed have their chip (and
@@ -3228,6 +3227,15 @@
     if(li._controlsAttached) return;
     li._controlsAttached = true;
 
+    var menuBtn = document.createElement('button');
+    menuBtn.type = 'button';
+    menuBtn.textContent = '⋯';
+    menuBtn.className = 'itemmenu-btn jsctl';
+    menuBtn.addEventListener('click', function(e){ e.stopPropagation(); openItemMenu(li, menuBtn); });
+    var tagctl = li.querySelector('.tagctl');
+    if(tagctl) tagctl.insertBefore(menuBtn, tagctl.firstChild);
+    else li.insertBefore(menuBtn, li.firstChild);
+
     // A leftover checkbox from before the booked checkbox was dropped
     // entirely (see .acts li[data-ticket] above) — a ticket is what
     // marks an activity booked now, nothing left in the UI to wire this
@@ -3236,22 +3244,22 @@
     if(staleBookedCheck) staleBookedCheck.remove();
 
     // Pointerdown anywhere on the activity that isn't one of its actual
-    // controls (tag, menu, edit button, a link, or editable text) can
-    // turn into a drag, via the shared wireDragStarter (see its own
-    // comment — preventDefault below it, not this pointerdown, is
-    // deliberate: doing it eagerly on every pointerdown blocked the
-    // browser's own default click behavior for ANY click elsewhere on
-    // the page, including the blur that normally ends editing a
-    // different activity's title, which is what made the "..." menu/
-    // "+ Add activity" hover controls look stuck showing on whatever was
-    // last focused, for days no longer even being hovered). Mouse
-    // engages immediately from anywhere (wireDragStarter). Touch presses
-    // and holds directly on the activity too, a single continuous
-    // press-then-drag — but goes through wireTouchScrollOrDrag instead,
-    // which also takes over scrolling by hand for real (see its own
-    // comment for why a single continuous gesture needs that).
+    // controls (tag, menu, a link, or editable text) can turn into a
+    // drag, via the shared wireDragStarter (see its own comment —
+    // preventDefault below it, not this pointerdown, is deliberate:
+    // doing it eagerly on every pointerdown blocked the browser's own
+    // default click behavior for ANY click elsewhere on the page,
+    // including the blur that normally ends editing a different
+    // activity's title, which is what made the "..." menu/"+ Add
+    // activity" hover controls look stuck showing on whatever was last
+    // focused, for days no longer even being hovered). Mouse engages
+    // immediately from anywhere (wireDragStarter). Touch presses and
+    // holds directly on the activity too, a single continuous press-
+    // then-drag — but goes through wireTouchScrollOrDrag instead, which
+    // also takes over scrolling by hand for real (see its own comment
+    // for why a single continuous gesture needs that).
     var actDragOpts = {
-      shouldSkip: function(e){ return e.target.closest('.chip, .photoicon, .ticketicon, a'); },
+      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
@@ -3268,17 +3276,11 @@
         openTagPicker(chip);
       });
     }
-    // Click (or tap — same gesture) anywhere else on the activity opens
-    // the unified field/actions popover (see openActEditPop). stopPropagation
-    // so the document-level outside-click listener (see closePop) never
-    // sees this click and immediately closes what was just opened — this
-    // listener owns opening AND closing its own li's popover entirely.
-    li.addEventListener('click', function(e){
-      if(suppressNextActClick){ suppressNextActClick = false; return; }
-      if(e.target.closest('.chip, .photoicon, .ticketicon, a')) return;
-      e.stopPropagation();
-      if(openPop && openPop._forLi === li) closePop();
-      else openActEditPop(li);
+    li.querySelectorAll('.title, .line, .price-val, .price-note').forEach(makeEditable);
+    li.querySelectorAll('.line').forEach(function(lineEl){
+      lineEl.addEventListener('blur', function(){
+        if(/\d{1,2}:\d{2}/.test(lineEl.textContent)) reorderActivityByStartTime(li);
+      });
     });
     renderLinks(li);
     renderPhoto(li);
@@ -3354,11 +3356,11 @@
     title.textContent = 'New activity';
 
     // Time, notes, and amount all start out unset — each is optional per
-    // activity (see commitActEditPop) and only added to the DOM once it
-    // actually has a value, rather than seeded with placeholder text like
-    // "🕒 time"/"€0" that reads as real content until someone notices it
-    // isn't. Clicking the freshly added activity opens the popover to
-    // fill any of these in (see openActEditPop).
+    // activity and only added to the DOM once it actually has a value,
+    // rather than seeded with placeholder text like "🕒 time"/"€0" that
+    // reads as real content until someone notices it isn't. The "..."
+    // menu offers to add whichever of these is missing (see
+    // openItemMenu/addMissingField).
     li.appendChild(tagrow); li.appendChild(title);
     return li;
   }
@@ -3773,12 +3775,6 @@
     return acts;
   }
   var actDrag = null;
-  // A real drag still ends with a native 'click' firing on the li at
-  // release (pointermove's preventDefault doesn't suppress that) — set
-  // once a drag actually moved, so the li's own click listener (see
-  // attachItemControls) can ignore that one click and not pop the edit
-  // popover open right after a reorder.
-  var suppressNextActClick = false;
   function onActDragMove(e){
     if(!actDrag) return;
     actDrag.moved = true;
@@ -3801,7 +3797,6 @@
     stopAutoScroll();
     if(actDrag) actDrag.li.classList.remove('act-armed');
     if(actDrag && actDrag.moved){
-      suppressNextActClick = true;
       actDrag.li.classList.remove('act-dragging');
       var newCell = actDrag.li.closest('.cell');
       recomputeCell(actDrag.originCell);
@@ -5165,12 +5160,13 @@
       if(timeVal){
         // newActivityLi() doesn't seed a placeholder .line — time is
         // optional and only in the DOM once it has a real value (see
-        // commitActEditPop) — so this may need to create it, not just
+        // addMissingField) — so this may need to create it, not just
         // fill it in.
         var lineEl = newLi.querySelector(':scope > .line');
         if(!lineEl){
           lineEl = document.createElement('span');
           lineEl.className = 'line';
+          makeEditable(lineEl);
           newLi.insertBefore(lineEl, newLi.querySelector(':scope > .price') || null);
         }
         // An end time makes it a range; left blank, just the one time —
@@ -5184,6 +5180,7 @@
         if(!priceVal){
           var priceEl = document.createElement('span'); priceEl.className = 'price';
           priceVal = document.createElement('span'); priceVal.className = 'price-val';
+          makeEditable(priceVal);
           priceEl.appendChild(priceVal);
           newLi.appendChild(priceEl);
         }
