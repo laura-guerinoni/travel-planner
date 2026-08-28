@@ -500,7 +500,7 @@
      whole row — visibility (not display), same reasoning as .pill-remove
      elsewhere: it still occupies its layout space at all times so the
      checkbox next to it doesn't shift sideways when this fades in. */
-  .itemmenu-btn { visibility:hidden; border:none; background:var(--line); color:var(--ink); border-radius:6px;
+  .itemmenu-btn { visibility:hidden; border:none; background:none; color:var(--ink); border-radius:6px;
     font-size:12px; font-weight:800; width:20px; height:18px; line-height:18px; padding:0; cursor:pointer; }
   /* Hover only, deliberately no :focus-within fallback — clicking either
      this button or the checkbox next to it leaves it focused (native
@@ -509,6 +509,13 @@
      after you'd already moved on to a different day. */
   li:hover .itemmenu-btn { visibility:visible; }
   .itemmenu-btn:hover { background:var(--primary); color:#fff; }
+  /* Touch has no hover to show this on, so :active (a real press, not
+     just resting there — see the mobile visibility override below)
+     covers it there. No background at rest either way, unlike
+     .editicon right next to it, which keeps its own — this one was
+     specifically reported as looking "on" all the time on mobile even
+     when nothing was actually happening. */
+  .itemmenu-btn:active { background:var(--primary); color:#fff; }
   /* Mobile-only (see the media query below) — opens the bigger Edit
      activity modal instead of needing to tap each tiny inline field
      (title/description/time/price) precisely enough on a touchscreen.
@@ -612,8 +619,12 @@
      just always there whether or not anything's attached. Tapping it
      calls pickTicket directly, the same file picker the "..." menu's
      own "Ticket" row already opens — this is a shortcut alongside that,
-     not a replacement for it. */
-  .ticket-add-btn { position:relative; top:-2px; display:inline-flex; align-items:center; justify-content:center;
+     not a replacement for it. No top:-2px the way .photoicon/.ticketicon
+     have — that correction is for a bare glyph sitting against the
+     chip's own emoji baseline quirk (see their own comment), which
+     doesn't apply to this circle's different shape/box; .tagrow's own
+     align-items:center already centers it correctly on its own. */
+  .ticket-add-btn { position:relative; display:inline-flex; align-items:center; justify-content:center;
     vertical-align:middle; margin-left:4px; width:18px; height:18px; border-radius:50%;
     border:1.5px dashed var(--muted); color:var(--muted); cursor:pointer;
     transition:border-color .12s, background .12s, color .12s; }
