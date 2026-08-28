@@ -182,17 +182,18 @@
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
   .wd { font-size:11px; color:var(--muted); }
-  /* Day total as a top-right badge instead of a bottom line, so every
-     cell reads top-aligned (day number left, total right) regardless of
-     how much content follows. */
-  .daytotal-badge { margin-left:auto; font-size:11px; font-weight:700; color:var(--muted);
+  /* Day total sits next to .loc now (see .loc below), not up here — the
+     top-right corner of .cellhead is the day-level "..."/"+" controls'
+     spot instead (see .daymenu-btn/.dayaddbtn). */
+  .daytotal-badge { font-size:11px; font-weight:700; color:var(--muted); flex:0 0 auto;
     background:var(--bg); border-radius:999px; padding:2px 8px; white-space:nowrap; }
-  /* padding-left matches .acts li's own padding (see below) — an
-     activity's real content now sits 6px further right than .loc used
-     to, since that padding lives on the li itself, not the cell; without
-     this the day's own location label no longer lined up with the
-     activities under it. */
-  .loc { margin:6px 0; padding-left:6px; font-size:12px; font-weight:700; min-width:0; overflow-wrap:anywhere;
+  /* .loc is the row: location name (left, growing/truncating) and the day
+     total (right), so the total always lines up with the location it
+     belongs to instead of a corner of the cell. padding-left matches
+     .acts li's own padding (see below) — an activity's real content sits
+     6px further right than this to line up with it. */
+  .loc { display:flex; align-items:baseline; gap:8px; margin:6px 0; padding-left:6px; }
+  .loc-text { flex:1; min-width:0; font-size:12px; font-weight:700; overflow-wrap:anywhere;
     word-break:break-word; hyphens:auto; }
   .acts { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   /* Padding lives here unconditionally, not only on a ticketed activity —
@@ -314,7 +315,7 @@
     .photoicon, .ticketicon,
     .jsctl, #tagData { display:none !important; }
     /* .daytotal-badge itself prints now (see the shared .cost rule above) —
-       .cleardaybtn is already covered by .jsctl above regardless. */
+       .dayaddbtn/.daymenu-btn are already covered by .jsctl above regardless. */
     .daytotal-badge { display:inline-block !important; visibility:visible !important; }
     /* Grid view only: each day's own "Sat"/"Sun" label is redundant with
        its column's MON/TUE/... header directly above it, and dropping it
@@ -581,24 +582,36 @@
   .fab-menu.itemmenu { min-width:190px; }
   .fab-menu .itemmenu-row { font-size:16px; padding:10px 14px; }
 
-  .addact, .addloc { display:none; width:100%; margin-top:6px; border:1px dashed var(--line); background:transparent;
+  .addloc { display:none; width:100%; margin-top:6px; border:1px dashed var(--line); background:transparent;
     color:var(--muted); border-radius:8px; padding:4px; font-size:11px; font-weight:700; cursor:pointer; }
   /* Hover only, deliberately no :focus-within fallback — that kept this
      showing on a cell you'd already moved the mouse away from for as
      long as something inside it still held focus. */
-  .cell:hover .addact { display:block; }
   .cell:hover .addloc { display:block; }
   .cell:has(> .loc) .addloc { display:none; }
-  /* Sits in .cellhead right after .daytotal-badge (see recomputeCell,
-     which always inserts a fresh badge before this button so DOM order
-     stays badge-then-trash) — the total stays put and this small icon
-     appears alongside it on hover, instead of replacing it. */
-  .cleardaybtn { display:none; align-items:center; justify-content:center; flex:0 0 20px;
-    width:20px; height:20px; margin-left:4px; border:none; border-radius:50%;
-    background:var(--bg); color:#c0392b; padding:0; cursor:pointer; }
-  .cleardaybtn svg { width:12px; height:12px; display:block; }
-  .cleardaybtn.has-content { display:none; }
-  .cell:hover .cleardaybtn.has-content { display:inline-flex; }
+  /* Day-level "..."/"+" controls, sitting in .cellhead's top-right corner
+     (that space freed up once the total moved down into .loc — see
+     above). Same hidden-until-hover, stays-visible-while-its-own-popover-
+     is-open language as .itemmenu-btn on an activity row, just smaller
+     and icon-only; .daymenu-btn additionally only shows once there's
+     something on the day worth clearing/moving (.has-content), same
+     gating the old inline trash button had. */
+  .dayaddbtn, .daymenu-btn { visibility:hidden; display:inline-flex; align-items:center; justify-content:center;
+    flex:0 0 20px; width:20px; height:20px; margin-left:4px; border:none; border-radius:50%;
+    background:var(--bg); color:var(--ink); padding:0; cursor:pointer; }
+  .dayaddbtn svg, .daymenu-btn svg { width:12px; height:12px; display:block; }
+  .cell:hover .dayaddbtn { visibility:visible; }
+  .dayaddbtn:hover { background:var(--primary); color:#fff; }
+  .daymenu-btn.has-content { visibility:hidden; }
+  .cell:hover .daymenu-btn.has-content { visibility:visible; }
+  .daymenu-btn:hover, .daymenu-btn.open { background:var(--primary); color:#fff; }
+  .daypicker { width:220px; max-height:280px; overflow-y:auto; }
+  .daypicker-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; padding:4px; }
+  .daypicker-day { border:none; background:var(--bg); border-radius:6px; padding:6px 0; font-size:12px;
+    font-weight:700; color:var(--ink); cursor:pointer; }
+  .daypicker-day:hover { background:var(--primary); color:#fff; }
+  .daypicker-day.has-content { color:var(--primary); }
+  .daypicker-day:disabled { opacity:.35; cursor:default; background:var(--bg); color:var(--ink); }
 
   [contenteditable="true"] { border-radius:4px; }
   [contenteditable="true"]:hover { background:rgba(217,102,63,.06); }
@@ -923,6 +936,7 @@
        that fake a hover on first tap) needs a tap-it-twice workaround,
        neither of which is a real substitute for it just being there. */
     .itemmenu-btn { visibility: visible; width: 30px; height: 26px; font-size: 14px; }
+    .dayaddbtn, .daymenu-btn.has-content { visibility: visible; }
     .itemmenu { max-width: min(280px, calc(100vw - 24px)); }
     .editicon { display:flex; align-items:center; justify-content:center; border:none;
       background:var(--line); color:var(--ink); border-radius:6px; width:30px; height:26px; padding:0; cursor:pointer; }
@@ -1750,7 +1764,8 @@
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
       print_orientation: 'Orientation', print_portrait: 'Portrait', print_landscape: 'Landscape',
       print_go: 'Print / Save as PDF',
-      add_location: '+ Add location', add_activity: '+ Add activity', clear_day: '✕ clear day',
+      add_location: '+ Add location', add_activity: '+ Add activity', clear_day: 'Clear day',
+      day_menu: 'Day options', move_day: 'Move to another day',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
       cleardaytk_title: 'Clear this day?',
@@ -1771,7 +1786,8 @@
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
       print_orientation: 'Orientamento', print_portrait: 'Verticale', print_landscape: 'Orizzontale',
       print_go: 'Stampa / Salva come PDF',
-      add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: '✕ Svuota',
+      add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: 'Svuota giorno',
+      day_menu: 'Opzioni giorno', move_day: 'Sposta in un altro giorno',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
       cleardaytk_title: 'Svuotare questo giorno?',
@@ -1792,7 +1808,8 @@
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
       print_orientation: 'Orientación', print_portrait: 'Vertical', print_landscape: 'Horizontal',
       print_go: 'Imprimir / Guardar como PDF',
-      add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: '✕ Vaciar',
+      add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: 'Vaciar día',
+      day_menu: 'Opciones del día', move_day: 'Mover a otro día',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
       cleardaytk_title: '¿Vaciar este día?',
@@ -2359,7 +2376,7 @@
   // rename mode. STRIP_CONTENTEDITABLE_SEL covers it too, for the save/undo
   // snapshot cleanup that strips contenteditable markers regardless of
   // which element happens to be mid-edit at that moment.
-  var EDITABLE_SEL = '.title, .line, .loc, .price-val, .price-note, .budget-name';
+  var EDITABLE_SEL = '.title, .line, .loc-text, .price-val, .price-note, .budget-name';
   var STRIP_CONTENTEDITABLE_SEL = EDITABLE_SEL + ', .pill-name';
 
   // ---- month/year: each panel has its own calendar, generated on the fly
@@ -2483,6 +2500,22 @@
   }
 
   function makeEditable(el){ el.contentEditable = 'true'; }
+
+  // .loc is the flex row (see its CSS); only .loc-text inside it is the
+  // actual editable location name — the day-total badge that later joins
+  // it as a sibling (see recomputeCell) must never end up inside a
+  // contenteditable region, or editing the location risks mangling or
+  // deleting it.
+  function buildLocEl(text){
+    var loc = document.createElement('p');
+    loc.className = 'loc';
+    var locText = document.createElement('span');
+    locText.className = 'loc-text';
+    locText.textContent = text;
+    makeEditable(locText);
+    loc.appendChild(locText);
+    return loc;
+  }
 
   // ---- pill / panel switching (event delegation so new pills just work) ----
   document.addEventListener('click', function(e){
@@ -2640,28 +2673,27 @@
       if(!costEl){
         costEl = document.createElement('p');
         costEl.className = 'cost';
-        var addactEl = cell.querySelector(':scope > .addact');
-        if(addactEl) cell.insertBefore(costEl, addactEl); else cell.appendChild(costEl);
+        var addLocEl = cell.querySelector(':scope > .addloc');
+        if(addLocEl) cell.insertBefore(costEl, addLocEl); else cell.appendChild(costEl);
       }
       costEl.textContent = 'Day total ' + formatMoney(sum);
     }
-    // Mirrors costEl's own total into a badge up in .cellhead — the
-    // on-screen display now, with costEl itself hidden on screen (still
-    // shown in print, and still what recomputePanel() below sums for the
-    // option/pill/budget totals). Kept as a genuinely separate element
-    // rather than moving costEl itself, so nothing about print or the
-    // totals math has to change.
-    var badge = cell.querySelector(':scope > .cellhead > .daytotal-badge');
-    if(count === 0){
+    // Mirrors costEl's own total into a badge inside .loc (location name
+    // left, total right — see .loc's CSS) — the on-screen display now,
+    // with costEl itself hidden on screen (still shown in print, and
+    // still what recomputePanel() below sums for the option/pill/budget
+    // totals). Kept as a genuinely separate element rather than moving
+    // costEl itself, so nothing about print or the totals math has to
+    // change.
+    var locEl = cell.querySelector(':scope > .loc');
+    var badge = locEl ? locEl.querySelector(':scope > .daytotal-badge') : null;
+    if(count === 0 || !locEl){
       if(badge) badge.remove();
     } else {
       if(!badge){
         badge = document.createElement('span');
         badge.className = 'daytotal-badge has-content';
-        var cellheadEl = cell.querySelector(':scope > .cellhead');
-        var clearBtnEl = cellheadEl.querySelector(':scope > .cleardaybtn');
-        if(clearBtnEl) cellheadEl.insertBefore(badge, clearBtnEl);
-        else cellheadEl.appendChild(badge);
+        locEl.appendChild(badge);
       }
       badge.textContent = formatMoney(sum);
     }
@@ -2809,7 +2841,8 @@
   }
   document.addEventListener('click', function(e){
     if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
-       !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn')){
+       !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn') &&
+       !e.target.closest('.daymenu-btn')){
       closePop();
     }
   });
@@ -4059,7 +4092,7 @@
   // data-span-start/end on every relevant change, the same way the holiday
   // banner is regenerated rather than kept in sync by hand. ----
   function ensureActsList(cell){
-    var addBtn = cell.querySelector(':scope > .addact');
+    var addBtn = cell.querySelector(':scope > .addloc');
     var acts = cell.querySelector(':scope > .acts');
     if(!acts){
       acts = document.createElement('ul');
@@ -4401,13 +4434,13 @@
     cell.classList.remove('active');
     recomputePanel(cell.closest('.panel'));
     refreshHoliCell(cell);
-    var clearBtn = cell.querySelector('.cleardaybtn');
-    if(clearBtn) clearBtn.classList.toggle('has-content', cellHasContent(cell));
+    var menuBtn = cell.querySelector('.daymenu-btn');
+    if(menuBtn) menuBtn.classList.toggle('has-content', cellHasContent(cell));
   }
   function swapCellContent(a, b){
     var aLoc = a.querySelector(':scope > .loc'), aActs = a.querySelector(':scope > .acts'), aCost = a.querySelector(':scope > .cost');
     var bLoc = b.querySelector(':scope > .loc'), bActs = b.querySelector(':scope > .acts'), bCost = b.querySelector(':scope > .cost');
-    var aAddBtn = a.querySelector(':scope > .addact'), bAddBtn = b.querySelector(':scope > .addact');
+    var aAddBtn = a.querySelector(':scope > .addloc'), bAddBtn = b.querySelector(':scope > .addloc');
     [aLoc, aActs, aCost, bLoc, bActs, bCost].forEach(function(n){ if(n) n.remove(); });
     if(bLoc) a.insertBefore(bLoc, aAddBtn);
     if(bActs) a.insertBefore(bActs, aAddBtn);
@@ -4419,8 +4452,8 @@
     b.classList.toggle('active', !!aLoc);
     refreshHoliCell(a); refreshHoliCell(b);
     recomputeCell(a); recomputeCell(b);
-    var aClear = a.querySelector('.cleardaybtn'); if(aClear) aClear.classList.toggle('has-content', cellHasContent(a));
-    var bClear = b.querySelector('.cleardaybtn'); if(bClear) bClear.classList.toggle('has-content', cellHasContent(b));
+    var aMenu = a.querySelector('.daymenu-btn'); if(aMenu) aMenu.classList.toggle('has-content', cellHasContent(a));
+    var bMenu = b.querySelector('.daymenu-btn'); if(bMenu) bMenu.classList.toggle('has-content', cellHasContent(b));
     var swapPanel = a.closest('.panel');
     if(swapPanel) renderActivitySpans(swapPanel);
   }
@@ -4441,14 +4474,11 @@
     return best;
   }
   function ensureCellHasList(cell){
-    var addBtn = cell.querySelector(':scope > .addact');
+    var addBtn = cell.querySelector(':scope > .addloc');
     var loc = cell.querySelector(':scope > .loc');
     var acts = cell.querySelector(':scope > .acts');
     if(!loc){
-      loc = document.createElement('p');
-      loc.className = 'loc';
-      loc.textContent = 'New location';
-      makeEditable(loc);
+      loc = buildLocEl('New location');
       cell.insertBefore(loc, addBtn);
       cell.classList.add('active');
     }
@@ -4488,8 +4518,8 @@
       if(newCell !== actDrag.originCell){
         recomputeCell(newCell);
         refreshHoliCell(newCell);
-        var newClear = newCell.querySelector('.cleardaybtn');
-        if(newClear) newClear.classList.toggle('has-content', true);
+        var newMenu = newCell.querySelector('.daymenu-btn');
+        if(newMenu) newMenu.classList.toggle('has-content', true);
         if(actDrag.originCell.querySelectorAll(':scope > .acts li').length === 0){
           refreshHoliCell(actDrag.originCell);
         }
@@ -4504,33 +4534,51 @@
   function attachCellControls(cell){
     if(cell.classList.contains('empty')) return;
     attachCellDragHandle(cell);
-    if(cell.querySelector(':scope > .addact')) return;
-
-    var addBtn = document.createElement('button');
-    addBtn.type = 'button'; addBtn.className = 'addact jsctl'; addBtn.dataset.i18n = 'add_activity';
-    addBtn.textContent = t('add_activity');
+    // Migrates a .loc that predates the .loc-text wrapper (the static
+    // seed markup baked into this file, still what's on screen whenever
+    // there's no Firebase data to replace it) into the current shape —
+    // otherwise extractContentModel has no .loc-text to read and falls
+    // back to the whole row's text, which would include the day-total
+    // badge once one gets appended.
+    var legacyLoc = cell.querySelector(':scope > .loc');
+    if(legacyLoc && !legacyLoc.querySelector(':scope > .loc-text')){
+      var legacyText = legacyLoc.textContent;
+      legacyLoc.textContent = '';
+      var legacyLocText = document.createElement('span');
+      legacyLocText.className = 'loc-text';
+      legacyLocText.textContent = legacyText;
+      makeEditable(legacyLocText);
+      legacyLoc.appendChild(legacyLocText);
+    }
+    if(cell.querySelector(':scope > .addloc')) return;
 
     var addLocBtn = document.createElement('button');
     addLocBtn.type = 'button'; addLocBtn.className = 'addloc jsctl'; addLocBtn.dataset.i18n = 'add_location';
     addLocBtn.textContent = t('add_location');
 
-    var clearBtn = document.createElement('button');
-    clearBtn.type = 'button'; clearBtn.className = 'cleardaybtn jsctl';
-    clearBtn.innerHTML = ICON_TRASH;
-    clearBtn.title = t('clear_day'); clearBtn.setAttribute('aria-label', t('clear_day'));
+    // "..." (day-level menu: clear/move) and "+" (add an activity) sit in
+    // .cellhead's top-right corner, hidden until the cell is hovered —
+    // same visual language as an activity row's own "..." button, just
+    // smaller (see .dayaddbtn/.daymenu-btn).
+    var dayMenuBtn = document.createElement('button');
+    dayMenuBtn.type = 'button'; dayMenuBtn.className = 'daymenu-btn jsctl';
+    dayMenuBtn.textContent = '⋯';
+    dayMenuBtn.title = t('day_menu'); dayMenuBtn.setAttribute('aria-label', t('day_menu'));
+
+    var dayAddBtn = document.createElement('button');
+    dayAddBtn.type = 'button'; dayAddBtn.className = 'dayaddbtn jsctl';
+    dayAddBtn.textContent = '+';
+    dayAddBtn.title = t('add_activity'); dayAddBtn.setAttribute('aria-label', t('add_activity'));
 
     function refreshClear(){
-      clearBtn.classList.toggle('has-content', cellHasContent(cell));
+      dayMenuBtn.classList.toggle('has-content', cellHasContent(cell));
     }
 
     function ensureLoc(){
       var loc = cell.querySelector(':scope > .loc');
       if(!loc){
-        loc = document.createElement('p');
-        loc.className = 'loc';
-        loc.textContent = 'New location';
-        makeEditable(loc);
-        cell.insertBefore(loc, addBtn);
+        loc = buildLocEl('New location');
+        cell.insertBefore(loc, addLocBtn);
         cell.classList.add('active');
       }
       return loc;
@@ -4540,7 +4588,7 @@
       if(!acts){
         acts = document.createElement('ul');
         acts.className = 'acts';
-        cell.insertBefore(acts, addBtn);
+        cell.insertBefore(acts, addLocBtn);
       }
       return acts;
     }
@@ -4552,7 +4600,8 @@
       refreshClear();
     });
 
-    addBtn.addEventListener('click', function(){
+    dayAddBtn.addEventListener('click', function(e){
+      e.stopPropagation();
       ensureLoc();
       var acts = ensureActs();
       var li = newActivityLi();
@@ -4577,15 +4626,78 @@
       sel.addRange(range);
     });
 
-    clearBtn.addEventListener('click', function(){
+    dayMenuBtn.addEventListener('click', function(e){ e.stopPropagation(); openDayMenu(cell, dayMenuBtn); });
+
+    cell.querySelector(':scope > .cellhead').appendChild(dayMenuBtn);
+    cell.querySelector(':scope > .cellhead').appendChild(dayAddBtn);
+    cell.appendChild(addLocBtn);
+    refreshClear();
+  }
+
+  // Day-level "..." menu: clear the day, or move everything on it to
+  // another day (see openDayPicker/swapCellContent). Same row/divider/
+  // icon-column language as openItemMenu, reusing its .itemmenu CSS
+  // rather than a parallel set of styles for what's visually the same
+  // kind of menu.
+  function openDayMenu(cell, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    function row(html, fn){
+      var r = document.createElement('div');
+      r.className = 'itemmenu-row';
+      r.innerHTML = html;
+      r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
+      pop.appendChild(r);
+      return r;
+    }
+    function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
+    row(icon('⇄') + t('move_day'), function(){ openDayPicker(cell, anchorEl); });
+    row(icon(ICON_TRASH) + t('clear_day'), function(){
       if(cellHasAttachments(cell)) openClearDayConfirm(cell);
       else doClearDay(cell);
     });
+    pop._anchorEl = anchorEl;
+    anchorEl.style.visibility = 'visible';
+    anchorEl.classList.add('open');
+    positionPopover(pop, anchorEl);
+  }
 
-    cell.querySelector(':scope > .cellhead').appendChild(clearBtn);
-    cell.appendChild(addLocBtn);
-    cell.appendChild(addBtn);
-    refreshClear();
+  // Lists every real day in the same panel so "move day" can target one by
+  // click instead of only by dragging the day header — reuses the exact
+  // swap swapCellContent already does for the drag gesture, so the two
+  // paths to the same action behave identically (trading content with
+  // whatever's already on the target day, rather than requiring it to be
+  // empty).
+  function openDayPicker(cell, anchorEl){
+    closePop();
+    var panel = cell.closest('.panel');
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu daypicker';
+    var grid = document.createElement('div');
+    grid.className = 'daypicker-grid';
+    if(panel){
+      panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){
+        var dn = dayNumOfCell(c);
+        if(dn === null) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'daypicker-day' + (cellHasContent(c) ? ' has-content' : '');
+        btn.textContent = dn;
+        btn.disabled = (c === cell);
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          closePop();
+          swapCellContent(cell, c);
+        });
+        grid.appendChild(btn);
+      });
+    }
+    pop.appendChild(grid);
+    pop._anchorEl = anchorEl;
+    anchorEl.style.visibility = 'visible';
+    anchorEl.classList.add('open');
+    positionPopover(pop, anchorEl);
   }
 
   // ---- holiday banner: data-driven, draggable ends ----
@@ -5834,14 +5946,15 @@
       if(daynum && daynum.textContent === day){ cell = cells[i]; break; }
     }
     if(!cell) return;
-    var addBtn = cell.querySelector(':scope > .addact');
+    var addBtn = cell.querySelector(':scope > .cellhead > .dayaddbtn');
     if(!addBtn) return;
-    // Reuses the exact same creation path as the day's own "+ Add
-    // activity" button (ensureLoc/ensureActs/newActivityLi/
-    // attachItemControls, all already correctly wired) rather than
-    // building a fresh <li> by hand — then patches in whatever the modal
-    // was actually asked for, same as if the person had edited a freshly
-    // added blank activity themselves.
+    // Reuses the exact same creation path as the day's own "+" button
+    // (ensureLoc/ensureActs/newActivityLi/attachItemControls, all already
+    // correctly wired) rather than building a fresh <li> by hand — then
+    // patches in whatever the modal was actually asked for, same as if
+    // the person had edited a freshly added blank activity themselves.
+    // .click() works fine even though the button is only visually shown
+    // on hover (visibility:hidden, not display:none, still triggerable).
     addBtn.click();
     var acts = cell.querySelector(':scope > .acts');
     var newLi = acts ? acts.lastElementChild : null;
@@ -6343,7 +6456,14 @@
         });
         if(!loc && !acts.length) return;
         var day = {};
-        if(loc) day.loc = loc.textContent;
+        // Read from .loc-text specifically, not the whole .loc row — .loc
+        // also carries the day-total badge as a sibling now (see .loc's
+        // CSS/buildLocEl), whose rendered amount text must never leak
+        // into the saved location name.
+        if(loc){
+          var locTextEl = loc.querySelector(':scope > .loc-text');
+          day.loc = locTextEl ? locTextEl.textContent : loc.textContent;
+        }
         if(acts.length) day.a = acts;
         days[dn] = day;
         hasDay = true;
@@ -6473,12 +6593,9 @@
         });
         if(!cell) return;
         var day = days[key] || {};
-        var anchor = cell.querySelector(':scope > .addloc') ||
-                     cell.querySelector(':scope > .addact') || null;
+        var anchor = cell.querySelector(':scope > .addloc') || null;
         if(day.loc != null){
-          var loc = document.createElement('p');
-          loc.className = 'loc';
-          loc.textContent = day.loc;
+          var loc = buildLocEl(day.loc);
           cell.insertBefore(loc, anchor);
           cell.classList.add('active');
         }
@@ -6498,7 +6615,7 @@
         // without this, has-content stays stuck at "false" for every day
         // populated this way — i.e. on every Firebase sync and undo/redo
         // restore — regardless of what's actually on the day.
-        var clear = cell.querySelector('.cleardaybtn');
+        var clear = cell.querySelector('.daymenu-btn');
         if(clear) clear.classList.toggle('has-content', cellHasContent(cell));
       });
 
