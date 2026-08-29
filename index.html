@@ -460,8 +460,18 @@
      scrollable list past that point instead — segments still stretch to
      fill when there's room, exactly as before, only the "too many to
      fit" case actually changes. */
-  .month-sidebar { position:fixed; left:0; top:28px; width:46px; z-index:30; display:flex;
-    flex-direction:column; gap:14px; height:calc(100vh - 56px); overflow-y:auto; overflow-x:hidden; }
+  /* top:24px (was 28px), height shortened to match (100vh - 52px, still
+     a 28px bottom margin: 24 + 28 = 52) — 4px more room at the very top
+     specifically for the year switcher below to actually use. It used
+     to get that room via a negative margin-top on the switcher itself,
+     but that pushed it past this element's own overflow-y:auto edge —
+     scrollable containers don't reveal content shifted above their own
+     top edge via a negative margin the way they do content flowing past
+     the bottom, so it just got silently clipped there instead of
+     visible higher up. Moving the room into the container avoids that
+     entirely: nothing here has to escape its own box to use it. */
+  .month-sidebar { position:fixed; left:0; top:24px; width:46px; z-index:30; display:flex;
+    flex-direction:column; gap:14px; height:calc(100vh - 52px); overflow-y:auto; overflow-x:hidden; }
   /* A full calendar year is already 12 tabs — close to what comfortably
      fits without scrolling on its own — so this is the main lever
      against sidebar overflow, with archiving and the scroll above as
@@ -484,7 +494,7 @@
      label below it. Nothing else here to compete with means nothing
      else to misjudge the center by — nothing beside "2026" now can. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    padding:4px 0; margin:-12px 0 0; border:none; background:none; color:var(--muted); cursor:pointer; }
+    padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
   .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.02em; line-height:1; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
@@ -3138,10 +3148,23 @@
       faces.innerHTML = '';
       keys.forEach(function(key){
         var email = key.replace(/,/g, '.');
+        var override = avatarOverrides[key];
+        // avatarSvgFor's own background circle defaults to var(--bg) —
+        // right everywhere else this avatar shows up (the Participants
+        // list, the action menu), which all sit on the page/card
+        // background it's matching. A pill is a saturated color, not
+        // that background, so the same default read as a pale, mismatched
+        // disc behind the face — not literally transparent, but close
+        // enough to it at a glance to be exactly what "not opaque" meant.
+        // Only filled in when nothing was explicitly chosen — an actual
+        // customized bg color is still respected here, same as anywhere
+        // else this avatar renders.
+        var faceOverride = override ? Object.assign({}, override) : {};
+        if(!faceOverride.bg) faceOverride.bg = 'var(--card)';
         var face = document.createElement('span');
         face.className = 'pill-access-face';
-        face.title = displayNameFor(email, avatarOverrides[key]);
-        face.innerHTML = avatarSvgFor(email, avatarOverrides[key]);
+        face.title = displayNameFor(email, override);
+        face.innerHTML = avatarSvgFor(email, faceOverride);
         faces.appendChild(face);
       });
     });
