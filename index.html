@@ -521,13 +521,6 @@
   .month-segment .itemmenu-btn { position:absolute; top:4px; right:4px; width:18px; height:18px;
     border-radius:50%; background:rgba(255,255,255,.9); font-size:11px; }
   .month-segment:hover .itemmenu-btn { visibility:visible; }
-  /* Marks a month you created, at rest — shares the menu trigger's
-     corner and hides the moment that (hover-only) button needs it
-     instead, so there's nothing to actually collide with. No
-     counterpart badge for an invited month; its absence already says
-     that on its own. */
-  .seg-mine-badge { position:absolute; top:5px; right:5px; width:12px; height:12px; color:rgba(255,255,255,.9); pointer-events:none; }
-  .month-segment:hover .seg-mine-badge { display:none; }
   /* Persistent, not one of the sidebar's own scrolling flex children (see
      #monthArchivedToggle's own comment) — same tab shape/width as a
      .month-segment so it reads as part of the same stack, just anchored
@@ -3136,9 +3129,17 @@
       // An empty/missing list means "open to everyone" (see
       // canSeeOption) — shown here as every current member's face, same
       // as what it actually means access-wise, not as an empty row that
-      // would misleadingly read as "nobody".
-      var keys = explicitMembers.length ? explicitMembers : allKeys;
+      // would misleadingly read as "nobody". Either way, never your own
+      // face — this row answers "who else can see this", not "who can
+      // see this including me"; a private alternative only you have
+      // access to shows no faces at all, not a lone face of yourself.
+      var keys = (explicitMembers.length ? explicitMembers : allKeys)
+        .filter(function(key){ return key !== currentUserKey; });
       var faces = pill.querySelector('.pill-access');
+      if(!keys.length){
+        if(faces) faces.remove();
+        return;
+      }
       if(!faces){
         faces = document.createElement('span');
         faces.className = 'pill-access';
@@ -3149,22 +3150,21 @@
       keys.forEach(function(key){
         var email = key.replace(/,/g, '.');
         var override = avatarOverrides[key];
-        // avatarSvgFor's own background circle defaults to var(--bg) —
-        // right everywhere else this avatar shows up (the Participants
-        // list, the action menu), which all sit on the page/card
-        // background it's matching. A pill is a saturated color, not
-        // that background, so the same default read as a pale, mismatched
-        // disc behind the face — not literally transparent, but close
-        // enough to it at a glance to be exactly what "not opaque" meant.
-        // Only filled in when nothing was explicitly chosen — an actual
-        // customized bg color is still respected here, same as anywhere
-        // else this avatar renders.
-        var faceOverride = override ? Object.assign({}, override) : {};
-        if(!faceOverride.bg) faceOverride.bg = 'var(--card)';
         var face = document.createElement('span');
         face.className = 'pill-access-face';
         face.title = displayNameFor(email, override);
-        face.innerHTML = avatarSvgFor(email, faceOverride);
+        // avatarSvgFor's full 64x64 canvas — a big background disc (sized
+        // for showing at 28px+ elsewhere, on the page/card background
+        // it's meant to match) around a comparatively small face — read
+        // as pale/washed-out at this size on a saturated pill background,
+        // even with the disc's own color fixed. Dropping the disc
+        // entirely and cropping tight to just the face+hair (viewBox,
+        // not a resize) makes the face itself fill almost the whole 16px
+        // circle instead of a small blob adrift in a pale one.
+        var svg = avatarSvgFor(email, override);
+        svg = svg.replace(/<circle cx="32" cy="32" r="30"[^>]*\/>/, '');
+        svg = svg.replace('viewBox="0 0 64 64"', 'viewBox="10 11 44 44"');
+        face.innerHTML = svg;
         faces.appendChild(face);
       });
     });
@@ -7752,6 +7752,21 @@
     wrapEl.style.paddingBottom = '';
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
+    // Aligns the year switcher's own vertical center with the pills
+    // row's, computed here rather than guessed — several manual pixel
+    // nudges to .month-sidebar's CSS top kept missing because the two
+    // are unrelated boxes (this sidebar's static top offset vs. the
+    // pills' own fixed position/height) with no reason to line up by
+    // coincidence. Overrides that CSS top with a measured one instead,
+    // so it tracks correctly even if the pills bar's own height changes
+    // later (wrapping to two lines, a font-size change, etc).
+    var switcherEl = sidebarEl && sidebarEl.querySelector('.month-year-switcher');
+    if(switcherEl){
+      var pillsRect = pillsEl.getBoundingClientRect();
+      var pillsCenterY = pillsRect.top + pillsRect.height / 2;
+      var switcherH = switcherEl.getBoundingClientRect().height;
+      sidebarEl.style.top = Math.max(0, pillsCenterY - switcherH / 2) + 'px';
+    }
     // The SAME target (sidebarH + pillsH + GAP, a position measured from
     // the VIEWPORT, matching .pills' own position:fixed frame of
     // reference) feeds both .wrap's padding-top and --pills-height, so
@@ -7892,13 +7907,13 @@
     });
     var allMonths = order.map(function(key){
       var m = monthsByKey[key];
-      // "Mine" if ANY of this month's options were created by the current
-      // viewer — realistically all of them are, but this is the honest
-      // answer if that ever isn't true, rather than only checking one
-      // arbitrary option. "Archived" only once EVERY option is (see
-      // setArchivedForMe's own comment for why this is deliberately
-      // separate from canSeeOption/data-members above).
-      m.mine = m.panels.some(isMyOwnMonth);
+      // "Archived" only once EVERY option is (see setArchivedForMe's own
+      // comment for why this is deliberately separate from
+      // canSeeOption/data-members above). Ownership is tracked per
+      // alternative now (see isMyOwnMonth/data-creator), not rolled up
+      // to a whole-month "mine" flag — a month can hold alternatives
+      // created by different people, so there's no single honest answer
+      // for the month as a whole any more.
       m.archived = m.panels.every(isArchivedForMe);
       return m;
     });
@@ -7987,14 +8002,6 @@
         });
       });
       seg.appendChild(label);
-
-      if(s.mine){
-        var mineBadge = document.createElement('span');
-        mineBadge.className = 'seg-mine-badge';
-        mineBadge.title = 'You created this month';
-        mineBadge.innerHTML = ICON_STAR;
-        seg.appendChild(mineBadge);
-      }
 
       // Add/notes/archive/share/remove all live behind this one trigger
       // now (see openMonthSegmentMenu) — same "⋯" language as every other
@@ -8085,37 +8092,43 @@
     var opt = pill.getAttribute('data-opt');
     var nameEl = pill.querySelector('.pill-name');
     var name = nameEl ? nameEl.textContent : 'this alternative';
-    // Deleting an alternative used to happen the instant this "x" was
-    // clicked, no confirmation at all — a single misclick lost everything
-    // in it with zero friction, unlike every other destructive action in
-    // the app (see openTypeConfirmModal). Same modal, same word, as
-    // clearing a day or deleting a whole month.
+    var panelForCheck = document.getElementById('panel-' + opt);
+    function doRemoveAlternative(){
+      var panel = document.getElementById('panel-' + opt);
+      var wasOn = pill.classList.contains('on');
+      pill.remove();
+      if(panel) cleanupMediaForSubtree(panel);
+      if(panel) panel.remove();
+      var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+      if(budgetLi) budgetLi.remove();
+      if(wasOn){
+        var firstPill = document.querySelector('.pill[data-opt]');
+        if(firstPill){
+          firstPill.classList.add('on');
+          var firstPanel = document.getElementById('panel-' + firstPill.getAttribute('data-opt'));
+          if(firstPanel) firstPanel.classList.add('on');
+        }
+      }
+      // Re-derives the month sidebar (a deleted alternative could have
+      // been the last one for its month) — nothing else on this path
+      // did before, a real pre-existing gap this happened to surface
+      // while already touching this handler.
+      renderMonthSidebar();
+    }
+    // Same reasoning as removeMonth's own empty check — nothing here for
+    // the type-1111 safety net to protect, so removing an alternative
+    // nobody's put anything into yet is one click, not a typed phrase.
+    if(!panelForCheck || panelIsEmpty(panelForCheck)){ doRemoveAlternative(); return; }
+    // Used to happen the instant this "x" was clicked, no confirmation at
+    // all — a single misclick lost everything in it with zero friction,
+    // unlike every other destructive action in the app (see
+    // openTypeConfirmModal). Same modal, same word, as clearing a day or
+    // deleting a whole month.
     openTypeConfirmModal({
       title: 'Delete this alternative?',
       message: 'This will delete "' + name + '" and everything in it. This can\'t be undone.',
       confirmLabel: 'Delete alternative',
-      onConfirm: function(){
-        var panel = document.getElementById('panel-' + opt);
-        var wasOn = pill.classList.contains('on');
-        pill.remove();
-        if(panel) cleanupMediaForSubtree(panel);
-        if(panel) panel.remove();
-        var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
-        if(budgetLi) budgetLi.remove();
-        if(wasOn){
-          var firstPill = document.querySelector('.pill[data-opt]');
-          if(firstPill){
-            firstPill.classList.add('on');
-            var firstPanel = document.getElementById('panel-' + firstPill.getAttribute('data-opt'));
-            if(firstPanel) firstPanel.classList.add('on');
-          }
-        }
-        // Re-derives the month sidebar (a deleted alternative could have
-        // been the last one for its month) — nothing else on this path
-        // did before, a real pre-existing gap this happened to surface
-        // while already touching this handler.
-        renderMonthSidebar();
-      }
+      onConfirm: doRemoveAlternative
     });
   });
 
@@ -8457,6 +8470,17 @@
   }
   if(typeConfirmInput) typeConfirmInput.addEventListener('input', function(){
     if(typeConfirmBtn) typeConfirmBtn.disabled = typeConfirmInput.value !== pendingConfirmWord;
+  });
+  // Enter confirms the same way clicking the button does — only once the
+  // typed word actually matches (same guard the button itself has), so
+  // it can't skip the check by just hitting Enter twice fast.
+  if(typeConfirmInput) typeConfirmInput.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    if(!pendingConfirmAction || typeConfirmInput.value !== pendingConfirmWord) return;
+    var action = pendingConfirmAction;
+    closeTypeConfirmModal();
+    action();
   });
   if(typeConfirmBtn) typeConfirmBtn.addEventListener('click', function(){
     if(!pendingConfirmAction || typeConfirmInput.value !== pendingConfirmWord) return;
