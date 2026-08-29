@@ -426,12 +426,20 @@
   }
   .seg-label { color:#fff; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
     font-weight:800; font-size:14px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
-  .seg-add, .seg-remove { display:none; position:absolute; left:50%; transform:translateX(-50%); width:18px; height:18px;
+  .seg-add, .seg-remove, .seg-notes { display:none; position:absolute; left:50%; transform:translateX(-50%); width:18px; height:18px;
     border-radius:50%; border:none; background:rgba(255,255,255,.9); color:var(--ink); font-weight:800; font-size:12px;
     line-height:18px; padding:0; cursor:pointer; }
   .seg-add { top:4px; }
+  /* Vertically centered — the third icon in this narrow strip, between
+     .seg-add (top) and .seg-remove (bottom). */
+  .seg-notes { top:50%; margin-top:-9px; font-size:11px; }
   .seg-remove { bottom:4px; color:#d9534f; }
   .month-segment:hover .seg-add { display:block; }
+  /* Same hover-reveal as .seg-add, but also stays visible once notes
+     actually exist (same gating language as .daymenu-btn.has-content) —
+     a month that already has notes should show *some* sign of that even
+     before hovering, not just on discovery. */
+  .month-segment:hover .seg-notes, .seg-notes.has-notes { display:block; }
   /* Deleting a whole month (unlike adding one, which stays open to every
      member) is owner-only — see body.owner-mode, toggled once the
      signed-in member's role is known. */
@@ -963,6 +971,17 @@
        hover never really worked as a reveal gesture on touch anyway. */
     .seg-add { display:none !important; }
     .seg-remove { top:50%; right:4px; left:auto; bottom:auto; transform:translateY(-50%); }
+    /* Kept reachable on mobile (unlike .seg-add, whose job moved into the
+       FAB menu) — viewing/writing a month's notes is common enough to be
+       worth its own tap target, not just a desktop-hover feature. Top-
+       right corner, clear of .seg-remove's middle-right spot. */
+    /* display:block !important, not left to the hover-reveal every other
+       one of these controls depends on — touch has no hover at all, and
+       unlike .seg-remove (a rare, destructive action reasonable to leave
+       tap-and-hold-free of), writing a month's first notes is common
+       enough that leaving it hover-only would make it unreachable on
+       mobile entirely, not just less convenient. */
+    .seg-notes { display:block !important; top:4px; right:4px; left:auto; bottom:auto; margin-top:0; transform:none; }
 
     /* Sheet-tabs-at-the-bottom, the way Google Sheets does it on mobile —
        a horizontally scrollable single row (not the desktop's wrapping
@@ -1233,6 +1252,15 @@
   .clearday-confirm-btn { width:100%; }
   .clearday-confirm-btn:disabled { opacity:.5; cursor:not-allowed; }
 
+  /* Free text, not tied to any one day/alternative — see MONTH_NOTES.
+     Sized for a paragraph or two at a glance, not a single line like
+     every other text input in this app, but still just a plain resizable
+     textarea rather than inventing a richer editor for it. */
+  .month-notes-textarea { width:100%; box-sizing:border-box; min-height:160px; padding:10px 12px;
+    border-radius:8px; border:1px solid var(--line); font:inherit; font-size:14px; color:var(--ink);
+    background:var(--card); resize:vertical; }
+  .month-notes-textarea:focus { outline:none; border-color:var(--primary); }
+
   .fabadd-label { display:block; font-size:12px; font-weight:700; color:var(--muted);
     text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px; }
   .fabadd-select { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:8px;
@@ -1324,6 +1352,15 @@
     <p id="clearDayConfirmMsg" data-i18n="cleardaytk_msg">This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.</p>
     <input type="text" id="clearDayConfirmInput" class="clearday-confirm-input" inputmode="numeric" autocomplete="off" placeholder="1111" />
     <button type="button" id="clearDayConfirmBtn" class="modal-primary-btn clearday-confirm-btn" disabled data-i18n="cleardaytk_confirm">Clear day</button>
+  </div>
+</div>
+<div id="monthNotesPanel" class="modal-overlay">
+  <div class="map-inner">
+    <div class="map-header">
+      <h2 id="monthNotesTitle">Notes</h2>
+      <button type="button" id="monthNotesCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <textarea id="monthNotesTextarea" class="month-notes-textarea" placeholder="Write general notes for this month — packing lists, reminders, anything that isn't tied to one specific day."></textarea>
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
@@ -2664,6 +2701,7 @@
       });
     });
   }
+
 
 
   // Captured before any remote snapshot touches #tagData, so new default
@@ -6028,6 +6066,19 @@
   // month/option), and a click-to-swap month/year picker on its label ----
   var SEG_COLORS = ['var(--primary)', 'var(--secondary)', 'var(--accent)'];
   function monthKey(y, m){ return y + '-' + m; }
+  // General free-text notes for a month as a whole (packing lists,
+  // reminders, anything that doesn't belong to one specific day) —
+  // deliberately NOT per-option/alternative like everything else in this
+  // app is, since multiple alternatives already share the same month and
+  // a note like "bring the passport" shouldn't need retyping into each
+  // one. Keyed by monthKey, embedded directly in extractContentModel's
+  // own model (see its and applyContentModel's own notes handling)
+  // rather than threaded as a separate top-level field like tagData is —
+  // unlike tags (a shared reference palette, genuinely separate from any
+  // one day's content), a month's notes are just more content, the same
+  // kind of thing a day's location or an activity's notes line already
+  // is.
+  var MONTH_NOTES = {};
   function formatMonthLabel(year, month, segCount){
     if(segCount <= 2) return MONTH_FULL[month - 1] + ' ' + year;
     if(segCount <= 4) return MONTH_SHORT[month - 1] + ' ' + year;
@@ -6307,6 +6358,16 @@
         });
       });
       seg.appendChild(addBtn);
+
+      var notesBtn = document.createElement('button');
+      notesBtn.type = 'button'; notesBtn.className = 'seg-notes jsctl'; notesBtn.textContent = '📝';
+      notesBtn.classList.toggle('has-notes', !!MONTH_NOTES[s.key]);
+      notesBtn.title = MONTH_NOTES[s.key] ? 'Edit notes for this month' : 'Add notes for this month';
+      notesBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        openMonthNotes(s.year, s.month);
+      });
+      seg.appendChild(notesBtn);
 
       var removeBtn = document.createElement('button');
       removeBtn.type = 'button'; removeBtn.className = 'seg-remove jsctl'; removeBtn.textContent = '✕';
@@ -6740,6 +6801,50 @@
       onConfirm: function(){ doClearDay(cell); }
     });
   }
+
+  // ---- month notes: see MONTH_NOTES's own comment above. Autosaves on
+  // close (X or Escape — same two paths every other modal in the app
+  // already closes through), not on every keystroke; unlike the
+  // destructive type-to-confirm modal, closing this one is never meant
+  // to discard what you just typed. ----
+  var monthNotesPanel = document.getElementById('monthNotesPanel');
+  var monthNotesTitle = document.getElementById('monthNotesTitle');
+  var monthNotesTextarea = document.getElementById('monthNotesTextarea');
+  var monthNotesCloseX = document.getElementById('monthNotesCloseX');
+  var pendingNotesKey = null;
+  function commitMonthNotesIfChanged(){
+    if(!pendingNotesKey || !monthNotesTextarea) return;
+    var v = monthNotesTextarea.value;
+    if((MONTH_NOTES[pendingNotesKey] || '') === v) return;
+    if(v.trim()) MONTH_NOTES[pendingNotesKey] = v;
+    else delete MONTH_NOTES[pendingNotesKey];
+    scheduleAutoSave();
+    scheduleUndoSnapshot();
+    // Cheap enough to just re-derive the whole sidebar rather than
+    // surgically patching one segment's has-notes class/title.
+    renderMonthSidebar();
+  }
+  function closeMonthNotes(){
+    pendingNotesKey = null;
+    if(monthNotesPanel) monthNotesPanel.classList.remove('show');
+  }
+  function openMonthNotes(year, month){
+    pendingNotesKey = monthKey(year, month);
+    if(monthNotesTitle) monthNotesTitle.textContent = 'Notes — ' + formatMonthLabel(year, month, 1);
+    if(monthNotesTextarea) monthNotesTextarea.value = MONTH_NOTES[pendingNotesKey] || '';
+    if(monthNotesPanel) monthNotesPanel.classList.add('show');
+    if(monthNotesTextarea) monthNotesTextarea.focus();
+  }
+  if(monthNotesCloseX) monthNotesCloseX.addEventListener('click', function(){
+    commitMonthNotesIfChanged();
+    closeMonthNotes();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && monthNotesPanel && monthNotesPanel.classList.contains('show')){
+      commitMonthNotesIfChanged();
+      closeMonthNotes();
+    }
+  });
 
   // ---- mobile floating "+" — opens a small modal asking which day to add
   // the activity to (defaulting to whichever day is currently at the top
@@ -7385,6 +7490,11 @@
       if(hasDay) o.d = days;
       model.options.push(o);
     });
+    // MONTH_NOTES is pure in-memory state, not derived from `doc` at all
+    // (unlike everything else this function reads) — included regardless
+    // of which root got passed in, since it's always "the current true
+    // notes," not something a print/export subset extraction should omit.
+    if(Object.keys(MONTH_NOTES).length) model.notes = MONTH_NOTES;
     return model;
   }
 
@@ -7481,6 +7591,11 @@
 
   function applyContentModel(model){
     if(!model || !Array.isArray(model.options) || !model.options.length) return false;
+    // The single choke point every fresh model (initial load, a remote
+    // sync, undo/redo) passes through — same reasoning as TAGS being
+    // reloaded wherever a snapshot gets applied, just inline here instead
+    // of threaded as its own separate field (see MONTH_NOTES's comment).
+    MONTH_NOTES = model.notes || {};
     var wrap = document.querySelector('.wrap');
     var pillsWrap = document.querySelector('.pills');
     var budgetList = document.querySelector('.budget ul');
