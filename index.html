@@ -2064,17 +2064,21 @@
     if(managePanel) managePanel.classList.remove('show');
   }
 
-  // ---- member avatars: a small cartoon face per email — hair color, eye
-  // color, mouth, and short/long hair default to a hash of the address
-  // (so a not-yet-customized person still gets a stable, distinct face),
-  // but any of those can be overridden per person via openAvatarEditor —
-  // saved to /avatars (keyed the same sanitized way as /members) so a
-  // customization is visible to every collaborator, not just whoever set
-  // it. No photo upload, no external avatar service either way. ----
+  // ---- member avatars: a small cartoon face per email — skin tone, hair
+  // color, eye color, mouth, and short/long hair default to a hash of the
+  // address (so a not-yet-customized person still gets a stable, distinct
+  // face), but any of those can be overridden per person via
+  // openAvatarEditor — saved to /avatars (keyed the same sanitized way as
+  // /members) so a customization is visible to every collaborator, not
+  // just whoever set it. No photo upload, no external avatar service
+  // either way. ----
   var AVATAR_HAIR_COLORS = ['#2B2B2B', '#5B3A29', '#D9B877', '#A85432', '#B8B0A8', '#5DA0D9', '#8B6FC9'];
   var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
   var AVATAR_MOUTH_TYPES = [0, 1, 2, 3];
-  var AVATAR_SKIN = '#F0D3AC';
+  // Light/medium/dark — three fixed swatches (not a hash-derived open
+  // palette like hair/eyes) since skin tone is picking a real attribute
+  // of the person, not a decorative variation.
+  var AVATAR_SKIN_TONES = ['#F0D3AC', '#C68B59', '#7A4B2E'];
   var AVATAR_MOUTH_COLOR = '#8A5A42';
   function hashEmailForAvatar(email){
     var h = 0;
@@ -2087,12 +2091,13 @@
     if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
     return '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
   }
-  // override (optional): { hair, eyes, mouthType, longHair } — any field
-  // left unset falls back to that field's own hash-derived default, so a
-  // person can customize just their hair color and still get a random
-  // (but stable) mouth/eyes/length.
+  // override (optional): { skin, hair, eyes, mouthType, longHair } — any
+  // field left unset falls back to that field's own hash-derived default,
+  // so a person can customize just their hair color and still get a
+  // random (but stable) skin tone/mouth/eyes/length.
   function avatarSvgFor(email, override){
     var h = hashEmailForAvatar(email);
+    var skinColor = (override && override.skin) || AVATAR_SKIN_TONES[(h >> 9) % AVATAR_SKIN_TONES.length];
     var hairColor = (override && override.hair) || AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
     var eyeColor = (override && override.eyes) || AVATAR_EYE_COLORS[(h >> 3) % AVATAR_EYE_COLORS.length];
     var mouthType = (override && override.mouthType != null) ? override.mouthType : (h >> 6) % 4;
@@ -2107,7 +2112,7 @@
     return '<svg viewBox="0 0 64 64" aria-hidden="true">' +
       '<circle cx="32" cy="32" r="30" fill="var(--bg)"/>' +
       longHairSvg +
-      '<circle cx="32" cy="34" r="18" fill="' + AVATAR_SKIN + '"/>' +
+      '<circle cx="32" cy="34" r="18" fill="' + skinColor + '"/>' +
       '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
       '<circle cx="38" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
       mouthPathFor(mouthType) +
@@ -2153,6 +2158,7 @@
   function openAvatarEditor(email, key, rowAvatarEl, initialOverride){
     closePop();
     var current = {
+      skin: initialOverride && initialOverride.skin,
       hair: initialOverride && initialOverride.hair,
       eyes: initialOverride && initialOverride.eyes,
       mouthType: initialOverride && initialOverride.mouthType,
@@ -2211,6 +2217,10 @@
       pop.appendChild(r);
     }
 
+    row('Skin tone', AVATAR_SKIN_TONES.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
+      function(item){ return item.value === current.skin; },
+      function(item){ pick('skin', item.value); });
+
     row('Hair color', AVATAR_HAIR_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
       function(item){ return item.value === current.hair; },
       function(item){ pick('hair', item.value); });
@@ -2240,7 +2250,7 @@
     resetBtn.textContent = 'Reset to default';
     resetBtn.addEventListener('click', function(e){
       e.stopPropagation();
-      current = { hair: undefined, eyes: undefined, mouthType: undefined, longHair: undefined };
+      current = { skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, longHair: undefined };
       refresh();
       removeAvatarOverride(key);
       closePop();
