@@ -2107,14 +2107,17 @@
     if(managePanel) managePanel.classList.remove('show');
   }
 
-  // ---- member avatars: a small cartoon face per email — skin tone, hair
-  // color, eye color, mouth, and short/long hair default to a hash of the
-  // address (so a not-yet-customized person still gets a stable, distinct
-  // face), but any of those can be overridden per person via
-  // openAvatarEditor — saved to /avatars (keyed the same sanitized way as
-  // /members) so a customization is visible to every collaborator, not
-  // just whoever set it. No photo upload, no external avatar service
-  // either way. ----
+  // ---- member avatars: a small cartoon face per email. Hair color is a
+  // hash of the address (so a not-yet-customized person still gets a
+  // stable, distinct look rather than every uncustomized face being
+  // identical); skin tone, eye color, mouth, hair length, and background
+  // otherwise default to one fixed look (AVATAR_DEFAULT_*, below) rather
+  // than a hash-derived one, so an uncustomized face reads as a
+  // deliberate, consistent default, not a random assortment of features.
+  // Every one of these can be overridden per person via openAvatarEditor
+  // — saved to /avatars (keyed the same sanitized way as /members) so a
+  // customization is visible to every collaborator, not just whoever set
+  // it. No photo upload, no external avatar service either way. ----
   // Natural tones first (lightest to darkest — white/grey/blonde read as
   // real human hair colors just as much as brown/black do, and red is a
   // natural color too, not a dye job, so it sits in this group rather
@@ -2127,13 +2130,30 @@
     '#E8E3D8', '#B8B0A8', '#D9B877', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, grey, blonde, red, auburn, dark brown, black
     '#E8A0C4', '#E5A15C', '#7AB88A', '#5DA0D9', '#8B6FC9' // pink, orange, green, blue, purple
   ];
-  var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
-  var AVATAR_MOUTH_TYPES = [0, 1, 2, 3];
+  // Lightest to darkest, black included alongside the natural range.
+  var AVATAR_EYE_COLORS = ['#8A8F94', '#4A89C9', '#4F8A5B', '#8A7043', '#6B4423', '#2B2B2B'];
+  // 4 = a downward/frown curve — mouthPathFor's default case (asymmetric
+  // half-smile) stays reachable as a 5th, distinct shape rather than
+  // being replaced by it.
+  var AVATAR_MOUTH_TYPES = [0, 1, 2, 4, 3];
   // Light/medium/dark — three fixed swatches (not a hash-derived open
   // palette like hair/eyes) since skin tone is picking a real attribute
   // of the person, not a decorative variation.
   var AVATAR_SKIN_TONES = ['#F0D3AC', '#C68B59', '#7A4B2E'];
+  // A handful of pastel options, same family as the app's own palette —
+  // unset (the default) keeps the outer ring matching whichever theme
+  // the viewer has selected (see :root's --bg) rather than locking it to
+  // one fixed color for everyone.
+  var AVATAR_BG_COLORS = ['#FDE8EF', '#E8F3FD', '#FFF6DC', '#E9F7EC', '#F1E9FB', '#F6F1FB'];
   var AVATAR_MOUTH_COLOR = '#8A5A42';
+  // An uncustomized face defaults to this fixed look for every trait
+  // except hair color (still hash-derived — see avatarSvgFor — so two
+  // uncustomized people aren't identical), rather than the old
+  // hash-derived randomness for skin/eyes/mouth/length too.
+  var AVATAR_DEFAULT_SKIN = AVATAR_SKIN_TONES[0];
+  var AVATAR_DEFAULT_EYE = '#6B4423';
+  var AVATAR_DEFAULT_MOUTH = 0;
+  var AVATAR_DEFAULT_HAIRLEN = 'medium';
   function hashEmailForAvatar(email){
     var h = 0;
     for(var i = 0; i < email.length; i++){ h = (h * 31 + email.charCodeAt(i)) >>> 0; }
@@ -2143,6 +2163,10 @@
     if(mouthType === 0) return '<path d="M 25 41 Q 32 47 39 41" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
     if(mouthType === 1) return '<path d="M 26 42 L 38 42" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
     if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
+    // Same curve as mouthType 0's smile, mirrored — control point pulled
+    // *up* above the corners instead of down below them, so it reads as
+    // a downward, frowning mouth rather than a smile.
+    if(mouthType === 4) return '<path d="M 25 43 Q 32 37 39 43" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
     return '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
   }
   // Which side-lock path (if any) a given hair length draws, keyed by the
@@ -2151,18 +2175,18 @@
   // 'medium' reaches to about jaw level, 'long' past the shoulder.
   var AVATAR_HAIRLEN_SVG = {
     medium: function(c){
-      return '<path d="M 13 30 C 8 34 6 40 8 46 C 9 48 13 49 15 47 C 16 43 14 36 17 30 Z" fill="' + c + '"/>' +
-        '<path d="M 51 30 C 56 34 58 40 56 46 C 55 48 51 49 49 47 C 48 43 50 36 47 30 Z" fill="' + c + '"/>';
+      return '<path d="M 16 27 C 9 31 7 38 8 44 C 8.5 47 11 49 14 48 C 15.5 47.5 16 45 15 42 C 13.5 37 14 31 18 27 Z" fill="' + c + '"/>' +
+        '<path d="M 48 27 C 55 31 57 38 56 44 C 55.5 47 53 49 50 48 C 48.5 47.5 48 45 49 42 C 50.5 37 50 31 46 27 Z" fill="' + c + '"/>';
     },
     long: function(c){
-      return '<path d="M 13 30 C 6 35 4 46 7 55 C 8 59 13 60 15 57 C 17 51 14 40 17 30 Z" fill="' + c + '"/>' +
-        '<path d="M 51 30 C 58 35 60 46 57 55 C 56 59 51 60 49 57 C 47 51 50 40 47 30 Z" fill="' + c + '"/>';
+      return '<path d="M 16 27 C 8 32 5 42 6 52 C 6.5 57 10 60 14 59 C 16 58.5 17 55 15.5 51 C 13 44 13 33 18 27 Z" fill="' + c + '"/>' +
+        '<path d="M 48 27 C 56 32 59 42 58 52 C 57.5 57 54 60 50 59 C 48 58.5 47 55 48.5 51 C 51 44 51 33 46 27 Z" fill="' + c + '"/>';
     }
   };
   // A simple round-frame glasses overlay, drawn after the eyes so it sits
-  // on top of them — off by default (unlike every other trait, which is
-  // always hash-derived) since an accessory silently appearing on people
-  // who never opted in would read as a bug, not a feature.
+  // on top of them — off by default (never on unless explicitly picked)
+  // since an accessory silently appearing on people who never opted in
+  // would read as a bug, not a feature.
   var AVATAR_GLASSES_COLOR = '#4A4A4A';
   function glassesSvgFor(on){
     if(!on) return '';
@@ -2172,27 +2196,33 @@
       '</g>';
   }
   // override (optional): { skin, hair, eyes, mouthType, hairLength,
-  // glasses } — any field left unset falls back to that field's own
-  // hash-derived default (glasses excepted — see glassesSvgFor), so a
-  // person can customize just their hair color and still get a random
-  // (but stable) skin tone/mouth/eyes/length. hairLength used to be a
-  // plain longHair boolean (true=long, false=short) before "medium" was
-  // added — a saved override from before that shipped still has that
-  // field instead of hairLength, so it's read here as a fallback rather
-  // than losing anyone's existing choice.
+  // glasses, bg } — any field left unset falls back to a fixed default
+  // (AVATAR_DEFAULT_*), except hair color, which stays hash-derived (see
+  // above) so two uncustomized people aren't identical, and glasses/bg,
+  // which are off/unset until explicitly picked (see glassesSvgFor).
+  // hairLength used to be a plain longHair boolean (true=long,
+  // false=short) before "medium" was added — a saved override from
+  // before that shipped still has that field instead of hairLength, so
+  // it's read here as a fallback rather than losing anyone's existing
+  // choice.
   function avatarSvgFor(email, override){
     var h = hashEmailForAvatar(email);
-    var skinColor = (override && override.skin) || AVATAR_SKIN_TONES[(h >> 9) % AVATAR_SKIN_TONES.length];
+    var skinColor = (override && override.skin) || AVATAR_DEFAULT_SKIN;
+    // Hair color is the one trait that stays hash-derived — every other
+    // default is fixed (see AVATAR_DEFAULT_*), but a face with no
+    // customization at all should still look distinct from the next
+    // uncustomized face, not identical to it.
     var hairColor = (override && override.hair) || AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
-    var eyeColor = (override && override.eyes) || AVATAR_EYE_COLORS[(h >> 3) % AVATAR_EYE_COLORS.length];
-    var mouthType = (override && override.mouthType != null) ? override.mouthType : (h >> 6) % 4;
+    var eyeColor = (override && override.eyes) || AVATAR_DEFAULT_EYE;
+    var mouthType = (override && override.mouthType != null) ? override.mouthType : AVATAR_DEFAULT_MOUTH;
     var hairLength;
     if(override && override.hairLength) hairLength = override.hairLength;
     else if(override && override.longHair != null) hairLength = override.longHair ? 'long' : 'short';
-    else hairLength = ['short', 'medium', 'long'][(h >> 8) % 3];
+    else hairLength = AVATAR_DEFAULT_HAIRLEN;
     var hairLenSvg = AVATAR_HAIRLEN_SVG[hairLength] ? AVATAR_HAIRLEN_SVG[hairLength](hairColor) : '';
+    var bgColor = (override && override.bg) || 'var(--bg)';
     return '<svg viewBox="0 0 64 64" aria-hidden="true">' +
-      '<circle cx="32" cy="32" r="30" fill="var(--bg)"/>' +
+      '<circle cx="32" cy="32" r="30" fill="' + bgColor + '"/>' +
       hairLenSvg +
       '<circle cx="32" cy="34" r="18" fill="' + skinColor + '"/>' +
       '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
@@ -2229,9 +2259,19 @@
   // reached any face already rendered elsewhere in the calendar until
   // the next full reload. Force a fresh fetch and re-render every
   // currently-rendered participant face once the write actually lands.
-  function refreshAllAvatarFaces(){
+  // Beyond the activity faces below, the Participants list itself (see
+  // renderMemberList) was a real source of the "reset doesn't stick"
+  // reports — its own avatar click handler closes over the avatarOverride
+  // it had at render time, so leaving the panel open across a save/reset
+  // (the normal case, since that's exactly where openAvatarEditor gets
+  // opened from) meant clicking that same face again reopened the editor
+  // with the *old* override, even though the underlying data was already
+  // correct. renderMemberList() no-ops harmlessly if the panel isn't
+  // currently open (it checks manageList itself).
+  function refreshAllAvatarDisplays(){
     loadMemberAvatarData(true).then(function(){
       document.querySelectorAll('.acts li[data-participants]').forEach(renderParticipants);
+      renderMemberList();
     });
   }
   function saveAvatarOverride(key, override){
@@ -2240,7 +2280,7 @@
       if(override[k] !== undefined) clean[k] = override[k];
     });
     try {
-      firebase.database().ref('avatars/' + key).set(clean).then(refreshAllAvatarFaces).catch(function(err){
+      firebase.database().ref('avatars/' + key).set(clean).then(refreshAllAvatarDisplays).catch(function(err){
         console.warn('Save avatar customization failed — check the /avatars security rule', err);
       });
     } catch(err){
@@ -2249,7 +2289,7 @@
   }
   function removeAvatarOverride(key){
     try {
-      firebase.database().ref('avatars/' + key).remove().then(refreshAllAvatarFaces).catch(function(err){
+      firebase.database().ref('avatars/' + key).remove().then(refreshAllAvatarDisplays).catch(function(err){
         console.warn('Reset avatar customization failed', err);
       });
     } catch(err){
@@ -2273,7 +2313,8 @@
       // before "medium" existed.
       hairLength: initialOverride && (initialOverride.hairLength ||
         (initialOverride.longHair != null ? (initialOverride.longHair ? 'long' : 'short') : undefined)),
-      glasses: initialOverride && initialOverride.glasses
+      glasses: initialOverride && initialOverride.glasses,
+      bg: initialOverride && initialOverride.bg
     };
     var pop = document.createElement('div');
     pop.className = 'itemmenu avatar-editor';
@@ -2389,6 +2430,15 @@
       function(item){ return !!item.value === !!current.glasses; },
       function(item){ pick('glasses', item.value); });
 
+    // "Default" (unset) keeps the ring matching whichever theme the
+    // viewer has selected, same as never having touched this row —
+    // included as its own option (not just "pick a color to leave this")
+    // so there's an explicit way back to it, same as every other row.
+    row('Background', [{ value: undefined, build: function(btn){ btn.textContent = 'Default'; } }]
+        .concat(AVATAR_BG_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; })),
+      function(item){ return item.value === current.bg; },
+      function(item){ pick('bg', item.value); });
+
     refreshActiveStates();
 
     var resetRow = document.createElement('div');
@@ -2399,7 +2449,7 @@
     resetBtn.textContent = 'Reset to default';
     resetBtn.addEventListener('click', function(e){
       e.stopPropagation();
-      current = { name: undefined, skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, hairLength: undefined, glasses: undefined };
+      current = { name: undefined, skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, hairLength: undefined, glasses: undefined, bg: undefined };
       nameInput.value = '';
       refresh();
       removeAvatarOverride(key);
@@ -2567,10 +2617,6 @@
       });
     });
   }
-
-
-
-
 
   // Captured before any remote snapshot touches #tagData, so new default
   // tags (e.g. transport modes added after the shared plan already has its
