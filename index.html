@@ -1109,12 +1109,6 @@
   #manageAccessList li { display:flex; align-items:center; justify-content:space-between; gap:8px;
     font-size:13px; padding:6px 8px; border-radius:8px; background:var(--bg); color:var(--ink); }
   #manageAccessList .map-role { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-  #manageAccessList button.map-remove { border:none; background:transparent; color:#b3261e; cursor:pointer;
-    font-size:14px; padding:2px 6px; }
-  #manageAccessList button.map-make-owner { border:1px solid var(--line); background:transparent;
-    color:var(--ink); cursor:pointer; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px;
-    white-space:nowrap; }
-  #manageAccessList button.map-make-owner:hover { border-color:var(--primary); color:var(--primary); }
   /* A small deterministic face per member (see avatarSvgFor) — purely
      decorative, so the list is easier to scan at a glance than a wall
      of plain addresses. Same email always draws the same face. */
@@ -1129,6 +1123,10 @@
      child of it, so it needs to out-rank the overlay explicitly or it
      renders invisibly behind it. */
   .avatar-editor { width:220px; padding:10px; z-index:9999; }
+  /* Same reasoning as .avatar-editor just above — the row "..." menu
+     opened from inside "Participants" (see openMemberRowMenu) needs the
+     same z-index bump above .modal-overlay's 9998, for the same reason. */
+  .map-row-menu { z-index:9999; }
   .avatar-editor-preview { width:48px; height:48px; margin:0 auto 8px; border-radius:50%; overflow:hidden; }
   .avatar-editor-preview svg { display:block; width:100%; height:100%; }
   .avatar-editor-row { margin-bottom:8px; }
@@ -1195,7 +1193,7 @@
 <div id="manageAccessPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
-      <h2 data-i18n="manage_title">Manage access</h2>
+      <h2 data-i18n="manage_title">Participants</h2>
       <button type="button" id="manageAccessCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
     <ul id="manageAccessList"></ul>
@@ -1277,7 +1275,7 @@
     <button type="button" id="actionMenuBtn" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="true">⋮</button>
     <div id="actionMenuDropdown">
       <button type="button" id="saveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span id="saveBtnLabel">Save</span></button>
-      <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="menu_manage">Manage access</span></button>
+      <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="menu_manage">Participants</span></button>
       <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span data-i18n="menu_print">Print</span></button>
       <div class="actionMenuDivider"></div>
       <div class="actionMenuThemeRow">
@@ -1801,10 +1799,11 @@
   var LANG_KEY = 'travelPlannerLang';
   var TRANSLATIONS = {
     en: {
-      menu_save: 'Save', menu_download: 'Download', menu_manage: 'Manage access', menu_print: 'Print',
+      menu_save: 'Save', menu_download: 'Download', menu_manage: 'Participants', menu_print: 'Print',
       menu_theme: 'Theme', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
-      manage_title: 'Manage access', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
+      manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
+      manage_delete_member: 'Delete member',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
@@ -1825,10 +1824,11 @@
       editact_save: 'Save'
     },
     it: {
-      menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Gestisci accesso', menu_print: 'Stampa',
+      menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
       menu_theme: 'Tema', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
-      manage_title: 'Gestisci accesso', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
+      manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
+      manage_delete_member: 'Elimina membro',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
@@ -1849,10 +1849,11 @@
       editact_save: 'Salva'
     },
     es: {
-      menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Gestionar acceso', menu_print: 'Imprimir',
+      menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
       menu_theme: 'Tema', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
-      manage_title: 'Gestionar acceso', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
+      manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
+      manage_delete_member: 'Eliminar miembro',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
@@ -2020,7 +2021,13 @@
           if(printBtn) printBtn.classList.add('show');
           if(appSignOutBtn) appSignOutBtn.classList.add('show');
           if(actionMenu) actionMenu.classList.add('show');
-          if(role === 'owner') initMemberPanel(); else hideMemberPanel();
+          // Every recognized member gets the Participants panel now, not
+          // just the owner — seeing who's on the trip (and inviting more
+          // people) is useful to anyone, not an admin-only concern. Only
+          // the owner-restricted actions inside it (promote/remove — see
+          // renderMemberList's currentUserRole check) stay gated, matching
+          // what the security rules actually allow each role to write.
+          initMemberPanel();
         }).catch(function(err){
           console.warn('Membership lookup failed', err);
           showAuthGate('error', 'Couldn’t check access — check your connection and reload.');
@@ -2032,10 +2039,15 @@
     }
   }
 
-  // ---- owner-only "manage access" panel: view/invite/remove members ----
-  // Rendered from /members directly rather than kept in sync locally — this
-  // is opened rarely enough that a fresh read on open/action is simpler
-  // than maintaining a live listener, and it means the list can never show
+  // ---- "Participants" panel: view/invite for everyone, promote/remove
+  // owner-only ----
+  // Any member can open this and see (and invite) who's on the trip; only
+  // the owner sees the promote/remove controls on other rows (see
+  // renderMemberList/openMemberRowMenu, and the security rules, which
+  // independently enforce the same split for actual writes). Rendered
+  // from /members directly rather than kept in sync locally — this is
+  // opened rarely enough that a fresh read on open/action is simpler than
+  // maintaining a live listener, and it means the list can never show
   // stale state from before someone else's concurrent change.
   var manageBtn = document.getElementById('manageAccessBtn');
   var managePanel = document.getElementById('manageAccessPanel');
@@ -2285,46 +2297,29 @@
         roleEl.className = 'map-role';
         roleEl.textContent = t('manage_role_' + row.role) || row.role;
         actions.appendChild(roleEl);
-        // Any current owner can promote an invited member to owner —
-        // whether they've been on the list a while or were just invited,
-        // this is the same action either way (a fresh invite always lands
-        // as 'invited' first; promoting is a separate, deliberate second
-        // step rather than a special "invite as owner" path). Requires the
-        // security rules' $memberKey .validate to accept 'owner' as a
-        // written value, not just 'invited' — see the rules update that
-        // shipped alongside this.
-        if(row.role === 'invited'){
-          var makeOwnerBtn = document.createElement('button');
-          makeOwnerBtn.type = 'button';
-          makeOwnerBtn.className = 'map-make-owner';
-          makeOwnerBtn.textContent = t('manage_make_owner');
-          makeOwnerBtn.title = 'Give ' + row.email + ' owner access';
-          makeOwnerBtn.addEventListener('click', function(){
-            if(manageErrorEl) manageErrorEl.textContent = '';
-            firebase.database().ref('members/' + row.key).set('owner').catch(function(err){
-              if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t update ' + row.email + ' — try again.';
-              console.warn('Promote member failed', err);
-            }).then(renderMemberList);
+        // Same "⋯" menu language as everywhere else in the app (see
+        // openItemMenu/openDayMenu) instead of a pair of always-visible
+        // inline buttons — promote/remove are both rare, deliberate
+        // actions, not something that needs its own permanent button next
+        // to every row. Only the viewer's own role gates whether this
+        // shows at all — the security rules independently enforce the
+        // same restriction on the actual writes, so this is purely about
+        // not showing controls a non-owner viewer couldn't use anyway.
+        // Never shown on an owner row either way: belt and suspenders
+        // alongside the security rules, which independently refuse to
+        // ever delete or overwrite an entry whose current value is
+        // 'owner', so there's genuinely nothing this menu could offer.
+        if(currentUserRole === 'owner' && row.role !== 'owner'){
+          var menuBtn = document.createElement('button');
+          menuBtn.type = 'button';
+          menuBtn.className = 'itemmenu-btn jsctl';
+          menuBtn.textContent = '⋯';
+          menuBtn.title = 'More options for ' + row.email;
+          menuBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            openMemberRowMenu(row, menuBtn);
           });
-          actions.appendChild(makeOwnerBtn);
-        }
-        // No remove control for an owner row at all — belt and suspenders
-        // alongside the security rules, which independently refuse to ever
-        // delete or overwrite an entry whose current value is 'owner'.
-        if(row.role !== 'owner'){
-          var removeBtn = document.createElement('button');
-          removeBtn.type = 'button';
-          removeBtn.className = 'map-remove';
-          removeBtn.textContent = '✕';
-          removeBtn.title = 'Remove access for ' + row.email;
-          removeBtn.addEventListener('click', function(){
-            if(manageErrorEl) manageErrorEl.textContent = '';
-            firebase.database().ref('members/' + row.key).remove().catch(function(err){
-              if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t remove ' + row.email + ' — try again.';
-              console.warn('Remove member failed', err);
-            }).then(renderMemberList);
-          });
-          actions.appendChild(removeBtn);
+          actions.appendChild(menuBtn);
         }
         li.appendChild(actions);
         manageList.appendChild(li);
@@ -2333,6 +2328,49 @@
       if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t load the member list.';
       console.warn('Load members failed', err);
     });
+  }
+
+  // Row-level "..." menu for a Participants row (Make owner / Delete
+  // member) — same row/icon/danger language as openItemMenu/openDayMenu,
+  // reusing .itemmenu rather than a parallel set of styles. Only ever
+  // wired up for an owner viewer looking at a non-owner row — see
+  // renderMemberList, which doesn't even render the trigger button
+  // otherwise.
+  function openMemberRowMenu(member, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu map-row-menu';
+    function addRow(html, fn, danger){
+      var r = document.createElement('div');
+      r.className = 'itemmenu-row' + (danger ? ' danger' : '');
+      r.innerHTML = html;
+      r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
+      pop.appendChild(r);
+      return r;
+    }
+    function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
+    // Promoting is a separate, deliberate second step rather than a
+    // special "invite as owner" path — a fresh invite always lands as
+    // 'invited' first. Requires the security rules' $memberKey .validate
+    // to accept 'owner' as a written value, not just 'invited'.
+    addRow(icon('★') + t('manage_make_owner'), function(){
+      if(manageErrorEl) manageErrorEl.textContent = '';
+      firebase.database().ref('members/' + member.key).set('owner').catch(function(err){
+        if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t update ' + member.email + ' — try again.';
+        console.warn('Promote member failed', err);
+      }).then(renderMemberList);
+    });
+    addRow(icon(ICON_TRASH) + t('manage_delete_member'), function(){
+      if(manageErrorEl) manageErrorEl.textContent = '';
+      firebase.database().ref('members/' + member.key).remove().catch(function(err){
+        if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t remove ' + member.email + ' — try again.';
+        console.warn('Remove member failed', err);
+      }).then(renderMemberList);
+    }, true);
+    pop._anchorEl = anchorEl;
+    anchorEl.style.visibility = 'visible';
+    anchorEl.classList.add('open');
+    positionPopover(pop, anchorEl);
   }
 
   function initMemberPanel(){
