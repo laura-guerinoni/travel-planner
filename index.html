@@ -719,6 +719,9 @@
   .paysplit { width:260px; max-height:320px; overflow-y:auto; }
   .paysplit-header { padding:6px 10px; font-size:12px; font-weight:700; color:var(--muted); }
   .paysplit-header.over { color:#c0392b; }
+  /* Same informational-row language as .paysplit-header, for
+     openOptionMembersPicker's "who can see this month" status line. */
+  .optmembers-note { padding:2px 10px 8px; font-size:11px; color:var(--muted); cursor:default; }
   .paysplit-row { display:flex; align-items:center; gap:8px; padding:6px 8px; font-size:13px; }
   .paysplit-row .participant-avatar { width:22px; height:22px; border-radius:50%; overflow:hidden; flex:0 0 22px; }
   .paysplit-row .participant-avatar svg { display:block; width:100%; height:100%; }
@@ -3153,6 +3156,35 @@
     else li.removeAttribute('data-participants');
     renderParticipants(li);
   }
+
+  // ---- per-month/option participants: separate from the global
+  // Participants list (who can sign in and use the app at all) — this is
+  // purely which of those members should even see a given month/
+  // alternative pill exists. UI-level only: the underlying /plan data is
+  // still one shared Firebase node any signed-in member can technically
+  // read (see the handoff notes on this), so this is not a real security
+  // boundary, just what the app chooses to show. ----
+  function getOptionMembers(panel){
+    try{ var v = JSON.parse(panel.getAttribute('data-members') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setOptionMembers(panel, keys){
+    if(keys && keys.length) panel.setAttribute('data-members', JSON.stringify(keys));
+    else panel.removeAttribute('data-members');
+  }
+  // An empty/missing member list means "visible to everyone" — every
+  // option that existed before this shipped has no list at all, so
+  // nothing already-shared silently disappears for anyone. The global
+  // owner role always sees every option regardless of its list, so the
+  // account that manages membership can never lock itself out of a month
+  // it just created.
+  function canSeeOption(panel){
+    if(!panel) return false;
+    if(currentUserRole === 'owner') return true;
+    var members = getOptionMembers(panel);
+    if(!members.length) return true;
+    return members.indexOf(currentUserKey) !== -1;
+  }
   // Memoized: every activity's renderParticipants call (there can be many,
   // all firing during the same reattachAll() pass) shares one fetch
   // instead of one each. Pass forceRefresh to get current data — used by
@@ -5413,12 +5445,21 @@
     clone.removeAttribute('data-holiday-end');
     clone.removeAttribute('data-holiday-label');
     clone.removeAttribute('data-holidays');
+    clone.removeAttribute('data-members');
     clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.loc, .acts, .cost').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('active', 'holi'); });
     clone.querySelectorAll(':scope > .grid.banner-row').forEach(function(n){ n.remove(); });
     setPanelDate(clone, year, month);
+    // A brand-new month starts visible only to whoever created it — unlike
+    // every month that existed before this feature shipped (which has no
+    // list at all, and so stays visible to everyone, see canSeeOption) —
+    // the creator extends that out to specific other members via the pill's
+    // right-click menu (see openOptionMembersPicker). Skipped entirely in
+    // local-file mode (no signed-in currentUserKey), where the whole
+    // member system doesn't apply.
+    if(currentUserKey) setOptionMembers(clone, [currentUserKey]);
     var allPanels = document.querySelectorAll('.panel');
     allPanels[allPanels.length - 1].insertAdjacentElement('afterend', clone);
 
@@ -5507,6 +5548,16 @@
       duplicateOption(pill.getAttribute('data-opt'));
     });
     pop.appendChild(row);
+    var accessRow = document.createElement('div');
+    accessRow.className = 'itemmenu-row';
+    accessRow.textContent = '👤  Who can see this month';
+    accessRow.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      if(panel) openOptionMembersPicker(panel, pill);
+    });
+    pop.appendChild(accessRow);
     document.body.appendChild(pop);
     var popW = pop.offsetWidth, popH = pop.offsetHeight;
     var left = x, top = y;
@@ -5515,6 +5566,89 @@
     pop.style.left = (window.scrollX + left) + 'px';
     pop.style.top = (window.scrollY + top) + 'px';
     openPop = pop;
+  }
+
+  // Which global members (see the Participants panel) can even see this
+  // specific month/alternative pill — separate question from who's on the
+  // global list at all. Same checkbox-row shape as openParticipantPicker,
+  // but writing to the panel's own data-members (see getOptionMembers)
+  // instead of an activity's data-participants, and re-running the
+  // sidebar/filter/active-panel logic after every change since toggling
+  // yourself off the month you're currently looking at should jump you
+  // away from it immediately, not just silently drop it from the list.
+  function openOptionMembersPicker(panel, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu participant-picker';
+    var loadingRow = document.createElement('div');
+    loadingRow.className = 'itemmenu-row';
+    loadingRow.textContent = 'Loading…';
+    pop.appendChild(loadingRow);
+    positionPopover(pop, anchorEl);
+
+    function noteText(){
+      return getOptionMembers(panel).length
+        ? 'Only checked members can see this month.'
+        : 'Everyone can currently see this month.';
+    }
+
+    function afterChange(){
+      scheduleAutoSave(); scheduleUndoSnapshot();
+      renderMonthSidebar();
+      ensureAccessibleActivePanel();
+      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
+      if(activePanel){ var d = getPanelDate(activePanel); filterPillsByMonth(d.year, d.month); }
+    }
+
+    function render(data){
+      if(openPop !== pop) return;
+      pop.innerHTML = '';
+      var note = document.createElement('div');
+      note.className = 'optmembers-note';
+      note.textContent = noteText();
+      pop.appendChild(note);
+      data.members.forEach(function(m){
+        var row = document.createElement('label');
+        row.className = 'participant-picker-row';
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        var current = getOptionMembers(panel);
+        // An empty list means "everyone" — every member reads as checked
+        // in that state, not as if the list had already been emptied out
+        // by unchecking each of them one by one.
+        checkbox.checked = !current.length || current.indexOf(m.key) !== -1;
+        checkbox.addEventListener('click', function(e){ e.stopPropagation(); });
+        checkbox.addEventListener('change', function(){
+          var arr = getOptionMembers(panel);
+          // First real edit starting from "everyone" (empty list): seed
+          // the list with every *other* member already implicitly
+          // included, then apply this one toggle — unchecking one person
+          // here should narrow the list to everyone else, not wipe it to
+          // empty (which would mean "everyone" again).
+          if(!arr.length) arr = data.members.map(function(x){ return x.key; });
+          var idx = arr.indexOf(m.key);
+          if(checkbox.checked){ if(idx === -1) arr.push(m.key); }
+          else if(idx !== -1){ arr.splice(idx, 1); }
+          setOptionMembers(panel, arr);
+          note.textContent = noteText();
+          afterChange();
+        });
+        row.appendChild(checkbox);
+        var face = document.createElement('span');
+        face.className = 'participant-avatar';
+        face.innerHTML = avatarSvgFor(m.email, data.avatars[m.key]);
+        row.appendChild(face);
+        var label = document.createElement('span');
+        label.className = 'participant-picker-email';
+        label.textContent = m.email;
+        row.appendChild(label);
+        pop.appendChild(row);
+      });
+      positionPopover(pop, anchorEl);
+    }
+    var hadCache = !!memberAvatarDataPromise;
+    loadMemberAvatarData().then(render);
+    if(hadCache) loadMemberAvatarData(true).then(render);
   }
 
   document.addEventListener('contextmenu', function(e){
@@ -5581,7 +5715,11 @@
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
       var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
       var d = getPanelDate(panel);
-      var matches = d.year === year && d.month === month;
+      // canSeeOption folded straight into "matches" — a month/option this
+      // viewer isn't a participant of (see getOptionMembers) is filtered
+      // out here exactly the same way a wrong-month option already was,
+      // rather than needing a second, parallel hidden state.
+      var matches = d.year === year && d.month === month && canSeeOption(panel);
       pill.classList.toggle('pill-filtered-out', !matches);
       if(matches && !firstMatch) firstMatch = pill;
     });
@@ -5592,7 +5730,7 @@
     document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
       var panel = document.getElementById('panel-' + li.getAttribute('data-opt'));
       var d = getPanelDate(panel);
-      li.classList.toggle('budget-filtered-out', !(d.year === year && d.month === month));
+      li.classList.toggle('budget-filtered-out', !(d.year === year && d.month === month && canSeeOption(panel)));
     });
     var activePill = document.querySelector('.pill[data-opt].on');
     var activeMatches = activePill && !activePill.classList.contains('pill-filtered-out');
@@ -5756,6 +5894,11 @@
     sidebar.innerHTML = '';
     var seen = [];
     document.querySelectorAll('.panel').forEach(function(panel){
+      // A month where every option is invisible to this viewer (see
+      // canSeeOption) doesn't get a sidebar entry at all — fully hidden,
+      // not just its options filtered out further down, so someone not
+      // invited to it never learns it exists in the first place.
+      if(!canSeeOption(panel)) return;
       var d = getPanelDate(panel);
       var key = monthKey(d.year, d.month);
       if(!seen.some(function(s){ return s.key === key; })) seen.push({ key: key, year: d.year, month: d.month });
@@ -5876,6 +6019,23 @@
   // ---- initial attach (also reused after an undo/redo restore, since
   // replacing .wrap wholesale gives back plain markup with none of the
   // dynamically-added controls or listeners wired up) ----
+  // If a remote sync (or a per-month participant-list edit, see
+  // openOptionMembersPicker) leaves the currently-active panel invisible
+  // to this viewer, jump to the first panel they can actually see instead
+  // of leaving the app pointed at a month whose own sidebar entry (see
+  // renderMonthSidebar) no longer exists for them.
+  function ensureAccessibleActivePanel(){
+    var activePanel = document.querySelector('.panel.on');
+    if(activePanel && canSeeOption(activePanel)) return;
+    var fallback = null;
+    document.querySelectorAll('.panel').forEach(function(p){ if(!fallback && canSeeOption(p)) fallback = p; });
+    if(!fallback) return;
+    document.querySelectorAll('.pill[data-opt].on, .panel.on').forEach(function(el){ el.classList.remove('on'); });
+    fallback.classList.add('on');
+    var pill = document.querySelector('.pill[data-opt="' + optOf(fallback) + '"]');
+    if(pill) pill.classList.add('on');
+  }
+
   function reattachAll(){
     // The old "Estimates per person..." disclaimer under Budget overview
     // was removed from the template, but a browser with an older cached
@@ -5903,6 +6063,7 @@
     // listener below.
     document.querySelectorAll('.pill-name').forEach(function(el){ el.title = el.textContent; });
     renderMonthSidebar();
+    ensureAccessibleActivePanel();
     var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
     if(activePanel){ var d0 = getPanelDate(activePanel); filterPillsByMonth(d0.year, d0.month); }
     renderPaymentOverview();
@@ -6816,6 +6977,8 @@
       if(hol.length) o.h = hol;
       var bn = doc.querySelector('.budget li[data-opt="' + opt + '"] .budget-name');
       if(bn && bn.textContent !== o.nm) o.bn = bn.textContent;
+      var mb = getOptionMembers(panel);
+      if(mb.length) o.mb = mb;
       var days = {}, hasDay = false;
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var dn = dayNumOfCell(cell);
@@ -6965,6 +7128,7 @@
       panel.id = 'panel-' + o.id;
       setPanelDate(panel, o.y, o.m);
       if(o.h && o.h.length) setHolidays(panel, o.h);
+      if(o.mb && o.mb.length) setOptionMembers(panel, o.mb);
       if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
       buildCalendarGrid(panel);
 
