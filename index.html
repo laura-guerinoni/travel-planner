@@ -444,10 +444,18 @@
      does). Tapping it opens a short list of every year that actually has
      months in it (see openYearSwitcherMenu) so you jump straight to one
      instead of stepping through them one at a time. */
+  /* position:relative + the caret pulled out of the centered flex row
+     (absolute, not a sibling flex item) — with both the label and the
+     caret as flex items, justify-content:center centers the *pair*,
+     which put the year text itself measurably left of the tab labels
+     below it (the pair's shared center isn't the label's own center
+     once the caret's extra width is added on one side only). The label
+     alone is what should land on the same center as a tab's own
+     centered text. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    gap:2px; padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
+    position:relative; padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
   .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.02em; line-height:1; }
-  .month-year-switcher .yr-caret { font-size:8px; line-height:1; }
+  .month-year-switcher .yr-caret { position:absolute; bottom:1px; right:6px; font-size:7px; line-height:1; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
     border-radius:0 16px 16px 0; }
@@ -708,8 +716,17 @@
      (positionPopover appends it to document.body, a sibling of the
      modal overlay, not a descendant of it — z-index is all that decides
      the stacking order between them) and its rows couldn't be clicked. */
-  .invite-scope-pop { z-index:9999; }
+  /* max-height/overflow-y — one row per alternative (not per month) can
+     run long on a plan with several months each holding a few of them,
+     and this popover has nowhere else to grow but down. */
+  .invite-scope-pop { z-index:9999; max-height:min(360px, calc(100vh - 100px)); overflow-y:auto; }
   .invite-scope-heading { padding:4px 8px 6px; font-size:12px; color:var(--muted); font-weight:700; }
+  /* Groups the alternative rows under it — not its own checkbox, just a
+     label, since "All months" above already covers the shortcut of
+     wanting everything in one particular month too. */
+  .invite-scope-month-label { padding:6px 8px 2px; font-size:11px; color:var(--muted); font-weight:800;
+    text-transform:uppercase; letter-spacing:.03em; }
+  .invite-scope-alt-row { padding-left:16px; }
   .invite-scope-row { gap:8px; cursor:pointer; }
   .invite-scope-row input[type="checkbox"] { flex:none; margin:0; }
   .invite-scope-done { display:block; width:calc(100% - 8px); margin:4px; padding:7px 0; border:none;
@@ -3177,10 +3194,24 @@
     positionPopover(pop, anchorEl);
   }
 
+  // A panel's own pill (matched by data-opt, same as everywhere else
+  // pills/panels stay linked — see the drag-to-reorder comment above)
+  // carries the only human name it has; falls back to its raw id in the
+  // rare case that pill isn't found, rather than showing nothing.
+  function altNameFor(panel){
+    var opt = (panel.id || '').replace(/^panel-/, '');
+    var pillName = document.querySelector('.pill[data-opt="' + opt + '"] .pill-name');
+    return pillName ? pillName.textContent.trim() : (panel.id || 'Untitled');
+  }
+
   // Offered once, right after a fresh invite succeeds (see manageForm's
-  // submit handler) — see that handler's own comment for why. Only
-  // covers months that exist today; a month created afterward still
-  // needs its own creator to share it, same as any other month.
+  // submit handler) — see that handler's own comment for why. Lists
+  // individual alternatives, not just months — someone might want a new
+  // member seeing "1.Poland" but not the pricier "Slovakia · Hungary ·
+  // Poland" alternative for the same days, same as an owner can already
+  // choose per-month via the segment's own Share row. Only covers
+  // months/alternatives that exist today; anything created afterward
+  // still needs its own creator to share it, same as always.
   function openInviteScopeMenu(memberKey, anchorEl){
     closePop();
     var monthsByKey = {}, order = [];
@@ -3201,15 +3232,13 @@
     heading.textContent = t('invite_scope_heading');
     pop.appendChild(heading);
 
-    function grant(monthList){
-      monthList.forEach(function(m){
-        m.panels.forEach(function(panel){
-          var members = getOptionMembers(panel);
-          if(members.indexOf(memberKey) === -1){
-            members.push(memberKey);
-            setOptionMembers(panel, members);
-          }
-        });
+    function grant(panelList){
+      panelList.forEach(function(panel){
+        var members = getOptionMembers(panel);
+        if(members.indexOf(memberKey) === -1){
+          members.push(memberKey);
+          setOptionMembers(panel, members);
+        }
       });
       // data-members isn't in MO_OPTS's attributeFilter (unlike
       // data-year/data-month, which happen to piggyback an autosave for
@@ -3227,16 +3256,23 @@
     allLabel.appendChild(allCb); allLabel.appendChild(allText);
     pop.appendChild(allLabel);
 
-    var monthRows = months.map(function(m){
-      var label = document.createElement('label');
-      label.className = 'itemmenu-row invite-scope-row';
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      var text = document.createElement('span');
-      text.textContent = formatMonthLabel(m.year, m.month, months.length);
-      label.appendChild(cb); label.appendChild(text);
-      pop.appendChild(label);
-      return { cb: cb, month: m };
+    var altRows = [];
+    months.forEach(function(m){
+      var monthLabel = document.createElement('div');
+      monthLabel.className = 'invite-scope-month-label';
+      monthLabel.textContent = formatMonthLabel(m.year, m.month, months.length);
+      pop.appendChild(monthLabel);
+      m.panels.forEach(function(panel){
+        var label = document.createElement('label');
+        label.className = 'itemmenu-row invite-scope-row invite-scope-alt-row';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        var text = document.createElement('span');
+        text.textContent = altNameFor(panel);
+        label.appendChild(cb); label.appendChild(text);
+        pop.appendChild(label);
+        altRows.push({ cb: cb, panel: panel });
+      });
     });
 
     // Checking "All months" is a stand-in for every individual box, not
@@ -3244,7 +3280,7 @@
     // plainly instead of leaving it ambiguous what happens if both ever
     // ended up checked at once.
     allCb.addEventListener('change', function(){
-      monthRows.forEach(function(r){
+      altRows.forEach(function(r){
         r.cb.disabled = allCb.checked;
         if(allCb.checked) r.cb.checked = false;
       });
@@ -3257,9 +3293,9 @@
     doneBtn.addEventListener('click', function(e){
       e.stopPropagation();
       if(allCb.checked){
-        grant(months);
+        grant(altRows.map(function(r){ return r.panel; }));
       } else {
-        var chosen = monthRows.filter(function(r){ return r.cb.checked; }).map(function(r){ return r.month; });
+        var chosen = altRows.filter(function(r){ return r.cb.checked; }).map(function(r){ return r.panel; });
         if(chosen.length) grant(chosen);
       }
       closePop();
