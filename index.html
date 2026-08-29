@@ -700,7 +700,15 @@
      usual single-click-and-close action rows, so it reuses .itemmenu-row
      for identical padding/hover but doesn't touch .itemmenu-row's own
      click-to-close behavior (that's wired per-row elsewhere; these rows
-     just toggle a checkbox via the native <label> click). */
+     just toggle a checkbox via the native <label> click). Its trigger
+     (the invite button) lives inside #manageAccessPanel, a modal at
+     z-index:9998 — .itemmenu's own z-index:55 is plenty above ordinary
+     page content but not above a modal it's opened from, so without
+     this override the popover rendered visually *behind* the modal
+     (positionPopover appends it to document.body, a sibling of the
+     modal overlay, not a descendant of it — z-index is all that decides
+     the stacking order between them) and its rows couldn't be clicked. */
+  .invite-scope-pop { z-index:9999; }
   .invite-scope-heading { padding:4px 8px 6px; font-size:12px; color:var(--muted); font-weight:700; }
   .invite-scope-row { gap:8px; cursor:pointer; }
   .invite-scope-row input[type="checkbox"] { flex:none; margin:0; }
