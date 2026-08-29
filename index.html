@@ -2191,13 +2191,26 @@
   // given contains an `undefined` property, so those get stripped out
   // here rather than sent as-is; a person who's only picked a hair color
   // ends up saving just { hair: '#...' }, not all four keys.
+  // Every activity already showing this person's face (see
+  // renderParticipants) reads avatar data from memberAvatarDataPromise's
+  // cache — nothing invalidated that cache on save, so a customization
+  // made here updated the Participants list and this popover's own live
+  // preview (see openAvatarEditor's refresh()) but silently never
+  // reached any face already rendered elsewhere in the calendar until
+  // the next full reload. Force a fresh fetch and re-render every
+  // currently-rendered participant face once the write actually lands.
+  function refreshAllAvatarFaces(){
+    loadMemberAvatarData(true).then(function(){
+      document.querySelectorAll('.acts li[data-participants]').forEach(renderParticipants);
+    });
+  }
   function saveAvatarOverride(key, override){
     var clean = {};
     Object.keys(override).forEach(function(k){
       if(override[k] !== undefined) clean[k] = override[k];
     });
     try {
-      firebase.database().ref('avatars/' + key).set(clean).catch(function(err){
+      firebase.database().ref('avatars/' + key).set(clean).then(refreshAllAvatarFaces).catch(function(err){
         console.warn('Save avatar customization failed — check the /avatars security rule', err);
       });
     } catch(err){
@@ -2206,7 +2219,7 @@
   }
   function removeAvatarOverride(key){
     try {
-      firebase.database().ref('avatars/' + key).remove().catch(function(err){
+      firebase.database().ref('avatars/' + key).remove().then(refreshAllAvatarFaces).catch(function(err){
         console.warn('Reset avatar customization failed', err);
       });
     } catch(err){
