@@ -1918,19 +1918,25 @@
   };
   var currentCurrency = 'EUR';
   function currencySymbol(){ return CURRENCIES[currentCurrency] || CURRENCIES.EUR; }
-  // Swaps just the LEADING currency symbol off a price-val's own text —
-  // ".price-val" is always "<symbol><number>[x2|+25...]" (never prose;
-  // any note text lives in the separate .price-note sibling instead), so
-  // stripping whichever known symbol starts it and prepending the new one
-  // is safe: the number and any x2/+25 math after it survive untouched.
-  // Longest-first so e.g. "CA$"/"MX$" match ahead of a bare "$".
+  // Swaps just the LEADING currency symbol (plus the one fixed space
+  // after it — see ensurePriceValPrefix/guardFixedPrefix) off a
+  // price-val's own text — ".price-val" is always "<symbol> <number>
+  // [x2|+25...]" (never prose; any note text lives in the separate
+  // .price-note sibling instead), so stripping whichever known symbol
+  // (and that one space) starts it and prepending the new one is safe:
+  // the number and any x2/+25 math after it survive untouched. The
+  // trailing "\\s?" is optional, not "\\s*", so this still matches
+  // legacy content saved before the fixed-space convention existed
+  // ("€45", no space) without also eating into a number someone
+  // deliberately led with a space of their own. Longest-first so e.g.
+  // "CA$"/"MX$" match ahead of a bare "$".
   var CURRENCY_SYMBOL_RE = new RegExp('^\\s*(' +
     Object.keys(CURRENCIES).map(function(k){ return CURRENCIES[k]; })
       .filter(function(v, i, arr){ return arr.indexOf(v) === i; })
       .sort(function(a, b){ return b.length - a.length; })
       .map(function(sym){ return sym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); })
       .join('|')
-  + ')');
+  + ')\\s?');
   // Re-stamps every currently-rendered computed total (day badges/costs,
   // pill prices, budget list) AND every activity's own typed price with
   // the new symbol — recomputeCell() does the former per day and already
@@ -1939,7 +1945,7 @@
   // separately since recomputeCell only reads it, never rewrites it.
   function refreshAllMoneyDisplays(){
     document.querySelectorAll('.price-val').forEach(function(pv){
-      pv.textContent = currencySymbol() + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
+      pv.textContent = currencySymbol() + ' ' + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
     });
     document.querySelectorAll('.cell:not(.empty)').forEach(recomputeCell);
   }
@@ -3084,6 +3090,100 @@
     if(!TAGS.some(function(x){ return tagKey(x) === k; })){ TAGS.push(t); persistTags(); }
   }
 
+  // A time line's "🕒 " and an amount's currency symbol + " " are
+  // meaningful, not free text someone typed — see guardFixedPrefix below.
+  // Each ensure* normalizes existing content into that exact form, adding
+  // whatever piece is missing (legacy data saved before the emoji/space
+  // convention existed at all, or before the currency symbol had a
+  // trailing space) without touching anything actually typed after it —
+  // reusing the same stripping patterns already used elsewhere to read
+  // these fields back out (openEditAct's /^🕒\s*/ and CURRENCY_SYMBOL_RE).
+  function ensureTimeLinePrefix(el){
+    var prefix = '🕒 ';
+    if(el.textContent.indexOf(prefix) === 0) return;
+    el.textContent = prefix + el.textContent.replace(/^🕒\s*/, '');
+  }
+  function ensurePriceValPrefix(el){
+    var prefix = currencySymbol() + ' ';
+    if(el.textContent.indexOf(prefix) === 0) return;
+    el.textContent = prefix + el.textContent.replace(CURRENCY_SYMBOL_RE, '');
+  }
+  // Same "🕒 or a bare HH:MM" test findTimeLine/buildActivityLi already
+  // classify a .line by — kept as its own copy here (rather than reused
+  // across all three) since this one only ever needs to run once, at the
+  // moment a field is first made editable, not on every render.
+  function isTimeLineText(txt){ return /🕒/.test(txt) || /\d{1,2}:\d{2}/.test(txt); }
+  function placeCaretAtOffset(el, offset){
+    var node = el.firstChild;
+    if(!node){ node = document.createTextNode(''); el.appendChild(node); }
+    var range = document.createRange();
+    range.setStart(node, Math.min(offset, node.textContent.length));
+    range.collapse(true);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  // Locks the leading prefix of a contenteditable field (a time line's
+  // "🕒 ", an amount's currency symbol + " ") so it can be read but never
+  // deleted, typed over, or placed behind — everything after it stays
+  // completely free to edit, including clearing it back to empty, and the
+  // currency symbol itself still follows the currency picker as always
+  // (see refreshAllMoneyDisplays). beforeinput is the primary guard —
+  // precise enough to block exactly the keystroke/paste/cut/drag that
+  // would reach into the prefix without ever visibly disturbing it first;
+  // the 'input' listener re-normalizes afterwards as a safety net for
+  // whatever beforeinput doesn't catch on some browser/input method (e.g.
+  // certain IME composition paths), rather than leaving a broken prefix
+  // sitting there until next reload.
+  //
+  // makeEditable() runs on the same element more than once in practice —
+  // reattachAll() sweeps every EDITABLE_SEL match AND (via
+  // attachItemControls) every .acts li's own fields on the very same
+  // pass — so ensure() is safe (and needed) to re-run every time, but
+  // the listeners below must only ever attach once per element, or a
+  // character typed right at the prefix boundary would get inserted
+  // twice (once per duplicated beforeinput handler).
+  function guardFixedPrefix(el, getPrefix, ensure){
+    ensure(el);
+    if(el._fixedPrefixGuarded) return;
+    el._fixedPrefixGuarded = true;
+    el.addEventListener('beforeinput', function(e){
+      var sel = window.getSelection();
+      if(!sel.rangeCount) return;
+      var range = sel.getRangeAt(0);
+      var node = el.firstChild;
+      var start = (node && range.startContainer === node) ? range.startOffset : 0;
+      var prefixLen = getPrefix().length;
+      if(e.inputType === 'deleteContentBackward' && range.collapsed && start <= prefixLen){
+        e.preventDefault();
+        return;
+      }
+      if(start < prefixLen){
+        e.preventDefault();
+        // Splice the text in by hand rather than re-dispatching through
+        // execCommand('insertText', ...) — calling that from inside a
+        // beforeinput handler that just preventDefault()'d the very same
+        // event turned out not to reliably insert anything at all
+        // (verified against a real keystroke, not a synthetic one).
+        // Direct DOM manipulation has no such timing dependency.
+        var text = node ? node.textContent : '';
+        var insertion = e.data != null ? e.data
+          : (e.dataTransfer ? e.dataTransfer.getData('text/plain') : '');
+        var newOffset = prefixLen;
+        if(insertion){
+          el.textContent = text.slice(0, prefixLen) + insertion + text.slice(prefixLen);
+          newOffset = prefixLen + insertion.length;
+        }
+        // No recoverable text for this inputType (e.g. a drag-drop or a
+        // composition event with nothing in e.data/dataTransfer) — safest
+        // fallback is just landing the caret right after the prefix
+        // rather than guessing at content to insert.
+        placeCaretAtOffset(el, newOffset);
+      }
+    });
+    el.addEventListener('input', function(){ ensure(el); });
+  }
+
   // A contenteditable field defaults to inserting a literal line break on
   // Enter — fine for something meant to hold multiple lines, but every
   // field this gets applied to (title, price, location name, etc.) is a
@@ -3102,6 +3202,16 @@
     el.addEventListener('keydown', function(e){
       if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
     });
+    // A time line's "🕒 " and an amount's currency symbol are fixed,
+    // non-deletable prefixes — everything after is free text. Only a
+    // .line that's actually a time line gets this (a notes .line is
+    // plain free text throughout); every .price-val always is one, since
+    // that field never holds anything else.
+    if(el.classList.contains('price-val')){
+      guardFixedPrefix(el, function(){ return currencySymbol() + ' '; }, ensurePriceValPrefix);
+    } else if(el.classList.contains('line') && isTimeLineText(el.textContent)){
+      guardFixedPrefix(el, function(){ return '🕒 '; }, ensureTimeLinePrefix);
+    }
   }
 
   // .loc is the flex row (see its CSS); only .loc-text inside it is the
@@ -4686,7 +4796,7 @@
       priceEl.className = 'price';
       var priceVal = document.createElement('span');
       priceVal.className = 'price-val';
-      priceVal.textContent = currencySymbol();
+      priceVal.textContent = currencySymbol() + ' ';
       priceEl.appendChild(priceVal);
       li.insertBefore(priceEl, findDescLine(li) || null);
       makeEditable(priceVal);
@@ -4994,7 +5104,7 @@
     price.className = 'price';
     var priceVal = document.createElement('span');
     priceVal.className = 'price-val';
-    priceVal.textContent = currencySymbol();
+    priceVal.textContent = currencySymbol() + ' ';
     price.appendChild(priceVal);
 
     li.appendChild(tagrow); li.appendChild(title); li.appendChild(line); li.appendChild(price);
@@ -7187,28 +7297,34 @@
         // null-guard stays here in case that ever changes again — this
         // shouldn't assume it exists.
         var lineEl = newLi.querySelector(':scope > .line');
+        var lineElIsNew = !lineEl;
         if(!lineEl){
           lineEl = document.createElement('span');
           lineEl.className = 'line';
-          makeEditable(lineEl);
           newLi.insertBefore(lineEl, newLi.querySelector(':scope > .price') || null);
         }
         // An end time makes it a range; left blank, just the one time —
         // same "🕒 " convention (and the same first-hh:mm-is-the-start
         // parsing reorderActivityByStartTime already relies on) either way.
+        // Set before makeEditable(), not after — makeEditable's own
+        // fixed-prefix guard (see guardFixedPrefix) decides whether a
+        // .line is a time line by its content at that moment, so calling
+        // it against an still-empty span would leave it unguarded.
         lineEl.textContent = '🕒 ' + timeVal + (timeEndVal ? ' - ' + timeEndVal : '');
+        if(lineElIsNew) makeEditable(lineEl);
         reorderActivityByStartTime(newLi);
       }
       if(amountVal !== ''){
         var priceVal = newLi.querySelector(':scope > .price .price-val');
+        var priceValIsNew = !priceVal;
         if(!priceVal){
           var priceEl = document.createElement('span'); priceEl.className = 'price';
           priceVal = document.createElement('span'); priceVal.className = 'price-val';
-          makeEditable(priceVal);
           priceEl.appendChild(priceVal);
           newLi.appendChild(priceEl);
         }
-        priceVal.textContent = currencySymbol() + amountVal;
+        priceVal.textContent = currencySymbol() + ' ' + amountVal;
+        if(priceValIsNew) makeEditable(priceVal);
       }
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -7285,7 +7401,11 @@
 
     // Lines are rebuilt from scratch (notes, then time) rather than
     // patched in place — matches exactly what addMissingField/direct
-    // editing already produce: notes before time before price.
+    // editing already produce: notes before time before price. Always
+    // freshly created (the old ones, if any, were just removed above),
+    // so each gets makeEditable() unconditionally — nothing here can be
+    // wiring up a second set of listeners on an element that already had
+    // one from before.
     li.querySelectorAll(':scope > .line').forEach(function(l){ l.remove(); });
     var priceEl = li.querySelector(':scope > .price');
     if(notesVal){
@@ -7293,15 +7413,25 @@
       descSpan.className = 'line';
       descSpan.textContent = notesVal;
       li.insertBefore(descSpan, priceEl || null);
+      makeEditable(descSpan);
     }
     if(timeVal){
       var timeSpan = document.createElement('span');
       timeSpan.className = 'line';
       timeSpan.textContent = '🕒 ' + timeVal;
       li.insertBefore(timeSpan, priceEl || null);
+      makeEditable(timeSpan);
     }
 
     if(amountVal){
+      // Unlike .line above, .price-val isn't unconditionally rebuilt —
+      // an existing one (already made editable, already guarded) gets
+      // reused rather than replaced, so makeEditable() only needs to run
+      // for a genuinely new one. Calling it again on a field that
+      // already has guardFixedPrefix's listeners would double them up —
+      // harmless for the preventDefault calls, but a typed character
+      // right at the prefix boundary would get inserted twice.
+      var priceElIsNew = !priceEl;
       if(!priceEl){
         priceEl = document.createElement('span');
         priceEl.className = 'price';
@@ -7311,7 +7441,10 @@
         li.appendChild(priceEl);
       }
       var priceValEl = priceEl.querySelector('.price-val');
-      if(priceValEl) priceValEl.textContent = currencySymbol() + amountVal;
+      if(priceValEl){
+        priceValEl.textContent = currencySymbol() + ' ' + amountVal;
+        if(priceElIsNew) makeEditable(priceValEl);
+      }
     } else if(priceEl){
       priceEl.remove();
     }
