@@ -2096,7 +2096,12 @@
   // /members) so a customization is visible to every collaborator, not
   // just whoever set it. No photo upload, no external avatar service
   // either way. ----
-  var AVATAR_HAIR_COLORS = ['#2B2B2B', '#5B3A29', '#D9B877', '#A85432', '#B8B0A8', '#5DA0D9', '#8B6FC9'];
+  // Natural tones first, then the fun/fantasy ones — off-white rather than
+  // pure #fff for the "white" swatch, since --card is #fff in both themes
+  // (see :root above) and a pure-white circle would be invisible at rest
+  // against it, only ever showing up once .active's border kicks in.
+  var AVATAR_HAIR_COLORS = ['#2B2B2B', '#5B3A29', '#D9B877', '#A85432', '#B8B0A8', '#5DA0D9', '#8B6FC9',
+    '#E8E3D8', '#E8A0C4', '#7AB88A', '#D96B5C', '#E5A15C'];
   var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
   var AVATAR_MOUTH_TYPES = [0, 1, 2, 3];
   // Light/medium/dark — three fixed swatches (not a hash-derived open
