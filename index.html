@@ -1411,6 +1411,7 @@
      same z-index bump above .modal-overlay's 9998, for the same reason. */
   .map-row-menu { z-index:9999; }
   .avatar-editor-preview { width:48px; height:48px; margin:0 auto 8px; border-radius:50%; overflow:hidden; }
+  .avatar-editor-error:not(:empty) { color:#d9534f; font-size:12px; text-align:center; margin:-4px 0 8px; }
   .avatar-editor-preview svg { display:block; width:100%; height:100%; }
   .avatar-editor-row { margin-bottom:8px; }
   .avatar-editor-label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
@@ -1497,7 +1498,7 @@
   <!-- Same compass mark as the favicon (see the <link rel="icon"> in
        <head>) — reused inline (not referenced as an <img>) so it's crisp
        at any size and needs no extra request. -->
-  <h1><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#f7f1ea"/><path d="M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z" fill="#ef9a5c"/></svg> Travel Planner</h1>
+  <h1><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#ffffff"/><path d="M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z" fill="#ef9a5c"/></svg> Travel Planner</h1>
   <!-- No default copy here on purpose — with two ways in (email/password
        below, Google underneath) laid out plainly, a form doesn't need a
        sentence explaining itself. Actually used for loading/error text,
@@ -2926,7 +2927,14 @@
       updateActionMenuAvatar();
     });
   }
-  function saveAvatarOverride(key, override){
+  // onError (optional): a save failing used to only ever reach a
+  // console.warn — invisible unless someone happened to have devtools
+  // open, so a rejected write (a security rule that doesn't allow a
+  // particular field/value, a permission issue, being offline) read as
+  // the pick silently not sticking rather than an actual, surfaced
+  // error. Whoever's showing the picker gets a chance to tell the
+  // person that instead.
+  function saveAvatarOverride(key, override, onError){
     var clean = {};
     Object.keys(override).forEach(function(k){
       if(override[k] !== undefined) clean[k] = override[k];
@@ -2934,9 +2942,11 @@
     try {
       firebase.database().ref('avatars/' + key).set(clean).then(refreshAllAvatarDisplays).catch(function(err){
         console.warn('Save avatar customization failed — check the /avatars security rule', err);
+        if(onError) onError(err);
       });
     } catch(err){
       console.warn('Save avatar customization failed', err);
+      if(onError) onError(err);
     }
   }
   function removeAvatarOverride(key){
@@ -2974,6 +2984,10 @@
     var preview = document.createElement('div');
     preview.className = 'avatar-editor-preview';
     pop.appendChild(preview);
+
+    var errorEl = document.createElement('div');
+    errorEl.className = 'avatar-editor-error';
+    pop.appendChild(errorEl);
 
     function refresh(){
       var svg = avatarSvgFor(email, current);
@@ -3024,9 +3038,12 @@
 
     function pick(field, value){
       current[field] = value;
+      errorEl.textContent = '';
       refresh();
       refreshActiveStates();
-      saveAvatarOverride(key, current);
+      saveAvatarOverride(key, current, function(err){
+        errorEl.textContent = 'Couldn’t save — ' + ((err && err.message) || 'try again') + '.';
+      });
     }
 
     function row(label, items, activeCheck, onPick){
