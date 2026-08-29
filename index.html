@@ -4102,6 +4102,16 @@
   }
 
   // ---- pill / panel switching (event delegation so new pills just work) ----
+  // Pulled out of the click handler below so openPillContextMenu's own
+  // "Print this alternative" row can activate a pill by data-opt without
+  // needing to synthesize/dispatch a fake click on it.
+  function activatePillByOpt(id){
+    document.querySelectorAll('.pill[data-opt]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-opt') === id); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'panel-' + id); });
+    var newPanel = document.getElementById('panel-' + id);
+    if(newPanel){ var nd = getPanelDate(newPanel); filterPillsByMonth(nd.year, nd.month); }
+    renderPaymentOverview();
+  }
   document.addEventListener('click', function(e){
     if(suppressNextPillClick){ suppressNextPillClick = false; return; }
     var btn = e.target.closest('.pill');
@@ -4113,12 +4123,7 @@
     // text navigates, same as clicking anywhere else on the pill.
     var nameHit = e.target.closest('.pill-name');
     if(nameHit && nameHit.isContentEditable) return;
-    var id = btn.getAttribute('data-opt');
-    document.querySelectorAll('.pill[data-opt]').forEach(function (b) { b.classList.toggle('on', b === btn); });
-    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'panel-' + id); });
-    var newPanel = document.getElementById('panel-' + id);
-    if(newPanel){ var nd = getPanelDate(newPanel); filterPillsByMonth(nd.year, nd.month); }
-    renderPaymentOverview();
+    activatePillByOpt(btn.getAttribute('data-opt'));
   });
 
   // Renaming a pill is a double-click action (single click always
@@ -7462,6 +7467,25 @@
       if(panel) openOptionMembersPicker(panel, pill);
     });
     pop.appendChild(accessRow);
+    var printRow = document.createElement('div');
+    printRow.className = 'itemmenu-row';
+    printRow.textContent = '🖨  Print this alternative';
+    printRow.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      // "This month only" (the default-checked scope) really means
+      // "whichever panel is currently .on" — since each alternative is
+      // its own panel, that's already exactly "just this one
+      // alternative", not the whole month, with zero new scoping logic
+      // needed. Activating this pill first is what makes that true for
+      // *this* alternative specifically, same as if it had been clicked
+      // normally before opening Print from the main menu.
+      activatePillByOpt(pill.getAttribute('data-opt'));
+      var activeScope = document.querySelector('input[name="printScope"][value="active"]');
+      if(activeScope) activeScope.checked = true;
+      if(printPanel) printPanel.classList.add('show');
+    });
+    pop.appendChild(printRow);
     // Owner-only, same as the old bare × this replaced always was — the
     // trigger itself (.pill-remove, whether reached by hover or right-
     // click) is already hidden from a non-owner via body.owner-mode's
