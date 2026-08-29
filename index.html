@@ -1130,20 +1130,59 @@
   #authGate h1 { font-size:20px; margin:0; }
   #authGate .authMsg { color:var(--muted); font-size:13px; max-width:320px; }
   #authGate .authDenied { color:#b3261e; font-size:13px; max-width:320px; }
+  #authGate .authVerify { color:var(--ink); font-size:13px; max-width:320px; }
   #authGate button { display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
     border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--ink);
     font-size:14px; font-weight:700; cursor:pointer; }
   #authGate button:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  #authGate #authOr { display:flex; align-items:center; gap:10px; width:100%; max-width:280px;
+    color:var(--muted); font-size:12px; }
+  #authGate #authOr::before, #authGate #authOr::after { content:''; flex:1; height:1px; background:var(--line); }
+  #authGate .auth-email-form { display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; }
+  #authGate .auth-email-form input { padding:10px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:14px; }
+  #authGate #authEmailError { color:#b3261e; font-size:12px; min-height:14px; margin:0; text-align:left; }
+  #authGate .auth-email-actions { display:flex; gap:8px; }
+  #authGate .auth-email-actions button { flex:1; justify-content:center; padding:9px 12px; font-size:13px; }
+  #authGate .auth-link-btn { border:none; background:none; padding:2px; font-size:12px; font-weight:600;
+    color:var(--muted); text-decoration:underline; align-self:center; box-shadow:none !important; }
+  /* Every state-transition element gets listed once per state it should
+     stay HIDDEN in — same convention as the original four states, just
+     extended to also cover the new email/password form and the
+     verify-email state it can lead to. */
   #authGate[data-state="signin"] .authDenied,
+  #authGate[data-state="signin"] .authVerify,
+  #authGate[data-state="signin"] #authResendVerifyBtn,
   #authGate[data-state="signin"] #authSignOutBtn,
+
   #authGate[data-state="denied"] .authMsg,
+  #authGate[data-state="denied"] .authVerify,
   #authGate[data-state="denied"] #authSignInBtn,
+  #authGate[data-state="denied"] #authOr,
+  #authGate[data-state="denied"] .auth-email-form,
+  #authGate[data-state="denied"] #authResendVerifyBtn,
+
   #authGate[data-state="error"] .authDenied,
+  #authGate[data-state="error"] .authVerify,
   #authGate[data-state="error"] #authSignInBtn,
+  #authGate[data-state="error"] #authOr,
+  #authGate[data-state="error"] .auth-email-form,
+  #authGate[data-state="error"] #authResendVerifyBtn,
   #authGate[data-state="error"] #authSignOutBtn,
+
   #authGate[data-state="loading"] .authDenied,
+  #authGate[data-state="loading"] .authVerify,
   #authGate[data-state="loading"] #authSignInBtn,
-  #authGate[data-state="loading"] #authSignOutBtn { display:none; }
+  #authGate[data-state="loading"] #authOr,
+  #authGate[data-state="loading"] .auth-email-form,
+  #authGate[data-state="loading"] #authResendVerifyBtn,
+  #authGate[data-state="loading"] #authSignOutBtn,
+
+  #authGate[data-state="verify-email"] .authMsg,
+  #authGate[data-state="verify-email"] .authDenied,
+  #authGate[data-state="verify-email"] #authSignInBtn,
+  #authGate[data-state="verify-email"] #authOr,
+  #authGate[data-state="verify-email"] .auth-email-form { display:none; }
 
   /* Save/download, Manage Access, Print, the theme picker, and Sign out
      used to each be their own permanent floating control, scattered across
@@ -1313,7 +1352,30 @@
   <h1>🔒 Travel Planner</h1>
   <p class="authMsg" id="authGateStatus">Sign in with the Google account this plan was shared with.</p>
   <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
+  <!-- Only ever shown right after a genuinely NEW email/password sign-up
+       or log-in whose email Firebase hasn't confirmed yet — a Google
+       account is always already verified (see the emailVerified check in
+       onAuthStateChanged), so this state never applies to that path. -->
+  <p class="authVerify" id="authGateVerify">Almost there — click the verification link we just sent to <strong id="authVerifyEmail"></strong>, then reload this page.</p>
   <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> <span data-i18n="auth_signin">Sign in with Google</span></button>
+  <div class="auth-or" id="authOr"><span data-i18n="auth_or">or</span></div>
+  <!-- Email/password sign-in: unlike Google, Firebase never confirms this
+       address is actually yours by itself — that's what the verify-email
+       gate above (and the matching auth.token.email_verified check in the
+       security rules) closes. Log in submits the form (Enter works);
+       creating an account is a separate explicit button so the two never
+       get confused with each other. -->
+  <form id="authEmailForm" class="auth-email-form">
+    <input type="email" id="authEmailInput" data-i18n-placeholder="auth_email_placeholder" placeholder="Email" autocomplete="email" required />
+    <input type="password" id="authPasswordInput" data-i18n-placeholder="auth_password_placeholder" placeholder="Password" autocomplete="current-password" required minlength="6" />
+    <p id="authEmailError"></p>
+    <div class="auth-email-actions">
+      <button type="submit" id="authEmailLoginBtn" data-i18n="auth_login_btn">Log in</button>
+      <button type="button" id="authEmailSignupBtn" data-i18n="auth_signup_btn">Create account</button>
+    </div>
+    <button type="button" id="authForgotBtn" class="auth-link-btn" data-i18n="auth_forgot_btn">Forgot password?</button>
+  </form>
+  <button type="button" id="authResendVerifyBtn" data-i18n="auth_resend_verify_btn">Resend verification email</button>
   <button type="button" id="authSignOutBtn" data-i18n="auth_signout">Sign out and try another account</button>
 </div>
 <div id="manageAccessPanel" class="modal-overlay">
@@ -1984,7 +2046,10 @@
       editact_title: 'Edit activity', editact_title_label: 'Title', editact_notes_label: 'Notes',
       editact_save: 'Save',
       share_link_toggle: 'Share a view-only link', share_link_copy: 'Copy',
-      share_link_hint: 'Anyone with this link can view the plan — no sign-in, no editing.'
+      share_link_hint: 'Anyone with this link can view the plan — no sign-in, no editing.',
+      auth_or: 'or', auth_email_placeholder: 'Email', auth_password_placeholder: 'Password',
+      auth_login_btn: 'Log in', auth_signup_btn: 'Create account', auth_forgot_btn: 'Forgot password?',
+      auth_resend_verify_btn: 'Resend verification email'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
@@ -2011,7 +2076,10 @@
       editact_title: 'Modifica attività', editact_title_label: 'Titolo', editact_notes_label: 'Note',
       editact_save: 'Salva',
       share_link_toggle: 'Condividi un link di sola visualizzazione', share_link_copy: 'Copia',
-      share_link_hint: 'Chiunque abbia questo link può vedere il piano — nessun accesso, nessuna modifica.'
+      share_link_hint: 'Chiunque abbia questo link può vedere il piano — nessun accesso, nessuna modifica.',
+      auth_or: 'oppure', auth_email_placeholder: 'Email', auth_password_placeholder: 'Password',
+      auth_login_btn: 'Accedi', auth_signup_btn: 'Crea account', auth_forgot_btn: 'Password dimenticata?',
+      auth_resend_verify_btn: 'Invia di nuovo l’email di verifica'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
@@ -2038,7 +2106,10 @@
       editact_title: 'Editar actividad', editact_title_label: 'Título', editact_notes_label: 'Notas',
       editact_save: 'Guardar',
       share_link_toggle: 'Compartir un enlace de solo lectura', share_link_copy: 'Copiar',
-      share_link_hint: 'Cualquiera con este enlace puede ver el plan — sin iniciar sesión, sin editar.'
+      share_link_hint: 'Cualquiera con este enlace puede ver el plan — sin iniciar sesión, sin editar.',
+      auth_or: 'o', auth_email_placeholder: 'Correo electrónico', auth_password_placeholder: 'Contraseña',
+      auth_login_btn: 'Iniciar sesión', auth_signup_btn: 'Crear cuenta', auth_forgot_btn: '¿Olvidaste tu contraseña?',
+      auth_resend_verify_btn: 'Reenviar email de verificación'
     }
   };
   var currentLang = 'en';
@@ -2071,13 +2142,14 @@
 
   // Identifies which shared Firebase project this page talks to — not a
   // secret; access control is enforced entirely by the Realtime Database's
-  // security rules, which require a signed-in, allow-listed Google account
-  // (see the auth gate below) — not by hiding this config.
+  // security rules, which require a signed-in, allow-listed, verified
+  // account (Google, or a verified email/password account — see the auth
+  // gate below) — not by hiding this config.
   var firebaseConfig = {
-    apiKey: 'AIzaSyBV5E4Q_jOxcVvzCwnpbKo8nT3s2ldSF6Y',
-    authDomain: 'travel-dcc5f.firebaseapp.com',
-    databaseURL: 'https://travel-dcc5f-default-rtdb.europe-west1.firebasedatabase.app',
-    projectId: 'travel-dcc5f'
+    apiKey: 'AIzaSyA6tO9Gb2ma9vbpURNFDPg5rtjpPoR9xwI',
+    authDomain: 'travel-planner-5790e.firebaseapp.com',
+    databaseURL: 'https://travel-planner-5790e-default-rtdb.europe-west1.firebasedatabase.app',
+    projectId: 'travel-planner-5790e'
   };
   var planRef = null;
   if(IS_HOSTED){
@@ -2115,12 +2187,15 @@
   var authGateEl = document.getElementById('authGate');
   var authStatusEl = document.getElementById('authGateStatus');
   var authDeniedEl = document.getElementById('authGateDenied');
+  var authVerifyEl = document.getElementById('authGateVerify');
+  var authVerifyEmailEl = document.getElementById('authVerifyEmail');
 
   function showAuthGate(state, message){
     if(!authGateEl) return;
     authGateEl.setAttribute('data-state', state);
     authGateEl.classList.add('show');
     if(state === 'denied'){ if(authDeniedEl) authDeniedEl.textContent = message || ''; }
+    else if(state === 'verify-email'){ if(authVerifyEmailEl) authVerifyEmailEl.textContent = message || ''; }
     else if(authStatusEl) authStatusEl.textContent = message || '';
   }
   function hideAuthGate(){
@@ -2158,6 +2233,106 @@
       // looking at the plan, where the gate (and its sign-out button)
       // isn't on screen any more.
       if(appSignOutBtn) appSignOutBtn.addEventListener('click', function(){ auth.signOut(); closeActionMenu(); });
+
+      // ---- Email/password sign-in — the one path where Firebase itself
+      // never confirms the address actually belongs to whoever's typing
+      // it in (unlike Google, which already proves that before this app
+      // ever sees the account). onAuthStateChanged's emailVerified check
+      // below is what actually closes that gap — nothing here grants
+      // access on its own, it only gets someone as far as "now go prove
+      // you own that inbox". ----
+      var emailForm = document.getElementById('authEmailForm');
+      var emailInput = document.getElementById('authEmailInput');
+      var passwordInput = document.getElementById('authPasswordInput');
+      var emailErrorEl = document.getElementById('authEmailError');
+      var emailLoginBtn = document.getElementById('authEmailLoginBtn');
+      var emailSignupBtn = document.getElementById('authEmailSignupBtn');
+      var forgotBtn = document.getElementById('authForgotBtn');
+      var resendVerifyBtn = document.getElementById('authResendVerifyBtn');
+
+      function authErrorMessage(err){
+        switch(err && err.code){
+          case 'auth/invalid-email': return 'That doesn’t look like a valid email address.';
+          // auth/invalid-credential is the newer SDK's single catch-all for
+          // both a wrong password and an email with no account at all —
+          // deliberately vague either way, so a login attempt can't be used
+          // to probe which emails are registered.
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential': return 'Wrong email or password.';
+          case 'auth/email-already-in-use': return 'An account already exists for that email — try logging in instead.';
+          case 'auth/weak-password': return 'Password needs to be at least 6 characters.';
+          case 'auth/too-many-requests': return 'Too many attempts — wait a bit and try again.';
+          default: return (err && err.message) || 'Something went wrong — try again.';
+        }
+      }
+      function setAuthEmailBusy(busy){
+        [emailInput, passwordInput, emailLoginBtn, emailSignupBtn, forgotBtn].forEach(function(el){
+          if(el) el.disabled = busy;
+        });
+      }
+
+      if(emailForm) emailForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(emailErrorEl) emailErrorEl.textContent = '';
+        var email = emailInput.value.trim();
+        var password = passwordInput.value;
+        if(!email || !password) return;
+        setAuthEmailBusy(true);
+        auth.signInWithEmailAndPassword(email, password).catch(function(err){
+          setAuthEmailBusy(false);
+          if(emailErrorEl) emailErrorEl.textContent = authErrorMessage(err);
+        });
+        // No setAuthEmailBusy(false) on success — a successful sign-in
+        // immediately fires onAuthStateChanged, which swaps this whole
+        // form out for whatever comes next (verify-email, denied, or the
+        // plan itself), so there's nothing left here to re-enable.
+      });
+      if(emailSignupBtn) emailSignupBtn.addEventListener('click', function(){
+        if(emailErrorEl) emailErrorEl.textContent = '';
+        var email = emailInput.value.trim();
+        var password = passwordInput.value;
+        if(!email || !password){
+          if(emailErrorEl) emailErrorEl.textContent = 'Enter an email and password first.';
+          return;
+        }
+        setAuthEmailBusy(true);
+        auth.createUserWithEmailAndPassword(email, password).then(function(cred){
+          return cred.user.sendEmailVerification();
+        }).catch(function(err){
+          setAuthEmailBusy(false);
+          if(emailErrorEl) emailErrorEl.textContent = authErrorMessage(err);
+        });
+      });
+      if(forgotBtn) forgotBtn.addEventListener('click', function(){
+        if(emailErrorEl) emailErrorEl.textContent = '';
+        var email = emailInput.value.trim();
+        if(!email){
+          if(emailErrorEl) emailErrorEl.textContent = 'Enter your email above first, then click this again.';
+          return;
+        }
+        auth.sendPasswordResetEmail(email).then(function(){
+          var original = forgotBtn.textContent;
+          forgotBtn.textContent = 'Check your inbox';
+          setTimeout(function(){ forgotBtn.textContent = original; }, 3000);
+        }).catch(function(err){
+          if(emailErrorEl) emailErrorEl.textContent = authErrorMessage(err);
+        });
+      });
+      if(resendVerifyBtn) resendVerifyBtn.addEventListener('click', function(){
+        if(!auth.currentUser){ return; }
+        var original = resendVerifyBtn.textContent;
+        resendVerifyBtn.disabled = true;
+        auth.currentUser.sendEmailVerification().then(function(){
+          resendVerifyBtn.textContent = 'Sent!';
+          resendVerifyBtn.disabled = false;
+          setTimeout(function(){ resendVerifyBtn.textContent = original; }, 3000);
+        }).catch(function(err){
+          console.warn('Resend verification failed', err);
+          resendVerifyBtn.textContent = 'Couldn’t send — try again';
+          resendVerifyBtn.disabled = false;
+        });
+      });
 
       auth.onAuthStateChanged(function(user){
         if(!user){
@@ -2208,6 +2383,25 @@
             console.warn('Public-view lookup failed', err);
             showAuthGate('error', 'Couldn’t check this link — check your connection and reload.');
           });
+          return;
+        }
+        // A Google account is already verified the moment it exists —
+        // this only ever actually stops someone here on the
+        // email/password path, right after signing up (or logging into
+        // an old account whose link never got clicked). Nothing about
+        // this session — not the membership lookup, not startSync — is
+        // trusted until the address itself is confirmed; the security
+        // rules independently require the same auth.token.email_verified
+        // regardless of what this check does.
+        if(!user.emailVerified){
+          currentUserEmail = null; currentUserKey = null; currentUserRole = null;
+          VIEW_ONLY = false;
+          document.body.classList.remove('view-only');
+          hideMemberPanel();
+          if(printBtn) printBtn.classList.remove('show');
+          if(appSignOutBtn) appSignOutBtn.classList.remove('show');
+          if(actionMenu) actionMenu.classList.remove('show');
+          showAuthGate('verify-email', user.email || '');
           return;
         }
         VIEW_ONLY = false;
@@ -4075,14 +4269,23 @@
 
   function removePhotoFromLi(li){
     if(!window.confirm('Remove this photo?')) return false;
+    var url = li.getAttribute('data-img') || '';
     li.removeAttribute('data-img');
     renderPhoto(li);
+    deleteMediaRefBestEffort(url);
     return true;
   }
 
   function renderPhoto(li){
     var url = li.getAttribute('data-img') || '';
-    var existing = li.querySelector(':scope > .photoicon');
+    // Not ':scope > .photoicon' — .photoicon lives inside .tagrow now (see
+    // where it's actually inserted, just below), not as a direct child of
+    // <li>, so a :scope-restricted lookup here never found it: removing a
+    // photo left its icon stuck on screen (the underlying data was cleared
+    // correctly, just not what was drawn), and replacing one could stack a
+    // second .photoicon next to the first instead of reusing it.
+    // renderTicket's equivalent lookup already does this un-scoped.
+    var existing = li.querySelector('.photoicon');
     if(!url){
       if(existing) existing.remove();
       return;
@@ -4132,7 +4335,15 @@
       else if(tagrow) tagrow.insertBefore(existing, tagrow.firstChild);
       else li.insertBefore(existing, li.firstChild);
     }
-    existing.querySelector('img').src = url;
+    var imgEl = existing.querySelector('img');
+    resolveMediaUrl(url).then(function(dataUrl){
+      // The photo could have been replaced or removed again before this
+      // resolved (fast successive edits, or a remote update arriving
+      // mid-fetch) — only apply a fetch that's still for the value
+      // actually current on the li right now, or an older result could
+      // land after a newer one and clobber the correct thumbnail.
+      if(li.getAttribute('data-img') === url) imgEl.src = dataUrl;
+    }).catch(function(err){ console.warn('Photo fetch failed', err); });
   }
 
   // ---- photo lightbox: "make bigger", with prev/next across every other
@@ -4229,7 +4440,13 @@
     var li = photoboxState.list[photoboxState.index];
     photoboxImg.classList.remove('loaded');
     photoboxLoading.classList.add('show');
-    photoboxImg.src = li.getAttribute('data-img') || '';
+    var url = li.getAttribute('data-img') || '';
+    resolveMediaUrl(url).then(function(dataUrl){
+      // Only apply if this is still the photo actually being shown — the
+      // person could have navigated to a different one, or closed the
+      // lightbox entirely, while this fetch was still in flight.
+      if(photoboxState && photoboxState.list[photoboxState.index] === li) photoboxImg.src = dataUrl;
+    }).catch(function(err){ console.warn('Photo fetch failed', err); photoboxLoading.classList.remove('show'); });
     photoboxActivity.innerHTML = '';
     photoboxActivity.appendChild(photoboxHeaderFrom(li));
     var multi = photoboxState.list.length > 1;
@@ -4294,6 +4511,138 @@
   // and re-encoding as JPEG cuts a multi-MB photo down to tens of KB —
   // still plenty for viewing in the lightbox, but small enough to save
   // reliably every time.
+  // ---- /media: where a photo/ticket's actual bytes live, once uploaded —
+  // /plan itself only ever holds a short "media:<type>:<id>" reference
+  // (see mediaRefFor below), never the bytes themselves. /plan resyncs in
+  // FULL via .on('value') on every single edit anywhere in the whole
+  // shared trip, so anything embedded directly in it (the old approach —
+  // a raw data: URI right on data-img/data-ticket) got re-transmitted to
+  // every open tab on every unrelated change too; a reference string is a
+  // few dozen bytes regardless of how large the actual file is, and
+  // /media/{id} is only ever fetched (a one-time .once('value') read, not
+  // a persistent listener) when something actually displays it — a
+  // separate top-level Realtime Database node, same free-tier project,
+  // not a different Firebase product, so this needed no plan or billing
+  // change to build. ----
+  function isEmbeddedDataUrl(v){ return typeof v === 'string' && v.indexOf('data:') === 0; }
+  function randomMediaId(){ return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
+  // The reference string itself carries the type (jpg/pdf) — renderTicket
+  // needs to know which shape (img vs PDF iframe) to build before it's
+  // fetched even the underlying bytes, and a plain data: URI's own mime
+  // prefix (what told the two apart before) doesn't survive being turned
+  // into an opaque id.
+  function mediaRefFor(id, type){ return 'media:' + type + ':' + id; }
+  function parseMediaRef(ref){
+    var m = typeof ref === 'string' ? /^media:(jpg|pdf):(.+)$/.exec(ref) : null;
+    return m ? { type: m[1], id: m[2] } : null;
+  }
+  function saveMediaToDb(dataUrl, type){
+    if(!IS_HOSTED) return Promise.reject(new Error('Not connected'));
+    var id = randomMediaId();
+    return firebase.database().ref('media/' + id).set(dataUrl).then(function(){
+      // The caller already has these exact bytes in hand (that's what it
+      // just uploaded) — pre-warming the cache here means the very next
+      // render (renderPhoto/renderTicket, right after this resolves) never
+      // has to turn around and fetch back what was just written.
+      mediaCache[id] = dataUrl;
+      return mediaRefFor(id, type);
+    });
+  }
+  // In-memory only, never persisted — avoids re-fetching the same
+  // already-open photo/ticket over and over within one session (e.g.
+  // flipping back and forth in the photobox, or renderPhoto re-running on
+  // an unrelated remote update). Cleared implicitly on reload; a stale
+  // entry can only ever happen if a media id gets reused, which
+  // randomMediaId's timestamp+random makeup makes practically impossible.
+  var mediaCache = {};
+  // Resolves whatever a data-img/data-ticket value currently is into the
+  // actual data: URI it displays as — a "media:<type>:<id>" reference
+  // fetches /media/{id}; anything else (a not-yet-migrated legacy data:
+  // URI, or empty) is already the real content, resolved immediately with
+  // no network round trip at all.
+  function resolveMediaUrl(ref){
+    if(!ref) return Promise.resolve('');
+    var parsed = parseMediaRef(ref);
+    if(!parsed) return Promise.resolve(ref);
+    if(mediaCache[parsed.id] != null) return Promise.resolve(mediaCache[parsed.id]);
+    return firebase.database().ref('media/' + parsed.id).once('value').then(function(snap){
+      var val = snap.val() || '';
+      mediaCache[parsed.id] = val;
+      return val;
+    });
+  }
+  // Best-effort cleanup for whatever a photo/ticket is being replaced or
+  // removed — never something a failure here should block on: the value
+  // possibly being an unmigrated legacy data: URI (nothing under /media
+  // to delete at all) or already gone are both entirely expected, not
+  // errors worth surfacing.
+  function deleteMediaRefBestEffort(ref){
+    var parsed = parseMediaRef(ref);
+    if(!parsed) return;
+    delete mediaCache[parsed.id];
+    firebase.database().ref('media/' + parsed.id).remove().catch(function(err){
+      console.warn('/media cleanup failed (non-fatal)', err);
+    });
+  }
+  // Sweeps every photo/ticket inside a subtree that's about to be
+  // wholesale-removed (clearing a day, deleting an alternative or a whole
+  // month) — those paths detach the DOM directly rather than going
+  // through deleteActivityLi/removePhotoFromLi/removeTicketFromLi item by
+  // item, so without this the underlying /media entries would just leak,
+  // never freed even though nothing in the plan references them any more.
+  function cleanupMediaForSubtree(root){
+    if(!root) return;
+    // querySelectorAll only ever matches descendants, never the root
+    // itself — and root IS the match the vast majority of the time here
+    // (an activity <li> carries data-img/data-ticket directly, it's not
+    // nested inside some other element that has them), so root has to be
+    // checked separately rather than folded into one selector call.
+    var candidates = [root].concat(Array.prototype.slice.call(root.querySelectorAll('[data-img], [data-ticket]')));
+    candidates.forEach(function(el){
+      deleteMediaRefBestEffort(el.getAttribute('data-img'));
+      deleteMediaRefBestEffort(el.getAttribute('data-ticket'));
+    });
+  }
+  // One-time migration for content saved before /media support existed:
+  // any data-img/data-ticket still holding a raw data: URI (rather than a
+  // "media:<type>:<id>" reference) gets moved over. data-img is always a
+  // JPEG (resizeImageDataUrl's own output — see pickImage); a data-ticket
+  // is either that same JPEG shape or a raw PDF (see pickTicket), told
+  // apart by its data: URI's own mime prefix — the one and only place
+  // that prefix is still readable directly, since mediaRefFor bakes the
+  // type into the reference from here on. Both attributes are in
+  // MO_OPTS' attributeFilter already, so swapping them here schedules a
+  // normal autosave exactly like any other edit would — no separate save
+  // call needed, the self-heal comparison right after this runs (see
+  // startSync) is what actually persists it. Safe to run from more than
+  // one browser at once (whoever's slower just leaves an orphaned
+  // /media entry nobody references — wasted database storage, not a
+  // correctness problem) rather than needing to be owner-gated.
+  function migrateEmbeddedMediaToDb(){
+    if(VIEW_ONLY || !IS_HOSTED) return Promise.resolve();
+    var uploads = [];
+    document.querySelectorAll('li[data-img]').forEach(function(li){
+      var val = li.getAttribute('data-img');
+      if(!isEmbeddedDataUrl(val)) return;
+      uploads.push(
+        saveMediaToDb(val, 'jpg')
+          .then(function(ref){ li.setAttribute('data-img', ref); })
+          .catch(function(err){ console.warn('Photo migration failed for one activity (left as-is, retried next load)', err); })
+      );
+    });
+    document.querySelectorAll('li[data-ticket]').forEach(function(li){
+      var val = li.getAttribute('data-ticket');
+      if(!isEmbeddedDataUrl(val)) return;
+      var isPdf = val.indexOf('data:application/pdf') === 0;
+      uploads.push(
+        saveMediaToDb(val, isPdf ? 'pdf' : 'jpg')
+          .then(function(ref){ li.setAttribute('data-ticket', ref); })
+          .catch(function(err){ console.warn('Ticket migration failed for one activity (left as-is, retried next load)', err); })
+      );
+    });
+    return Promise.all(uploads);
+  }
+
   function resizeImageDataUrl(dataUrl, maxDim, quality){
     return new Promise(function(resolve){
       var img = new Image();
@@ -4347,12 +4696,20 @@
         // actually been armed — same as every other busy-condition-just-
         // ended case that doesn't have its own natural completion hook.
         fileUploadBusy++;
+        var oldUrl = li.getAttribute('data-img') || '';
         var reader = new FileReader();
         reader.onload = function(){
           resizeImageDataUrl(reader.result, 1600, 0.82).then(function(resized){
+            return saveMediaToDb(resized, 'jpg');
+          }).then(function(ref){
             fileUploadBusy--;
-            li.setAttribute('data-img', resized);
+            li.setAttribute('data-img', ref);
             renderPhoto(li);
+            deleteMediaRefBestEffort(oldUrl);
+          }).catch(function(err){
+            fileUploadBusy--;
+            console.warn('Photo upload failed', err);
+            window.alert('Couldn’t upload that photo — check your connection and try again.');
           });
         };
         reader.onerror = function(){ fileUploadBusy--; };
@@ -4379,6 +4736,7 @@
     input.addEventListener('change', function(){
       var file = input.files[0];
       if(file){
+        var oldUrl = li.getAttribute('data-ticket') || '';
         if(file.type === 'application/pdf'){
           if(file.size > TICKET_MAX_PDF_BYTES){
             window.alert('That PDF is too large (max 4MB). Try a smaller file, or a photo of the ticket instead.');
@@ -4386,9 +4744,16 @@
             fileUploadBusy++;
             var pdfReader = new FileReader();
             pdfReader.onload = function(){
-              fileUploadBusy--;
-              li.setAttribute('data-ticket', pdfReader.result);
-              renderTicket(li);
+              saveMediaToDb(pdfReader.result, 'pdf').then(function(ref){
+                fileUploadBusy--;
+                li.setAttribute('data-ticket', ref);
+                renderTicket(li);
+                deleteMediaRefBestEffort(oldUrl);
+              }).catch(function(err){
+                fileUploadBusy--;
+                console.warn('Ticket upload failed', err);
+                window.alert('Couldn’t upload that ticket — check your connection and try again.');
+              });
             };
             pdfReader.onerror = function(){ fileUploadBusy--; };
             pdfReader.readAsDataURL(file);
@@ -4402,9 +4767,16 @@
           var imgReader = new FileReader();
           imgReader.onload = function(){
             resizeImageDataUrl(imgReader.result, 2000, 0.9).then(function(resized){
+              return saveMediaToDb(resized, 'jpg');
+            }).then(function(ref){
               fileUploadBusy--;
-              li.setAttribute('data-ticket', resized);
+              li.setAttribute('data-ticket', ref);
               renderTicket(li);
+              deleteMediaRefBestEffort(oldUrl);
+            }).catch(function(err){
+              fileUploadBusy--;
+              console.warn('Ticket upload failed', err);
+              window.alert('Couldn’t upload that ticket — check your connection and try again.');
             });
           };
           imgReader.onerror = function(){ fileUploadBusy--; };
@@ -4417,8 +4789,10 @@
   }
   function removeTicketFromLi(li){
     if(!window.confirm('Remove this ticket?')) return;
+    var url = li.getAttribute('data-ticket') || '';
     li.removeAttribute('data-ticket');
     renderTicket(li);
+    deleteMediaRefBestEffort(url);
   }
   function renderTicket(li){
     var url = li.getAttribute('data-ticket') || '';
@@ -4465,8 +4839,13 @@
     // rebuilds the wrap if it's carrying the wrong element type for what
     // the ticket is now.
     var wrap = existing.querySelector('.photopreview-wrap');
-    var isImage = /^data:image\//.test(url);
-    var isPdf = /^data:application\/pdf/.test(url);
+    // A "media:<type>:<id>" reference carries its own type (see
+    // mediaRefFor) — a not-yet-migrated legacy data: URI is told apart by
+    // its own mime prefix instead, the one place that's still read
+    // directly rather than through parseMediaRef.
+    var mediaType = parseMediaRef(url);
+    var isImage = mediaType ? mediaType.type === 'jpg' : /^data:image\//.test(url);
+    var isPdf = mediaType ? mediaType.type === 'pdf' : /^data:application\/pdf/.test(url);
     if(isImage){
       if(wrap && !wrap.querySelector('img')){ wrap.remove(); wrap = null; }
       if(!wrap){
@@ -4474,7 +4853,10 @@
         existing.appendChild(wrap);
         attachHoverReveal(existing, wrap);
       }
-      wrap.querySelector('img').src = url;
+      var ticketImgEl = wrap.querySelector('img');
+      resolveMediaUrl(url).then(function(dataUrl){
+        if(li.getAttribute('data-ticket') === url) ticketImgEl.src = dataUrl;
+      }).catch(function(err){ console.warn('Ticket fetch failed', err); });
     } else if(isPdf){
       if(wrap && !wrap.querySelector('.ticketpdf-preview')){ wrap.remove(); wrap = null; }
       if(!wrap){
@@ -4484,15 +4866,22 @@
       }
       var frameEl = wrap.querySelector('.ticketpdf-preview');
       if(frameEl.dataset.srcUrl !== url){
-        if(frameEl.dataset.blobUrl) URL.revokeObjectURL(frameEl.dataset.blobUrl);
-        var blobUrl = dataUrlToBlobUrl(url);
-        frameEl.dataset.blobUrl = blobUrl;
-        // #toolbar=0 hides Chrome's own PDF viewer toolbar (print, download,
-        // rotate, …) so the only controls shown are ours (.photoctl's
-        // enlarge/delete) — it only hides that chrome, scrolling through a
-        // multi-page ticket still works fine without it.
-        frameEl.src = blobUrl + '#toolbar=0';
-        frameEl.dataset.srcUrl = url;
+        resolveMediaUrl(url).then(function(dataUrl){
+          // The ticket could have been replaced/removed again (or this
+          // .ticketicon rebuilt for a different kind) before the fetch
+          // above resolved — bail rather than wiring up a preview for
+          // content that's no longer what's actually attached.
+          if(li.getAttribute('data-ticket') !== url) return;
+          if(frameEl.dataset.blobUrl) URL.revokeObjectURL(frameEl.dataset.blobUrl);
+          var blobUrl = dataUrlToBlobUrl(dataUrl);
+          frameEl.dataset.blobUrl = blobUrl;
+          // #toolbar=0 hides Chrome's own PDF viewer toolbar (print, download,
+          // rotate, …) so the only controls shown are ours (.photoctl's
+          // enlarge/delete) — it only hides that chrome, scrolling through a
+          // multi-page ticket still works fine without it.
+          frameEl.src = blobUrl + '#toolbar=0';
+          frameEl.dataset.srcUrl = url;
+        }).catch(function(err){ console.warn('Ticket fetch failed', err); });
       }
     } else if(wrap){
       wrap.remove();
@@ -4544,14 +4933,26 @@
     var blob = new Blob([bytes], { type: mime });
     return URL.createObjectURL(blob);
   }
-  // Opens the ticket in a new tab.
+  // Opens the ticket in a new tab. window.open() has to happen
+  // synchronously, inside the actual click handler, or most browsers'
+  // popup blockers silently swallow it — since the ticket's real bytes
+  // now need an async /media fetch first (see resolveMediaUrl), open a
+  // blank tab right away (still inside the click, so it's trusted) and
+  // navigate it once the fetch resolves, rather than calling window.open()
+  // itself late.
   function openTicket(li){
     var url = li.getAttribute('data-ticket');
     if(!url) return;
-    var objUrl = dataUrlToBlobUrl(url);
-    if(objUrl === url){ window.open(url, '_blank'); return; }
-    window.open(objUrl, '_blank');
-    setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 60000);
+    var tab = window.open('', '_blank');
+    resolveMediaUrl(url).then(function(dataUrl){
+      var objUrl = dataUrlToBlobUrl(dataUrl);
+      if(tab) tab.location.href = objUrl;
+      if(objUrl !== dataUrl) setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 60000);
+    }).catch(function(err){
+      console.warn('Ticket open failed', err);
+      if(tab) tab.close();
+      window.alert('Couldn’t open that ticket — check your connection and try again.');
+    });
   }
 
   // ---- tag picker ----
@@ -4748,6 +5149,7 @@
   function deleteActivityLi(li){
     var cell = li.closest('.cell');
     var panel = cell && cell.closest('.panel');
+    cleanupMediaForSubtree(li);
     li.remove();
     if(cell) recomputeCell(cell);
     if(panel) renderActivitySpans(panel);
@@ -5468,6 +5870,7 @@
     var loc = cell.querySelector(':scope > .loc');
     var acts = cell.querySelector(':scope > .acts');
     var cost = cell.querySelector(':scope > .cost');
+    if(acts) cleanupMediaForSubtree(acts);
     if(loc) loc.remove();
     if(acts) acts.remove();
     if(cost) cost.remove();
@@ -6467,6 +6870,7 @@
           var panel = document.getElementById('panel-' + opt);
           var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
           if(pill) pill.remove();
+          if(panel) cleanupMediaForSubtree(panel);
           if(panel) panel.remove();
           if(budgetLi) budgetLi.remove();
         });
@@ -6721,6 +7125,7 @@
         var panel = document.getElementById('panel-' + opt);
         var wasOn = pill.classList.contains('on');
         pill.remove();
+        if(panel) cleanupMediaForSubtree(panel);
         if(panel) panel.remove();
         var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
         if(budgetLi) budgetLi.remove();
@@ -8296,43 +8701,62 @@
           mergeDefaultTags();
           dedupeTagsByName();
           fixStaleDefaultTagColors();
-          // Self-heal old data saved before captureUndoSnapshot() started
-          // stripping per-browser layout styling (padding-top/top) from
-          // what gets stored: if what's now on the page (cleaned) differs
-          // from what was actually stored (possibly still carrying that
-          // junk from a previous version of this file), push the cleaned
-          // version back once, right away — rather than leaving stale,
-          // bloated data sitting in Firebase until someone happens to make
-          // an unrelated edit.
-          var cleaned = captureUndoSnapshot();
-          // Also upgrades old full-HTML data to the compact JSON model on
-          // the first load that sees it, rather than leaving the bloated
-          // blob in place until someone happens to make an edit.
-          if(cleaned.content !== val.contentJson){
-            var serverModel = null;
-            try { serverModel = val.contentJson ? JSON.parse(val.contentJson) : null; } catch(err){ serverModel = null; }
-            var cleanedModel = null;
-            try { cleanedModel = JSON.parse(cleaned.content); } catch(err){ cleanedModel = null; }
-            // This resave is supposed to be a lossless re-derivation of data
-            // that's already on the server, never a real edit — a stale or
-            // buggy client that failed to render some option/day/activity it
-            // didn't recognize must not be allowed to write that gap back.
-            // A read-only share-link visitor has nothing to "self-heal" with —
-            // the rules would reject the write anyway, but skip even trying
-            // so no doomed request/console-error shows up on every load.
-            if(VIEW_ONLY){
-              // no-op: skip self-heal resave for a view-only visitor
-            } else if(modelPreservesStructure(cleanedModel, serverModel)){
-              saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
-            } else {
-              console.warn('Skipping self-heal resave: re-derived content is missing options/days/activities present on the server.');
+          // Nothing past this point needs to block the page actually
+          // becoming visible — migrateEmbeddedMediaToDb below can
+          // take a real moment (each still-unmigrated photo/ticket is a
+          // genuine upload), and the self-heal comparison only matters
+          // for what eventually lands in Firebase, not what's on screen
+          // right now.
+          document.documentElement.style.visibility = '';
+          // One-time migration: any data-img/data-ticket still holding a
+          // raw data: URI predates /media support (see saveMediaToDb's
+          // own comment for why embedding it directly in /plan is
+          // expensive) — move it to /media first, so the self-heal
+          // comparison just below sees (and persists) the shrunk result
+          // rather than only catching it on some later, unrelated edit.
+          migrateEmbeddedMediaToDb().catch(function(err){
+            console.warn('Media migration to /media failed (non-fatal — retried on next load)', err);
+          }).then(function(){
+            // Self-heal old data saved before captureUndoSnapshot() started
+            // stripping per-browser layout styling (padding-top/top) from
+            // what gets stored: if what's now on the page (cleaned) differs
+            // from what was actually stored (possibly still carrying that
+            // junk from a previous version of this file), push the cleaned
+            // version back once, right away — rather than leaving stale,
+            // bloated data sitting in Firebase until someone happens to make
+            // an unrelated edit.
+            var cleaned = captureUndoSnapshot();
+            // Also upgrades old full-HTML data to the compact JSON model on
+            // the first load that sees it, rather than leaving the bloated
+            // blob in place until someone happens to make an edit.
+            if(cleaned.content !== val.contentJson){
+              var serverModel = null;
+              try { serverModel = val.contentJson ? JSON.parse(val.contentJson) : null; } catch(err){ serverModel = null; }
+              var cleanedModel = null;
+              try { cleanedModel = JSON.parse(cleaned.content); } catch(err){ cleanedModel = null; }
+              // This resave is supposed to be a lossless re-derivation of data
+              // that's already on the server, never a real edit — a stale or
+              // buggy client that failed to render some option/day/activity it
+              // didn't recognize must not be allowed to write that gap back.
+              // A read-only share-link visitor has nothing to "self-heal" with —
+              // the rules would reject the write anyway, but skip even trying
+              // so no doomed request/console-error shows up on every load.
+              if(VIEW_ONLY){
+                // no-op: skip self-heal resave for a view-only visitor
+              } else if(modelPreservesStructure(cleanedModel, serverModel)){
+                saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
+              } else {
+                console.warn('Skipping self-heal resave: re-derived content is missing options/days/activities present on the server.');
+              }
             }
-          }
+          });
         } else if(!VIEW_ONLY){
           var seed = getMigrationSeedPayload();
           if(seed) saveToBackend(seed);
+          document.documentElement.style.visibility = '';
+        } else {
+          document.documentElement.style.visibility = '';
         }
-        document.documentElement.style.visibility = '';
         return;
       }
       if(!val || !(val.contentJson || val.wrapHtml)) return;
