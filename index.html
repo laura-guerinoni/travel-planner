@@ -1161,6 +1161,12 @@
   .avatar-editor-row { margin-bottom:8px; }
   .avatar-editor-label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
   .avatar-editor-opts { display:flex; flex-wrap:wrap; gap:6px; }
+  /* Free-text row (Display name) — same visual language as the app's
+     other small text inputs (border/radius/font-size), not another row
+     of .avatar-editor-opt buttons like every other trait. */
+  .avatar-editor-name-input { width:100%; box-sizing:border-box; padding:5px 8px;
+    border:1px solid var(--line); border-radius:6px; font-size:12px; color:var(--ink); background:var(--card); }
+  .avatar-editor-name-input:focus { outline:none; border-color:var(--primary); }
   .avatar-editor-opt { border:1.5px solid transparent; background:var(--bg); border-radius:6px;
     padding:3px 7px; font-size:12px; color:var(--ink); cursor:pointer; }
   .avatar-editor-opt.active { border-color:var(--primary); }
@@ -2181,6 +2187,15 @@
       glassesSvgFor(override && override.glasses) +
       '</svg>';
   }
+  // A member is only ever *identified* by email (that's what Google auth
+  // actually grants access to, and what the invite form and /members are
+  // keyed on) — this is purely a friendlier display label wherever that
+  // email would otherwise show up as-is, falling back to the email
+  // itself for anyone who hasn't set one. Same override object as
+  // avatarSvgFor, saved the same way (see openAvatarEditor's name row).
+  function displayNameFor(email, override){
+    return (override && override.name) || email;
+  }
   // firebase.database() itself can throw synchronously (not just reject),
   // e.g. if no app was ever initialized — try/catch here so a save
   // failure never breaks whatever UI flow triggered it (closing the
@@ -2233,6 +2248,7 @@
   function openAvatarEditor(email, key, rowAvatarEl, initialOverride){
     closePop();
     var current = {
+      name: initialOverride && initialOverride.name,
       skin: initialOverride && initialOverride.skin,
       hair: initialOverride && initialOverride.hair,
       eyes: initialOverride && initialOverride.eyes,
@@ -2257,6 +2273,36 @@
       rowAvatarEl.innerHTML = svg;
     }
     refresh();
+
+    // A person is only ever *identified* by email — this is purely a
+    // friendlier label saved alongside the rest of the customization
+    // (see displayNameFor) — so it's a free-text field, not another row
+    // of buttons like every other trait here. Committed on blur/Enter
+    // rather than on every keystroke, so it doesn't write to Firebase on
+    // every character typed.
+    var nameRow = document.createElement('div');
+    nameRow.className = 'avatar-editor-row';
+    var nameLab = document.createElement('span');
+    nameLab.className = 'avatar-editor-label';
+    nameLab.textContent = 'Display name';
+    nameRow.appendChild(nameLab);
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'avatar-editor-name-input';
+    nameInput.placeholder = email;
+    nameInput.value = current.name || '';
+    nameInput.addEventListener('click', function(e){ e.stopPropagation(); });
+    function commitName(){
+      var v = nameInput.value.trim();
+      if(v === (current.name || '')) return;
+      pick('name', v || undefined);
+    }
+    nameInput.addEventListener('blur', commitName);
+    nameInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); nameInput.blur(); }
+    });
+    nameRow.appendChild(nameInput);
+    pop.appendChild(nameRow);
 
     // Every option button registers a check here instead of only getting
     // its "active" class at build time — picking a new hair color (say)
@@ -2338,7 +2384,8 @@
     resetBtn.textContent = 'Reset to default';
     resetBtn.addEventListener('click', function(e){
       e.stopPropagation();
-      current = { skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, hairLength: undefined, glasses: undefined };
+      current = { name: undefined, skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, hairLength: undefined, glasses: undefined };
+      nameInput.value = '';
       refresh();
       removeAvatarOverride(key);
       closePop();
@@ -2387,7 +2434,10 @@
         li.appendChild(avatar);
         var label = document.createElement('span');
         label.className = 'map-email';
-        label.textContent = row.email;
+        // Display name (see openAvatarEditor) if set, falling back to the
+        // email — the tooltip always shows the real email regardless,
+        // since that's still the actual identity behind the row.
+        label.textContent = displayNameFor(row.email, avatarOverride);
         label.title = row.email;
         li.appendChild(label);
         var actions = document.createElement('span');
@@ -2502,6 +2552,7 @@
       });
     });
   }
+
 
   // Captured before any remote snapshot touches #tagData, so new default
   // tags (e.g. transport modes added after the shared plan already has its
@@ -3342,13 +3393,14 @@
       freshKeys.forEach(function(key){
         var member = data.members.filter(function(m){ return m.key === key; })[0];
         var email = member ? member.email : key.replace(/,/g, '.');
+        var displayName = displayNameFor(email, data.avatars[key]);
         var face = document.createElement('span');
         face.className = 'participant-avatar';
-        face.setAttribute('aria-label', email);
+        face.setAttribute('aria-label', displayName);
         face.innerHTML = avatarSvgFor(email, data.avatars[key]);
         var tooltip = document.createElement('span');
         tooltip.className = 'participant-tooltip';
-        tooltip.textContent = email;
+        tooltip.textContent = displayName;
         face.appendChild(tooltip);
         wrap.appendChild(face);
       });
@@ -3395,7 +3447,8 @@
         row.appendChild(face);
         var label = document.createElement('span');
         label.className = 'participant-picker-email';
-        label.textContent = m.email;
+        label.textContent = displayNameFor(m.email, data.avatars[m.key]);
+        label.title = m.email;
         row.appendChild(label);
         pop.appendChild(row);
       });
@@ -3491,7 +3544,8 @@
         row.appendChild(face);
         var label = document.createElement('span');
         label.className = 'paysplit-email';
-        label.textContent = m.email;
+        label.textContent = displayNameFor(m.email, data.avatars[m.key]);
+        label.title = m.email;
         row.appendChild(label);
         var existing = splits.filter(function(s){ return s.k === m.key; })[0];
         var input = document.createElement('input');
@@ -5739,7 +5793,8 @@
         row.appendChild(face);
         var label = document.createElement('span');
         label.className = 'participant-picker-email';
-        label.textContent = m.email;
+        label.textContent = displayNameFor(m.email, data.avatars[m.key]);
+        label.title = m.email;
         row.appendChild(label);
         pop.appendChild(row);
       });
