@@ -124,6 +124,19 @@
      .pill-name right next to it, just smaller) — a date range is a
      secondary detail, not competing with the option name for attention. */
   .pill-dates:not(:empty) { font-size:11px; margin:0 2px; opacity:.55; font-weight:500; }
+  /* Small stacked avatar row (see renderPillAccessFaces) — who currently
+     has access to this specific alternative, at a glance, without
+     opening Participants and checking each one in turn. Negative margin
+     for the classic overlapping-avatars look; a light ring instead of a
+     gap between faces since the pill's own background varies (.on vs
+     not, and the theme underneath), so a border reads reliably in both
+     rather than trying to match a background color that isn't fixed. */
+  .pill-access { display:inline-flex; align-items:center; margin-left:4px; vertical-align:middle; }
+  .pill-access-face { display:inline-block; width:16px; height:16px; border-radius:50%;
+    border:1.5px solid var(--card); margin-left:-5px; opacity:.9; }
+  .pill.on .pill-access-face { border-color:#fff; }
+  .pill-access-face:first-child { margin-left:0; }
+  .pill-access-face svg { display:block; width:100%; height:100%; }
   /* Extra padding-right (9px, vs the base 6px) so the × sits centered
      between the price pill and the dashed border's own inset right edge
      (4px in from the pill) instead of crowding the dashed line — only
@@ -3081,6 +3094,56 @@
     positionPopover(pop, rowAvatarEl);
   }
 
+  // ---- per-alternative access faces: a small avatar row on each pill
+  // showing who currently has access to that specific alternative — a
+  // companion to openAccessScopeMenu's picker, so "who can see this" is
+  // visible at a glance without opening Participants and checking each
+  // alternative in turn. ----
+  function renderPillAccessFacesFromData(membersVal, avatarOverrides){
+    var allKeys = Object.keys(membersVal);
+    document.querySelectorAll('.panel').forEach(function(panel){
+      var opt = (panel.id || '').replace(/^panel-/, '');
+      var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+      if(!pill) return;
+      var explicitMembers = getOptionMembers(panel);
+      // An empty/missing list means "open to everyone" (see
+      // canSeeOption) — shown here as every current member's face, same
+      // as what it actually means access-wise, not as an empty row that
+      // would misleadingly read as "nobody".
+      var keys = explicitMembers.length ? explicitMembers : allKeys;
+      var faces = pill.querySelector('.pill-access');
+      if(!faces){
+        faces = document.createElement('span');
+        faces.className = 'pill-access';
+        var removeBtn = pill.querySelector('.pill-remove');
+        if(removeBtn) pill.insertBefore(faces, removeBtn); else pill.appendChild(faces);
+      }
+      faces.innerHTML = '';
+      keys.forEach(function(key){
+        var email = key.replace(/,/g, '.');
+        var face = document.createElement('span');
+        face.className = 'pill-access-face';
+        face.title = displayNameFor(email, avatarOverrides[key]);
+        face.innerHTML = avatarSvgFor(email, avatarOverrides[key]);
+        faces.appendChild(face);
+      });
+    });
+  }
+  // Own /members + /avatars read for callers that don't already have a
+  // fresh copy on hand (initial load, remote syncs, right after this
+  // viewer's own access edit) — renderMemberList already fetches the
+  // exact same shape for its own row list, so it calls
+  // renderPillAccessFacesFromData directly with what it just read
+  // instead of going through this and doubling that read.
+  function renderPillAccessFaces(){
+    Promise.all([
+      firebase.database().ref('members').once('value'),
+      firebase.database().ref('avatars').once('value').catch(function(){ return null; })
+    ]).then(function(snaps){
+      renderPillAccessFacesFromData(snaps[0].val() || {}, (snaps[1] && snaps[1].val()) || {});
+    }).catch(function(err){ console.warn('Load pill access faces failed', err); });
+  }
+
   function renderMemberList(){
     if(!manageList) return;
     if(manageErrorEl) manageErrorEl.textContent = '';
@@ -3158,6 +3221,11 @@
         li.appendChild(actions);
         manageList.appendChild(li);
       });
+      // Reuses the members/avatars snapshot just fetched above instead
+      // of calling renderPillAccessFaces (which would re-fetch the same
+      // two nodes) — an invite/promote/remove changes exactly the data
+      // "open to everyone" pills need to reflect, same as this list.
+      renderPillAccessFacesFromData(val, avatarOverrides);
     }).catch(function(err){
       if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t load the member list.';
       console.warn('Load members failed', err);
@@ -3412,6 +3480,12 @@
         // explicitly.
         scheduleAutoSave();
         scheduleUndoSnapshot();
+        // Immediate, not waiting on the write to round-trip back through
+        // applyRemoteSnapshot — this viewer's own edit doesn't re-apply
+        // from its own echo (see the updatedBy check there), so without
+        // this the faces on this device specifically would just never
+        // update at all until something else forced a resync.
+        renderPillAccessFaces();
       }
       closePop();
     });
@@ -9501,6 +9575,11 @@
       lastSnapshot = captureUndoSnapshot();
     });
     setStatus('Synced ✓', true);
+    // Covers both the very first load (pills exist here for the first
+    // time all session) and every later remote sync — someone else's
+    // access edit, made from their own openAccessScopeMenu, needs to
+    // show up here too, not just on the device that made it.
+    renderPillAccessFaces();
   }
 
   // One-time migration seed (only ever runs while /plan is empty): prefer
