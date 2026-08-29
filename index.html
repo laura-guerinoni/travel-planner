@@ -3333,6 +3333,31 @@
     sel.removeAllRanges();
     sel.addRange(range);
   }
+  // A click landing inside the prefix itself (or a Tab-focus, which
+  // browsers default to placing right at offset 0) leaves the caret
+  // sitting there until the person actually types or presses Backspace —
+  // beforeinput alone only intercepts the edit, not where the caret rests
+  // beforehand, so without this the caret visibly parks in front of (or
+  // inside) "🕒 "/the currency symbol instead of after it, reading as
+  // broken even though typing there is still handled correctly.
+  function clampCaretAfterPrefix(el, prefixLen){
+    var sel = window.getSelection();
+    if(!sel.rangeCount || !el.contains(sel.anchorNode)) return;
+    var range = sel.getRangeAt(0);
+    var node = el.firstChild;
+    if(!node) return;
+    var len = node.textContent.length;
+    var start = range.startContainer === node ? range.startOffset : 0;
+    var end = range.endContainer === node ? range.endOffset : len;
+    if(start >= prefixLen && end >= prefixLen) return;
+    var newStart = Math.max(start, prefixLen);
+    var newEnd = Math.max(end, newStart);
+    var nr = document.createRange();
+    nr.setStart(node, Math.min(newStart, len));
+    nr.setEnd(node, Math.min(newEnd, len));
+    sel.removeAllRanges();
+    sel.addRange(nr);
+  }
   // Locks the leading prefix of a contenteditable field (a time line's
   // "🕒 ", an amount's currency symbol + " ") so it can be read but never
   // deleted, typed over, or placed behind — everything after it stays
@@ -3392,6 +3417,39 @@
       }
     });
     el.addEventListener('input', function(){ ensure(el); });
+    // Belt and suspenders alongside beforeinput above: that guard stops
+    // an edit from reaching the prefix, but does nothing about the caret
+    // just sitting there unedited — click/focus catch the caret landing
+    // in a bad spot in the first place (a click inside the prefix, or a
+    // Tab-focus, which defaults to offset 0); keydown catches ArrowLeft/
+    // Home walking it back there afterward, blocked immediately rather
+    // than moving there and being nudged back a frame later.
+    el.addEventListener('click', function(){ clampCaretAfterPrefix(el, getPrefix().length); });
+    el.addEventListener('focus', function(){ clampCaretAfterPrefix(el, getPrefix().length); });
+    el.addEventListener('keydown', function(e){
+      if(e.key !== 'ArrowLeft' && e.key !== 'Home') return;
+      var sel = window.getSelection();
+      if(!sel.rangeCount || !sel.getRangeAt(0).collapsed) return; // leave a real (shift-)selection alone
+      var range = sel.getRangeAt(0);
+      var node = el.firstChild;
+      var start = (node && range.startContainer === node) ? range.startOffset : 0;
+      var prefixLen = getPrefix().length;
+      // Home always targets absolute offset 0 by default, which is inside
+      // the prefix whenever there is one — always redirect it to the
+      // boundary instead, not just when already past it.
+      if(e.key === 'Home'){
+        if(start === prefixLen) return; // already exactly there — nothing to redirect
+        e.preventDefault();
+        placeCaretAtOffset(el, prefixLen);
+        return;
+      }
+      // ArrowLeft: moving left by one only ever reaches the boundary
+      // itself when starting one past it — anywhere closer, block it
+      // outright rather than letting it step into the prefix.
+      if(start > prefixLen) return;
+      e.preventDefault();
+      placeCaretAtOffset(el, prefixLen);
+    });
   }
 
   // A contenteditable field defaults to inserting a literal line break on
