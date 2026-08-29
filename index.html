@@ -140,8 +140,18 @@
      pill's own text — name/dates/price) cascading onto these was the
      actual cause of the faces looking washed-out/transparent, not
      anything set on this class itself. */
+  /* overflow:hidden — border-radius alone only rounds this element's own
+     border/background, it doesn't clip the SVG child to that shape. The
+     avatar SVG's own canvas is a square (a round face drawn inside a
+     square viewBox, not a circle cut to fit) with a transparent
+     background outside the face/hair shapes themselves, so without this
+     those square corners sat there uncropped — see-through in the
+     corners where the circular border implied they'd already been cut
+     away, and overlapping the next face's own square in a way that
+     read as the whole row looking washed-out/transparent rather than a
+     clean stack of circles. */
   .pill .pill-access-face { display:inline-block; width:16px; height:16px; border-radius:50%;
-    border:1.5px solid var(--card); margin-left:-5px; background:var(--card); opacity:1; }
+    overflow:hidden; border:1.5px solid var(--card); margin-left:-5px; background:var(--card); opacity:1; }
   .pill.on .pill-access-face { border-color:#fff; background:#fff; }
   .pill-access-face:first-child { margin-left:0; }
   .pill-access-face svg { display:block; width:100%; height:100%; }
@@ -474,7 +484,7 @@
      label below it. Nothing else here to compete with means nothing
      else to misjudge the center by — nothing beside "2026" now can. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
+    padding:4px 0; margin:-12px 0 0; border:none; background:none; color:var(--muted); cursor:pointer; }
   .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.02em; line-height:1; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
