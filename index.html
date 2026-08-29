@@ -475,6 +475,11 @@
     padding:0; box-shadow:0 1px 3px rgba(0,0,0,.15); }
   .icon-btn svg { width:15px; height:15px; }
   .icon-btn:hover { opacity:.7; }
+  /* #actionMenuBtn once it's showing the signed-in member's own avatar
+     (see updateActionMenuAvatar) instead of the plain "..." glyph — the
+     face should fill the whole circle, not sit small and centered like
+     every other icon-btn's plain glyph does. */
+  .icon-btn.profile-btn svg { width:100%; height:100%; display:block; }
   #statusBar { position:fixed; right:16px; bottom:16px; z-index:60; display:flex; flex-direction:column;
     align-items:flex-end; gap:2px; }
   .save-status { font-size:11px; color:var(--muted); text-align:right; max-width:160px; min-height:14px; }
@@ -646,6 +651,15 @@
      popover is open, rather than let the two independently-styled
      states visually contradict each other. */
   .cellhead:has(.daymenu-btn.open) .dayaddbtn:hover { background:none; color:var(--ink); }
+  /* Same class of bug, different pair: an activity's own "..." (see
+     .itemmenu-btn) and the day's own "..." (.daymenu-btn) each have
+     independent hover/.open pink states too, so hovering one while the
+     other is genuinely open (its popover on screen) showed both as
+     "active" at once — confusing, since only one control is actually in
+     use. Whichever one has .open keeps its pink via that rule; this only
+     suppresses the *other* one's plain :hover in the meantime. */
+  .cell:has(.itemmenu-btn.open) .daymenu-btn:hover { background:none; color:var(--ink); }
+  .cell:has(.daymenu-btn.open) .itemmenu-btn:hover { background:none; color:var(--ink); }
   .daypicker { width:220px; max-height:280px; overflow-y:auto; }
   .daypicker-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; padding:4px; }
   .daypicker-day { border:none; background:var(--bg); border-radius:6px; padding:6px 0; font-size:12px;
@@ -2072,6 +2086,7 @@
           // renderMemberList's currentUserRole check) stay gated, matching
           // what the security rules actually allow each role to write.
           initMemberPanel();
+          updateActionMenuAvatar();
         }).catch(function(err){
           console.warn('Membership lookup failed', err);
           showAuthGate('error', 'Couldn’t check access — check your connection and reload.');
@@ -2268,10 +2283,29 @@
   // with the *old* override, even though the underlying data was already
   // correct. renderMemberList() no-ops harmlessly if the panel isn't
   // currently open (it checks manageList itself).
+  // The main "..." menu button shows the signed-in member's own avatar
+  // instead of a plain glyph once signed in (see the onAuthStateChanged
+  // call site) — a small personal touch, but also means it needs its own
+  // refresh whenever *that* person's avatar changes, same as every other
+  // place a face is shown (see refreshAllAvatarDisplays, which calls
+  // this too). No-ops before sign-in / before actionMenuBtn exists yet.
+  function updateActionMenuAvatar(){
+    if(!actionMenuBtn || !currentUserEmail || !currentUserKey) return;
+    firebase.database().ref('avatars/' + currentUserKey).once('value').then(function(snap){
+      var override = snap.val();
+      actionMenuBtn.innerHTML = avatarSvgFor(currentUserEmail, override);
+      actionMenuBtn.classList.add('profile-btn');
+      // Doesn't read as a menu trigger visually any more once it's a
+      // face — the tooltip/label still calls that out explicitly.
+      actionMenuBtn.title = 'Menu — signed in as ' + displayNameFor(currentUserEmail, override);
+      actionMenuBtn.setAttribute('aria-label', actionMenuBtn.title);
+    }).catch(function(){});
+  }
   function refreshAllAvatarDisplays(){
     loadMemberAvatarData(true).then(function(){
       document.querySelectorAll('.acts li[data-participants]').forEach(renderParticipants);
       renderMemberList();
+      updateActionMenuAvatar();
     });
   }
   function saveAvatarOverride(key, override){
@@ -2617,6 +2651,7 @@
       });
     });
   }
+
 
   // Captured before any remote snapshot touches #tagData, so new default
   // tags (e.g. transport modes added after the shared plan already has its
