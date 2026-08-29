@@ -132,9 +132,17 @@
      not, and the theme underneath), so a border reads reliably in both
      rather than trying to match a background color that isn't fixed. */
   .pill-access { display:inline-flex; align-items:center; margin-left:4px; vertical-align:middle; }
-  .pill-access-face { display:inline-block; width:16px; height:16px; border-radius:50%;
-    border:1.5px solid var(--card); margin-left:-5px; opacity:.9; }
-  .pill.on .pill-access-face { border-color:#fff; }
+  /* .pill .pill-access-face (two classes), not just .pill-access-face
+     alone — .pill span above (one class + one type selector) outranks a
+     single-class rule on specificity regardless of source order, so a
+     plain opacity:1 here lost to its opacity:.7 outright; this needs to
+     out-specificity it, not just come after it. That .7 (meant for a
+     pill's own text — name/dates/price) cascading onto these was the
+     actual cause of the faces looking washed-out/transparent, not
+     anything set on this class itself. */
+  .pill .pill-access-face { display:inline-block; width:16px; height:16px; border-radius:50%;
+    border:1.5px solid var(--card); margin-left:-5px; background:var(--card); opacity:1; }
+  .pill.on .pill-access-face { border-color:#fff; background:#fff; }
   .pill-access-face:first-child { margin-left:0; }
   .pill-access-face svg { display:block; width:100%; height:100%; }
   /* Extra padding-right (9px, vs the base 6px) so the × sits centered
@@ -457,18 +465,17 @@
      does). Tapping it opens a short list of every year that actually has
      months in it (see openYearSwitcherMenu) so you jump straight to one
      instead of stepping through them one at a time. */
-  /* position:relative + the caret pulled out of the centered flex row
-     (absolute, not a sibling flex item) — with both the label and the
-     caret as flex items, justify-content:center centers the *pair*,
-     which put the year text itself measurably left of the tab labels
-     below it (the pair's shared center isn't the label's own center
-     once the caret's extra width is added on one side only). The label
-     alone is what should land on the same center as a tab's own
-     centered text. */
+  /* No caret or any other second element next to the year — one used to
+     sit beside it (a small ▾), and even pulled fully out of the
+     centered flex row (absolute-positioned, not a sibling flex item —
+     the label's own box measured as correctly centered on its own), it
+     still read as visually attached to "2026" closely enough to pull
+     the eye's sense of the text's center off from a tab's own centered
+     label below it. Nothing else here to compete with means nothing
+     else to misjudge the center by — nothing beside "2026" now can. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    position:relative; padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
+    padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
   .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.02em; line-height:1; }
-  .month-year-switcher .yr-caret { position:absolute; bottom:1px; right:6px; font-size:7px; line-height:1; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
     border-radius:0 16px 16px 0; }
@@ -7889,9 +7896,7 @@
       switcher.title = 'Switch year';
       var yrLabel = document.createElement('span');
       yrLabel.className = 'yr-label'; yrLabel.textContent = sidebarYear;
-      var caret = document.createElement('span');
-      caret.className = 'yr-caret'; caret.textContent = '▾';
-      switcher.appendChild(yrLabel); switcher.appendChild(caret);
+      switcher.appendChild(yrLabel);
       switcher.addEventListener('click', function(e){
         e.stopPropagation();
         openYearSwitcherMenu(years, switcher);
