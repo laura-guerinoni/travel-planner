@@ -3145,6 +3145,14 @@
         faces.appendChild(face);
       });
     });
+    // The face row is extra content added to a pill after the fact, on
+    // its own async timer (a Firebase read) that finishes well after
+    // renderMonthSidebar's own syncBarLayout() call already measured the
+    // pills bar's height for --pills-height/.wrap's padding-top — taller
+    // pills without this left a stale, too-small gap baked in between
+    // the pills bar and the sticky weekday header underneath it, that
+    // only got worse the more alternatives/faces a month had.
+    syncBarLayout();
   }
   // Own /members + /avatars read for callers that don't already have a
   // fresh copy on hand (initial load, remote syncs, right after this
