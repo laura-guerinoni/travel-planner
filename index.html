@@ -640,6 +640,19 @@
      this look stuck showing after you'd already moved on to a different
      day. */
   li:hover .itemmenu-btn { visibility:visible; }
+  /* The mobile media query further down forces this visible below 720px,
+     but that's a viewport-width heuristic, not an actual hover-capability
+     check — a touchscreen laptop or a tablet in landscape can easily sit
+     above that width while still having no real mouse hover, which left
+     the row's own "..." permanently invisible (and, since visibility:hidden
+     elements don't receive taps either, a tap meant for it fell through to
+     whatever sat underneath instead — e.g. the avatar, popping open the
+     avatar editor). (hover:none) targets the actual capability at any
+     width, so this now covers that case directly rather than only via
+     the width coincidence. */
+  @media (hover: none), (pointer: coarse) {
+    .itemmenu-btn, .month-segment .itemmenu-btn { visibility:visible; }
+  }
   .itemmenu-btn:hover { background:var(--primary); color:#fff; }
   /* Touch has no hover to show this on, so :active (a real press, not
      just resting there — see the mobile visibility override below)
