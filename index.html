@@ -1127,11 +1127,12 @@
     align-items:center; justify-content:center; flex-direction:column; gap:14px;
     background:var(--bg); text-align:center; padding:24px; }
   #authGate.show { display:flex; }
-  #authGate h1 { font-size:20px; margin:0; }
+  #authGate h1 { font-size:20px; margin:0; display:flex; align-items:center; gap:8px; }
   #authGate .authMsg { color:var(--muted); font-size:13px; max-width:320px; }
+  #authGate .authMsg:empty { display:none; }
   #authGate .authDenied { color:#b3261e; font-size:13px; max-width:320px; }
   #authGate .authVerify { color:var(--ink); font-size:13px; max-width:320px; }
-  #authGate button { display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
+  #authGate button { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:10px 20px;
     border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--ink);
     font-size:14px; font-weight:700; cursor:pointer; }
   #authGate button:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
@@ -1142,10 +1143,16 @@
   #authGate .auth-email-form input { padding:10px 12px; border-radius:8px; border:1px solid var(--line);
     background:var(--card); color:var(--ink); font-size:14px; }
   #authGate #authEmailError { color:#b3261e; font-size:12px; min-height:14px; margin:0; text-align:left; }
-  #authGate .auth-email-actions { display:flex; gap:8px; }
-  #authGate .auth-email-actions button { flex:1; justify-content:center; padding:9px 12px; font-size:13px; }
+  /* The one button someone's actually about to use (they just typed into
+     two fields right above it) gets the app's own accent color, same
+     weight as every other primary action elsewhere (.modal-primary-btn,
+     the share-link copy button) — Google, right below, reads as the
+     lighter-weight alternative by contrast alone, no extra label needed. */
+  #authGate .auth-primary-btn { width:100%; background:var(--primary); color:#fff; border-color:var(--primary); }
+  #authGate .auth-email-footer { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; }
+  #authGate .auth-email-footer-sep { color:var(--line); }
   #authGate .auth-link-btn { border:none; background:none; padding:2px; font-size:12px; font-weight:600;
-    color:var(--muted); text-decoration:underline; align-self:center; box-shadow:none !important; }
+    color:var(--muted); text-decoration:underline; box-shadow:none !important; }
   /* Every state-transition element gets listed once per state it should
      stay HIDDEN in — same convention as the original four states, just
      extended to also cover the new email/password form and the
@@ -1349,32 +1356,41 @@
 </head>
 <body>
 <div id="authGate">
-  <h1>🔒 Travel Planner</h1>
-  <p class="authMsg" id="authGateStatus">Sign in with the Google account this plan was shared with.</p>
-  <p class="authDenied" id="authGateDenied">This Google account isn't on the list for this plan.</p>
+  <!-- Same compass mark as the favicon (see the <link rel="icon"> in
+       <head>) — reused inline (not referenced as an <img>) so it's crisp
+       at any size and needs no extra request. -->
+  <h1><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#f7f1ea"/><path d="M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z" fill="#ef9a5c"/></svg> Travel Planner</h1>
+  <!-- No default copy here on purpose — with two ways in (email/password
+       below, Google underneath) laid out plainly, a form doesn't need a
+       sentence explaining itself. Actually used for loading/error text,
+       set dynamically (see showAuthGate). -->
+  <p class="authMsg" id="authGateStatus"></p>
+  <p class="authDenied" id="authGateDenied">This account isn't on the list for this plan.</p>
   <!-- Only ever shown right after a genuinely NEW email/password sign-up
        or log-in whose email Firebase hasn't confirmed yet — a Google
        account is always already verified (see the emailVerified check in
        onAuthStateChanged), so this state never applies to that path. -->
   <p class="authVerify" id="authGateVerify">Almost there — click the verification link we just sent to <strong id="authVerifyEmail"></strong>, then reload this page.</p>
-  <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> <span data-i18n="auth_signin">Sign in with Google</span></button>
-  <div class="auth-or" id="authOr"><span data-i18n="auth_or">or</span></div>
-  <!-- Email/password sign-in: unlike Google, Firebase never confirms this
-       address is actually yours by itself — that's what the verify-email
-       gate above (and the matching auth.token.email_verified check in the
-       security rules) closes. Log in submits the form (Enter works);
-       creating an account is a separate explicit button so the two never
-       get confused with each other. -->
+  <!-- Email/password first: it's the form someone actually interacts
+       with, so it gets the primary position and the primary button;
+       Google — a single click, nothing to type — sits right below as the
+       lighter-weight alternative. Unlike Google, Firebase never confirms
+       an email/password address is actually yours by itself — that's
+       what the verify-email gate above (and the matching
+       auth.token.email_verified check in the security rules) closes. -->
   <form id="authEmailForm" class="auth-email-form">
     <input type="email" id="authEmailInput" data-i18n-placeholder="auth_email_placeholder" placeholder="Email" autocomplete="email" required />
     <input type="password" id="authPasswordInput" data-i18n-placeholder="auth_password_placeholder" placeholder="Password" autocomplete="current-password" required minlength="6" />
     <p id="authEmailError"></p>
-    <div class="auth-email-actions">
-      <button type="submit" id="authEmailLoginBtn" data-i18n="auth_login_btn">Log in</button>
-      <button type="button" id="authEmailSignupBtn" data-i18n="auth_signup_btn">Create account</button>
+    <button type="submit" id="authEmailLoginBtn" class="auth-primary-btn" data-i18n="auth_login_btn">Log in</button>
+    <div class="auth-email-footer">
+      <button type="button" id="authForgotBtn" class="auth-link-btn" data-i18n="auth_forgot_btn">Forgot password?</button>
+      <span class="auth-email-footer-sep" aria-hidden="true">·</span>
+      <button type="button" id="authEmailSignupBtn" class="auth-link-btn" data-i18n="auth_signup_btn">Create account</button>
     </div>
-    <button type="button" id="authForgotBtn" class="auth-link-btn" data-i18n="auth_forgot_btn">Forgot password?</button>
   </form>
+  <div class="auth-or" id="authOr"><span data-i18n="auth_or">or</span></div>
+  <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> <span data-i18n="auth_signin">Sign in with Google</span></button>
   <button type="button" id="authResendVerifyBtn" data-i18n="auth_resend_verify_btn">Resend verification email</button>
   <button type="button" id="authSignOutBtn" data-i18n="auth_signout">Sign out and try another account</button>
 </div>
@@ -2221,7 +2237,7 @@
           // harmless cases reads as broken when it isn't.
           var code = err && err.code;
           if(code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user'){
-            showAuthGate('signin', 'Sign in with your Google account.');
+            showAuthGate('signin', '');
             return;
           }
           showAuthGate('signin', 'Sign-in didn’t go through' + (err && err.message ? ': ' + err.message : '') + ' — try again.');
@@ -2356,7 +2372,7 @@
             });
             return;
           }
-          showAuthGate('signin', 'Sign in with the Google account this plan was shared with.');
+          showAuthGate('signin', '');
           return;
         }
         if(user.isAnonymous){
