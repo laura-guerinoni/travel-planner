@@ -2924,7 +2924,20 @@
     if(!TAGS.some(function(x){ return tagKey(x) === k; })){ TAGS.push(t); persistTags(); }
   }
 
-  function makeEditable(el){ el.contentEditable = 'true'; }
+  // A contenteditable field defaults to inserting a literal line break on
+  // Enter — fine for something meant to hold multiple lines, but every
+  // field this gets applied to (title, price, location name, etc.) is a
+  // single line of text that sits inline next to other content (e.g.
+  // .payicon right after .price-val) — a real newline pushes whatever
+  // comes after it onto its own visual row instead of just growing the
+  // text. Enter commits (blurs) instead, same as every other single-line
+  // field in the app already does (see the avatar editor's name input).
+  function makeEditable(el){
+    el.contentEditable = 'true';
+    el.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+    });
+  }
 
   // .loc is the flex row (see its CSS); only .loc-text inside it is the
   // actual editable location name — the day-total badge that later joins
@@ -2976,6 +2989,14 @@
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
+    // Same single-line Enter-commits behavior as makeEditable's fields —
+    // a pill name is one line, not a place for a literal line break.
+    if(!nameEl.dataset.enterWired){
+      nameEl.dataset.enterWired = '1';
+      nameEl.addEventListener('keydown', function(ev){
+        if(ev.key === 'Enter'){ ev.preventDefault(); nameEl.blur(); }
+      });
+    }
   });
   document.addEventListener('focusout', function(e){
     if(e.target.classList && e.target.classList.contains('pill-name')) e.target.contentEditable = 'false';
