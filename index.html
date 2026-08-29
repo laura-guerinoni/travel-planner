@@ -4410,14 +4410,18 @@
       else li.insertBefore(existing, li.firstChild);
     }
     var imgEl = existing.querySelector('img');
-    resolveMediaUrl(url).then(function(dataUrl){
-      // The photo could have been replaced or removed again before this
-      // resolved (fast successive edits, or a remote update arriving
-      // mid-fetch) — only apply a fetch that's still for the value
-      // actually current on the li right now, or an older result could
-      // land after a newer one and clobber the correct thumbnail.
-      if(li.getAttribute('data-img') === url) imgEl.src = dataUrl;
-    }).catch(function(err){ console.warn('Photo fetch failed', err); });
+    // Not resolved eagerly here — see wireLazyMediaLoad's own comment for
+    // why that would fetch every photo in the whole plan on every load.
+    wireLazyMediaLoad(existing, function(){ return li.getAttribute('data-img') || ''; }, function(freshUrl){
+      resolveMediaUrl(freshUrl).then(function(dataUrl){
+        // The photo could have been replaced or removed again before this
+        // resolved (fast successive edits, or a remote update arriving
+        // mid-fetch) — only apply a fetch that's still for the value
+        // actually current on the li right now, or an older result could
+        // land after a newer one and clobber the correct thumbnail.
+        if(li.getAttribute('data-img') === freshUrl) imgEl.src = dataUrl;
+      }).catch(function(err){ console.warn('Photo fetch failed', err); });
+    });
   }
 
   // ---- photo lightbox: "make bigger", with prev/next across every other
@@ -4645,6 +4649,33 @@
       return val;
     });
   }
+  // renderPhoto/renderTicket's own icon (a plain glyph, .photoicon/
+  // .ticketicon) is the only thing ever visible by default — the actual
+  // photo/PDF only ever shows in a hover-revealed preview (see
+  // attachHoverReveal). Resolving it eagerly every time those render
+  // functions run — which is every single page load, for every activity,
+  // via attachItemControls — would fetch every photo and ticket in the
+  // WHOLE plan every time the page loads, not just the ones anyone
+  // actually looks at, defeating most of the point of moving them out of
+  // the synced /plan blob in the first place. Deferred to the first
+  // actual hover instead, and cached by resolveMediaUrl so every hover
+  // after that is instant and free.
+  //
+  // Wired once per element, ever (not once per render — renderPhoto/
+  // renderTicket re-run on every reattachAll pass) — the handler itself
+  // re-reads getUrl() fresh on every hover, so it stays correct across
+  // re-renders (including a photo/ticket actually being replaced)
+  // without accumulating a new listener each time.
+  function wireLazyMediaLoad(triggerEl, getUrl, loadFn){
+    if(triggerEl._lazyMediaWired) return;
+    triggerEl._lazyMediaWired = true;
+    triggerEl.addEventListener('mouseenter', function(){
+      var url = getUrl();
+      if(!url || triggerEl._lazyMediaLoadedFor === url) return;
+      triggerEl._lazyMediaLoadedFor = url;
+      loadFn(url);
+    });
+  }
   // Best-effort cleanup for whatever a photo/ticket is being replaced or
   // removed — never something a failure here should block on: the value
   // possibly being an unmigrated legacy data: URI (nothing under /media
@@ -4779,6 +4810,14 @@
             fileUploadBusy--;
             li.setAttribute('data-img', ref);
             renderPhoto(li);
+            // renderPhoto defers the actual fetch to first hover (see
+            // wireLazyMediaLoad) — but saveMediaToDb already pre-warmed
+            // the cache with these exact bytes, so triggering that same
+            // path right now costs nothing extra and means the thumbnail
+            // shows immediately instead of staying blank until someone
+            // happens to hover it.
+            var photoicon = li.querySelector('.photoicon');
+            if(photoicon) photoicon.dispatchEvent(new Event('mouseenter'));
             deleteMediaRefBestEffort(oldUrl);
           }).catch(function(err){
             fileUploadBusy--;
@@ -4822,6 +4861,12 @@
                 fileUploadBusy--;
                 li.setAttribute('data-ticket', ref);
                 renderTicket(li);
+                // See the matching comment in pickImage — the cache is
+                // already warm from saveMediaToDb, so this shows the
+                // preview immediately at zero extra network cost instead
+                // of leaving it blank until hovered.
+                var ticketicon = li.querySelector('.ticketicon');
+                if(ticketicon) ticketicon.dispatchEvent(new Event('mouseenter'));
                 deleteMediaRefBestEffort(oldUrl);
               }).catch(function(err){
                 fileUploadBusy--;
@@ -4846,6 +4891,12 @@
               fileUploadBusy--;
               li.setAttribute('data-ticket', ref);
               renderTicket(li);
+              // See the matching comment in pickImage — the cache is
+              // already warm from saveMediaToDb, so this shows the
+              // preview immediately at zero extra network cost instead of
+              // leaving it blank until hovered.
+              var ticketicon = li.querySelector('.ticketicon');
+              if(ticketicon) ticketicon.dispatchEvent(new Event('mouseenter'));
               deleteMediaRefBestEffort(oldUrl);
             }).catch(function(err){
               fileUploadBusy--;
@@ -4928,9 +4979,14 @@
         attachHoverReveal(existing, wrap);
       }
       var ticketImgEl = wrap.querySelector('img');
-      resolveMediaUrl(url).then(function(dataUrl){
-        if(li.getAttribute('data-ticket') === url) ticketImgEl.src = dataUrl;
-      }).catch(function(err){ console.warn('Ticket fetch failed', err); });
+      // Not resolved eagerly here — see wireLazyMediaLoad's own comment
+      // for why that would fetch every ticket in the whole plan on every
+      // single page load.
+      wireLazyMediaLoad(existing, function(){ return li.getAttribute('data-ticket') || ''; }, function(freshUrl){
+        resolveMediaUrl(freshUrl).then(function(dataUrl){
+          if(li.getAttribute('data-ticket') === freshUrl) ticketImgEl.src = dataUrl;
+        }).catch(function(err){ console.warn('Ticket fetch failed', err); });
+      });
     } else if(isPdf){
       if(wrap && !wrap.querySelector('.ticketpdf-preview')){ wrap.remove(); wrap = null; }
       if(!wrap){
@@ -4939,13 +4995,14 @@
         attachHoverReveal(existing, wrap);
       }
       var frameEl = wrap.querySelector('.ticketpdf-preview');
-      if(frameEl.dataset.srcUrl !== url){
-        resolveMediaUrl(url).then(function(dataUrl){
+      wireLazyMediaLoad(existing, function(){ return li.getAttribute('data-ticket') || ''; }, function(freshUrl){
+        if(frameEl.dataset.srcUrl === freshUrl) return; // already loaded for this exact value
+        resolveMediaUrl(freshUrl).then(function(dataUrl){
           // The ticket could have been replaced/removed again (or this
           // .ticketicon rebuilt for a different kind) before the fetch
           // above resolved — bail rather than wiring up a preview for
           // content that's no longer what's actually attached.
-          if(li.getAttribute('data-ticket') !== url) return;
+          if(li.getAttribute('data-ticket') !== freshUrl) return;
           if(frameEl.dataset.blobUrl) URL.revokeObjectURL(frameEl.dataset.blobUrl);
           var blobUrl = dataUrlToBlobUrl(dataUrl);
           frameEl.dataset.blobUrl = blobUrl;
@@ -4954,9 +5011,9 @@
           // enlarge/delete) — it only hides that chrome, scrolling through a
           // multi-page ticket still works fine without it.
           frameEl.src = blobUrl + '#toolbar=0';
-          frameEl.dataset.srcUrl = url;
+          frameEl.dataset.srcUrl = freshUrl;
         }).catch(function(err){ console.warn('Ticket fetch failed', err); });
-      }
+      });
     } else if(wrap){
       wrap.remove();
     }
