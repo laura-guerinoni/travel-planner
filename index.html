@@ -4625,10 +4625,18 @@
   }
   // An empty/missing member list means "visible to everyone" — every
   // option that existed before this shipped has no list at all, so
-  // nothing already-shared silently disappears for anyone. The global
-  // owner role always sees every option regardless of its list, so the
-  // account that manages membership can never lock itself out of a month
-  // it just created.
+  // nothing already-shared silently disappears for anyone.
+  //
+  // Ownership lives per alternative (whoever created it — see
+  // getOptionCreator below), not with a single plan-wide "owner" role
+  // that automatically sees everything on the plan. The account that
+  // manages invites is otherwise just another member: if they weren't
+  // the one who created an alternative and weren't explicitly added to
+  // it, they don't see it, same as anyone else. The one thing this
+  // still guarantees is that a creator can never be locked out of their
+  // own alternative — that's the actual anti-lockout property that
+  // matters, just scoped to what someone actually made instead of
+  // everything on the whole plan.
   function canSeeOption(panel){
     if(!panel) return false;
     // A share-link visitor (see VIEW_ONLY/VIEW_ONLY_MONTH_KEY) never
@@ -4640,7 +4648,7 @@
       var d = getPanelDate(panel);
       return monthKey(d.year, d.month) === VIEW_ONLY_MONTH_KEY;
     }
-    if(currentUserRole === 'owner') return true;
+    if(getOptionCreator(panel) === currentUserKey) return true;
     var members = getOptionMembers(panel);
     if(!members.length) return true;
     return members.indexOf(currentUserKey) !== -1;
@@ -4686,11 +4694,6 @@
   // every month before per-month creation was even a concept.
   function getOptionCreator(panel){
     return (panel && panel.getAttribute('data-creator')) || null;
-  }
-  function isMyOwnMonth(panel){
-    var creator = getOptionCreator(panel);
-    if(creator) return creator === currentUserKey;
-    return currentUserRole === 'owner';
   }
   // Memoized: every activity's renderParticipants call (there can be many,
   // all firing during the same reattachAll() pass) shares one fetch
@@ -7306,9 +7309,10 @@
     // the creator extends that out to specific other members via the pill's
     // right-click menu (see openOptionMembersPicker). Skipped entirely in
     // local-file mode (no signed-in currentUserKey), where the whole
-    // member system doesn't apply. data-creator is recorded regardless of
-    // that — it's just "who made this", used for the sidebar's mine/
-    // invited badge (see isMyOwnMonth), not an access-control decision.
+    // member system doesn't apply. data-creator doubles as an
+    // access-control decision now too (see canSeeOption) — the creator
+    // can always see their own alternative even if data-members ever
+    // ended up without them in it.
     if(currentUserKey){
       setOptionMembers(clone, [currentUserKey]);
       clone.setAttribute('data-creator', currentUserKey);
@@ -7910,8 +7914,8 @@
       // "Archived" only once EVERY option is (see setArchivedForMe's own
       // comment for why this is deliberately separate from
       // canSeeOption/data-members above). Ownership is tracked per
-      // alternative now (see isMyOwnMonth/data-creator), not rolled up
-      // to a whole-month "mine" flag — a month can hold alternatives
+      // alternative now (see getOptionCreator/data-creator), not rolled
+      // up to a whole-month "mine" flag — a month can hold alternatives
       // created by different people, so there's no single honest answer
       // for the month as a whole any more.
       m.archived = m.panels.every(isArchivedForMe);
