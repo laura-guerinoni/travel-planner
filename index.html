@@ -624,6 +624,16 @@
   .daymenu-btn.has-content { visibility:hidden; }
   .cell:hover .daymenu-btn.has-content { visibility:visible; }
   .daymenu-btn:hover, .daymenu-btn.open { background:var(--primary); color:#fff; }
+  /* .dayaddbtn's :hover and .daymenu-btn's .open are otherwise completely
+     independent states — nothing stopped both showing the same pink
+     "active" treatment at once if the cursor happened to be resting
+     near .dayaddbtn (they sit right next to each other now that both
+     are pinned to .cellhead's right edge) while the day menu's own
+     popover was open. Only one control can actually be in use at a
+     time, so suppress .dayaddbtn's hover color while its neighbor's
+     popover is open, rather than let the two independently-styled
+     states visually contradict each other. */
+  .cellhead:has(.daymenu-btn.open) .dayaddbtn:hover { background:none; color:var(--ink); }
   .daypicker { width:220px; max-height:280px; overflow-y:auto; }
   .daypicker-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; padding:4px; }
   .daypicker-day { border:none; background:var(--bg); border-radius:6px; padding:6px 0; font-size:12px;
@@ -654,12 +664,23 @@
      the small icon into the wider preview below it can drop :hover mid-
      transition. */
   .linkpreview-wrap.show { display:block; }
-  .linkpreview { display:block; width:min(30vw, 320px); max-width:80vw; box-sizing:border-box;
+  .linkpreview { display:flex; align-items:flex-start; gap:8px; width:min(30vw, 320px); max-width:80vw; box-sizing:border-box;
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25); text-align:left;
     border:2px solid var(--card); background:#fff; padding:10px 12px; }
+  /* Round icon chip, same visual language as .map-avatar's circle — leads
+     the card the way an actual image would on a photo preview. */
+  .linkpreview-icon { flex:0 0 24px; width:24px; height:24px; border-radius:50%;
+    background:var(--bg); color:var(--muted); display:flex; align-items:center; justify-content:center; }
+  .linkpreview-icon svg { width:13px; height:13px; display:block; }
+  .linkpreview-text { flex:1; min-width:0; }
   .linkpreview-domain { display:block; font-weight:700; font-size:13px; color:var(--ink); text-decoration:none; }
+  /* Single line with an ellipsis instead of wrapping every character of a
+     long query string into a wall of text — the point of a preview card
+     is to identify the link at a glance, not to make the whole raw URL
+     legible. The full address is still reachable via the title tooltip
+     (see buildLinkPreviewWrap) for anyone who needs it. */
   .linkpreview-url { display:block; font-size:11px; color:var(--muted); margin-top:4px;
-    overflow-wrap:anywhere; word-break:break-all; text-decoration:none; }
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:none; }
   .linkadd { font-size:10px; color:var(--muted); cursor:pointer; border:1px dashed var(--line); border-radius:4px;
     padding:0 3px; line-height:14px; }
   .linkadd:hover { color:var(--primary); border-color:var(--primary); }
@@ -3003,14 +3024,29 @@
     card.className = 'linkpreview';
     var hostname = url;
     try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch(e){}
+    // ICON_LINK up front, same as a photo/ticket preview leading with its
+    // own image/icon, so the card reads as "a link" at a glance instead
+    // of starting straight into text.
+    var icon = document.createElement('span');
+    icon.className = 'linkpreview-icon';
+    icon.innerHTML = ICON_LINK;
+    var text = document.createElement('span');
+    text.className = 'linkpreview-text';
     var domain = document.createElement('span');
     domain.className = 'linkpreview-domain';
     domain.textContent = hostname;
     var urlLine = document.createElement('span');
     urlLine.className = 'linkpreview-url';
     urlLine.textContent = url;
-    card.appendChild(domain);
-    card.appendChild(urlLine);
+    // Truncated to one line (see .linkpreview-url's ellipsis) rather than
+    // wrapping every character of a long query string into a wall of
+    // text — the full address is still available via this native
+    // tooltip, just not force-displayed up front.
+    urlLine.title = url;
+    text.appendChild(domain);
+    text.appendChild(urlLine);
+    card.appendChild(icon);
+    card.appendChild(text);
     previewWrap.appendChild(card);
     return previewWrap;
   }
@@ -3387,6 +3423,11 @@
   // assigns who's paying (or splitting) that amount (see renderPaySplit/
   // openPaySplitPopover).
   var ICON_WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h3v-4Z"/></svg>';
+  // A standard two-link chain glyph — sits at the top of the link preview
+  // card (see buildLinkPreviewWrap) so the card reads as "a link" at a
+  // glance, the same way a photo/ticket preview leads with the image or
+  // ICON_TICKET rather than just text.
+  var ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
   // Counts photo/ticket reads/resizes currently in flight (see pickImage
   // and pickTicket below) — isLocallyBusy() treats any nonzero count as
   // "don't apply a remote snapshot right now", the same way it already
