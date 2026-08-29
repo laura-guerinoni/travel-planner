@@ -439,12 +439,15 @@
      toggle below — it should scroll away with the rest if the list
      itself ever needed to, unlike the toggle, which has to stay
      reachable regardless of scroll position. */
-  .month-year-switcher { flex:none; display:flex; flex-direction:column; align-items:center; gap:0;
-    padding:3px 0; color:var(--muted); }
-  .month-year-switcher button { border:none; background:none; color:var(--muted); cursor:pointer;
-    font-size:10px; line-height:1; margin:0; padding:1px; }
-  .month-year-switcher button:disabled { opacity:.3; cursor:default; }
-  .month-year-switcher .yr-label { font-size:9px; font-weight:800; letter-spacing:.02em; line-height:1.2; }
+  /* One row, not three (used to be a prev-year button, the year, and a
+     next-year button stacked vertically — noticeably tall for what it
+     does). Tapping it opens a short list of every year that actually has
+     months in it (see openYearSwitcherMenu) so you jump straight to one
+     instead of stepping through them one at a time. */
+  .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
+    gap:2px; padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
+  .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.02em; line-height:1; }
+  .month-year-switcher .yr-caret { font-size:8px; line-height:1; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
     border-radius:0 16px 16px 0; }
@@ -688,6 +691,21 @@
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
+  /* The year switcher's own list (see openYearSwitcherMenu) marks
+     whichever year is currently showing — plain bold, not a full accent
+     background, since this is just "you are here", not a selectable
+     state change like everywhere else .itemmenu-row shows up. */
+  .itemmenu-row.current { font-weight:800; color:var(--primary); }
+  /* openInviteScopeMenu's own popover — checkbox rows instead of the
+     usual single-click-and-close action rows, so it reuses .itemmenu-row
+     for identical padding/hover but doesn't touch .itemmenu-row's own
+     click-to-close behavior (that's wired per-row elsewhere; these rows
+     just toggle a checkbox via the native <label> click). */
+  .invite-scope-heading { padding:4px 8px 6px; font-size:12px; color:var(--muted); font-weight:700; }
+  .invite-scope-row { gap:8px; cursor:pointer; }
+  .invite-scope-row input[type="checkbox"] { flex:none; margin:0; }
+  .invite-scope-done { display:block; width:calc(100% - 8px); margin:4px; padding:7px 0; border:none;
+    border-radius:6px; background:var(--primary); color:#fff; font-weight:700; font-size:13px; cursor:pointer; }
   /* Every row's leading icon/glyph — a real SVG (ticket/photo, reusing
      .ticketicon/.photoicon's own icons — see openItemMenu) or a plain
      character (+, ↑, ↓, ✕, ↗) for the rest — sits in the same
@@ -2121,6 +2139,7 @@
       manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       manage_delete_member: 'Delete member',
+      invite_scope_heading: 'Which months should they see?', invite_scope_done: 'Done',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
@@ -2151,6 +2170,7 @@
       manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       manage_delete_member: 'Elimina membro',
+      invite_scope_heading: 'Quali mesi dovrebbero vedere?', invite_scope_done: 'Fatto',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
@@ -2181,6 +2201,7 @@
       manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       manage_delete_member: 'Eliminar miembro',
+      invite_scope_heading: '¿Qué meses deberían ver?', invite_scope_done: 'Listo',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
@@ -2600,15 +2621,16 @@
   // invisible at rest against it, only ever showing up once .active's
   // border kicks in.
   var AVATAR_HAIR_COLORS = [
-    '#E8E3D8', '#B8B0A8', '#D9B877', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, grey, blonde, red, auburn, dark brown, black
-    '#E8A0C4', '#E5A15C', '#7AB88A', '#5DA0D9', '#8B6FC9' // pink, orange, green, blue, purple
+    '#E8E3D8', '#B8B0A8', '#D9B877', '#E5A15C', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, grey, blonde, ginger, red, auburn, dark brown, black
+    '#E8A0C4', '#7AB88A', '#5DA0D9', '#8B6FC9' // pink, green, blue, purple
   ];
   // Lightest to darkest, black included alongside the natural range.
   var AVATAR_EYE_COLORS = ['#8A8F94', '#4A89C9', '#4F8A5B', '#8A7043', '#6B4423', '#2B2B2B'];
   // 4 = a downward/frown curve — mouthPathFor's default case (asymmetric
   // half-smile) stays reachable as a 5th, distinct shape rather than
-  // being replaced by it.
-  var AVATAR_MOUTH_TYPES = [0, 1, 2, 4, 3];
+  // being replaced by it. 5/6/7 = open "surprised" oval, big open grin,
+  // wavy/unsure line — see mouthPathFor.
+  var AVATAR_MOUTH_TYPES = [0, 1, 2, 4, 3, 5, 6, 7];
   // Light/medium/dark — three fixed swatches (not a hash-derived open
   // palette like hair/eyes) since skin tone is picking a real attribute
   // of the person, not a decorative variation.
@@ -2619,6 +2641,20 @@
   // one fixed color for everyone.
   var AVATAR_BG_COLORS = ['#FDE8EF', '#E8F3FD', '#FFF6DC', '#E9F7EC', '#F1E9FB', '#F6F1FB'];
   var AVATAR_MOUTH_COLOR = '#8A5A42';
+  // One fixed mouth color read fine against the two lighter skin tones,
+  // but was too close in both hue and lightness to the darkest one to
+  // actually be visible — a mouth that all but disappeared into the
+  // face. Keyed by the exact AVATAR_SKIN_TONES value (not derived/
+  // computed) so each is a deliberately-checked, sufficiently darker
+  // shade rather than a formula that might not always land right.
+  var AVATAR_MOUTH_COLORS_BY_SKIN = {
+    '#F0D3AC': '#8A5A42',
+    '#C68B59': '#5C3A28',
+    '#7A4B2E': '#2B1810'
+  };
+  function mouthColorFor(skinColor){
+    return AVATAR_MOUTH_COLORS_BY_SKIN[skinColor] || AVATAR_MOUTH_COLOR;
+  }
   // An uncustomized face defaults to this fixed look for every trait
   // except hair color (still hash-derived — see avatarSvgFor — so two
   // uncustomized people aren't identical), rather than the old
@@ -2632,15 +2668,34 @@
     for(var i = 0; i < email.length; i++){ h = (h * 31 + email.charCodeAt(i)) >>> 0; }
     return h;
   }
-  function mouthPathFor(mouthType){
-    if(mouthType === 0) return '<path d="M 25 41 Q 32 47 39 41" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    if(mouthType === 1) return '<path d="M 26 42 L 38 42" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
+  // mouthColor optional — defaults to the fixed AVATAR_MOUTH_COLOR, which
+  // is fine for the editor's own small picker-row icons (a neutral card
+  // background, not an actual face), but a real face passes mouthColorFor
+  // (skinColor) instead, so the mouth stays visible against whichever
+  // skin tone it's actually drawn on (see AVATAR_MOUTH_COLORS_BY_SKIN).
+  function mouthPathFor(mouthType, mouthColor){
+    var mc = mouthColor || AVATAR_MOUTH_COLOR;
+    if(mouthType === 0) return '<path d="M 25 41 Q 32 47 39 41" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(mouthType === 1) return '<path d="M 26 42 L 38 42" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + mc + '"/>';
     // Same curve as mouthType 0's smile, mirrored — control point pulled
     // *up* above the corners instead of down below them, so it reads as
     // a downward, frowning mouth rather than a smile.
-    if(mouthType === 4) return '<path d="M 25 43 Q 32 37 39 43" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    return '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(mouthType === 4) return '<path d="M 25 43 Q 32 37 39 43" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    // 3 — asymmetric half-smile, the original default/fallback shape,
+    // now reachable explicitly rather than by falling through.
+    if(mouthType === 3) return '<path d="M 27 41 Q 33 44 39 39" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    // 5 — open "surprised" oval, taller/rounder than 2's small closed
+    // curve so the two read as clearly different shapes, not just
+    // different sizes of the same one.
+    if(mouthType === 5) return '<ellipse cx="32" cy="42" rx="4.5" ry="6" fill="' + mc + '"/>';
+    // 6 — a wide open grin: outer smile curve plus an inner curve close
+    // behind it, so the sliver between them reads as an open mouth
+    // (teeth showing) rather than a plain thick line.
+    if(mouthType === 6) return '<path d="M 23 40 Q 32 50 41 40 Q 32 45 23 40 Z" fill="' + mc + '"/>';
+    // 7 — a gentle wavy line (unsure/wobbly), distinct from the flat
+    // (1), smiling (0/3), and frowning (4) straight-ish shapes.
+    return '<path d="M 25 41 Q 28.5 39 32 41 Q 35.5 43 39 41" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
   }
   // Which side-lock path (if any) a given hair length draws, keyed by the
   // same 'short'/'medium'/'long' strings the editor and stored overrides
@@ -2668,7 +2723,24 @@
   // the same as 'glasses' (see normalizeGlassesStyle, used here and by
   // the picker row that offers this choice).
   var AVATAR_GLASSES_COLOR = '#4A4A4A';
-  var avatarSvgUid = 0;
+  // A fixed id, not one generated per call — this used to be unique per
+  // call (avsg0, avsg1, ...) on the theory that a fixed id would have
+  // every instance silently render whichever pattern happened to be
+  // first in the document. That reasoning missed that the pattern's own
+  // content never varies by person, so any instance resolving to any
+  // other instance's <defs> was always harmless — but the *counter*
+  // restarting at 0 on every fresh page load wasn't: a freshly-generated
+  // low id could coincidentally collide with the same id baked into
+  // *saved* markup from a previous session (participant avatars are
+  // part of the saved activity HTML), and once whichever instance
+  // happened to "own" that id in the DOM was later replaced by its own
+  // fresh re-render (picking a new counter value), every other instance
+  // still pointing at the now-gone id went blank — sunglasses that
+  // "disappeared after a bit" with no visible cause. A fixed id sidesteps
+  // this entirely: every instance still carries its own redundant copy
+  // of the identical <defs>, so as long as at least one sunglasses
+  // avatar exists anywhere on the page, all of them keep resolving.
+  var AVATAR_SUNGLASSES_PATTERN_ID = 'avatar-sunglasses-lens';
   function normalizeGlassesStyle(v){ return v === true ? 'glasses' : (v || false); }
   function glassesSvgFor(style){
     style = normalizeGlassesStyle(style);
@@ -2678,18 +2750,11 @@
       '<line x1="31.5" y1="32" x2="32.5" y2="32"/><line x1="20.5" y1="31" x2="18" y2="30"/><line x1="43.5" y1="31" x2="46" y2="30"/>' +
       '</g>';
     if(style !== 'sunglasses') return frame;
-    // Unique per call, not a fixed id — this SVG string ends up inlined
-    // many times on one page at once (every calendar face, the
-    // Participants list, the action menu button), and fill="url(#id)"
-    // resolves against the whole document, not just its own <svg> root —
-    // a fixed id would have every instance silently render whichever
-    // pattern happened to be first in the document.
-    var patId = 'avsg' + (avatarSvgUid++);
-    return '<defs><pattern id="' + patId + '" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(45)">' +
+    return '<defs><pattern id="' + AVATAR_SUNGLASSES_PATTERN_ID + '" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(45)">' +
         '<rect width="3" height="3" fill="#2B2B2B"/><rect width="1.5" height="3" fill="#8A8F94"/>' +
       '</pattern></defs>' +
-      '<circle cx="26" cy="32" r="5.2" fill="url(#' + patId + ')"/>' +
-      '<circle cx="38" cy="32" r="5.2" fill="url(#' + patId + ')"/>' +
+      '<circle cx="26" cy="32" r="5.2" fill="url(#' + AVATAR_SUNGLASSES_PATTERN_ID + ')"/>' +
+      '<circle cx="38" cy="32" r="5.2" fill="url(#' + AVATAR_SUNGLASSES_PATTERN_ID + ')"/>' +
       frame;
   }
   // override (optional): { skin, hair, eyes, mouthType, hairLength,
@@ -2724,7 +2789,7 @@
       '<circle cx="32" cy="34" r="18" fill="' + skinColor + '"/>' +
       '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
       '<circle cx="38" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
-      mouthPathFor(mouthType) +
+      mouthPathFor(mouthType, mouthColorFor(skinColor)) +
       '<path d="M 13 34 A 19 22 0 0 1 51 34 Q 44 24 32 27 Q 20 24 13 34 Z" fill="' + hairColor + '"/>' +
       glassesSvgFor(override && override.glasses) +
       '</svg>';
@@ -3104,6 +3169,98 @@
     positionPopover(pop, anchorEl);
   }
 
+  // Offered once, right after a fresh invite succeeds (see manageForm's
+  // submit handler) — see that handler's own comment for why. Only
+  // covers months that exist today; a month created afterward still
+  // needs its own creator to share it, same as any other month.
+  function openInviteScopeMenu(memberKey, anchorEl){
+    closePop();
+    var monthsByKey = {}, order = [];
+    document.querySelectorAll('.panel').forEach(function(panel){
+      var d = getPanelDate(panel);
+      var key = monthKey(d.year, d.month);
+      if(!monthsByKey[key]){ monthsByKey[key] = { key: key, year: d.year, month: d.month, panels: [] }; order.push(key); }
+      monthsByKey[key].panels.push(panel);
+    });
+    var months = order.map(function(key){ return monthsByKey[key]; });
+    if(!months.length) return;
+
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu invite-scope-pop';
+
+    var heading = document.createElement('div');
+    heading.className = 'invite-scope-heading';
+    heading.textContent = t('invite_scope_heading');
+    pop.appendChild(heading);
+
+    function grant(monthList){
+      monthList.forEach(function(m){
+        m.panels.forEach(function(panel){
+          var members = getOptionMembers(panel);
+          if(members.indexOf(memberKey) === -1){
+            members.push(memberKey);
+            setOptionMembers(panel, members);
+          }
+        });
+      });
+      // data-members isn't in MO_OPTS's attributeFilter (unlike
+      // data-year/data-month, which happen to piggyback an autosave for
+      // free whenever they're set) — this has to trigger one explicitly.
+      scheduleAutoSave();
+      scheduleUndoSnapshot();
+    }
+
+    var allLabel = document.createElement('label');
+    allLabel.className = 'itemmenu-row invite-scope-row';
+    var allCb = document.createElement('input');
+    allCb.type = 'checkbox';
+    var allText = document.createElement('span');
+    allText.textContent = t('print_scope_all');
+    allLabel.appendChild(allCb); allLabel.appendChild(allText);
+    pop.appendChild(allLabel);
+
+    var monthRows = months.map(function(m){
+      var label = document.createElement('label');
+      label.className = 'itemmenu-row invite-scope-row';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      var text = document.createElement('span');
+      text.textContent = formatMonthLabel(m.year, m.month, months.length);
+      label.appendChild(cb); label.appendChild(text);
+      pop.appendChild(label);
+      return { cb: cb, month: m };
+    });
+
+    // Checking "All months" is a stand-in for every individual box, not
+    // an extra option alongside them — greying the rest out says that
+    // plainly instead of leaving it ambiguous what happens if both ever
+    // ended up checked at once.
+    allCb.addEventListener('change', function(){
+      monthRows.forEach(function(r){
+        r.cb.disabled = allCb.checked;
+        if(allCb.checked) r.cb.checked = false;
+      });
+    });
+
+    var doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'invite-scope-done';
+    doneBtn.textContent = t('invite_scope_done');
+    doneBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(allCb.checked){
+        grant(months);
+      } else {
+        var chosen = monthRows.filter(function(r){ return r.cb.checked; }).map(function(r){ return r.month; });
+        if(chosen.length) grant(chosen);
+      }
+      closePop();
+    });
+    pop.appendChild(doneBtn);
+
+    positionPopover(pop, anchorEl);
+  }
+
   // ---- Share link: an owner-only on/off switch, per month (see
   // /publicViewEnabled/$monthKey in the security rules) that makes just
   // that one month viewable, read-only, by anyone with the link — no
@@ -3200,9 +3357,18 @@
       // Always writes 'invited' — the security rules reject anything else
       // from this path anyway, so there's no way to grant owner status
       // through this UI, only through the one-time manual console step.
-      firebase.database().ref('members/' + sanitizeEmailKey(email)).set('invited').then(function(){
+      var newKey = sanitizeEmailKey(email);
+      firebase.database().ref('members/' + newKey).set('invited').then(function(){
         manageInput.value = '';
         renderMemberList();
+        // Right after the invite succeeds, not before — a brand-new
+        // month's own data-members list (see createOption) only ever has
+        // its creator in it, so without this step the newly invited
+        // person would sign in and see nothing at all until the owner
+        // separately opened every month they should have and added them
+        // there one at a time.
+        var inviteBtn = manageForm.querySelector('button[type="submit"]');
+        if(inviteBtn) openInviteScopeMenu(newKey, inviteBtn);
       }).catch(function(err){
         if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t invite ' + email + ' — try again.';
         console.warn('Invite failed', err);
@@ -4080,7 +4246,7 @@
   document.addEventListener('click', function(e){
     if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
        !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn') &&
-       !e.target.closest('.daymenu-btn')){
+       !e.target.closest('.daymenu-btn') && !e.target.closest('.month-year-switcher')){
       closePop();
     }
   });
@@ -7397,6 +7563,29 @@
     positionPopover(pop, anchorEl);
   }
 
+  // One tap-to-open list instead of stepping through years one at a time
+  // with prev/next buttons — see the switcher's own click handler in
+  // renderMonthSidebar. Newest year first, since that's usually the one
+  // being planned right now.
+  function openYearSwitcherMenu(years, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    years.slice().sort(function(a, b){ return b - a; }).forEach(function(yr){
+      var row = document.createElement('div');
+      row.className = 'itemmenu-row' + (yr === sidebarYear ? ' current' : '');
+      row.textContent = yr;
+      row.addEventListener('click', function(e){
+        e.stopPropagation();
+        closePop();
+        sidebarYear = yr;
+        renderMonthSidebar();
+      });
+      pop.appendChild(row);
+    });
+    positionPopover(pop, anchorEl);
+  }
+
   // Which year the sidebar is currently showing — persists across
   // re-renders (an edit, a remote sync) so switching years to look at
   // something doesn't get undone by an unrelated autosave-triggered
@@ -7461,20 +7650,19 @@
     // without scrolling — not worth showing a switcher for the common
     // case of everything fitting in one year already.
     if(years.length > 1){
-      var yrIdx = years.indexOf(sidebarYear);
-      var switcher = document.createElement('div');
+      var switcher = document.createElement('button');
+      switcher.type = 'button';
       switcher.className = 'month-year-switcher jsctl';
-      var prevBtn = document.createElement('button');
-      prevBtn.type = 'button'; prevBtn.textContent = '▲'; prevBtn.title = 'Previous year';
-      prevBtn.disabled = yrIdx <= 0;
-      prevBtn.addEventListener('click', function(){ sidebarYear = years[yrIdx - 1]; renderMonthSidebar(); });
+      switcher.title = 'Switch year';
       var yrLabel = document.createElement('span');
       yrLabel.className = 'yr-label'; yrLabel.textContent = sidebarYear;
-      var nextBtn = document.createElement('button');
-      nextBtn.type = 'button'; nextBtn.textContent = '▼'; nextBtn.title = 'Next year';
-      nextBtn.disabled = yrIdx >= years.length - 1;
-      nextBtn.addEventListener('click', function(){ sidebarYear = years[yrIdx + 1]; renderMonthSidebar(); });
-      switcher.appendChild(prevBtn); switcher.appendChild(yrLabel); switcher.appendChild(nextBtn);
+      var caret = document.createElement('span');
+      caret.className = 'yr-caret'; caret.textContent = '▾';
+      switcher.appendChild(yrLabel); switcher.appendChild(caret);
+      switcher.addEventListener('click', function(e){
+        e.stopPropagation();
+        openYearSwitcherMenu(years, switcher);
+      });
       sidebar.appendChild(switcher);
     }
 
