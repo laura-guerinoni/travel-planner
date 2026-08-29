@@ -4791,6 +4791,22 @@
       li.appendChild(wrap);
     });
   }
+  // Only members who can actually see the alternative an activity lives
+  // in are eligible to be picked as its participants — someone not
+  // invited to (or the creator of) this specific alternative has no
+  // business being added to something inside it, same restriction
+  // canSeeOption itself enforces for the alternative as a whole. Mirrors
+  // canSeeOption's own rule (empty/missing data-members = open to
+  // everyone, the creator always included) rather than re-deriving a
+  // different one, so this can never end up more permissive than the
+  // alternative's own visibility.
+  function membersEligibleForOption(panel, members){
+    if(!panel) return members;
+    var explicit = getOptionMembers(panel);
+    if(!explicit.length) return members;
+    var creator = getOptionCreator(panel);
+    return members.filter(function(m){ return m.key === creator || explicit.indexOf(m.key) !== -1; });
+  }
   function openParticipantPicker(li, anchorEl){
     closePop();
     var pop = document.createElement('div');
@@ -4800,17 +4816,19 @@
     loadingRow.textContent = 'Loading…';
     pop.appendChild(loadingRow);
     positionPopover(pop, anchorEl);
+    var ownerPanel = li.closest('.panel');
 
     function render(data){
       if(openPop !== pop) return;
       pop.innerHTML = '';
-      if(!data.members.length){
+      var eligible = membersEligibleForOption(ownerPanel, data.members);
+      if(!eligible.length){
         var empty = document.createElement('div');
         empty.className = 'itemmenu-row';
         empty.textContent = 'No one has access yet';
         pop.appendChild(empty);
       }
-      data.members.forEach(function(m){
+      eligible.forEach(function(m){
         var row = document.createElement('label');
         row.className = 'participant-picker-row';
         var checkbox = document.createElement('input');
@@ -4897,6 +4915,7 @@
     loadingRow.textContent = 'Loading…';
     pop.appendChild(loadingRow);
     positionPopover(pop, anchorEl);
+    var ownerPanel = li.closest('.panel');
 
     function render(data){
       if(openPop !== pop) return;
@@ -4913,13 +4932,17 @@
         header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining);
         header.classList.toggle('over', remaining < 0);
       }
-      if(!data.members.length){
+      // Same eligibility rule as openParticipantPicker — someone without
+      // access to this alternative shouldn't be assignable a share of
+      // its costs either.
+      var eligible = membersEligibleForOption(ownerPanel, data.members);
+      if(!eligible.length){
         var empty = document.createElement('div');
         empty.className = 'itemmenu-row';
         empty.textContent = 'No one has access yet';
         pop.appendChild(empty);
       }
-      data.members.forEach(function(m){
+      eligible.forEach(function(m){
         var row = document.createElement('div');
         row.className = 'paysplit-row';
         var face = document.createElement('span');
