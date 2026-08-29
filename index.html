@@ -2566,17 +2566,41 @@
         '<path d="M 48 27 C 56 32 59 42 58 52 C 57.5 57 54 60 50 59 C 48 58.5 47 55 48.5 51 C 51 44 51 33 46 27 Z" fill="' + c + '"/>';
     }
   };
-  // A simple round-frame glasses overlay, drawn after the eyes so it sits
-  // on top of them — off by default (never on unless explicitly picked)
-  // since an accessory silently appearing on people who never opted in
-  // would read as a bug, not a feature.
+  // A simple round-frame overlay, drawn after the eyes so it sits on top
+  // of them — off by default (never on unless explicitly picked) since
+  // an accessory silently appearing on people who never opted in would
+  // read as a bug, not a feature. 'glasses' keeps the original clear-lens
+  // look (frame only, eyes still visible through it); 'sunglasses' fills
+  // the same lenses with a tiled diagonal stripe instead of one flat
+  // color, standing in for a reflective lens — a plain solid fill just
+  // read as a black blob at avatar scale. A plain `true` a saved
+  // override might still carry from before sunglasses existed is treated
+  // the same as 'glasses' (see normalizeGlassesStyle, used here and by
+  // the picker row that offers this choice).
   var AVATAR_GLASSES_COLOR = '#4A4A4A';
-  function glassesSvgFor(on){
-    if(!on) return '';
-    return '<g fill="none" stroke="' + AVATAR_GLASSES_COLOR + '" stroke-width="2" stroke-linecap="round">' +
+  var avatarSvgUid = 0;
+  function normalizeGlassesStyle(v){ return v === true ? 'glasses' : (v || false); }
+  function glassesSvgFor(style){
+    style = normalizeGlassesStyle(style);
+    if(!style) return '';
+    var frame = '<g fill="none" stroke="' + AVATAR_GLASSES_COLOR + '" stroke-width="2" stroke-linecap="round">' +
       '<circle cx="26" cy="32" r="5.5"/><circle cx="38" cy="32" r="5.5"/>' +
       '<line x1="31.5" y1="32" x2="32.5" y2="32"/><line x1="20.5" y1="31" x2="18" y2="30"/><line x1="43.5" y1="31" x2="46" y2="30"/>' +
       '</g>';
+    if(style !== 'sunglasses') return frame;
+    // Unique per call, not a fixed id — this SVG string ends up inlined
+    // many times on one page at once (every calendar face, the
+    // Participants list, the action menu button), and fill="url(#id)"
+    // resolves against the whole document, not just its own <svg> root —
+    // a fixed id would have every instance silently render whichever
+    // pattern happened to be first in the document.
+    var patId = 'avsg' + (avatarSvgUid++);
+    return '<defs><pattern id="' + patId + '" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(45)">' +
+        '<rect width="3" height="3" fill="#2B2B2B"/><rect width="1.5" height="3" fill="#8A8F94"/>' +
+      '</pattern></defs>' +
+      '<circle cx="26" cy="32" r="5.2" fill="url(#' + patId + ')"/>' +
+      '<circle cx="38" cy="32" r="5.2" fill="url(#' + patId + ')"/>' +
+      frame;
   }
   // override (optional): { skin, hair, eyes, mouthType, hairLength,
   // glasses, bg } — any field left unset falls back to a fixed default
@@ -2827,9 +2851,10 @@
 
     row('Glasses', [
         { value: false, build: function(btn){ btn.textContent = 'No glasses'; } },
-        { value: true, build: function(btn){ btn.textContent = 'Glasses'; } }
+        { value: 'glasses', build: function(btn){ btn.textContent = 'Glasses'; } },
+        { value: 'sunglasses', build: function(btn){ btn.textContent = 'Sunglasses'; } }
       ],
-      function(item){ return !!item.value === !!current.glasses; },
+      function(item){ return normalizeGlassesStyle(item.value) === normalizeGlassesStyle(current.glasses); },
       function(item){ pick('glasses', item.value); });
 
     // "Default" (unset) keeps the ring matching whichever theme the
