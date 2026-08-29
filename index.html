@@ -234,7 +234,7 @@
      whatever space is left and wraps its own text one syllable per line
      — row wrapping (something dropping to its own line) is what should
      happen when space runs out, the chip itself never should. */
-  .chip { border-radius:999px; padding:2px 8px 2px 2px; font-size:10px; font-weight:700; display:inline-flex;
+  .chip { border-radius:999px; padding:2px 8px 2px 5px; font-size:10px; font-weight:700; display:inline-flex;
     align-items:center; gap:4px; margin-bottom:3px; vertical-align:middle; flex-shrink:0; white-space:nowrap; }
   /* See setChipContent — a small near-white circle behind the icon only,
      so the emoji always renders against the same light, neutral backdrop
@@ -994,7 +994,7 @@
        a fingertip (the ~44px minimum comfortable touch target most
        mobile guidelines converge on). */
     .acts li { font-size: 13px; }
-    .chip { font-size: 12px; padding: 3px 10px 3px 3px; }
+    .chip { font-size: 12px; padding: 3px 10px 3px 6px; }
     .chip-icon { width:19px; height:19px; font-size:12px; }
     .title { font-size: 14px; }
     /* ::before as an invisible enlarged hit-area, not padding on the
@@ -2115,12 +2115,18 @@
   // /members) so a customization is visible to every collaborator, not
   // just whoever set it. No photo upload, no external avatar service
   // either way. ----
-  // Natural tones first, then the fun/fantasy ones — off-white rather than
-  // pure #fff for the "white" swatch, since --card is #fff in both themes
-  // (see :root above) and a pure-white circle would be invisible at rest
-  // against it, only ever showing up once .active's border kicks in.
-  var AVATAR_HAIR_COLORS = ['#2B2B2B', '#5B3A29', '#D9B877', '#A85432', '#B8B0A8', '#5DA0D9', '#8B6FC9',
-    '#E8E3D8', '#E8A0C4', '#7AB88A', '#D96B5C', '#E5A15C'];
+  // Natural tones first (lightest to darkest — white/grey/blonde read as
+  // real human hair colors just as much as brown/black do, and red is a
+  // natural color too, not a dye job, so it sits in this group rather
+  // than with the fantasy ones), then the fun/fantasy colors. Off-white
+  // rather than pure #fff for the "white" swatch, since --card is #fff
+  // in both themes (see :root above) and a pure-white circle would be
+  // invisible at rest against it, only ever showing up once .active's
+  // border kicks in.
+  var AVATAR_HAIR_COLORS = [
+    '#E8E3D8', '#D9B877', '#B8B0A8', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, blonde, grey, red, auburn, dark brown, black
+    '#E8A0C4', '#E5A15C', '#7AB88A', '#5DA0D9', '#8B6FC9' // pink, orange, green, blue, purple
+  ];
   var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
   var AVATAR_MOUTH_TYPES = [0, 1, 2, 3];
   // Light/medium/dark — three fixed swatches (not a hash-derived open
@@ -2561,6 +2567,7 @@
       });
     });
   }
+
 
 
 
@@ -3203,9 +3210,12 @@
     urlLine.textContent = url;
     // Truncated to one line (see .linkpreview-url's ellipsis) rather than
     // wrapping every character of a long query string into a wall of
-    // text — the full address is still available via this native
-    // tooltip, just not force-displayed up front.
-    urlLine.title = url;
+    // text. Deliberately no title attribute here — that's exactly the
+    // wall of text this card exists to avoid, just relocated into a
+    // second, native tooltip stacked on top of this designed one instead
+    // of gone. The full address is already visible in the card's own DOM
+    // (this span's textContent), just off-screen past the ellipsis —
+    // good enough without resurrecting it as a hover-triggered popup.
     text.appendChild(domain);
     text.appendChild(urlLine);
     card.appendChild(icon);
@@ -5000,6 +5010,15 @@
     if(cell.querySelector(':scope > .loc')) return true;
     return !!cell.querySelector(':scope > .acts > li:not(.act-span-ghost)');
   }
+  // Narrower than cellHasContent — true only once there's a real
+  // activity, not just a location. A day with a location set but no
+  // activities yet (see the click-anywhere-to-add-an-activity handler in
+  // attachCellControls) should still let a click anywhere add the first
+  // one; cellHasContent alone would block that the moment a location
+  // exists, even with nothing under it.
+  function cellHasActivities(cell){
+    return !!cell.querySelector(':scope > .acts > li:not(.act-span-ghost)');
+  }
   // A ghost (a multi-day activity's read-only echo elsewhere) never
   // carries its own photo/ticket — the real attachment lives on its
   // start day, untouched by clearing this one — so only real activities
@@ -5219,19 +5238,23 @@
 
     dayMenuBtn.addEventListener('click', function(e){ e.stopPropagation(); openDayMenu(cell, dayMenuBtn); });
 
-    // Clicking anywhere in an empty day does the same thing as the tiny
-    // "+" — precisely targeting a ~20px icon-only button that only
-    // reveals itself on hover was needlessly fiddly for what's often the
-    // very first thing you do with a blank day. Only wired while the day
-    // is genuinely empty (cellHasContent false), re-checked on every
-    // click rather than cached, so this never hijacks a click meant for
-    // an existing location/activity the moment one gets added. .addloc
-    // is excluded deliberately — it doesn't stopPropagation, and its own
-    // job (a location with no activity yet) is a real, different choice
-    // from this one, not something this should silently upgrade.
+    // Clicking anywhere in a day with no activity yet does the same
+    // thing as the tiny "+" — precisely targeting a ~20px icon-only
+    // button that only reveals itself on hover was needlessly fiddly for
+    // what's often the very first thing you do with a day. Gated on
+    // cellHasActivities, not cellHasContent — a day that already has a
+    // location but nothing under it yet should still add its first
+    // activity on a click anywhere, not just once it's fully empty.
+    // Re-checked fresh on every click rather than cached, so this never
+    // hijacks a click meant for an existing activity the moment one gets
+    // added. .loc is excluded so a click there still starts editing the
+    // location name instead of adding an activity underneath it; .addloc
+    // is excluded because it doesn't stopPropagation, and its own job (a
+    // location with no activity yet) is a real, different choice from
+    // this one, not something this should silently upgrade.
     cell.addEventListener('click', function(e){
-      if(cellHasContent(cell)) return;
-      if(e.target.closest('.addloc, .dayaddbtn, .daymenu-btn')) return;
+      if(cellHasActivities(cell)) return;
+      if(e.target.closest('.addloc, .dayaddbtn, .daymenu-btn, .loc')) return;
       addActivityAndFocus();
     });
 
