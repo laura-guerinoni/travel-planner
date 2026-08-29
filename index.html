@@ -704,7 +704,7 @@
      background, since this is just "you are here", not a selectable
      state change like everywhere else .itemmenu-row shows up. */
   .itemmenu-row.current { font-weight:800; color:var(--primary); }
-  /* openInviteScopeMenu's own popover — checkbox rows instead of the
+  /* openAccessScopeMenu's own popover — checkbox rows instead of the
      usual single-click-and-close action rows, so it reuses .itemmenu-row
      for identical padding/hover but doesn't touch .itemmenu-row's own
      click-to-close behavior (that's wired per-row elsewhere; these rows
@@ -721,14 +721,21 @@
      and this popover has nowhere else to grow but down. */
   .invite-scope-pop { z-index:9999; max-height:min(360px, calc(100vh - 100px)); overflow-y:auto; }
   .invite-scope-heading { padding:4px 8px 6px; font-size:12px; color:var(--muted); font-weight:700; }
-  /* Groups the alternative rows under it — not its own checkbox, just a
-     label, since "All months" above already covers the shortcut of
-     wanting everything in one particular month too. */
-  .invite-scope-month-label { padding:6px 8px 2px; font-size:11px; color:var(--muted); font-weight:800;
+  /* Only appended past a handful of rows (see openAccessScopeMenu) —
+     plain text input, not .itemmenu-row, since it's not a click-to-act
+     row at all. */
+  .invite-scope-search { display:block; width:calc(100% - 16px); margin:0 8px 4px; padding:6px 8px;
+    border-radius:6px; border:1px solid var(--line); font-size:12px; font-family:inherit; }
+  /* Bold/uppercase like a section header even though it's a real
+     checkbox row (selects every alternative under it) — "All months"
+     above already covers the shortcut of wanting literally everything,
+     this one's scoped to just its own month. */
+  .invite-scope-month-row { font-size:11px; color:var(--muted); font-weight:800;
     text-transform:uppercase; letter-spacing:.03em; }
   .invite-scope-alt-row { padding-left:16px; }
   .invite-scope-row { gap:8px; cursor:pointer; }
   .invite-scope-row input[type="checkbox"] { flex:none; margin:0; }
+  .invite-scope-row input[type="checkbox"]:disabled { cursor:not-allowed; }
   .invite-scope-done { display:block; width:calc(100% - 8px); margin:4px; padding:7px 0; border:none;
     border-radius:6px; background:var(--primary); color:#fff; font-weight:700; font-size:13px; cursor:pointer; }
   /* Every row's leading icon/glyph — a real SVG (ticket/photo, reusing
@@ -2165,6 +2172,8 @@
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       manage_delete_member: 'Delete member',
       invite_scope_heading: 'Which months should they see?', invite_scope_done: 'Done',
+      manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
+      invite_scope_open_hint: 'Open to everyone — can’t be removed here',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
@@ -2196,6 +2205,8 @@
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       manage_delete_member: 'Elimina membro',
       invite_scope_heading: 'Quali mesi dovrebbero vedere?', invite_scope_done: 'Fatto',
+      manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
+      invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
@@ -2227,6 +2238,8 @@
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       manage_delete_member: 'Eliminar miembro',
       invite_scope_heading: '¿Qué meses deberían ver?', invite_scope_done: 'Listo',
+      manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
+      invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
@@ -3181,6 +3194,14 @@
         console.warn('Promote member failed', err);
       }).then(renderMemberList);
     });
+    // Reuses the exact same picker offered right after a fresh invite
+    // (see openAccessScopeMenu) — the only difference is that this time
+    // each row starts checked/unchecked from whatever access the person
+    // already has, instead of starting empty, and "Done" can remove
+    // access as well as grant it.
+    addRow(icon('👁') + t('manage_edit_access'), function(){
+      openAccessScopeMenu(member.key, anchorEl);
+    });
     addRow(icon(ICON_TRASH) + t('manage_delete_member'), function(){
       if(manageErrorEl) manageErrorEl.textContent = '';
       firebase.database().ref('members/' + member.key).remove().catch(function(err){
@@ -3204,15 +3225,19 @@
     return pillName ? pillName.textContent.trim() : (panel.id || 'Untitled');
   }
 
-  // Offered once, right after a fresh invite succeeds (see manageForm's
-  // submit handler) — see that handler's own comment for why. Lists
-  // individual alternatives, not just months — someone might want a new
-  // member seeing "1.Poland" but not the pricier "Slovakia · Hungary ·
-  // Poland" alternative for the same days, same as an owner can already
-  // choose per-month via the segment's own Share row. Only covers
-  // months/alternatives that exist today; anything created afterward
-  // still needs its own creator to share it, same as always.
-  function openInviteScopeMenu(memberKey, anchorEl){
+  // Shared by two entry points: right after a fresh invite succeeds
+  // (see manageForm's submit handler), where every row naturally starts
+  // unchecked since a brand-new member has no access anywhere yet, and
+  // from an existing member row's own "⋯" menu (see openMemberRowMenu),
+  // where rows start reflecting whatever access they already have and
+  // "Done" can remove it as well as grant it. Lists individual
+  // alternatives, not just months — someone might see "1.Poland" but
+  // not the pricier "Slovakia · Hungary · Poland" alternative for the
+  // same days, same as an owner can already choose per-month via the
+  // segment's own Share row. Only covers months/alternatives that exist
+  // today; anything created afterward still needs its own creator to
+  // share it, same as always.
+  function openAccessScopeMenu(memberKey, anchorEl){
     closePop();
     var monthsByKey = {}, order = [];
     document.querySelectorAll('.panel').forEach(function(panel){
@@ -3224,6 +3249,8 @@
     var months = order.map(function(key){ return monthsByKey[key]; });
     if(!months.length) return;
 
+    var totalAlts = months.reduce(function(n, m){ return n + m.panels.length; }, 0);
+
     var pop = document.createElement('div');
     pop.className = 'itemmenu invite-scope-pop';
 
@@ -3232,19 +3259,18 @@
     heading.textContent = t('invite_scope_heading');
     pop.appendChild(heading);
 
-    function grant(panelList){
-      panelList.forEach(function(panel){
-        var members = getOptionMembers(panel);
-        if(members.indexOf(memberKey) === -1){
-          members.push(memberKey);
-          setOptionMembers(panel, members);
-        }
-      });
-      // data-members isn't in MO_OPTS's attributeFilter (unlike
-      // data-year/data-month, which happen to piggyback an autosave for
-      // free whenever they're set) — this has to trigger one explicitly.
-      scheduleAutoSave();
-      scheduleUndoSnapshot();
+    // Only past a handful of rows — a plan with 2-3 months and one
+    // alternative each doesn't need a search box competing for
+    // attention, but one with a full year and several alternatives per
+    // month easily runs to 20-30 rows, where scrolling to find one by
+    // eye stops being reasonable.
+    var searchInput = null;
+    if(totalAlts > 6){
+      searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'invite-scope-search';
+      searchInput.placeholder = t('invite_scope_filter_placeholder');
+      pop.appendChild(searchInput);
     }
 
     var allLabel = document.createElement('label');
@@ -3257,34 +3283,105 @@
     pop.appendChild(allLabel);
 
     var altRows = [];
-    months.forEach(function(m){
-      var monthLabel = document.createElement('div');
-      monthLabel.className = 'invite-scope-month-label';
-      monthLabel.textContent = formatMonthLabel(m.year, m.month, months.length);
+    var monthGroups = months.map(function(m){
+      var monthLabel = document.createElement('label');
+      monthLabel.className = 'itemmenu-row invite-scope-row invite-scope-month-row';
+      var monthCb = document.createElement('input');
+      monthCb.type = 'checkbox';
+      var monthText = document.createElement('span');
+      monthText.textContent = formatMonthLabel(m.year, m.month, months.length);
+      monthLabel.appendChild(monthCb); monthLabel.appendChild(monthText);
       pop.appendChild(monthLabel);
-      m.panels.forEach(function(panel){
+
+      var ownRows = m.panels.map(function(panel){
         var label = document.createElement('label');
         label.className = 'itemmenu-row invite-scope-row invite-scope-alt-row';
         var cb = document.createElement('input');
         cb.type = 'checkbox';
+        // An empty/missing member list means "visible to everyone" (see
+        // canSeeOption) — that's a real access state this person
+        // already has, so the row starts checked to say so honestly,
+        // but it's disabled: this UI can only edit an *explicit* list,
+        // and turning that checkbox off would have to either narrow the
+        // month to just the people explicitly listed (removing access
+        // from every other current member too, not just this one) or
+        // silently do nothing — neither is what unchecking one person's
+        // row should mean.
+        var existingMembers = getOptionMembers(panel);
+        var isOpenToAll = existingMembers.length === 0;
+        var initialChecked = isOpenToAll || existingMembers.indexOf(memberKey) !== -1;
+        cb.checked = initialChecked;
+        if(isOpenToAll){
+          cb.disabled = true;
+          cb.title = t('invite_scope_open_hint');
+        }
         var text = document.createElement('span');
-        text.textContent = altNameFor(panel);
+        var altName = altNameFor(panel);
+        text.textContent = altName;
         label.appendChild(cb); label.appendChild(text);
         pop.appendChild(label);
-        altRows.push({ cb: cb, panel: panel });
+        var row = { cb: cb, panel: panel, label: label, isOpenToAll: isOpenToAll, initialChecked: initialChecked,
+          searchText: (monthText.textContent + ' ' + altName).toLowerCase() };
+        altRows.push(row);
+        return row;
       });
+
+      // Checking a month's own box is shorthand for every alternative
+      // in it, not a separate third state alongside them — and the
+      // reverse (unchecking one alternative un-checks the shorthand,
+      // landing on indeterminate if some but not all are still checked)
+      // keeps the box honest about what's actually selected underneath
+      // it, the same way a native "select all" checkbox would. Only
+      // ever toggles the rows this menu can actually edit — an
+      // open-to-everyone row's own disabled checkbox doesn't move.
+      monthCb.addEventListener('change', function(){
+        ownRows.forEach(function(r){ if(!r.isOpenToAll) r.cb.checked = monthCb.checked; });
+      });
+      function syncMonthCb(){
+        var checkedCount = ownRows.filter(function(r){ return r.cb.checked; }).length;
+        monthCb.checked = checkedCount === ownRows.length;
+        monthCb.indeterminate = checkedCount > 0 && checkedCount < ownRows.length;
+      }
+      ownRows.forEach(function(r){ r.cb.addEventListener('change', syncMonthCb); });
+      syncMonthCb();
+
+      return { label: monthLabel, cb: monthCb, rows: ownRows };
     });
 
     // Checking "All months" is a stand-in for every individual box, not
     // an extra option alongside them — greying the rest out says that
     // plainly instead of leaving it ambiguous what happens if both ever
-    // ended up checked at once.
+    // ended up checked at once. Starts checked itself only if every row
+    // already reads as checked (including open-to-everyone ones).
+    allCb.checked = altRows.length > 0 && altRows.every(function(r){ return r.cb.checked; });
+    allCb.indeterminate = !allCb.checked && altRows.some(function(r){ return r.cb.checked; });
     allCb.addEventListener('change', function(){
+      monthGroups.forEach(function(g){
+        g.cb.disabled = allCb.checked;
+        if(allCb.checked){ g.cb.checked = false; g.cb.indeterminate = false; }
+      });
       altRows.forEach(function(r){
+        if(r.isOpenToAll) return;
         r.cb.disabled = allCb.checked;
         if(allCb.checked) r.cb.checked = false;
       });
     });
+
+    if(searchInput){
+      searchInput.addEventListener('click', function(e){ e.stopPropagation(); });
+      searchInput.addEventListener('input', function(){
+        var q = searchInput.value.trim().toLowerCase();
+        monthGroups.forEach(function(g){
+          var anyVisible = false;
+          g.rows.forEach(function(r){
+            var match = !q || r.searchText.indexOf(q) !== -1;
+            r.label.style.display = match ? '' : 'none';
+            if(match) anyVisible = true;
+          });
+          g.label.style.display = anyVisible ? '' : 'none';
+        });
+      });
+    }
 
     var doneBtn = document.createElement('button');
     doneBtn.type = 'button';
@@ -3292,11 +3389,29 @@
     doneBtn.textContent = t('invite_scope_done');
     doneBtn.addEventListener('click', function(e){
       e.stopPropagation();
-      if(allCb.checked){
-        grant(altRows.map(function(r){ return r.panel; }));
-      } else {
-        var chosen = altRows.filter(function(r){ return r.cb.checked; }).map(function(r){ return r.panel; });
-        if(chosen.length) grant(chosen);
+      var changed = false;
+      altRows.forEach(function(r){
+        if(r.isOpenToAll) return;
+        // "All months" checked reads as every row wanting to be
+        // checked, same as if each had been ticked by hand — but only
+        // actually touches a row whose end state differs from where it
+        // started, so clicking Done without changing anything (or with
+        // "All months" already matching reality) never rewrites
+        // data-members it didn't need to.
+        var wantChecked = allCb.checked || r.cb.checked;
+        if(wantChecked === r.initialChecked) return;
+        var members = getOptionMembers(r.panel);
+        var has = members.indexOf(memberKey) !== -1;
+        if(wantChecked && !has){ members.push(memberKey); setOptionMembers(r.panel, members); changed = true; }
+        else if(!wantChecked && has){ members.splice(members.indexOf(memberKey), 1); setOptionMembers(r.panel, members); changed = true; }
+      });
+      if(changed){
+        // data-members isn't in MO_OPTS's attributeFilter (unlike
+        // data-year/data-month, which happen to piggyback an autosave
+        // for free whenever they're set) — this has to trigger one
+        // explicitly.
+        scheduleAutoSave();
+        scheduleUndoSnapshot();
       }
       closePop();
     });
@@ -3412,7 +3527,7 @@
         // separately opened every month they should have and added them
         // there one at a time.
         var inviteBtn = manageForm.querySelector('button[type="submit"]');
-        if(inviteBtn) openInviteScopeMenu(newKey, inviteBtn);
+        if(inviteBtn) openAccessScopeMenu(newKey, inviteBtn);
       }).catch(function(err){
         if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t invite ' + email + ' — try again.';
         console.warn('Invite failed', err);
