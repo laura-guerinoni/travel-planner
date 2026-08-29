@@ -431,7 +431,11 @@
     line-height:18px; padding:0; cursor:pointer; }
   .seg-add { top:4px; }
   .seg-remove { bottom:4px; color:#d9534f; }
-  .month-segment:hover .seg-add, .month-segment:hover .seg-remove { display:block; }
+  .month-segment:hover .seg-add { display:block; }
+  /* Deleting a whole month (unlike adding one, which stays open to every
+     member) is owner-only — see body.owner-mode, toggled once the
+     signed-in member's role is known. */
+  body.owner-mode .month-segment:hover .seg-remove { display:block; }
 
   /* !important because a later, equal-or-higher-specificity rule (.pill's
      own display:inline-flex, .budget li's own display:flex) would
@@ -516,7 +520,10 @@
   .pill-remove { display:inline-block; visibility:hidden; font-size:13px; line-height:1;
     opacity:.75; padding:0 2px; border-radius:4px; }
   .pill-remove:hover { opacity:1; background:rgba(0,0,0,.12); }
-  .pill:hover .pill-remove { visibility:visible; }
+  /* Deleting an alternative is owner-only, same as deleting a whole
+     month (see body.owner-mode next to .seg-remove) — an invited member
+     never sees the × at all, not even on hover. */
+  body.owner-mode .pill:hover .pill-remove { visibility:visible; }
   /* Plain icon, no bubble/background — same weight as the calendar's own
      day numbers (var(--ink)), since this is a secondary action next to the
      pills, not another pill-like choice competing with them. */
@@ -1311,7 +1318,7 @@
 <div id="clearDayConfirmPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
-      <h2 data-i18n="cleardaytk_title">Clear this day?</h2>
+      <h2 id="clearDayConfirmTitle" data-i18n="cleardaytk_title">Clear this day?</h2>
       <button type="button" id="clearDayConfirmCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
     <p id="clearDayConfirmMsg" data-i18n="cleardaytk_msg">This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.</p>
@@ -2069,6 +2076,12 @@
         firebase.database().ref('members/' + currentUserKey).once('value').then(function(snap){
           var role = snap.val();
           currentUserRole = role;
+          // Gates a handful of destructive, owner-only controls (see
+          // .seg-remove/.pill-remove) that have no per-role Firebase rule
+          // of their own to fall back on — /plan's write rule is the same
+          // for every member, so this is UI-level only, same tradeoff
+          // already made for per-month participants.
+          document.body.classList.toggle('owner-mode', role === 'owner');
           if(role !== 'owner' && role !== 'invited'){
             hideMemberPanel();
             showAuthGate('denied', 'Signed in as ' + (currentUserEmail || 'unknown') + ' — that account isn’t on the list for this plan.');
@@ -6075,6 +6088,12 @@
   }
 
   function removeMonth(year, month){
+    // Belt and suspenders alongside body.owner-mode hiding .seg-remove
+    // entirely — this is still only a UI-level restriction (see the
+    // comment where owner-mode gets toggled), not enforced by a Firebase
+    // rule, but there's no reason to skip the equally-cheap client-side
+    // check here too.
+    if(currentUserRole !== 'owner') return;
     var opts = [];
     document.querySelectorAll('.panel').forEach(function(panel){
       var d = getPanelDate(panel);
@@ -6086,23 +6105,29 @@
       return;
     }
     var label = formatMonthLabel(year, month, 1);
-    if(!window.confirm('Remove ' + label + ' and all ' + opts.length + ' alternative(s) in it? This can\'t be undone.')) return;
-    opts.forEach(function(opt){
-      var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
-      var panel = document.getElementById('panel-' + opt);
-      var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
-      if(pill) pill.remove();
-      if(panel) panel.remove();
-      if(budgetLi) budgetLi.remove();
+    openTypeConfirmModal({
+      title: 'Delete this month?',
+      message: 'This will delete ' + label + ' and all ' + opts.length + ' alternative(s) in it. This can\'t be undone.',
+      confirmLabel: 'Delete month',
+      onConfirm: function(){
+        opts.forEach(function(opt){
+          var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+          var panel = document.getElementById('panel-' + opt);
+          var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+          if(pill) pill.remove();
+          if(panel) panel.remove();
+          if(budgetLi) budgetLi.remove();
+        });
+        var firstPill = document.querySelector('.pill[data-opt]');
+        if(firstPill && !document.querySelector('.pill[data-opt].on')){
+          firstPill.classList.add('on');
+          document.getElementById('panel-' + firstPill.getAttribute('data-opt')).classList.add('on');
+        }
+        renderMonthSidebar();
+        var activePanel = document.querySelector('.panel.on');
+        if(activePanel){ var d = getPanelDate(activePanel); filterPillsByMonth(d.year, d.month); }
+      }
     });
-    var firstPill = document.querySelector('.pill[data-opt]');
-    if(firstPill && !document.querySelector('.pill[data-opt].on')){
-      firstPill.classList.add('on');
-      document.getElementById('panel-' + firstPill.getAttribute('data-opt')).classList.add('on');
-    }
-    renderMonthSidebar();
-    var activePanel = document.querySelector('.panel.on');
-    if(activePanel){ var d = getPanelDate(activePanel); filterPillsByMonth(d.year, d.month); }
   }
 
   function openMonthPickerPopover(anchorEl, year, month, applyLabel, onApply){
@@ -6312,24 +6337,46 @@
   document.addEventListener('click', function(e){
     var rm = e.target.closest('.pill-remove');
     if(!rm) return;
+    // Belt and suspenders alongside body.owner-mode hiding this ×
+    // entirely — see removeMonth's matching check for the same reasoning.
+    if(currentUserRole !== 'owner') return;
     var pill = rm.closest('.pill');
     var pills = document.querySelectorAll('.pill[data-opt]');
     if(pills.length <= 1) return;
     var opt = pill.getAttribute('data-opt');
-    var panel = document.getElementById('panel-' + opt);
-    var wasOn = pill.classList.contains('on');
-    pill.remove();
-    if(panel) panel.remove();
-    var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
-    if(budgetLi) budgetLi.remove();
-    if(wasOn){
-      var firstPill = document.querySelector('.pill[data-opt]');
-      if(firstPill){
-        firstPill.classList.add('on');
-        var firstPanel = document.getElementById('panel-' + firstPill.getAttribute('data-opt'));
-        if(firstPanel) firstPanel.classList.add('on');
+    var nameEl = pill.querySelector('.pill-name');
+    var name = nameEl ? nameEl.textContent : 'this alternative';
+    // Deleting an alternative used to happen the instant this "x" was
+    // clicked, no confirmation at all — a single misclick lost everything
+    // in it with zero friction, unlike every other destructive action in
+    // the app (see openTypeConfirmModal). Same modal, same word, as
+    // clearing a day or deleting a whole month.
+    openTypeConfirmModal({
+      title: 'Delete this alternative?',
+      message: 'This will delete "' + name + '" and everything in it. This can\'t be undone.',
+      confirmLabel: 'Delete alternative',
+      onConfirm: function(){
+        var panel = document.getElementById('panel-' + opt);
+        var wasOn = pill.classList.contains('on');
+        pill.remove();
+        if(panel) panel.remove();
+        var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+        if(budgetLi) budgetLi.remove();
+        if(wasOn){
+          var firstPill = document.querySelector('.pill[data-opt]');
+          if(firstPill){
+            firstPill.classList.add('on');
+            var firstPanel = document.getElementById('panel-' + firstPill.getAttribute('data-opt'));
+            if(firstPanel) firstPanel.classList.add('on');
+          }
+        }
+        // Re-derives the month sidebar (a deleted alternative could have
+        // been the last one for its month) — nothing else on this path
+        // did before, a real pre-existing gap this happened to surface
+        // while already touching this handler.
+        renderMonthSidebar();
       }
-    }
+    });
   });
 
   // ---- initial attach (also reused after an undo/redo restore, since
@@ -6633,39 +6680,66 @@
     document.body.classList.remove('print-list');
   });
 
-  // ---- clear-day confirmation: only shown when the day being cleared
-  // actually has a photo/ticket attached (see cellHasAttachments) — an
-  // empty or plain-text day still clears on the first click, same as
-  // before. Typing the exact digits (not just an OK/Cancel) is
-  // deliberately more friction than a normal confirm() for an action
-  // that's otherwise a single accidental click away from losing an
-  // attachment that can't be recovered from within the app. ----
-  var clearDayConfirmPanel = document.getElementById('clearDayConfirmPanel');
-  var clearDayConfirmInput = document.getElementById('clearDayConfirmInput');
-  var clearDayConfirmBtn = document.getElementById('clearDayConfirmBtn');
-  var clearDayConfirmCloseX = document.getElementById('clearDayConfirmCloseX');
-  var pendingClearCell = null;
-  function closeClearDayConfirm(){
-    pendingClearCell = null;
-    if(clearDayConfirmPanel) clearDayConfirmPanel.classList.remove('show');
+  // ---- type-to-confirm modal: shared by every destructive action this
+  // app can't undo through normal editing — clearing a day that actually
+  // has a photo/ticket attached (see cellHasAttachments — an empty or
+  // plain-text day still clears on the first click, no confirmation
+  // needed), deleting an alternative, deleting a whole month. Typing the
+  // exact digits (not just an OK/Cancel, and not a plain confirm()) is
+  // deliberately more friction than a single accidental click for
+  // something that can't be recovered from within the app. Originally
+  // built just for clear-day (the element IDs still say so); generalized
+  // in place rather than duplicating the same panel/logic three times. ----
+  var typeConfirmPanel = document.getElementById('clearDayConfirmPanel');
+  var typeConfirmTitleEl = document.getElementById('clearDayConfirmTitle');
+  var typeConfirmMsgEl = document.getElementById('clearDayConfirmMsg');
+  var typeConfirmInput = document.getElementById('clearDayConfirmInput');
+  var typeConfirmBtn = document.getElementById('clearDayConfirmBtn');
+  var typeConfirmCloseX = document.getElementById('clearDayConfirmCloseX');
+  var pendingConfirmWord = null;
+  var pendingConfirmAction = null;
+  function closeTypeConfirmModal(){
+    pendingConfirmWord = null;
+    pendingConfirmAction = null;
+    if(typeConfirmPanel) typeConfirmPanel.classList.remove('show');
   }
+  // opts: { title, message, confirmLabel, word (defaults to '1111'),
+  // onConfirm }.
+  function openTypeConfirmModal(opts){
+    pendingConfirmWord = opts.word || '1111';
+    pendingConfirmAction = opts.onConfirm;
+    if(typeConfirmTitleEl) typeConfirmTitleEl.textContent = opts.title;
+    if(typeConfirmMsgEl) typeConfirmMsgEl.textContent = opts.message;
+    if(typeConfirmInput){ typeConfirmInput.value = ''; typeConfirmInput.placeholder = pendingConfirmWord; }
+    if(typeConfirmBtn){ typeConfirmBtn.disabled = true; typeConfirmBtn.textContent = opts.confirmLabel; }
+    if(typeConfirmPanel) typeConfirmPanel.classList.add('show');
+    if(typeConfirmInput) typeConfirmInput.focus();
+  }
+  if(typeConfirmInput) typeConfirmInput.addEventListener('input', function(){
+    if(typeConfirmBtn) typeConfirmBtn.disabled = typeConfirmInput.value !== pendingConfirmWord;
+  });
+  if(typeConfirmBtn) typeConfirmBtn.addEventListener('click', function(){
+    if(!pendingConfirmAction || typeConfirmInput.value !== pendingConfirmWord) return;
+    var action = pendingConfirmAction;
+    closeTypeConfirmModal();
+    action();
+  });
+  if(typeConfirmCloseX) typeConfirmCloseX.addEventListener('click', closeTypeConfirmModal);
+  // Discards the pending (still-unconfirmed) action, same as clicking
+  // the X — never treated as confirming it.
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && typeConfirmPanel && typeConfirmPanel.classList.contains('show')){
+      closeTypeConfirmModal();
+    }
+  });
   function openClearDayConfirm(cell){
-    pendingClearCell = cell;
-    if(clearDayConfirmInput) clearDayConfirmInput.value = '';
-    if(clearDayConfirmBtn) clearDayConfirmBtn.disabled = true;
-    if(clearDayConfirmPanel) clearDayConfirmPanel.classList.add('show');
-    if(clearDayConfirmInput) clearDayConfirmInput.focus();
+    openTypeConfirmModal({
+      title: t('cleardaytk_title'),
+      message: t('cleardaytk_msg'),
+      confirmLabel: t('cleardaytk_confirm'),
+      onConfirm: function(){ doClearDay(cell); }
+    });
   }
-  if(clearDayConfirmInput) clearDayConfirmInput.addEventListener('input', function(){
-    if(clearDayConfirmBtn) clearDayConfirmBtn.disabled = clearDayConfirmInput.value !== '1111';
-  });
-  if(clearDayConfirmBtn) clearDayConfirmBtn.addEventListener('click', function(){
-    if(!pendingClearCell || clearDayConfirmInput.value !== '1111') return;
-    var cell = pendingClearCell;
-    closeClearDayConfirm();
-    doClearDay(cell);
-  });
-  if(clearDayConfirmCloseX) clearDayConfirmCloseX.addEventListener('click', closeClearDayConfirm);
 
   // ---- mobile floating "+" — opens a small modal asking which day to add
   // the activity to (defaulting to whichever day is currently at the top
