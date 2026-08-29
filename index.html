@@ -603,20 +603,21 @@
      long as something inside it still held focus. */
   .cell:hover .addloc { display:block; }
   .cell:has(> .loc) .addloc { display:none; }
-  /* Day-level "..."/"+" controls, sitting right after the weekday label in
-     .cellhead (that space freed up once the total moved down into .loc —
-     see above) — .cellhead's own flex gap is what spaces them, not a
-     margin of their own, so they sit flush with no extra offset. Same
-     hidden-until-hover, stays-visible-while-its-own-popover-is-open
-     language as .itemmenu-btn on an activity row (down to matching its
-     border-radius exactly), just smaller and icon-only, and with no
-     background at rest — only on hover/while open; .daymenu-btn
-     additionally only shows once there's something on the day worth
-     clearing/moving (.has-content), same gating the old inline trash
-     button had. */
+  /* Day-level "..."/"+" controls — pinned to .cellhead's right edge via
+     margin-left:auto on the first of the two (.daymenu-btn, appended
+     before .dayaddbtn in attachCellControls), which pushes it and every
+     flex sibling after it to the end of the row while .daynum/.wd stay
+     put on the left. Same hidden-until-hover, stays-visible-while-its-
+     own-popover-is-open language as .itemmenu-btn on an activity row
+     (down to matching its border-radius exactly), just smaller and
+     icon-only, and with no background at rest — only on hover/while
+     open; .daymenu-btn additionally only shows once there's something on
+     the day worth clearing/moving (.has-content), same gating the old
+     inline trash button had. */
   .dayaddbtn, .daymenu-btn { visibility:hidden; display:inline-flex; align-items:center; justify-content:center;
     flex:0 0 20px; width:20px; height:20px; border:none; border-radius:6px;
     background:none; color:var(--ink); padding:0; cursor:pointer; }
+  .daymenu-btn { margin-left:auto; }
   .dayaddbtn svg, .daymenu-btn svg { width:12px; height:12px; display:block; }
   .cell:hover .dayaddbtn { visibility:visible; }
   .dayaddbtn:hover { background:var(--primary); color:#fff; }
