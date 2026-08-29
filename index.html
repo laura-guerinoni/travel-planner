@@ -98,8 +98,15 @@
      keeping the empty space either side of the pill's real content
      (name + price) visually even even though only one side ever shows
      something on hover. */
+  /* Top/bottom padding equal (10px each) — align-items:center on the
+     flex rule below centers the name/dates/price row within this
+     content box, so an unequal top vs bottom here shifts that whole row
+     off the pill's true visual center by the difference, even though the
+     three elements stay correctly centered *relative to each other*.
+     Left/right stay asymmetric on purpose (see the comment above) to
+     visually balance the hover-only × button's reserved space. */
   .pill { cursor:pointer; font:inherit; font-size:14px; font-weight:600; border:1px solid var(--line);
-    background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:9px 6px 11px 24px; }
+    background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:10px 6px 10px 24px; }
   .pill span { opacity:.7; font-weight:700; }
   /* Same small-badge treatment as each day's own total, rather than
      plain dimmed text — a price reads as its own piece of information
@@ -408,8 +415,31 @@
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
      showing between them. Flat, no drop shadow. */
+  /* flex:1 1 0 below stretches segments to fill the sidebar's fixed
+     height when there are few of them — fine on its own, but once each
+     segment's own min-height floor (64px) × how many months exist
+     exceeds that fixed height, flexbox stops shrinking them further and
+     the extra segments simply spilled past the bottom of the viewport
+     with no way to reach them at all. overflow-y turns that into a
+     scrollable list past that point instead — segments still stretch to
+     fill when there's room, exactly as before, only the "too many to
+     fit" case actually changes. */
   .month-sidebar { position:fixed; left:0; top:28px; width:46px; z-index:30; display:flex;
-    flex-direction:column; gap:14px; height:calc(100vh - 56px); }
+    flex-direction:column; gap:14px; height:calc(100vh - 56px); overflow-y:auto; overflow-x:hidden; }
+  /* A full calendar year is already 12 tabs — close to what comfortably
+     fits without scrolling on its own — so this is the main lever
+     against sidebar overflow, with archiving and the scroll above as
+     backup for whatever's still too much within one year. The sidebar's
+     own first flex child, not a separate fixed element like the archived
+     toggle below — it should scroll away with the rest if the list
+     itself ever needed to, unlike the toggle, which has to stay
+     reachable regardless of scroll position. */
+  .month-year-switcher { flex:none; display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:6px 0 2px; color:var(--muted); }
+  .month-year-switcher button { border:none; background:none; color:var(--muted); cursor:pointer;
+    font-size:13px; line-height:1; padding:2px; }
+  .month-year-switcher button:disabled { opacity:.3; cursor:default; }
+  .month-year-switcher .yr-label { font-size:11px; font-weight:800; letter-spacing:.04em; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
     border-radius:0 16px 16px 0; }
@@ -426,24 +456,54 @@
   }
   .seg-label { color:#fff; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
     font-weight:800; font-size:14px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
-  .seg-add, .seg-remove, .seg-notes { display:none; position:absolute; left:50%; transform:translateX(-50%); width:18px; height:18px;
-    border-radius:50%; border:none; background:rgba(255,255,255,.9); color:var(--ink); font-weight:800; font-size:12px;
-    line-height:18px; padding:0; cursor:pointer; }
-  .seg-add { top:4px; }
+  /* .seg-add/.seg-archive pair up top (left/right of the same row — see
+     below), .seg-notes stays centered, .seg-remove stays at the bottom —
+     four controls in a 46px-wide strip, so add/archive give up the
+     centered-circle treatment the other two keep and sit side by side
+     instead. */
+  .seg-add, .seg-remove, .seg-notes, .seg-archive { display:none; position:absolute; width:18px; height:18px;
+    align-items:center; justify-content:center; border-radius:50%; border:none;
+    background:rgba(255,255,255,.9); color:var(--ink); font-weight:800; font-size:12px; padding:0; cursor:pointer; }
+  .seg-add { top:4px; left:4px; }
+  .seg-archive { top:4px; right:4px; }
+  .seg-archive svg { width:11px; height:11px; }
   /* Vertically centered — the third icon in this narrow strip, between
-     .seg-add (top) and .seg-remove (bottom). */
-  .seg-notes { top:50%; margin-top:-9px; font-size:11px; }
-  .seg-remove { bottom:4px; color:#d9534f; }
-  .month-segment:hover .seg-add { display:block; }
+     the top row (add/archive) and .seg-remove (bottom). */
+  .seg-notes { top:50%; left:50%; transform:translate(-50%, -50%); font-size:11px; }
+  .seg-remove { bottom:4px; left:50%; transform:translateX(-50%); color:#d9534f; }
+  .month-segment:hover .seg-add, .month-segment:hover .seg-archive { display:flex; }
   /* Same hover-reveal as .seg-add, but also stays visible once notes
      actually exist (same gating language as .daymenu-btn.has-content) —
      a month that already has notes should show *some* sign of that even
      before hovering, not just on discovery. */
-  .month-segment:hover .seg-notes, .seg-notes.has-notes { display:block; }
+  .month-segment:hover .seg-notes, .seg-notes.has-notes { display:flex; }
   /* Deleting a whole month (unlike adding one, which stays open to every
      member) is owner-only — see body.owner-mode, toggled once the
      signed-in member's role is known. */
-  body.owner-mode .month-segment:hover .seg-remove { display:block; }
+  body.owner-mode .month-segment:hover .seg-remove { display:flex; }
+  /* Marks a month you created, at rest — shares .seg-add's corner and
+     hides the moment that (hover-only) button needs it instead, so
+     there's nothing to actually collide with. No counterpart badge for
+     an invited month; its absence already says that on its own. */
+  .seg-mine-badge { position:absolute; top:5px; left:5px; width:12px; height:12px; color:rgba(255,255,255,.9); pointer-events:none; }
+  .month-segment:hover .seg-mine-badge { display:none; }
+  /* Persistent, not one of the sidebar's own scrolling flex children (see
+     #monthArchivedToggle's own comment) — same tab shape/width as a
+     .month-segment so it reads as part of the same stack, just anchored
+     below it regardless of scroll position. Hidden via JS (not CSS)
+     until there's actually at least one archived month to show. */
+  .month-archived-toggle { display:none; position:fixed; left:0; bottom:8px; width:46px; height:40px; z-index:30;
+    border:none; border-radius:0 12px 12px 0; background:var(--card); color:var(--muted); font-size:10px;
+    font-weight:800; letter-spacing:.04em; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.15); }
+  .month-archived-toggle.show { display:block; }
+  .month-archived-panel { display:none; position:fixed; left:50px; bottom:8px; z-index:31; background:var(--card);
+    border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.2); padding:8px; min-width:180px; max-height:60vh; overflow-y:auto; }
+  .month-archived-panel.show { display:block; }
+  .month-archived-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 10px; border-radius:8px; font-size:13px; }
+  .month-archived-row:hover { background:var(--bg); }
+  .month-archived-row button { border:none; background:none; color:var(--primary); font-size:12px;
+    font-weight:700; cursor:pointer; padding:2px 4px; }
 
   /* !important because a later, equal-or-higher-specificity rule (.pill's
      own display:inline-flex, .budget li's own display:flex) would
@@ -1019,7 +1079,9 @@
        opposite edge from before, so the rounded corners point the
        opposite way too (same "rounded at the edge pointing away from
        what it's attached to" idea as the month segments). */
-    .pill { font-size: 13px; padding: 8px 12px 10px; border-radius:12px 12px 0 0; }
+    /* Top/bottom equal (9px each), not the 8/10 split this had — same
+       centering reasoning as the desktop rule's own comment. */
+    .pill { font-size: 13px; padding: 9px 12px; border-radius:12px 12px 0 0; }
     .pill.on::after { top:4px; bottom:0; border-radius:9px 9px 0 0;
       border-top:2px dashed rgba(255,255,255,.85); border-bottom:none; }
     /* Its own "add alternative"/"add holiday period" menu moved into the
@@ -1486,6 +1548,13 @@
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
+<!-- Fixed below the (independently scrolling) sidebar itself, not one of
+     its own flex children — stays reachable regardless of scroll
+     position once there are enough months to need it. Built/shown by
+     renderMonthSidebar; jsctl so it disappears from print/export like
+     every other piece of chrome. -->
+<button type="button" id="monthArchivedToggle" class="month-archived-toggle jsctl" title="Show archived months"></button>
+<div id="monthArchivedPanel" class="month-archived-panel"></div>
 <div class="pills-gapfill" aria-hidden="true"></div>
 <div class="wrap">
   <header>
@@ -4082,6 +4151,53 @@
     if(!members.length) return true;
     return members.indexOf(currentUserKey) !== -1;
   }
+
+  // ---- per-viewer sidebar archiving: deliberately separate from
+  // data-members/canSeeOption above, not built on top of it — that
+  // mechanism has the owner always seeing everything regardless of its
+  // list *on purpose* (so narrowing a month's participants can never
+  // accidentally lock the account managing it out of its own trip), and
+  // archiving needs exactly the opposite: an explicit, deliberate
+  // self-hide that works identically for the owner and everyone else.
+  // Reusing data-members for this would have meant either breaking that
+  // protection or having archiving silently not work for owners. Purely
+  // about sidebar declutter — doesn't affect canSeeOption, the pills bar,
+  // or anything else; an archived month's data is entirely untouched,
+  // only your own tab list is. ----
+  function getArchivedBy(panel){
+    try{ var v = JSON.parse(panel.getAttribute('data-archived-by') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setArchivedBy(panel, keys){
+    if(keys && keys.length) panel.setAttribute('data-archived-by', JSON.stringify(keys));
+    else panel.removeAttribute('data-archived-by');
+  }
+  function isArchivedForMe(panel){
+    if(!panel || !currentUserKey) return false;
+    return getArchivedBy(panel).indexOf(currentUserKey) !== -1;
+  }
+  function setArchivedForMe(panel, archived){
+    if(!panel || !currentUserKey) return;
+    var keys = getArchivedBy(panel);
+    var idx = keys.indexOf(currentUserKey);
+    if(archived && idx === -1) keys.push(currentUserKey);
+    else if(!archived && idx !== -1) keys.splice(idx, 1);
+    setArchivedBy(panel, keys);
+  }
+  // Recorded once, at creation (see createOption) — never edited after,
+  // so it stays a reliable answer to "did I create this month, or was I
+  // invited to it" even once the member list has grown well past just
+  // the creator. A month from before this existed (no creator recorded
+  // at all) is treated as the global owner's, since that's who made
+  // every month before per-month creation was even a concept.
+  function getOptionCreator(panel){
+    return (panel && panel.getAttribute('data-creator')) || null;
+  }
+  function isMyOwnMonth(panel){
+    var creator = getOptionCreator(panel);
+    if(creator) return creator === currentUserKey;
+    return currentUserRole === 'owner';
+  }
   // Memoized: every activity's renderParticipants call (there can be many,
   // all firing during the same reattachAll() pass) shares one fetch
   // instead of one each. Pass forceRefresh to get current data — used by
@@ -4348,6 +4464,12 @@
   // ticket), not a scenic photo of the place.
   var ICON_TICKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>';
   var ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+  var ICON_ARCHIVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>';
+  // A small filled-star badge marking a month you created — deliberately
+  // no counterpart icon for "invited" months; its absence already says
+  // that on its own, and a second badge everywhere else would just be
+  // visual noise for what's actually the more common case.
+  var ICON_STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
   // Same "two people" glyph as the Manage access button itself, reused
   // for the item menu's Add/Edit participants row.
   var ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
@@ -6672,6 +6794,12 @@
     clone.removeAttribute('data-holiday-label');
     clone.removeAttribute('data-holidays');
     clone.removeAttribute('data-members');
+    // Both cloned straight from the template otherwise (cloneNode(true)
+    // copies every attribute) — this is a brand-new month with nobody
+    // having archived it yet, and a creator of its own, not the
+    // template's.
+    clone.removeAttribute('data-archived-by');
+    clone.removeAttribute('data-creator');
     clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.loc, .acts, .cost').forEach(function(n){ n.remove(); });
@@ -6684,8 +6812,13 @@
     // the creator extends that out to specific other members via the pill's
     // right-click menu (see openOptionMembersPicker). Skipped entirely in
     // local-file mode (no signed-in currentUserKey), where the whole
-    // member system doesn't apply.
-    if(currentUserKey) setOptionMembers(clone, [currentUserKey]);
+    // member system doesn't apply. data-creator is recorded regardless of
+    // that — it's just "who made this", used for the sidebar's mine/
+    // invited badge (see isMyOwnMonth), not an access-control decision.
+    if(currentUserKey){
+      setOptionMembers(clone, [currentUserKey]);
+      clone.setAttribute('data-creator', currentUserKey);
+    }
     var allPanels = document.querySelectorAll('.panel');
     allPanels[allPanels.length - 1].insertAdjacentElement('afterend', clone);
 
@@ -6998,6 +7131,15 @@
     filterPillsByMonth(d.year, d.month);
   }
 
+  // True once every day in the panel has neither a location nor a real
+  // activity — an alternative that's never actually been filled in,
+  // whether it's a fresh "New alternative" someone hasn't gotten to yet
+  // or one they tried and abandoned. Ghost rows (a multi-day activity's
+  // read-only echo from another day) don't count — they're not this
+  // panel's own content.
+  function panelIsEmpty(panel){
+    return !panel.querySelector(':scope > .grid.week > .cell > .loc, :scope > .grid.week > .cell > .acts > li:not(.act-span-ghost)');
+  }
   function removeMonth(year, month){
     // Belt and suspenders alongside body.owner-mode hiding .seg-remove
     // entirely — this is still only a UI-level restriction (see the
@@ -7006,39 +7148,46 @@
     // check here too.
     if(currentUserRole !== 'owner') return;
     var opts = [];
+    var panels = [];
     document.querySelectorAll('.panel').forEach(function(panel){
       var d = getPanelDate(panel);
-      if(d.year === year && d.month === month) opts.push(optOf(panel));
+      if(d.year === year && d.month === month){ opts.push(optOf(panel)); panels.push(panel); }
     });
     var totalOptions = document.querySelectorAll('.pill[data-opt]').length;
     if(opts.length >= totalOptions){
       window.alert("Can't remove the only month/alternative left.");
       return;
     }
+    function doRemove(){
+      opts.forEach(function(opt){
+        var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+        var panel = document.getElementById('panel-' + opt);
+        var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+        if(pill) pill.remove();
+        if(panel) cleanupMediaForSubtree(panel);
+        if(panel) panel.remove();
+        if(budgetLi) budgetLi.remove();
+      });
+      var firstPill = document.querySelector('.pill[data-opt]');
+      if(firstPill && !document.querySelector('.pill[data-opt].on')){
+        firstPill.classList.add('on');
+        document.getElementById('panel-' + firstPill.getAttribute('data-opt')).classList.add('on');
+      }
+      renderMonthSidebar();
+      var activePanel = document.querySelector('.panel.on');
+      if(activePanel){ var d = getPanelDate(activePanel); filterPillsByMonth(d.year, d.month); }
+    }
+    // Nothing in any of this month's alternatives yet — the type-1111
+    // safety net exists to protect real trip content from a misclick,
+    // and there's nothing here for it to protect, so removing it is one
+    // click, not typing a confirmation phrase for an empty tab.
+    if(panels.every(panelIsEmpty)){ doRemove(); return; }
     var label = formatMonthLabel(year, month, 1);
     openTypeConfirmModal({
       title: 'Delete this month?',
       message: 'This will delete ' + label + ' and all ' + opts.length + ' alternative(s) in it. This can\'t be undone.',
       confirmLabel: 'Delete month',
-      onConfirm: function(){
-        opts.forEach(function(opt){
-          var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
-          var panel = document.getElementById('panel-' + opt);
-          var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
-          if(pill) pill.remove();
-          if(panel) cleanupMediaForSubtree(panel);
-          if(panel) panel.remove();
-          if(budgetLi) budgetLi.remove();
-        });
-        var firstPill = document.querySelector('.pill[data-opt]');
-        if(firstPill && !document.querySelector('.pill[data-opt].on')){
-          firstPill.classList.add('on');
-          document.getElementById('panel-' + firstPill.getAttribute('data-opt')).classList.add('on');
-        }
-        renderMonthSidebar();
-        var activePanel = document.querySelector('.panel.on');
-        if(activePanel){ var d = getPanelDate(activePanel); filterPillsByMonth(d.year, d.month); }
-      }
+      onConfirm: doRemove
     });
   }
 
@@ -7141,11 +7290,18 @@
   }
   window.addEventListener('resize', syncBarLayout);
 
+  // Which year the sidebar is currently showing — persists across
+  // re-renders (an edit, a remote sync) so switching years to look at
+  // something doesn't get undone by an unrelated autosave-triggered
+  // rebuild; only actually reset if that year no longer has anything in
+  // it (see renderMonthSidebar's own landing logic).
+  var sidebarYear = null;
   function renderMonthSidebar(){
     var sidebar = document.getElementById('monthSidebar');
     if(!sidebar) return;
     sidebar.innerHTML = '';
-    var seen = [];
+    var monthsByKey = {};
+    var order = [];
     document.querySelectorAll('.panel').forEach(function(panel){
       // A month where every option is invisible to this viewer (see
       // canSeeOption) doesn't get a sidebar entry at all — fully hidden,
@@ -7154,7 +7310,20 @@
       if(!canSeeOption(panel)) return;
       var d = getPanelDate(panel);
       var key = monthKey(d.year, d.month);
-      if(!seen.some(function(s){ return s.key === key; })) seen.push({ key: key, year: d.year, month: d.month });
+      if(!monthsByKey[key]){ monthsByKey[key] = { key: key, year: d.year, month: d.month, panels: [] }; order.push(key); }
+      monthsByKey[key].panels.push(panel);
+    });
+    var allMonths = order.map(function(key){
+      var m = monthsByKey[key];
+      // "Mine" if ANY of this month's options were created by the current
+      // viewer — realistically all of them are, but this is the honest
+      // answer if that ever isn't true, rather than only checking one
+      // arbitrary option. "Archived" only once EVERY option is (see
+      // setArchivedForMe's own comment for why this is deliberately
+      // separate from canSeeOption/data-members above).
+      m.mine = m.panels.some(isMyOwnMonth);
+      m.archived = m.panels.every(isArchivedForMe);
+      return m;
     });
     // Chronological, not insertion order — a new month is always appended
     // to the end of the panel list regardless of which existing month's
@@ -7162,23 +7331,63 @@
     // September when August and December already exist) would render
     // after December instead of between them, which reads as the new tab
     // landing in the wrong place / vanishing from where it was expected.
-    seen.sort(function(a, b){ return a.year - b.year || a.month - b.month; });
-    var activePanel = document.querySelector('.panel.on');
-    var activeKey = activePanel ? monthKey(getPanelDate(activePanel).year, getPanelDate(activePanel).month) : null;
+    allMonths.sort(function(a, b){ return a.year - b.year || a.month - b.month; });
+    // Stable per month regardless of which year is selected or what's
+    // archived — assigned once, up front, across every month that
+    // exists — so a month's own color never shifts just because a
+    // different one got archived or another year got picked.
     var colorByKey = {};
-    seen.forEach(function(s, idx){
+    allMonths.forEach(function(s, idx){ colorByKey[s.key] = SEG_COLORS[idx % SEG_COLORS.length]; });
+
+    var activePanel = document.querySelector('.panel.on');
+    var activeYear = activePanel ? getPanelDate(activePanel).year : null;
+    var activeKey = activePanel ? monthKey(getPanelDate(activePanel).year, getPanelDate(activePanel).month) : null;
+
+    var years = [];
+    allMonths.forEach(function(s){ if(years.indexOf(s.year) === -1) years.push(s.year); });
+    years.sort(function(a, b){ return a - b; });
+    if(sidebarYear == null || years.indexOf(sidebarYear) === -1){
+      sidebarYear = (activeYear != null && years.indexOf(activeYear) !== -1) ? activeYear : (years[years.length - 1] || new Date().getFullYear());
+    }
+
+    // A full calendar year (12) is already close to what comfortably fits
+    // without scrolling — not worth showing a switcher for the common
+    // case of everything fitting in one year already.
+    if(years.length > 1){
+      var yrIdx = years.indexOf(sidebarYear);
+      var switcher = document.createElement('div');
+      switcher.className = 'month-year-switcher jsctl';
+      var prevBtn = document.createElement('button');
+      prevBtn.type = 'button'; prevBtn.textContent = '▲'; prevBtn.title = 'Previous year';
+      prevBtn.disabled = yrIdx <= 0;
+      prevBtn.addEventListener('click', function(){ sidebarYear = years[yrIdx - 1]; renderMonthSidebar(); });
+      var yrLabel = document.createElement('span');
+      yrLabel.className = 'yr-label'; yrLabel.textContent = sidebarYear;
+      var nextBtn = document.createElement('button');
+      nextBtn.type = 'button'; nextBtn.textContent = '▼'; nextBtn.title = 'Next year';
+      nextBtn.disabled = yrIdx >= years.length - 1;
+      nextBtn.addEventListener('click', function(){ sidebarYear = years[yrIdx + 1]; renderMonthSidebar(); });
+      switcher.appendChild(prevBtn); switcher.appendChild(yrLabel); switcher.appendChild(nextBtn);
+      sidebar.appendChild(switcher);
+    }
+
+    var visibleMonths = allMonths.filter(function(s){ return s.year === sidebarYear && !s.archived; });
+    // Across every year, not just the one currently selected — someone
+    // shouldn't have to remember which year they archived a month from
+    // to ever find it again in the "Archived" list.
+    var archivedMonths = allMonths.filter(function(s){ return s.archived; });
+
+    visibleMonths.forEach(function(s){
       var seg = document.createElement('div');
       seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
       seg.dataset.monthKey = s.key;
-      var segColor = SEG_COLORS[idx % SEG_COLORS.length];
-      colorByKey[s.key] = segColor;
-      seg.style.background = segColor;
+      seg.style.background = colorByKey[s.key];
       seg.title = 'Click to show only this month\'s alternatives';
       seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
 
       var label = document.createElement('span');
       label.className = 'seg-label';
-      label.textContent = formatMonthLabel(s.year, s.month, seen.length);
+      label.textContent = formatMonthLabel(s.year, s.month, visibleMonths.length);
       label.title = 'Click to show this month\'s alternatives — double-click to change the month';
       // Single click just navigates, same as clicking anywhere else on the
       // tab (most of the tab's visible area IS the label, so without this
@@ -7205,6 +7414,14 @@
       });
       seg.appendChild(label);
 
+      if(s.mine){
+        var mineBadge = document.createElement('span');
+        mineBadge.className = 'seg-mine-badge';
+        mineBadge.title = 'You created this month';
+        mineBadge.innerHTML = ICON_STAR;
+        seg.appendChild(mineBadge);
+      }
+
       var addBtn = document.createElement('button');
       addBtn.type = 'button'; addBtn.className = 'seg-add jsctl'; addBtn.textContent = '+';
       addBtn.title = 'Add another month';
@@ -7219,6 +7436,22 @@
         });
       });
       seg.appendChild(addBtn);
+
+      var archiveBtn = document.createElement('button');
+      archiveBtn.type = 'button'; archiveBtn.className = 'seg-archive jsctl'; archiveBtn.innerHTML = ICON_ARCHIVE;
+      archiveBtn.title = 'Archive this month (just for you — see it again from "Archived" below)';
+      archiveBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        s.panels.forEach(function(p){ setArchivedForMe(p, true); });
+        // Not in MO_OPTS' attributeFilter (data-archived-by is a purely
+        // personal preference, not something every attribute-watching
+        // consumer needs to react to) — same reason setOptionMembers'
+        // own caller has to do this explicitly too.
+        scheduleAutoSave(); scheduleUndoSnapshot();
+        ensureAccessibleActivePanel();
+        renderMonthSidebar();
+      });
+      seg.appendChild(archiveBtn);
 
       var notesBtn = document.createElement('button');
       notesBtn.type = 'button'; notesBtn.className = 'seg-notes jsctl'; notesBtn.textContent = '📝';
@@ -7241,9 +7474,31 @@
 
       sidebar.appendChild(seg);
     });
+
+    var archiveToggleBtn = document.getElementById('monthArchivedToggle');
+    var archivedPanelEl = document.getElementById('monthArchivedPanel');
+    if(archiveToggleBtn){
+      if(archivedMonths.length){
+        archiveToggleBtn.classList.add('show');
+        archiveToggleBtn.textContent = 'Archived (' + archivedMonths.length + ')';
+        archiveToggleBtn.onclick = function(){
+          var willShow = !archivedPanelEl.classList.contains('show');
+          archivedPanelEl.classList.toggle('show', willShow);
+          if(willShow) renderArchivedMonthsPanel(archivedMonths);
+        };
+      } else {
+        archiveToggleBtn.classList.remove('show');
+        if(archivedPanelEl) archivedPanelEl.classList.remove('show');
+      }
+    }
+
     // Every option pill gets the exact same fill as its own month's
     // sidebar tab (not just the active one) — the pill's own selected
     // state is conveyed by the stitch border alone, same as the sidebar.
+    // Uses colorByKey, which (unlike visibleMonths) covers every month
+    // regardless of year/archive state, so a pill under an archived or
+    // other-year month still gets its real color rather than falling
+    // back to SEG_COLORS[0].
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
       var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
       if(!panel) return;
@@ -7254,6 +7509,31 @@
       pill.style.color = '#fff';
     });
     syncBarLayout();
+  }
+  // The small expandable list behind the "Archived (N)" toggle — kept
+  // separate from the main sidebar markup since it's positioned outside
+  // it (see #monthArchivedPanel's own comment) and only ever needs to
+  // exist while actually open.
+  function renderArchivedMonthsPanel(archivedMonths){
+    var panel = document.getElementById('monthArchivedPanel');
+    if(!panel) return;
+    panel.innerHTML = '';
+    archivedMonths.slice().sort(function(a, b){ return a.year - b.year || a.month - b.month; }).forEach(function(s){
+      var row = document.createElement('div');
+      row.className = 'month-archived-row';
+      var label = document.createElement('span');
+      label.textContent = MONTH_FULL[s.month - 1] + ' ' + s.year;
+      var unarchiveBtn = document.createElement('button');
+      unarchiveBtn.type = 'button'; unarchiveBtn.textContent = 'Unarchive';
+      unarchiveBtn.addEventListener('click', function(){
+        s.panels.forEach(function(p){ setArchivedForMe(p, false); });
+        scheduleAutoSave(); scheduleUndoSnapshot();
+        panel.classList.remove('show');
+        renderMonthSidebar();
+      });
+      row.appendChild(label); row.appendChild(unarchiveBtn);
+      panel.appendChild(row);
+    });
   }
 
   document.addEventListener('click', function(e){
@@ -8347,6 +8627,10 @@
       if(bn && bn.textContent !== o.nm) o.bn = bn.textContent;
       var mb = getOptionMembers(panel);
       if(mb.length) o.mb = mb;
+      var ab = getArchivedBy(panel);
+      if(ab.length) o.arc = ab;
+      var cr = getOptionCreator(panel);
+      if(cr) o.cr = cr;
       var days = {}, hasDay = false;
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var dn = dayNumOfCell(cell);
@@ -8507,6 +8791,8 @@
       setPanelDate(panel, o.y, o.m);
       if(o.h && o.h.length) setHolidays(panel, o.h);
       if(o.mb && o.mb.length) setOptionMembers(panel, o.mb);
+      if(o.arc && o.arc.length) setArchivedBy(panel, o.arc);
+      if(o.cr) panel.setAttribute('data-creator', o.cr);
       if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
       buildCalendarGrid(panel);
 
