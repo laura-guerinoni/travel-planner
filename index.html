@@ -1649,25 +1649,25 @@
   {
     "icon": "🚆",
     "name": "Train",
-    "bg": "#4a86c5",
+    "bg": "#3975b3",
     "fg": "#ffffff"
   },
   {
     "icon": "🌸",
     "name": "Festival",
-    "bg": "#d16aa8",
+    "bg": "#c33d8d",
     "fg": "#ffffff"
   },
   {
     "icon": "🏨",
     "name": "Stay",
-    "bg": "#4fae8b",
+    "bg": "#397e65",
     "fg": "#ffffff"
   },
   {
     "icon": "♨️",
     "name": "Thermal",
-    "bg": "#c96a3f",
+    "bg": "#b15932",
     "fg": "#ffffff"
   },
   {
@@ -1685,7 +1685,7 @@
   {
     "icon": "✈️",
     "name": "Flight",
-    "bg": "#7a6ec9",
+    "bg": "#7165c5",
     "fg": "#ffffff"
   },
   {
@@ -1697,7 +1697,7 @@
   {
     "icon": "⛴️",
     "name": "Boat",
-    "bg": "#3d84a8",
+    "bg": "#38799a",
     "fg": "#ffffff"
   },
   {
@@ -1715,7 +1715,7 @@
   {
     "icon": "⚽",
     "name": "Sport",
-    "bg": "#e0563f",
+    "bg": "#d13b22",
     "fg": "#ffffff"
   },
   {
@@ -1727,7 +1727,7 @@
   {
     "icon": "🛍️",
     "name": "Shopping",
-    "bg": "#c77dbb",
+    "bg": "#af4c9f",
     "fg": "#ffffff"
   },
   {
@@ -1739,7 +1739,7 @@
   {
     "icon": "🖼️",
     "name": "Museum",
-    "bg": "#8a8fa3",
+    "bg": "#6c7189",
     "fg": "#ffffff"
   },
   {
@@ -2543,6 +2543,41 @@
         }
       });
       if(changed){ TAGS.length = 0; Array.prototype.push.apply(TAGS, deduped); TAGDATA_EL.textContent = JSON.stringify(TAGS, null, 2); }
+    } catch(e){}
+  }
+
+  // A contrast audit found 9 of the 18 built-in tags fell below WCAG AA
+  // (4.5:1) for their label text against the chip background — darkened
+  // each while preserving its hue (see the audit that shipped alongside
+  // this). A plan saved before that ships still has the old, low-contrast
+  // hex baked into its own tag list (tag colors are per-plan data, not
+  // re-derived from this file), so this brings an already-synced plan's
+  // matching built-ins up to the new values too — but only a tag whose
+  // bg AND fg are byte-identical to the *exact* old default, so a color
+  // anyone deliberately customized (even by one shade) is never
+  // silently overwritten, only an untouched copy of the old built-in.
+  var STALE_DEFAULT_TAG_COLORS = [
+    { name: 'Train', oldBg: '#4a86c5', oldFg: '#ffffff', newBg: '#3975b3', newFg: '#ffffff' },
+    { name: 'Festival', oldBg: '#d16aa8', oldFg: '#ffffff', newBg: '#c33d8d', newFg: '#ffffff' },
+    { name: 'Stay', oldBg: '#4fae8b', oldFg: '#ffffff', newBg: '#397e65', newFg: '#ffffff' },
+    { name: 'Thermal', oldBg: '#c96a3f', oldFg: '#ffffff', newBg: '#b15932', newFg: '#ffffff' },
+    { name: 'Flight', oldBg: '#7a6ec9', oldFg: '#ffffff', newBg: '#7165c5', newFg: '#ffffff' },
+    { name: 'Boat', oldBg: '#3d84a8', oldFg: '#ffffff', newBg: '#38799a', newFg: '#ffffff' },
+    { name: 'Sport', oldBg: '#e0563f', oldFg: '#ffffff', newBg: '#d13b22', newFg: '#ffffff' },
+    { name: 'Shopping', oldBg: '#c77dbb', oldFg: '#ffffff', newBg: '#af4c9f', newFg: '#ffffff' },
+    { name: 'Museum', oldBg: '#8a8fa3', oldFg: '#ffffff', newBg: '#6c7189', newFg: '#ffffff' }
+  ];
+  function fixStaleDefaultTagColors(){
+    try {
+      var changed = false;
+      TAGS.forEach(function(t){
+        STALE_DEFAULT_TAG_COLORS.forEach(function(fix){
+          if(t.name === fix.name && t.bg === fix.oldBg && t.fg === fix.oldFg){
+            t.bg = fix.newBg; t.fg = fix.newFg; changed = true;
+          }
+        });
+      });
+      if(changed) TAGDATA_EL.textContent = JSON.stringify(TAGS, null, 2);
     } catch(e){}
   }
 
@@ -7529,6 +7564,7 @@
           applyRemoteSnapshot(val);
           mergeDefaultTags();
           dedupeTagsByName();
+          fixStaleDefaultTagColors();
           // Self-heal old data saved before captureUndoSnapshot() started
           // stripping per-browser layout styling (padding-top/top) from
           // what gets stored: if what's now on the page (cleaned) differs
