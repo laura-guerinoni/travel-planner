@@ -2124,7 +2124,7 @@
   // invisible at rest against it, only ever showing up once .active's
   // border kicks in.
   var AVATAR_HAIR_COLORS = [
-    '#E8E3D8', '#D9B877', '#B8B0A8', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, blonde, grey, red, auburn, dark brown, black
+    '#E8E3D8', '#B8B0A8', '#D9B877', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, grey, blonde, red, auburn, dark brown, black
     '#E8A0C4', '#E5A15C', '#7AB88A', '#5DA0D9', '#8B6FC9' // pink, orange, green, blue, purple
   ];
   var AVATAR_EYE_COLORS = ['#6B4423', '#4A89C9', '#4F8A5B', '#8A8F94', '#8A7043'];
@@ -2567,6 +2567,7 @@
       });
     });
   }
+
 
 
 
@@ -3173,7 +3174,12 @@
       var a = document.createElement('a');
       a.className = 'linkarrow';
       a.target = '_blank'; a.rel = 'noopener';
-      a.href = url; a.title = url;
+      a.href = url;
+      // Deliberately no title attribute — buildLinkPreviewWrap's card is
+      // appended as a child of this same <a> (see below), so hovering it
+      // also hovers the anchor: a title here shows as a second, native
+      // tooltip stacked right on top of the designed card, showing
+      // exactly the raw-URL wall of text that card exists to replace.
       a.textContent = '↗';
       var linkPreview = buildLinkPreviewWrap(url);
       a.appendChild(linkPreview);
