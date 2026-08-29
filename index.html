@@ -112,7 +112,11 @@
      holiday/time-off span set (see holidayRangeShort); empty otherwise,
      so an option without one just has one less thing between name and
      price. */
-  .pill-dates:not(:empty) { font-size:11px; margin:0 2px; }
+  /* Lighter than .pill span's blanket opacity:.7/font-weight:700 (which
+     otherwise makes this read at the exact same visual weight as
+     .pill-name right next to it, just smaller) — a date range is a
+     secondary detail, not competing with the option name for attention. */
+  .pill-dates:not(:empty) { font-size:11px; margin:0 2px; opacity:.55; font-weight:500; }
   /* Extra padding-right (9px, vs the base 6px) so the × sits centered
      between the price pill and the dashed border's own inset right edge
      (4px in from the pill) instead of crowding the dashed line — only
