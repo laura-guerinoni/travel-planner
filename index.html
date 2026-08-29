@@ -234,7 +234,15 @@
      whatever space is left and wraps its own text one syllable per line
      — row wrapping (something dropping to its own line) is what should
      happen when space runs out, the chip itself never should. */
-  .chip { border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; display:inline-block; margin-bottom:3px; vertical-align:middle; flex-shrink:0; white-space:nowrap; }
+  .chip { border-radius:999px; padding:2px 8px 2px 2px; font-size:10px; font-weight:700; display:inline-flex;
+    align-items:center; gap:4px; margin-bottom:3px; vertical-align:middle; flex-shrink:0; white-space:nowrap; }
+  /* See setChipContent — a small near-white circle behind the icon only,
+     so the emoji always renders against the same light, neutral backdrop
+     no matter which color the chip itself is (color emoji glyphs have
+     their own fixed palette, not `color`/currentColor, so no chip bg/fg
+     pair can guarantee the icon stays legible against every background). */
+  .chip-icon { display:inline-flex; align-items:center; justify-content:center; flex:none;
+    width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.92); font-size:10px; line-height:1; }
   .tagctl { margin-left:auto; display:flex; align-items:center; gap:6px; }
   /* Attaching a ticket tints the whole card, not just its own icon — a
      ticket is the actual evidence a reservation exists, so that's what
@@ -986,7 +994,8 @@
        a fingertip (the ~44px minimum comfortable touch target most
        mobile guidelines converge on). */
     .acts li { font-size: 13px; }
-    .chip { font-size: 12px; padding: 3px 10px; }
+    .chip { font-size: 12px; padding: 3px 10px 3px 3px; }
+    .chip-icon { width:19px; height:19px; font-size:12px; }
     .title { font-size: 14px; }
     /* ::before as an invisible enlarged hit-area, not padding on the
        icon itself — padding would grow the element's own box and throw
@@ -2552,6 +2561,7 @@
       });
     });
   }
+
 
 
   // Captured before any remote snapshot touches #tagData, so new default
@@ -4216,12 +4226,31 @@
     });
   }
 
+  // Color emoji glyphs are drawn by the font/OS's own fixed palette, not
+  // `color`/currentColor — no chip bg/fg pair chosen for the *label
+  // text* can guarantee the icon itself stays legible against every
+  // background (a brown boot on olive green, a blue thermal-spring icon
+  // on rust, etc. — the actual complaint this fixes). Giving the icon its
+  // own small near-white badge sidesteps that entirely: the emoji always
+  // renders against the same light, neutral backdrop regardless of which
+  // color the chip itself is.
+  function setChipContent(chip, icon, name){
+    chip.innerHTML = '';
+    if(icon){
+      var iconEl = document.createElement('span');
+      iconEl.className = 'chip-icon';
+      iconEl.textContent = icon;
+      chip.appendChild(iconEl);
+    }
+    chip.appendChild(document.createTextNode(name || ''));
+  }
+
   function applyTag(chip, t){
     chip.setAttribute('data-icon', t.icon);
     chip.setAttribute('data-name', t.name);
     chip.style.background = t.bg;
     chip.style.color = t.fg;
-    chip.textContent = t.icon + ' ' + t.name;
+    setChipContent(chip, t.icon, t.name);
     var spanLi = chip.closest('.acts > li[data-span-start]');
     if(spanLi){ var panel = spanLi.closest('.panel'); if(panel) renderActivitySpans(panel); }
   }
@@ -4603,7 +4632,7 @@
     chip.setAttribute('data-name', tag.name);
     chip.style.background = tag.bg;
     chip.style.color = tag.fg;
-    chip.textContent = tag.icon + ' ' + tag.name;
+    setChipContent(chip, tag.icon, tag.name);
 
     var tagrow = document.createElement('span');
     tagrow.className = 'tagrow';
@@ -4706,7 +4735,10 @@
           chipClone.className = 'chip';
           chipClone.style.background = chip.style.background;
           chipClone.style.color = chip.style.color;
-          chipClone.textContent = chip.textContent;
+          // innerHTML, not textContent — the source chip's icon lives in
+          // its own nested .chip-icon badge (see setChipContent); a plain
+          // textContent copy would flatten that into unbadged text.
+          chipClone.innerHTML = chip.innerHTML;
           ghost.appendChild(chipClone);
         }
         var titleEl = li.querySelector('.title');
@@ -5155,8 +5187,7 @@
       refreshClear();
     });
 
-    dayAddBtn.addEventListener('click', function(e){
-      e.stopPropagation();
+    function addActivityAndFocus(){
       ensureLoc();
       var acts = ensureActs();
       var li = newActivityLi();
@@ -5179,9 +5210,30 @@
       var sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
+    }
+
+    dayAddBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      addActivityAndFocus();
     });
 
     dayMenuBtn.addEventListener('click', function(e){ e.stopPropagation(); openDayMenu(cell, dayMenuBtn); });
+
+    // Clicking anywhere in an empty day does the same thing as the tiny
+    // "+" — precisely targeting a ~20px icon-only button that only
+    // reveals itself on hover was needlessly fiddly for what's often the
+    // very first thing you do with a blank day. Only wired while the day
+    // is genuinely empty (cellHasContent false), re-checked on every
+    // click rather than cached, so this never hijacks a click meant for
+    // an existing location/activity the moment one gets added. .addloc
+    // is excluded deliberately — it doesn't stopPropagation, and its own
+    // job (a location with no activity yet) is a real, different choice
+    // from this one, not something this should silently upgrade.
+    cell.addEventListener('click', function(e){
+      if(cellHasContent(cell)) return;
+      if(e.target.closest('.addloc, .dayaddbtn, .daymenu-btn')) return;
+      addActivityAndFocus();
+    });
 
     cell.querySelector(':scope > .cellhead').appendChild(dayMenuBtn);
     cell.querySelector(':scope > .cellhead').appendChild(dayAddBtn);
@@ -6648,13 +6700,7 @@
       if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
         var tg = TAGS[tagIdx];
         var chip = newLi.querySelector('.chip');
-        if(chip){
-          chip.setAttribute('data-icon', tg.icon);
-          chip.setAttribute('data-name', tg.name);
-          chip.style.background = tg.bg;
-          chip.style.color = tg.fg;
-          chip.textContent = tg.icon + ' ' + tg.name;
-        }
+        if(chip) applyTag(chip, tg);
       }
       if(timeVal){
         // newActivityLi() already seeds an empty .line for time, but the
@@ -6752,13 +6798,7 @@
     if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
       var tg = TAGS[tagIdx];
       var chip = li.querySelector('.chip');
-      if(chip){
-        chip.setAttribute('data-icon', tg.icon);
-        chip.setAttribute('data-name', tg.name);
-        chip.style.background = tg.bg;
-        chip.style.color = tg.fg;
-        chip.textContent = tg.icon + ' ' + tg.name;
-      }
+      if(chip) applyTag(chip, tg);
     }
     var titleEl = li.querySelector('.title');
     if(titleEl) titleEl.textContent = titleVal;
@@ -7178,7 +7218,7 @@
       // being carried along inside the stored content.
       chip.style.background = st.bg;
       chip.style.color = st.fg;
-      chip.textContent = (a.i || '') + ' ' + (a.n || '');
+      setChipContent(chip, a.i || '', a.n || '');
       tagrow.appendChild(chip);
     }
     // .chip is one level deeper than <li> now (inside .tagrow/.tagctl),
