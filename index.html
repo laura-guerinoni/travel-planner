@@ -2120,32 +2120,61 @@
     if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + AVATAR_MOUTH_COLOR + '"/>';
     return '<path d="M 27 41 Q 33 44 39 39" stroke="' + AVATAR_MOUTH_COLOR + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
   }
-  // override (optional): { skin, hair, eyes, mouthType, longHair } — any
-  // field left unset falls back to that field's own hash-derived default,
-  // so a person can customize just their hair color and still get a
-  // random (but stable) skin tone/mouth/eyes/length.
+  // Which side-lock path (if any) a given hair length draws, keyed by the
+  // same 'short'/'medium'/'long' strings the editor and stored overrides
+  // use — 'short' has no locks at all (just the cap path further down),
+  // 'medium' reaches to about jaw level, 'long' past the shoulder.
+  var AVATAR_HAIRLEN_SVG = {
+    medium: function(c){
+      return '<path d="M 13 30 C 8 34 6 40 8 46 C 9 48 13 49 15 47 C 16 43 14 36 17 30 Z" fill="' + c + '"/>' +
+        '<path d="M 51 30 C 56 34 58 40 56 46 C 55 48 51 49 49 47 C 48 43 50 36 47 30 Z" fill="' + c + '"/>';
+    },
+    long: function(c){
+      return '<path d="M 13 30 C 6 35 4 46 7 55 C 8 59 13 60 15 57 C 17 51 14 40 17 30 Z" fill="' + c + '"/>' +
+        '<path d="M 51 30 C 58 35 60 46 57 55 C 56 59 51 60 49 57 C 47 51 50 40 47 30 Z" fill="' + c + '"/>';
+    }
+  };
+  // A simple round-frame glasses overlay, drawn after the eyes so it sits
+  // on top of them — off by default (unlike every other trait, which is
+  // always hash-derived) since an accessory silently appearing on people
+  // who never opted in would read as a bug, not a feature.
+  var AVATAR_GLASSES_COLOR = '#4A4A4A';
+  function glassesSvgFor(on){
+    if(!on) return '';
+    return '<g fill="none" stroke="' + AVATAR_GLASSES_COLOR + '" stroke-width="2" stroke-linecap="round">' +
+      '<circle cx="26" cy="32" r="5.5"/><circle cx="38" cy="32" r="5.5"/>' +
+      '<line x1="31.5" y1="32" x2="32.5" y2="32"/><line x1="20.5" y1="31" x2="18" y2="30"/><line x1="43.5" y1="31" x2="46" y2="30"/>' +
+      '</g>';
+  }
+  // override (optional): { skin, hair, eyes, mouthType, hairLength,
+  // glasses } — any field left unset falls back to that field's own
+  // hash-derived default (glasses excepted — see glassesSvgFor), so a
+  // person can customize just their hair color and still get a random
+  // (but stable) skin tone/mouth/eyes/length. hairLength used to be a
+  // plain longHair boolean (true=long, false=short) before "medium" was
+  // added — a saved override from before that shipped still has that
+  // field instead of hairLength, so it's read here as a fallback rather
+  // than losing anyone's existing choice.
   function avatarSvgFor(email, override){
     var h = hashEmailForAvatar(email);
     var skinColor = (override && override.skin) || AVATAR_SKIN_TONES[(h >> 9) % AVATAR_SKIN_TONES.length];
     var hairColor = (override && override.hair) || AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
     var eyeColor = (override && override.eyes) || AVATAR_EYE_COLORS[(h >> 3) % AVATAR_EYE_COLORS.length];
     var mouthType = (override && override.mouthType != null) ? override.mouthType : (h >> 6) % 4;
-    var longHair = (override && override.longHair != null) ? override.longHair : (h >> 8) % 2 === 0;
-    // Two flowing side locks, drawn before the head so they sit behind
-    // it — only added for the "long hair" half of the coin flip; short
-    // hair is just the cap path at the end, on its own.
-    var longHairSvg = longHair
-      ? '<path d="M 13 30 C 6 35 4 46 7 55 C 8 59 13 60 15 57 C 17 51 14 40 17 30 Z" fill="' + hairColor + '"/>' +
-        '<path d="M 51 30 C 58 35 60 46 57 55 C 56 59 51 60 49 57 C 47 51 50 40 47 30 Z" fill="' + hairColor + '"/>'
-      : '';
+    var hairLength;
+    if(override && override.hairLength) hairLength = override.hairLength;
+    else if(override && override.longHair != null) hairLength = override.longHair ? 'long' : 'short';
+    else hairLength = ['short', 'medium', 'long'][(h >> 8) % 3];
+    var hairLenSvg = AVATAR_HAIRLEN_SVG[hairLength] ? AVATAR_HAIRLEN_SVG[hairLength](hairColor) : '';
     return '<svg viewBox="0 0 64 64" aria-hidden="true">' +
       '<circle cx="32" cy="32" r="30" fill="var(--bg)"/>' +
-      longHairSvg +
+      hairLenSvg +
       '<circle cx="32" cy="34" r="18" fill="' + skinColor + '"/>' +
       '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
       '<circle cx="38" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
       mouthPathFor(mouthType) +
       '<path d="M 13 34 A 19 22 0 0 1 51 34 Q 44 24 32 27 Q 20 24 13 34 Z" fill="' + hairColor + '"/>' +
+      glassesSvgFor(override && override.glasses) +
       '</svg>';
   }
   // firebase.database() itself can throw synchronously (not just reject),
@@ -2191,7 +2220,12 @@
       hair: initialOverride && initialOverride.hair,
       eyes: initialOverride && initialOverride.eyes,
       mouthType: initialOverride && initialOverride.mouthType,
-      longHair: initialOverride && initialOverride.longHair
+      // Same legacy longHair-boolean fallback as avatarSvgFor, so the
+      // Hair length row starts on the right option for an override saved
+      // before "medium" existed.
+      hairLength: initialOverride && (initialOverride.hairLength ||
+        (initialOverride.longHair != null ? (initialOverride.longHair ? 'long' : 'short') : undefined)),
+      glasses: initialOverride && initialOverride.glasses
     };
     var pop = document.createElement('div');
     pop.className = 'itemmenu avatar-editor';
@@ -2263,11 +2297,19 @@
       function(item){ pick('mouthType', item.value); });
 
     row('Hair length', [
-        { value: false, build: function(btn){ btn.textContent = 'Short'; } },
-        { value: true, build: function(btn){ btn.textContent = 'Long'; } }
+        { value: 'short', build: function(btn){ btn.textContent = 'Short'; } },
+        { value: 'medium', build: function(btn){ btn.textContent = 'Medium'; } },
+        { value: 'long', build: function(btn){ btn.textContent = 'Long'; } }
       ],
-      function(item){ return item.value === current.longHair; },
-      function(item){ pick('longHair', item.value); });
+      function(item){ return item.value === current.hairLength; },
+      function(item){ pick('hairLength', item.value); });
+
+    row('Glasses', [
+        { value: false, build: function(btn){ btn.textContent = 'No glasses'; } },
+        { value: true, build: function(btn){ btn.textContent = 'Glasses'; } }
+      ],
+      function(item){ return !!item.value === !!current.glasses; },
+      function(item){ pick('glasses', item.value); });
 
     refreshActiveStates();
 
@@ -2279,7 +2321,7 @@
     resetBtn.textContent = 'Reset to default';
     resetBtn.addEventListener('click', function(e){
       e.stopPropagation();
-      current = { skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, longHair: undefined };
+      current = { skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, hairLength: undefined, glasses: undefined };
       refresh();
       removeAvatarOverride(key);
       closePop();
