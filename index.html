@@ -470,8 +470,8 @@
      the bottom, so it just got silently clipped there instead of
      visible higher up. Moving the room into the container avoids that
      entirely: nothing here has to escape its own box to use it. */
-  .month-sidebar { position:fixed; left:0; top:24px; width:46px; z-index:30; display:flex;
-    flex-direction:column; gap:14px; height:calc(100vh - 52px); overflow-y:auto; overflow-x:hidden; }
+  .month-sidebar { position:fixed; left:0; top:20px; width:46px; z-index:30; display:flex;
+    flex-direction:column; gap:14px; height:calc(100vh - 48px); overflow-y:auto; overflow-x:hidden; }
   /* A full calendar year is already 12 tabs — close to what comfortably
      fits without scrolling on its own — so this is the main lever
      against sidebar overflow, with archiving and the scroll above as
