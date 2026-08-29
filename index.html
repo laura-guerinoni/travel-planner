@@ -532,6 +532,21 @@
      month (see body.owner-mode next to .seg-remove) — an invited member
      never sees the × at all, not even on hover. */
   body.owner-mode .pill:hover .pill-remove { visibility:visible; }
+  /* A read-only share-link visitor (see VIEW_ONLY/onAuthStateChanged's
+     anonymous-auth branch) gets none of the app's editing chrome — every
+     add/edit/delete/menu control in the app is already marked .jsctl for
+     exactly this kind of wholesale strip (the same marker print/export
+     already uses to reduce the page to pure content). Belt and suspenders
+     alongside the security rules, which independently refuse to let an
+     anonymous session write to /plan at all regardless of what's shown
+     here — this is about the experience reading as genuinely read-only,
+     not what actually keeps the data safe. */
+  body.view-only .jsctl { display:none !important; }
+  /* Dragging a day (or an activity's own drag-reorder, if any) only ever
+     leads to a write that would be rejected anyway — disabled outright
+     rather than letting a view-only visitor go through the motion of a
+     swap that silently reverts on their next reload. */
+  body.view-only .cellhead-draggable { cursor:default; pointer-events:none; }
   /* Plain icon, no bubble/background — same weight as the calendar's own
      day numbers (var(--ink)), since this is a secondary action next to the
      pills, not another pill-like choice competing with them. */
@@ -1123,8 +1138,12 @@
   #authGate[data-state="signin"] #authSignOutBtn,
   #authGate[data-state="denied"] .authMsg,
   #authGate[data-state="denied"] #authSignInBtn,
+  #authGate[data-state="error"] .authDenied,
   #authGate[data-state="error"] #authSignInBtn,
-  #authGate[data-state="error"] #authSignOutBtn { display:none; }
+  #authGate[data-state="error"] #authSignOutBtn,
+  #authGate[data-state="loading"] .authDenied,
+  #authGate[data-state="loading"] #authSignInBtn,
+  #authGate[data-state="loading"] #authSignOutBtn { display:none; }
 
   /* Save/download, Manage Access, Print, the theme picker, and Sign out
      used to each be their own permanent floating control, scattered across
@@ -1236,6 +1255,20 @@
   #manageAccessAddForm button, .modal-primary-btn { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
     color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
   #manageAccessError { color:#b3261e; font-size:12px; min-height:14px; margin:0 0 10px; }
+  /* Owner-only, see initShareLink()/refreshShareLinkUI() — same gating
+     pattern as body.owner-mode elsewhere, mirrored (and only truly
+     enforced) by the security rules on /publicViewEnabled. */
+  .share-link-section { display:none; margin-top:4px; padding-top:14px; border-top:1px solid var(--line); }
+  body.owner-mode .share-link-section { display:block; }
+  .share-link-toggle { display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
+  .share-link-copy-row { display:none; gap:6px; margin-top:10px; }
+  .share-link-copy-row.show { display:flex; }
+  .share-link-copy-row input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid var(--line);
+    font-size:12px; color:var(--muted); background:var(--bg); }
+  .share-link-copy-row button { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
+    color:#fff; font-weight:700; cursor:pointer; font-size:12px; }
+  .share-link-hint { font-size:11px; color:var(--muted); margin:8px 0 0; display:none; }
+  .share-link-hint.show { display:block; }
 
   #printPanel fieldset { border:1px solid var(--line); border-radius:10px; padding:8px 12px 10px; margin:0 0 12px; }
   #printPanel legend { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:0 4px; }
@@ -1295,6 +1328,17 @@
       <button type="submit" data-i18n="manage_invite_btn">Invite</button>
     </form>
     <p id="manageAccessError"></p>
+    <div id="shareLinkSection" class="share-link-section">
+      <label class="share-link-toggle">
+        <input type="checkbox" id="shareLinkToggle" />
+        <span data-i18n="share_link_toggle">Share a view-only link</span>
+      </label>
+      <div id="shareLinkCopyRow" class="share-link-copy-row">
+        <input type="text" id="shareLinkInput" readonly />
+        <button type="button" id="shareLinkCopyBtn" data-i18n="share_link_copy">Copy</button>
+      </div>
+      <p id="shareLinkHint" class="share-link-hint" data-i18n="share_link_hint">Anyone with this link can view the plan — no sign-in, no editing.</p>
+    </div>
   </div>
 </div>
 <div id="photoLightbox" class="modal-overlay">
@@ -1835,6 +1879,15 @@
 <script>
 (function(){
   var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+  // A share link (?view=1) opens the plan read-only, no Google sign-in
+  // required — see the anonymous-auth branch in onAuthStateChanged below.
+  // VIEW_ONLY only ever flips true once that branch has actually
+  // confirmed the owner currently has sharing turned on; VIEW_ONLY_LINK
+  // just records that this page load *arrived* via that kind of link, so
+  // the auth flow knows to attempt anonymous sign-in instead of showing
+  // the normal Google sign-in gate.
+  var VIEW_ONLY_LINK = /(?:^|[?&])view=1(?:&|$)/.test(location.search);
+  var VIEW_ONLY = false;
 
   // ---- language: English/Italian/Spanish for the app's own UI chrome
   // (menus, panels, buttons) — never the trip content itself, which stays
@@ -1923,7 +1976,9 @@
       fabadd_title: 'Add activity', fabadd_day_label: 'Day', fabadd_type_label: 'Type',
       fabadd_time_label: 'Time', fabadd_amount_label: 'Amount', fabadd_confirm: 'Add activity',
       editact_title: 'Edit activity', editact_title_label: 'Title', editact_notes_label: 'Notes',
-      editact_save: 'Save'
+      editact_save: 'Save',
+      share_link_toggle: 'Share a view-only link', share_link_copy: 'Copy',
+      share_link_hint: 'Anyone with this link can view the plan — no sign-in, no editing.'
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
@@ -1948,7 +2003,9 @@
       fabadd_title: 'Aggiungi attività', fabadd_day_label: 'Giorno', fabadd_type_label: 'Tipo',
       fabadd_time_label: 'Orario', fabadd_amount_label: 'Importo', fabadd_confirm: 'Aggiungi attività',
       editact_title: 'Modifica attività', editact_title_label: 'Titolo', editact_notes_label: 'Note',
-      editact_save: 'Salva'
+      editact_save: 'Salva',
+      share_link_toggle: 'Condividi un link di sola visualizzazione', share_link_copy: 'Copia',
+      share_link_hint: 'Chiunque abbia questo link può vedere il piano — nessun accesso, nessuna modifica.'
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
@@ -1973,7 +2030,9 @@
       fabadd_title: 'Añadir actividad', fabadd_day_label: 'Día', fabadd_type_label: 'Tipo',
       fabadd_time_label: 'Hora', fabadd_amount_label: 'Importe', fabadd_confirm: 'Añadir actividad',
       editact_title: 'Editar actividad', editact_title_label: 'Título', editact_notes_label: 'Notas',
-      editact_save: 'Guardar'
+      editact_save: 'Guardar',
+      share_link_toggle: 'Compartir un enlace de solo lectura', share_link_copy: 'Copiar',
+      share_link_hint: 'Cualquiera con este enlace puede ver el plan — sin iniciar sesión, sin editar.'
     }
   };
   var currentLang = 'en';
@@ -2097,13 +2156,56 @@
       auth.onAuthStateChanged(function(user){
         if(!user){
           currentUserEmail = null; currentUserKey = null; currentUserRole = null;
+          VIEW_ONLY = false;
+          document.body.classList.remove('view-only');
           hideMemberPanel();
           if(printBtn) printBtn.classList.remove('show');
           if(appSignOutBtn) appSignOutBtn.classList.remove('show');
           if(actionMenu) actionMenu.classList.remove('show');
+          // A ?view=1 share link never shows the normal Google sign-in
+          // gate — it signs the visitor in anonymously instead, and this
+          // same callback runs again once that resolves (below, in the
+          // user.isAnonymous branch) to decide whether sharing is actually
+          // on right now.
+          if(VIEW_ONLY_LINK){
+            showAuthGate('loading', 'Loading shared plan…');
+            auth.signInAnonymously().catch(function(err){
+              console.warn('Anonymous sign-in failed', err);
+              showAuthGate('error', 'Couldn’t open this shared link — check your connection and reload.');
+            });
+            return;
+          }
           showAuthGate('signin', 'Sign in with the Google account this plan was shared with.');
           return;
         }
+        if(user.isAnonymous){
+          // A share-link visitor never gets a real membership row — instead,
+          // gate purely on the owner's /publicViewEnabled switch (see the
+          // "Share link" section of the Participants panel). Read-only by
+          // construction: makeEditable(), the empty-day click handler, and
+          // every .jsctl control all check VIEW_ONLY, and the security
+          // rules independently refuse any write from an anonymous session
+          // regardless of what the UI does here.
+          currentUserEmail = null; currentUserKey = null; currentUserRole = null;
+          firebase.database().ref('publicViewEnabled').once('value').then(function(snap){
+            if(snap.val() === true){
+              VIEW_ONLY = true;
+              document.body.classList.add('view-only');
+              hideMemberPanel();
+              hideAuthGate();
+              startSync();
+              if(printBtn) printBtn.classList.add('show');
+            } else {
+              showAuthGate('denied', 'This link isn’t active — ask the plan’s owner to turn sharing back on.');
+            }
+          }).catch(function(err){
+            console.warn('Public-view lookup failed', err);
+            showAuthGate('error', 'Couldn’t check this link — check your connection and reload.');
+          });
+          return;
+        }
+        VIEW_ONLY = false;
+        document.body.classList.remove('view-only');
         currentUserEmail = user.email || '';
         currentUserKey = sanitizeEmailKey(currentUserEmail);
         // Only ever reads this signed-in user's own membership entry — the
@@ -2671,14 +2773,72 @@
     positionPopover(pop, anchorEl);
   }
 
+  // ---- Share link: an owner-only on/off switch (see /publicViewEnabled
+  // in the security rules) that makes the whole plan viewable, read-only,
+  // by anyone with the link — no invite, no Google sign-in. Visitors who
+  // open it get signed in anonymously and land in VIEW_ONLY mode (see the
+  // user.isAnonymous branch in onAuthStateChanged above); toggling this
+  // off immediately locks them back out on their next read. Section is
+  // owner-only both by CSS (body.owner-mode, see .share-link-section) and
+  // here in JS, and — the only real boundary — by the security rules,
+  // which reject a write to /publicViewEnabled from anyone but the owner.
+  var shareLinkToggle = document.getElementById('shareLinkToggle');
+  var shareLinkCopyRow = document.getElementById('shareLinkCopyRow');
+  var shareLinkInput = document.getElementById('shareLinkInput');
+  var shareLinkCopyBtn = document.getElementById('shareLinkCopyBtn');
+  var shareLinkHint = document.getElementById('shareLinkHint');
+  var shareLinkWired = false;
+
+  function shareLinkUrl(){
+    return location.origin + location.pathname + '?view=1';
+  }
+
+  function refreshShareLinkUI(){
+    if(!shareLinkToggle || currentUserRole !== 'owner') return;
+    if(shareLinkInput) shareLinkInput.value = shareLinkUrl();
+    firebase.database().ref('publicViewEnabled').once('value').then(function(snap){
+      var on = snap.val() === true;
+      shareLinkToggle.checked = on;
+      if(shareLinkCopyRow) shareLinkCopyRow.classList.toggle('show', on);
+      if(shareLinkHint) shareLinkHint.classList.toggle('show', on);
+    }).catch(function(err){ console.warn('Couldn’t read sharing state', err); });
+  }
+
+  function initShareLink(){
+    if(!shareLinkToggle || shareLinkWired) return;
+    shareLinkWired = true;
+    shareLinkToggle.addEventListener('change', function(){
+      if(currentUserRole !== 'owner'){ shareLinkToggle.checked = !shareLinkToggle.checked; return; }
+      var on = shareLinkToggle.checked;
+      firebase.database().ref('publicViewEnabled').set(on).then(function(){
+        if(shareLinkCopyRow) shareLinkCopyRow.classList.toggle('show', on);
+        if(shareLinkHint) shareLinkHint.classList.toggle('show', on);
+      }).catch(function(err){
+        console.warn('Couldn’t update sharing state', err);
+        shareLinkToggle.checked = !on;
+      });
+    });
+    if(shareLinkCopyBtn) shareLinkCopyBtn.addEventListener('click', function(){
+      if(!shareLinkInput) return;
+      shareLinkInput.select();
+      var restoreLabel = shareLinkCopyBtn.textContent;
+      navigator.clipboard.writeText(shareLinkInput.value).then(function(){
+        shareLinkCopyBtn.textContent = 'Copied!';
+        setTimeout(function(){ shareLinkCopyBtn.textContent = restoreLabel; }, 1500);
+      }).catch(function(err){ console.warn('Clipboard copy failed', err); });
+    });
+  }
+
   function initMemberPanel(){
     if(!manageBtn) return;
     manageBtn.classList.add('show');
     if(memberPanelWired) return;
     memberPanelWired = true;
+    initShareLink();
     manageBtn.addEventListener('click', function(){
       if(managePanel) managePanel.classList.add('show');
       renderMemberList();
+      refreshShareLinkUI();
       closeActionMenu();
     });
     if(manageCloseBtn) manageCloseBtn.addEventListener('click', function(){
@@ -2933,6 +3093,11 @@
   // text. Enter commits (blurs) instead, same as every other single-line
   // field in the app already does (see the avatar editor's name input).
   function makeEditable(el){
+    // A read-only share-link visitor (see VIEW_ONLY) never gets any field
+    // turned editable in the first place — belt and suspenders alongside
+    // the security rules, which independently refuse to let an anonymous
+    // session write to /plan at all regardless of what the UI shows.
+    if(VIEW_ONLY) return;
     el.contentEditable = 'true';
     el.addEventListener('keydown', function(e){
       if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
@@ -5412,6 +5577,7 @@
     // location with no activity yet) is a real, different choice from
     // this one, not something this should silently upgrade.
     cell.addEventListener('click', function(e){
+      if(VIEW_ONLY) return;
       if(cellHasActivities(cell)) return;
       if(e.target.closest('.addloc, .dayaddbtn, .daymenu-btn, .loc')) return;
       addActivityAndFocus();
@@ -8018,13 +8184,18 @@
             // that's already on the server, never a real edit — a stale or
             // buggy client that failed to render some option/day/activity it
             // didn't recognize must not be allowed to write that gap back.
-            if(modelPreservesStructure(cleanedModel, serverModel)){
+            // A read-only share-link visitor has nothing to "self-heal" with —
+            // the rules would reject the write anyway, but skip even trying
+            // so no doomed request/console-error shows up on every load.
+            if(VIEW_ONLY){
+              // no-op: skip self-heal resave for a view-only visitor
+            } else if(modelPreservesStructure(cleanedModel, serverModel)){
               saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
             } else {
               console.warn('Skipping self-heal resave: re-derived content is missing options/days/activities present on the server.');
             }
           }
-        } else {
+        } else if(!VIEW_ONLY){
           var seed = getMigrationSeedPayload();
           if(seed) saveToBackend(seed);
         }
