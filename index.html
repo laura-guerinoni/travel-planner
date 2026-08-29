@@ -270,8 +270,13 @@
     background-color:var(--card);
     background-image:linear-gradient(rgba(63,217,109,.14), rgba(63,217,109,.14));
   }
-  .title { display:block; font-weight:600; }
-  .line { display:block; color:var(--muted); }
+  /* overflow-wrap:anywhere (same treatment as .loc-text above) — these
+     are free-typed contenteditable fields, so there's no guarantee of a
+     natural word-break point; without this, a long unbroken run of
+     characters (no spaces) just overflows the card's own box sideways
+     into whatever sits next to it in the grid, instead of wrapping. */
+  .title { display:block; font-weight:600; overflow-wrap:anywhere; word-break:break-word; }
+  .line { display:block; color:var(--muted); overflow-wrap:anywhere; word-break:break-word; }
   /* The notes line specifically (not the time line — both share .line,
      see markNotesLine) reads as free-text commentary rather than
      structured data, so it gets the same treatment as .price-note. */
@@ -281,7 +286,7 @@
      the real, editable copy only lives on the start day */
   .act-span-ghost { opacity:.6; border:1px dashed var(--line); border-radius:8px; padding:4px 6px; cursor:default; }
   .act-span-ghost .line { font-style:italic; }
-  .price { display:block; font-weight:700; }
+  .price { display:block; font-weight:700; overflow-wrap:anywhere; word-break:break-word; }
   .price em { font-style:normal; font-weight:400; color:var(--muted); }
   /* .daytotal-badge (up in .cellhead) replaces this everywhere now,
      screen and print alike — kept in the DOM (never shown) purely because
