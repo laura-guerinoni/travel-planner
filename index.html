@@ -5657,6 +5657,10 @@
         labelSpan.contentEditable = 'true';
         labelSpan.textContent = h.label;
         labelSpan.addEventListener('click', function(e){ e.stopPropagation(); });
+        // Same single-line Enter-commits behavior as makeEditable's fields.
+        labelSpan.addEventListener('keydown', function(e){
+          if(e.key === 'Enter'){ e.preventDefault(); labelSpan.blur(); }
+        });
         labelSpan.addEventListener('input', function(){
           var arr = getHolidays(panel);
           if(arr[holidayIdx]){ arr[holidayIdx].label = labelSpan.textContent; setHolidays(panel, arr); }
