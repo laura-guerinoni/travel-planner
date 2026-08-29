@@ -615,17 +615,23 @@
   .pill-name { outline:none; white-space:nowrap; max-width:180px; overflow:hidden;
     text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
   .pill-name[contenteditable="true"] { max-width:none; overflow:visible; text-overflow:clip; }
-  /* visibility:hidden (not display:none) — the × still occupies its own
-     layout space at all times, so the pill is already exactly as wide as
-     it'll ever need to be; hovering just reveals what was always there
-     instead of widening the pill and shifting everything after it. */
-  .pill-remove { display:inline-block; visibility:hidden; font-size:13px; line-height:1;
+  /* visibility:hidden (not display:none) — the trigger still occupies
+     its own layout space at all times, so the pill is already exactly
+     as wide as it'll ever need to be; hovering just reveals what was
+     always there instead of widening the pill and shifting everything
+     after it. Shown as "⋯" now (opens openPillMenu — download/manage
+     access/print/delete), not the bare × this used to be — the actual
+     character in each pill's own markup (×/&times;) is hidden via
+     font-size:0 rather than touched at each of its several creation
+     sites; ::after supplies the dots instead. */
+  .pill-remove { display:inline-block; visibility:hidden; font-size:0; line-height:1;
     opacity:.75; padding:0 2px; border-radius:4px; }
+  .pill-remove::after { content:'⋯'; font-size:13px; }
   .pill-remove:hover { opacity:1; background:rgba(0,0,0,.12); }
   /* Deleting an alternative is owner-only, same as deleting a whole
      month (see removeMonth's own "Remove month" row in
-     openMonthSegmentMenu) — an invited member never sees the × at all,
-     not even on hover. */
+     openMonthSegmentMenu) — an invited member never sees this trigger
+     at all, not even on hover. */
   body.owner-mode .pill:hover .pill-remove { visibility:visible; }
   /* A read-only share-link visitor (see VIEW_ONLY/onAuthStateChanged's
      anonymous-auth branch) gets none of the app's editing chrome — every
@@ -701,6 +707,7 @@
      the width coincidence. */
   @media (hover: none), (pointer: coarse) {
     .itemmenu-btn, .month-segment .itemmenu-btn { visibility:visible; }
+    body.owner-mode .pill-remove { visibility:visible; }
   }
   .itemmenu-btn:hover { background:var(--primary); color:#fff; }
   /* Touch has no hover to show this on, so :active (a real press, not
@@ -7432,6 +7439,23 @@
       if(panel) openOptionMembersPicker(panel, pill);
     });
     pop.appendChild(accessRow);
+    // Owner-only, same as the old bare × this replaced always was — the
+    // trigger itself (.pill-remove, whether reached by hover or right-
+    // click) is already hidden from a non-owner via body.owner-mode's
+    // CSS, but a right-click reaches this menu directly regardless of
+    // that, so the same check needs repeating here rather than trusting
+    // the trigger's own visibility as the real gate.
+    if(currentUserRole === 'owner'){
+      var delRow = document.createElement('div');
+      delRow.className = 'itemmenu-row danger';
+      delRow.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>Delete alternative';
+      delRow.addEventListener('click', function(e){
+        e.stopPropagation();
+        closePop();
+        deleteAlternative(pill);
+      });
+      pop.appendChild(delRow);
+    }
     document.body.appendChild(pop);
     var popW = pop.offsetWidth, popH = pop.offsetHeight;
     var left = x, top = y;
@@ -8101,13 +8125,11 @@
     });
   }
 
-  document.addEventListener('click', function(e){
-    var rm = e.target.closest('.pill-remove');
-    if(!rm) return;
-    // Belt and suspenders alongside body.owner-mode hiding this ×
-    // entirely — see removeMonth's matching check for the same reasoning.
-    if(currentUserRole !== 'owner') return;
-    var pill = rm.closest('.pill');
+  // Shared by openPillMenu's "Delete alternative" row. Pulled out of
+  // that trigger's own click handler (this used to run directly off a
+  // click on the × itself) so the menu can offer it as one row among
+  // several instead of it being the trigger's only possible action.
+  function deleteAlternative(pill){
     var pills = document.querySelectorAll('.pill[data-opt]');
     if(pills.length <= 1) return;
     var opt = pill.getAttribute('data-opt');
@@ -8151,6 +8173,20 @@
       confirmLabel: 'Delete alternative',
       onConfirm: doRemoveAlternative
     });
+  }
+
+  // The pill's own "⋯" — used to be a bare × that deleted on the spot
+  // (see deleteAlternative's own comment); now opens the exact same
+  // menu a right-click already did (Duplicate/Participants, plus
+  // Delete — see openPillContextMenu), just from a visible, discoverable
+  // trigger instead of only a context menu someone has to already know
+  // to try. Anchored to the trigger's own position, same as every
+  // right-click opening it already was to the cursor's.
+  document.addEventListener('click', function(e){
+    var rm = e.target.closest('.pill-remove');
+    if(!rm) return;
+    var r = rm.getBoundingClientRect();
+    openPillContextMenu(rm.closest('.pill'), r.left, r.bottom + 4);
   });
 
   // ---- initial attach (also reused after an undo/redo restore, since
