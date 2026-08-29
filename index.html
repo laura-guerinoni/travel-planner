@@ -456,36 +456,21 @@
   }
   .seg-label { color:#fff; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
     font-weight:800; font-size:14px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
-  /* .seg-add/.seg-archive pair up top (left/right of the same row — see
-     below), .seg-notes stays centered, .seg-remove stays at the bottom —
-     four controls in a 46px-wide strip, so add/archive give up the
-     centered-circle treatment the other two keep and sit side by side
-     instead. */
-  .seg-add, .seg-remove, .seg-notes, .seg-archive { display:none; position:absolute; width:18px; height:18px;
-    align-items:center; justify-content:center; border-radius:50%; border:none;
-    background:rgba(255,255,255,.9); color:var(--ink); font-weight:800; font-size:12px; padding:0; cursor:pointer; }
-  .seg-add { top:4px; left:4px; }
-  .seg-archive { top:4px; right:4px; }
-  .seg-archive svg { width:11px; height:11px; }
-  /* Vertically centered — the third icon in this narrow strip, between
-     the top row (add/archive) and .seg-remove (bottom). */
-  .seg-notes { top:50%; left:50%; transform:translate(-50%, -50%); font-size:11px; }
-  .seg-remove { bottom:4px; left:50%; transform:translateX(-50%); color:#d9534f; }
-  .month-segment:hover .seg-add, .month-segment:hover .seg-archive { display:flex; }
-  /* Same hover-reveal as .seg-add, but also stays visible once notes
-     actually exist (same gating language as .daymenu-btn.has-content) —
-     a month that already has notes should show *some* sign of that even
-     before hovering, not just on discovery. */
-  .month-segment:hover .seg-notes, .seg-notes.has-notes { display:flex; }
-  /* Deleting a whole month (unlike adding one, which stays open to every
-     member) is owner-only — see body.owner-mode, toggled once the
-     signed-in member's role is known. */
-  body.owner-mode .month-segment:hover .seg-remove { display:flex; }
-  /* Marks a month you created, at rest — shares .seg-add's corner and
-     hides the moment that (hover-only) button needs it instead, so
-     there's nothing to actually collide with. No counterpart badge for
-     an invited month; its absence already says that on its own. */
-  .seg-mine-badge { position:absolute; top:5px; left:5px; width:12px; height:12px; color:rgba(255,255,255,.9); pointer-events:none; }
+  /* Add/notes/archive/share/remove all live behind this one "⋯" trigger
+     now (see openMonthSegmentMenu) instead of a growing pile of small
+     buttons fighting for room in a 46px-wide strip — same hover-reveal
+     and hidden/open state as .itemmenu-btn everywhere else, just also
+     scoped to .month-segment:hover (that class's own default rule is
+     li:hover, and a segment isn't an <li>). */
+  .month-segment .itemmenu-btn { position:absolute; top:4px; right:4px; width:18px; height:18px;
+    border-radius:50%; background:rgba(255,255,255,.9); font-size:11px; }
+  .month-segment:hover .itemmenu-btn { visibility:visible; }
+  /* Marks a month you created, at rest — shares the menu trigger's
+     corner and hides the moment that (hover-only) button needs it
+     instead, so there's nothing to actually collide with. No
+     counterpart badge for an invited month; its absence already says
+     that on its own. */
+  .seg-mine-badge { position:absolute; top:5px; right:5px; width:12px; height:12px; color:rgba(255,255,255,.9); pointer-events:none; }
   .month-segment:hover .seg-mine-badge { display:none; }
   /* Persistent, not one of the sidebar's own scrolling flex children (see
      #monthArchivedToggle's own comment) — same tab shape/width as a
@@ -589,8 +574,9 @@
     opacity:.75; padding:0 2px; border-radius:4px; }
   .pill-remove:hover { opacity:1; background:rgba(0,0,0,.12); }
   /* Deleting an alternative is owner-only, same as deleting a whole
-     month (see body.owner-mode next to .seg-remove) — an invited member
-     never sees the × at all, not even on hover. */
+     month (see removeMonth's own "Remove month" row in
+     openMonthSegmentMenu) — an invited member never sees the × at all,
+     not even on hover. */
   body.owner-mode .pill:hover .pill-remove { visibility:visible; }
   /* A read-only share-link visitor (see VIEW_ONLY/onAuthStateChanged's
      anonymous-auth branch) gets none of the app's editing chrome — every
@@ -1042,21 +1028,12 @@
     .month-segment.current::before { top:0; right:5px; bottom:5px; left:5px;
       border-radius:0 0 11px 11px; border-width:2px; border-color:rgba(255,255,255,.85);
       border-style:none dashed dashed dashed; }
-    /* Its own "add another month" moved into the FAB's menu (see below) —
-       hover never really worked as a reveal gesture on touch anyway. */
-    .seg-add { display:none !important; }
-    .seg-remove { top:50%; right:4px; left:auto; bottom:auto; transform:translateY(-50%); }
-    /* Kept reachable on mobile (unlike .seg-add, whose job moved into the
-       FAB menu) — viewing/writing a month's notes is common enough to be
-       worth its own tap target, not just a desktop-hover feature. Top-
-       right corner, clear of .seg-remove's middle-right spot. */
-    /* display:block !important, not left to the hover-reveal every other
-       one of these controls depends on — touch has no hover at all, and
-       unlike .seg-remove (a rare, destructive action reasonable to leave
-       tap-and-hold-free of), writing a month's first notes is common
-       enough that leaving it hover-only would make it unreachable on
-       mobile entirely, not just less convenient. */
-    .seg-notes { display:block !important; top:4px; right:4px; left:auto; bottom:auto; margin-top:0; transform:none; }
+    /* Nothing segment-specific needed here any more — add/notes/archive/
+       share/remove are all one "⋯" menu now (see openMonthSegmentMenu),
+       using the exact same .itemmenu-btn as everywhere else in the app,
+       which the *existing*, unrelated mobile rule for that class (see
+       its own comment, further down) already makes permanently visible
+       on touch instead of hover-gated — nothing more to override here. */
 
     /* Sheet-tabs-at-the-bottom, the way Google Sheets does it on mobile —
        a horizontally scrollable single row (not the desktop's wrapping
@@ -1363,11 +1340,9 @@
   #manageAccessAddForm button, .modal-primary-btn { padding:8px 12px; border-radius:8px; border:none; background:var(--primary);
     color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
   #manageAccessError { color:#b3261e; font-size:12px; min-height:14px; margin:0 0 10px; }
-  /* Owner-only, see initShareLink()/refreshShareLinkUI() — same gating
-     pattern as body.owner-mode elsewhere, mirrored (and only truly
+  /* #monthSharePanel itself (not this row inside it) is owner-gated —
+     see openMonthShare/openMonthSegmentMenu, mirrored (and only truly
      enforced) by the security rules on /publicViewEnabled. */
-  .share-link-section { display:none; margin-top:4px; padding-top:14px; border-top:1px solid var(--line); }
-  body.owner-mode .share-link-section { display:block; }
   .share-link-toggle { display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
   .share-link-copy-row { display:none; gap:6px; margin-top:10px; }
   .share-link-copy-row.show { display:flex; }
@@ -1468,17 +1443,28 @@
       <button type="submit" data-i18n="manage_invite_btn">Invite</button>
     </form>
     <p id="manageAccessError"></p>
-    <div id="shareLinkSection" class="share-link-section">
-      <label class="share-link-toggle">
-        <input type="checkbox" id="shareLinkToggle" />
-        <span data-i18n="share_link_toggle">Share a view-only link</span>
-      </label>
-      <div id="shareLinkCopyRow" class="share-link-copy-row">
-        <input type="text" id="shareLinkInput" readonly />
-        <button type="button" id="shareLinkCopyBtn" data-i18n="share_link_copy">Copy</button>
-      </div>
-      <p id="shareLinkHint" class="share-link-hint" data-i18n="share_link_hint">Anyone with this link can view the plan — no sign-in, no editing.</p>
+  </div>
+</div>
+<!-- Sharing moved here from a single plan-wide toggle — per-month now
+     (see openMonthShare, reached from each month segment's own "⋯"
+     menu), so turning one month's link on never exposes every other
+     month too. Same toggle/link/hint shape as the old global version,
+     just scoped to whichever month openMonthShare was opened for. -->
+<div id="monthSharePanel" class="modal-overlay">
+  <div class="map-inner">
+    <div class="map-header">
+      <h2 id="monthShareTitle">Share link</h2>
+      <button type="button" id="monthShareCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
+    <label class="share-link-toggle">
+      <input type="checkbox" id="monthShareToggle" />
+      <span data-i18n="share_link_toggle">Share a view-only link</span>
+    </label>
+    <div id="monthShareCopyRow" class="share-link-copy-row">
+      <input type="text" id="monthShareInput" readonly />
+      <button type="button" id="monthShareCopyBtn" data-i18n="share_link_copy">Copy</button>
+    </div>
+    <p id="monthShareHint" class="share-link-hint" data-i18n="share_link_hint">Anyone with this link can view this month — no sign-in, no editing.</p>
   </div>
 </div>
 <div id="photoLightbox" class="modal-overlay">
@@ -2026,14 +2012,19 @@
 <script>
 (function(){
   var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
-  // A share link (?view=1) opens the plan read-only, no Google sign-in
-  // required — see the anonymous-auth branch in onAuthStateChanged below.
-  // VIEW_ONLY only ever flips true once that branch has actually
-  // confirmed the owner currently has sharing turned on; VIEW_ONLY_LINK
-  // just records that this page load *arrived* via that kind of link, so
-  // the auth flow knows to attempt anonymous sign-in instead of showing
-  // the normal Google sign-in gate.
+  // A share link (?view=1&month=<year>-<month>) opens one specific month
+  // read-only, no Google sign-in required — see the anonymous-auth
+  // branch in onAuthStateChanged below. VIEW_ONLY only ever flips true
+  // once that branch has actually confirmed the owner currently has
+  // *that month* shared (sharing is per-month, see openMonthShare —
+  // turning one month's link on never exposes any other month);
+  // VIEW_ONLY_LINK just records that this page load *arrived* via that
+  // kind of link at all, so the auth flow knows to attempt anonymous
+  // sign-in instead of showing the normal Google sign-in gate.
+  var viewOnlyLinkMatch = /(?:^|[?&])view=1(?:&|$)/.test(location.search) &&
+    location.search.match(/(?:^|[?&])month=([^&]+)/);
   var VIEW_ONLY_LINK = /(?:^|[?&])view=1(?:&|$)/.test(location.search);
+  var VIEW_ONLY_MONTH_KEY = viewOnlyLinkMatch ? decodeURIComponent(viewOnlyLinkMatch[1]) : null;
   var VIEW_ONLY = false;
 
   // ---- language: English/Italian/Spanish for the app's own UI chrome
@@ -2131,7 +2122,7 @@
       editact_title: 'Edit activity', editact_title_label: 'Title', editact_notes_label: 'Notes',
       editact_save: 'Save',
       share_link_toggle: 'Share a view-only link', share_link_copy: 'Copy',
-      share_link_hint: 'Anyone with this link can view the plan — no sign-in, no editing.',
+      share_link_hint: 'Anyone with this link can view this month — no sign-in, no editing.',
       auth_or: 'or', auth_email_placeholder: 'Email', auth_password_placeholder: 'Password',
       auth_login_btn: 'Log in', auth_signup_btn: 'Create account', auth_forgot_btn: 'Forgot password?',
       auth_resend_verify_btn: 'Resend verification email'
@@ -2161,7 +2152,7 @@
       editact_title: 'Modifica attività', editact_title_label: 'Titolo', editact_notes_label: 'Note',
       editact_save: 'Salva',
       share_link_toggle: 'Condividi un link di sola visualizzazione', share_link_copy: 'Copia',
-      share_link_hint: 'Chiunque abbia questo link può vedere il piano — nessun accesso, nessuna modifica.',
+      share_link_hint: 'Chiunque abbia questo link può vedere questo mese — nessun accesso, nessuna modifica.',
       auth_or: 'oppure', auth_email_placeholder: 'Email', auth_password_placeholder: 'Password',
       auth_login_btn: 'Accedi', auth_signup_btn: 'Crea account', auth_forgot_btn: 'Password dimenticata?',
       auth_resend_verify_btn: 'Invia di nuovo l’email di verifica'
@@ -2191,7 +2182,7 @@
       editact_title: 'Editar actividad', editact_title_label: 'Título', editact_notes_label: 'Notas',
       editact_save: 'Guardar',
       share_link_toggle: 'Compartir un enlace de solo lectura', share_link_copy: 'Copiar',
-      share_link_hint: 'Cualquiera con este enlace puede ver el plan — sin iniciar sesión, sin editar.',
+      share_link_hint: 'Cualquiera con este enlace puede ver este mes — sin iniciar sesión, sin editar.',
       auth_or: 'o', auth_email_placeholder: 'Correo electrónico', auth_password_placeholder: 'Contraseña',
       auth_login_btn: 'Iniciar sesión', auth_signup_btn: 'Crear cuenta', auth_forgot_btn: '¿Olvidaste tu contraseña?',
       auth_resend_verify_btn: 'Reenviar email de verificación'
@@ -2446,14 +2437,25 @@
         }
         if(user.isAnonymous){
           // A share-link visitor never gets a real membership row — instead,
-          // gate purely on the owner's /publicViewEnabled switch (see the
-          // "Share link" section of the Participants panel). Read-only by
-          // construction: makeEditable(), the empty-day click handler, and
-          // every .jsctl control all check VIEW_ONLY, and the security
-          // rules independently refuse any write from an anonymous session
-          // regardless of what the UI does here.
+          // gate purely on whether THIS SPECIFIC month (see VIEW_ONLY_MONTH_KEY,
+          // read from the link's own ?month= param) currently has sharing on
+          // for it (see openMonthShare). Read-only by construction:
+          // makeEditable(), the empty-day click handler, and every .jsctl
+          // control all check VIEW_ONLY, and the security rules
+          // independently refuse any write from an anonymous session
+          // regardless of what the UI does here. Sharing is UI-level
+          // scoping, not real data isolation — the rules can only gate
+          // "can this session read /plan at all" (one JSON string, not
+          // partitionable per month), so a technically curious visitor
+          // could still find other months in the raw network payload; only
+          // hiding every other month from the rendered page itself (below,
+          // once startSync's first snapshot lands) is guaranteed.
           currentUserEmail = null; currentUserKey = null; currentUserRole = null;
-          firebase.database().ref('publicViewEnabled').once('value').then(function(snap){
+          if(!VIEW_ONLY_MONTH_KEY){
+            showAuthGate('denied', 'This link isn’t active — ask the plan’s owner to turn sharing back on.');
+            return;
+          }
+          firebase.database().ref('publicViewEnabled/' + VIEW_ONLY_MONTH_KEY).once('value').then(function(snap){
             if(snap.val() === true){
               VIEW_ONLY = true;
               document.body.classList.add('view-only');
@@ -2501,10 +2503,11 @@
           var role = snap.val();
           currentUserRole = role;
           // Gates a handful of destructive, owner-only controls (see
-          // .seg-remove/.pill-remove) that have no per-role Firebase rule
-          // of their own to fall back on — /plan's write rule is the same
-          // for every member, so this is UI-level only, same tradeoff
-          // already made for per-month participants.
+          // openMonthSegmentMenu's "Remove month"/.pill-remove) that have
+          // no per-role Firebase rule of their own to fall back on —
+          // /plan's write rule is the same for every member, so this is
+          // UI-level only, same tradeoff already made for per-month
+          // participants.
           document.body.classList.toggle('owner-mode', role === 'owner');
           if(role !== 'owner' && role !== 'invited'){
             hideMemberPanel();
@@ -3083,58 +3086,76 @@
     positionPopover(pop, anchorEl);
   }
 
-  // ---- Share link: an owner-only on/off switch (see /publicViewEnabled
-  // in the security rules) that makes the whole plan viewable, read-only,
-  // by anyone with the link — no invite, no Google sign-in. Visitors who
-  // open it get signed in anonymously and land in VIEW_ONLY mode (see the
-  // user.isAnonymous branch in onAuthStateChanged above); toggling this
-  // off immediately locks them back out on their next read. Section is
-  // owner-only both by CSS (body.owner-mode, see .share-link-section) and
-  // here in JS, and — the only real boundary — by the security rules,
-  // which reject a write to /publicViewEnabled from anyone but the owner.
-  var shareLinkToggle = document.getElementById('shareLinkToggle');
-  var shareLinkCopyRow = document.getElementById('shareLinkCopyRow');
-  var shareLinkInput = document.getElementById('shareLinkInput');
-  var shareLinkCopyBtn = document.getElementById('shareLinkCopyBtn');
-  var shareLinkHint = document.getElementById('shareLinkHint');
-  var shareLinkWired = false;
+  // ---- Share link: an owner-only on/off switch, per month (see
+  // /publicViewEnabled/$monthKey in the security rules) that makes just
+  // that one month viewable, read-only, by anyone with the link — no
+  // invite, no Google sign-in. Visitors who open it get signed in
+  // anonymously and land in VIEW_ONLY mode scoped to that month (see the
+  // user.isAnonymous branch in onAuthStateChanged above, and
+  // canSeeOption); toggling this off immediately locks them back out on
+  // their next read. Reached from a month segment's own "⋯" menu (see
+  // openMonthSegmentMenu), not a single plan-wide toggle — turning one
+  // month's link on never exposes any other month. Owner-only both in JS
+  // here (and the menu row that's the only way to open this at all) and
+  // — the only real boundary — by the security rules, which reject a
+  // write to /publicViewEnabled from anyone but the owner. ----
+  var monthSharePanel = document.getElementById('monthSharePanel');
+  var monthShareTitle = document.getElementById('monthShareTitle');
+  var monthShareCloseX = document.getElementById('monthShareCloseX');
+  var monthShareToggle = document.getElementById('monthShareToggle');
+  var monthShareCopyRow = document.getElementById('monthShareCopyRow');
+  var monthShareInput = document.getElementById('monthShareInput');
+  var monthShareCopyBtn = document.getElementById('monthShareCopyBtn');
+  var monthShareHint = document.getElementById('monthShareHint');
+  var monthShareWired = false;
+  var pendingShareKey = null;
 
-  function shareLinkUrl(){
-    return location.origin + location.pathname + '?view=1';
+  function monthShareUrl(key){
+    return location.origin + location.pathname + '?view=1&month=' + encodeURIComponent(key);
   }
 
-  function refreshShareLinkUI(){
-    if(!shareLinkToggle || currentUserRole !== 'owner') return;
-    if(shareLinkInput) shareLinkInput.value = shareLinkUrl();
-    firebase.database().ref('publicViewEnabled').once('value').then(function(snap){
+  function openMonthShare(year, month){
+    if(currentUserRole !== 'owner' || !monthSharePanel) return;
+    pendingShareKey = monthKey(year, month);
+    if(monthShareTitle) monthShareTitle.textContent = 'Share ' + formatMonthLabel(year, month, 1);
+    if(monthShareInput) monthShareInput.value = monthShareUrl(pendingShareKey);
+    firebase.database().ref('publicViewEnabled/' + pendingShareKey).once('value').then(function(snap){
       var on = snap.val() === true;
-      shareLinkToggle.checked = on;
-      if(shareLinkCopyRow) shareLinkCopyRow.classList.toggle('show', on);
-      if(shareLinkHint) shareLinkHint.classList.toggle('show', on);
+      if(monthShareToggle) monthShareToggle.checked = on;
+      if(monthShareCopyRow) monthShareCopyRow.classList.toggle('show', on);
+      if(monthShareHint) monthShareHint.classList.toggle('show', on);
     }).catch(function(err){ console.warn('Couldn’t read sharing state', err); });
+    monthSharePanel.classList.add('show');
   }
 
-  function initShareLink(){
-    if(!shareLinkToggle || shareLinkWired) return;
-    shareLinkWired = true;
-    shareLinkToggle.addEventListener('change', function(){
-      if(currentUserRole !== 'owner'){ shareLinkToggle.checked = !shareLinkToggle.checked; return; }
-      var on = shareLinkToggle.checked;
-      firebase.database().ref('publicViewEnabled').set(on).then(function(){
-        if(shareLinkCopyRow) shareLinkCopyRow.classList.toggle('show', on);
-        if(shareLinkHint) shareLinkHint.classList.toggle('show', on);
+  function initMonthShare(){
+    if(!monthShareToggle || monthShareWired) return;
+    monthShareWired = true;
+    if(monthShareCloseX) monthShareCloseX.addEventListener('click', function(){
+      monthSharePanel.classList.remove('show');
+    });
+    monthShareToggle.addEventListener('change', function(){
+      if(currentUserRole !== 'owner' || !pendingShareKey){ monthShareToggle.checked = !monthShareToggle.checked; return; }
+      var on = monthShareToggle.checked;
+      // null (not false) once off — a plain object under
+      // /publicViewEnabled, so an off month just isn't a key in it at
+      // all, matching how the RTDB rule (hasChildren()) and every other
+      // per-key map field in this app already work.
+      firebase.database().ref('publicViewEnabled/' + pendingShareKey).set(on ? true : null).then(function(){
+        if(monthShareCopyRow) monthShareCopyRow.classList.toggle('show', on);
+        if(monthShareHint) monthShareHint.classList.toggle('show', on);
       }).catch(function(err){
         console.warn('Couldn’t update sharing state', err);
-        shareLinkToggle.checked = !on;
+        monthShareToggle.checked = !on;
       });
     });
-    if(shareLinkCopyBtn) shareLinkCopyBtn.addEventListener('click', function(){
-      if(!shareLinkInput) return;
-      shareLinkInput.select();
-      var restoreLabel = shareLinkCopyBtn.textContent;
-      navigator.clipboard.writeText(shareLinkInput.value).then(function(){
-        shareLinkCopyBtn.textContent = 'Copied!';
-        setTimeout(function(){ shareLinkCopyBtn.textContent = restoreLabel; }, 1500);
+    if(monthShareCopyBtn) monthShareCopyBtn.addEventListener('click', function(){
+      if(!monthShareInput) return;
+      monthShareInput.select();
+      var restoreLabel = monthShareCopyBtn.textContent;
+      navigator.clipboard.writeText(monthShareInput.value).then(function(){
+        monthShareCopyBtn.textContent = 'Copied!';
+        setTimeout(function(){ monthShareCopyBtn.textContent = restoreLabel; }, 1500);
       }).catch(function(err){ console.warn('Clipboard copy failed', err); });
     });
   }
@@ -3144,11 +3165,10 @@
     manageBtn.classList.add('show');
     if(memberPanelWired) return;
     memberPanelWired = true;
-    initShareLink();
+    initMonthShare();
     manageBtn.addEventListener('click', function(){
       if(managePanel) managePanel.classList.add('show');
       renderMemberList();
-      refreshShareLinkUI();
       closeActionMenu();
     });
     if(manageCloseBtn) manageCloseBtn.addEventListener('click', function(){
@@ -4146,6 +4166,15 @@
   // it just created.
   function canSeeOption(panel){
     if(!panel) return false;
+    // A share-link visitor (see VIEW_ONLY/VIEW_ONLY_MONTH_KEY) never
+    // reaches the data-members check below at all — the link only ever
+    // grants access to the one month it was generated for, regardless
+    // of that month's own participant list (which is about *invited
+    // members*, a concept a read-only anonymous visitor isn't part of).
+    if(VIEW_ONLY){
+      var d = getPanelDate(panel);
+      return monthKey(d.year, d.month) === VIEW_ONLY_MONTH_KEY;
+    }
     if(currentUserRole === 'owner') return true;
     var members = getOptionMembers(panel);
     if(!members.length) return true;
@@ -7141,11 +7170,12 @@
     return !panel.querySelector(':scope > .grid.week > .cell > .loc, :scope > .grid.week > .cell > .acts > li:not(.act-span-ghost)');
   }
   function removeMonth(year, month){
-    // Belt and suspenders alongside body.owner-mode hiding .seg-remove
-    // entirely — this is still only a UI-level restriction (see the
-    // comment where owner-mode gets toggled), not enforced by a Firebase
-    // rule, but there's no reason to skip the equally-cheap client-side
-    // check here too.
+    // Belt and suspenders alongside openMonthSegmentMenu only ever
+    // offering "Remove month" to an owner in the first place — this is
+    // still only a UI-level restriction (see the comment where
+    // owner-mode gets toggled), not enforced by a Firebase rule, but
+    // there's no reason to skip the equally-cheap client-side check here
+    // too.
     if(currentUserRole !== 'owner') return;
     var opts = [];
     var panels = [];
@@ -7290,6 +7320,65 @@
   }
   window.addEventListener('resize', syncBarLayout);
 
+  // A month segment's "⋯" menu — same row/icon/divider language as
+  // openItemMenu/openDayMenu/openMemberRowMenu, reusing .itemmenu rather
+  // than a parallel set of styles. s is one of renderMonthSidebar's own
+  // { key, year, month, panels, mine, archived } entries — panels is
+  // every alternative under this month, which is what archive/share/
+  // remove all actually need to act on (a month is a grouping of
+  // options, not an entity of its own in the data).
+  function openMonthSegmentMenu(anchorEl, s){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    function row(html, fn, danger){
+      var r = document.createElement('div');
+      r.className = 'itemmenu-row' + (danger ? ' danger' : '');
+      r.innerHTML = html;
+      r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
+      pop.appendChild(r);
+      return r;
+    }
+    function divider(){ var d = document.createElement('div'); d.className = 'itemmenu-divider'; pop.appendChild(d); }
+    function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
+
+    row(icon('+') + 'Add another month', function(){
+      openMonthPickerPopover(anchorEl, s.year, s.month, 'Add', function(newYear, newMonth){
+        var newPanel = createOption(newYear, newMonth);
+        document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
+        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
+        document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
+        newPanel.classList.add('on');
+      });
+    });
+    row(icon('📝') + (MONTH_NOTES[s.key] ? 'Edit notes' : 'Add notes'), function(){
+      openMonthNotes(s.year, s.month);
+    });
+    row(icon(ICON_ARCHIVE) + 'Archive (just for you)', function(){
+      s.panels.forEach(function(p){ setArchivedForMe(p, true); });
+      // Not in MO_OPTS' attributeFilter (data-archived-by is a purely
+      // personal preference, not something every attribute-watching
+      // consumer needs to react to) — same reason setOptionMembers'
+      // own caller has to do this explicitly too.
+      scheduleAutoSave(); scheduleUndoSnapshot();
+      ensureAccessibleActivePanel();
+      renderMonthSidebar();
+    });
+    // Sharing and removing are both owner-only — see openMonthShare/
+    // removeMonth's own checks (this is UI-level only, belt and
+    // suspenders; the security rules independently enforce both).
+    if(currentUserRole === 'owner'){
+      row(icon('🔗') + 'Share link', function(){ openMonthShare(s.year, s.month); });
+      divider();
+      row(icon('✕') + 'Remove month', function(){ removeMonth(s.year, s.month); }, true);
+    }
+
+    pop._anchorEl = anchorEl;
+    anchorEl.style.visibility = 'visible';
+    anchorEl.classList.add('open');
+    positionPopover(pop, anchorEl);
+  }
+
   // Which year the sidebar is currently showing — persists across
   // re-renders (an edit, a remote sync) so switching years to look at
   // something doesn't get undone by an unrelated autosave-triggered
@@ -7422,55 +7511,18 @@
         seg.appendChild(mineBadge);
       }
 
-      var addBtn = document.createElement('button');
-      addBtn.type = 'button'; addBtn.className = 'seg-add jsctl'; addBtn.textContent = '+';
-      addBtn.title = 'Add another month';
-      addBtn.addEventListener('click', function(e){
+      // Add/notes/archive/share/remove all live behind this one trigger
+      // now (see openMonthSegmentMenu) — same "⋯" language as every other
+      // menu in the app, instead of an ever-growing pile of tiny buttons
+      // fighting for room in a 46px-wide strip.
+      var menuBtn = document.createElement('button');
+      menuBtn.type = 'button'; menuBtn.className = 'itemmenu-btn jsctl'; menuBtn.textContent = '⋯';
+      menuBtn.title = 'More options for ' + label.textContent;
+      menuBtn.addEventListener('click', function(e){
         e.stopPropagation();
-        openMonthPickerPopover(seg, s.year, s.month, 'Add', function(newYear, newMonth){
-          var newPanel = createOption(newYear, newMonth);
-          document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
-          document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
-          document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
-          newPanel.classList.add('on');
-        });
+        openMonthSegmentMenu(menuBtn, s);
       });
-      seg.appendChild(addBtn);
-
-      var archiveBtn = document.createElement('button');
-      archiveBtn.type = 'button'; archiveBtn.className = 'seg-archive jsctl'; archiveBtn.innerHTML = ICON_ARCHIVE;
-      archiveBtn.title = 'Archive this month (just for you — see it again from "Archived" below)';
-      archiveBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        s.panels.forEach(function(p){ setArchivedForMe(p, true); });
-        // Not in MO_OPTS' attributeFilter (data-archived-by is a purely
-        // personal preference, not something every attribute-watching
-        // consumer needs to react to) — same reason setOptionMembers'
-        // own caller has to do this explicitly too.
-        scheduleAutoSave(); scheduleUndoSnapshot();
-        ensureAccessibleActivePanel();
-        renderMonthSidebar();
-      });
-      seg.appendChild(archiveBtn);
-
-      var notesBtn = document.createElement('button');
-      notesBtn.type = 'button'; notesBtn.className = 'seg-notes jsctl'; notesBtn.textContent = '📝';
-      notesBtn.classList.toggle('has-notes', !!MONTH_NOTES[s.key]);
-      notesBtn.title = MONTH_NOTES[s.key] ? 'Edit notes for this month' : 'Add notes for this month';
-      notesBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        openMonthNotes(s.year, s.month);
-      });
-      seg.appendChild(notesBtn);
-
-      var removeBtn = document.createElement('button');
-      removeBtn.type = 'button'; removeBtn.className = 'seg-remove jsctl'; removeBtn.textContent = '✕';
-      removeBtn.title = 'Remove this month and all its alternatives';
-      removeBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        removeMonth(s.year, s.month);
-      });
-      seg.appendChild(removeBtn);
+      seg.appendChild(menuBtn);
 
       sidebar.appendChild(seg);
     });
@@ -8055,8 +8107,10 @@
   // period/month, in that order) rather than jumping straight to the
   // add-activity modal — it absorbs what used to be three separate "+"
   // buttons (the FAB, #addOptionBtn next to the pills, and each month
-  // segment's own .seg-add), all hidden on mobile now (see the media
-  // query) since this one menu covers everything they did.
+  // segment's own "Add another month" — now folded into
+  // openMonthSegmentMenu, and reachable there on mobile the same way as
+  // desktop, since that menu's own trigger is unconditionally visible on
+  // touch — see the media query further down).
   if(mobileAddFab) mobileAddFab.addEventListener('click', function(e){
     e.stopPropagation();
     var alreadyOpen = openPop && openPop.classList.contains('fab-menu');
