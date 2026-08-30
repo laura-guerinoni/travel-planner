@@ -4371,33 +4371,33 @@
   // shown, exactly as before this feature existed. Called from
   // recomputePanel (any price/split change) and on switching which
   // option is active (see the pill click handler).
+  // Payment overview (per-person totals, faces included) is the primary
+  // financial view now — it used to only replace Budget overview once
+  // at least one activity actually had a payment split assigned,
+  // falling back to the flat per-alternative price list (no people at
+  // all) until then. Even with nothing split yet, computePaymentTotals'
+  // own "unassigned" bucket already covers that case coherently (the
+  // alternative's full cost shows there instead of split among faces),
+  // so there's no real gap that fallback was covering — Budget overview
+  // is dead code below this now, kept only because #budgetOverviewTitle
+  // and .budget:not(.payment-overview) may still exist in markup that
+  // predates this.
   function renderPaymentOverview(){
-    var panel = document.querySelector('.panel.on');
     var budgetTitle = document.getElementById('budgetOverviewTitle');
     var budgetDiv = document.querySelector('.budget:not(.payment-overview)');
     var payTitle = document.getElementById('paymentOverviewTitle');
     var payDiv = document.getElementById('paymentOverview');
-    if(!payDiv || !payTitle || !budgetTitle || !budgetDiv) return;
-    var result = computePaymentTotals(panel);
-    if(!result.anyAssigned){
-      payTitle.style.display = 'none';
-      payDiv.style.display = 'none';
-      budgetTitle.style.display = '';
-      budgetDiv.style.display = '';
-      return;
-    }
-    budgetTitle.style.display = 'none';
-    budgetDiv.style.display = 'none';
+    if(!payDiv || !payTitle) return;
+    if(budgetTitle) budgetTitle.style.display = 'none';
+    if(budgetDiv) budgetDiv.style.display = 'none';
     payTitle.style.display = '';
     payDiv.style.display = '';
     loadMemberAvatarData().then(function(data){
       // The active option (or its data) could have changed while this
-      // fetch was in flight — recompute fresh rather than trust the
-      // closured `result`, and bail if payment tracking got toggled off
-      // in the meantime (already hidden above).
+      // fetch was in flight — recompute fresh rather than trust
+      // whatever was true when this render started.
       var current = document.querySelector('.panel.on');
       var fresh = computePaymentTotals(current);
-      if(!fresh.anyAssigned) return;
       var ul = payDiv.querySelector('ul');
       ul.innerHTML = '';
       Object.keys(fresh.totals).forEach(function(key){
@@ -5026,6 +5026,14 @@
   // assigns who's paying (or splitting) that amount (see renderPaySplit/
   // openPaySplitPopover).
   var ICON_WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h3v-4Z"/></svg>';
+  // Same glyph as #printBtn in the main menu — one printer icon, not two
+  // different-looking ones for what's the same action at two different
+  // scopes.
+  var ICON_PRINT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>';
+  // "Who can see this" — an eye, not the two-people glyph (ICON_PEOPLE),
+  // which is for adding/editing *who's on* something, a different
+  // action from checking visibility.
+  var ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
   // A standard two-link chain glyph — sits at the top of the link preview
   // card (see buildLinkPreviewWrap) so the card reads as "a link" at a
   // glance, the same way a photo/ticket preview leads with the image or
@@ -7459,7 +7467,7 @@
     pop.appendChild(row);
     var accessRow = document.createElement('div');
     accessRow.className = 'itemmenu-row';
-    accessRow.textContent = '👤  Who can see this month';
+    accessRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EYE + '</span>Who can see this month';
     accessRow.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
@@ -7469,7 +7477,7 @@
     pop.appendChild(accessRow);
     var printRow = document.createElement('div');
     printRow.className = 'itemmenu-row';
-    printRow.textContent = '🖨  Print this alternative';
+    printRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PRINT + '</span>Print this alternative';
     printRow.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
@@ -7552,7 +7560,15 @@
       note.className = 'optmembers-note';
       note.textContent = noteText();
       pop.appendChild(note);
-      data.members.forEach(function(m){
+      // Never your own row — this list answers "who else can see this",
+      // same reasoning as the pill's own face row (renderPillAccessFaces).
+      // The checkbox change handler below still seeds from the *full*
+      // data.members (including you) when going from "everyone" to a
+      // restricted list, not this filtered view — otherwise unchecking
+      // the first other person while you're not the alternative's
+      // creator would silently drop your own access along with it,
+      // since you're simply not a row here to protect from that.
+      data.members.filter(function(m){ return m.key !== currentUserKey; }).forEach(function(m){
         var row = document.createElement('label');
         row.className = 'participant-picker-row';
         var checkbox = document.createElement('input');
