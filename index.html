@@ -783,7 +783,7 @@
      character (+, ↑, ↓, ✕, ↗) for the rest — sits in the same
      fixed-width column so every row's label lines up at the same left
      edge regardless of how wide that particular glyph happens to be. */
-  .itemmenu-icon { flex:0 0 20px; display:inline-flex; align-items:center; justify-content:center; }
+  .itemmenu-icon { flex:0 0 20px; display:inline-flex; align-items:center; justify-content:center; margin-right:8px; }
   .itemmenu-icon svg { width:14px; height:14px; }
   /* Separates the menu's 3 sections: missing fields you can add, then
      ticket/links/photo, then move/delete — only the first divider is
@@ -1599,7 +1599,7 @@
       <h2 data-i18n="print_title">Print / Save as PDF</h2>
       <button type="button" id="printCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
     </div>
-    <fieldset>
+    <fieldset id="printScopeFieldset">
       <legend data-i18n="print_include">Include</legend>
       <label><input type="radio" name="printScope" value="active" checked /> <span data-i18n="print_scope_active">This month only</span></label>
       <label><input type="radio" name="printScope" value="all" /> <span data-i18n="print_scope_all">All months</span></label>
@@ -2215,6 +2215,13 @@
       invite_scope_heading: 'Which months should they see?', invite_scope_done: 'Done',
       manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
       invite_scope_open_hint: 'Open to everyone — can’t be removed here',
+      pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
+      pillmenu_print: 'Print', pillmenu_delete: 'Delete alternative',
+      pillmenu_no_access_yet: 'No one has access yet',
+      pillmenu_everyone_sees: 'Everyone can currently see this month.',
+      pillmenu_only_checked_see: 'Only checked members can see this month.',
+      pillmenu_delete_confirm_title: 'Delete this alternative?',
+      pillmenu_delete_confirm_pre: 'This will delete “', pillmenu_delete_confirm_post: '” and everything in it. This can’t be undone.',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
@@ -2248,6 +2255,13 @@
       invite_scope_heading: 'Quali mesi dovrebbero vedere?', invite_scope_done: 'Fatto',
       manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
       invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
+      pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
+      pillmenu_print: 'Stampa', pillmenu_delete: 'Elimina alternativa',
+      pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
+      pillmenu_everyone_sees: 'Tutti possono attualmente vedere questo mese.',
+      pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
+      pillmenu_delete_confirm_title: 'Eliminare questa alternativa?',
+      pillmenu_delete_confirm_pre: 'Questo eliminerà “', pillmenu_delete_confirm_post: '” e tutto il suo contenuto. Non può essere annullato.',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
@@ -2281,6 +2295,13 @@
       invite_scope_heading: '¿Qué meses deberían ver?', invite_scope_done: 'Listo',
       manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
       invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
+      pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
+      pillmenu_print: 'Imprimir', pillmenu_delete: 'Eliminar alternativa',
+      pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
+      pillmenu_everyone_sees: 'Todos pueden ver este mes actualmente.',
+      pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
+      pillmenu_delete_confirm_title: '¿Eliminar esta alternativa?',
+      pillmenu_delete_confirm_pre: 'Esto eliminará “', pillmenu_delete_confirm_post: '” y todo su contenido. No se puede deshacer.',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
@@ -2764,17 +2785,18 @@
     // 3 — asymmetric half-smile, the original default/fallback shape,
     // now reachable explicitly rather than by falling through.
     if(mouthType === 3) return '<path d="M 27 41 Q 33 44 39 39" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    // 5 — open "surprised" oval, taller/rounder than 2's small closed
-    // curve so the two read as clearly different shapes, not just
-    // different sizes of the same one.
-    if(mouthType === 5) return '<ellipse cx="32" cy="42" rx="4.5" ry="6" fill="' + mc + '"/>';
+    // 5 — a smirk: flat across most of its width, one corner kicked up,
+    // distinct from every symmetric shape here (0/1/2/3/4/6/7).
+    if(mouthType === 5) return '<path d="M 25 42 L 34 42 Q 37 42 39 39" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
     // 6 — a wide open grin: outer smile curve plus an inner curve close
     // behind it, so the sliver between them reads as an open mouth
     // (teeth showing) rather than a plain thick line.
     if(mouthType === 6) return '<path d="M 23 40 Q 32 50 41 40 Q 32 45 23 40 Z" fill="' + mc + '"/>';
-    // 7 — a gentle wavy line (unsure/wobbly), distinct from the flat
-    // (1), smiling (0/3), and frowning (4) straight-ish shapes.
-    return '<path d="M 25 41 Q 28.5 39 32 41 Q 35.5 43 39 41" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    // 7 — fuller lips: a shallow cupid's-bow dip at the top center
+    // (two small peaks meeting in the middle, not one plain curve) over
+    // a single rounded bottom edge — filled, like 2/6, not stroked like
+    // most of the others here.
+    return '<path d="M 24 41 Q 28 39 32 40.5 Q 36 39 40 41 Q 36 45 32 45 Q 28 45 24 41 Z" fill="' + mc + '"/>';
   }
   // Which side-lock path (if any) a given hair length draws, keyed by the
   // same 'short'/'medium'/'long' strings the editor and stored overrides
@@ -4830,7 +4852,7 @@
       if(!eligible.length){
         var empty = document.createElement('div');
         empty.className = 'itemmenu-row';
-        empty.textContent = 'No one has access yet';
+        empty.textContent = t('pillmenu_no_access_yet');
         pop.appendChild(empty);
       }
       eligible.forEach(function(m){
@@ -4944,7 +4966,7 @@
       if(!eligible.length){
         var empty = document.createElement('div');
         empty.className = 'itemmenu-row';
-        empty.textContent = 'No one has access yet';
+        empty.textContent = t('pillmenu_no_access_yet');
         pop.appendChild(empty);
       }
       eligible.forEach(function(m){
@@ -5034,6 +5056,11 @@
   // which is for adding/editing *who's on* something, a different
   // action from checking visibility.
   var ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  // Standard two-overlapping-rectangles "copy" glyph — same stroke
+  // weight/style as every other itemmenu-icon here, replacing the old
+  // ⧉ character (the one row in this menu that hadn't been converted
+  // over from a plain glyph yet).
+  var ICON_DUPLICATE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   // A standard two-link chain glyph — sits at the top of the link preview
   // card (see buildLinkPreviewWrap) so the card reads as "a link" at a
   // glance, the same way a photo/ticket preview leads with the image or
@@ -7458,7 +7485,7 @@
     pop.className = 'itemmenu';
     var row = document.createElement('div');
     row.className = 'itemmenu-row';
-    row.textContent = '⧉  Duplicate';
+    row.innerHTML = '<span class="itemmenu-icon">' + ICON_DUPLICATE + '</span>' + t('pillmenu_duplicate');
     row.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
@@ -7467,7 +7494,7 @@
     pop.appendChild(row);
     var accessRow = document.createElement('div');
     accessRow.className = 'itemmenu-row';
-    accessRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EYE + '</span>Who can see this month';
+    accessRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EYE + '</span>' + t('pillmenu_who_can_see');
     accessRow.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
@@ -7477,7 +7504,7 @@
     pop.appendChild(accessRow);
     var printRow = document.createElement('div');
     printRow.className = 'itemmenu-row';
-    printRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PRINT + '</span>Print this alternative';
+    printRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PRINT + '</span>' + t('pillmenu_print');
     printRow.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
@@ -7491,6 +7518,15 @@
       activatePillByOpt(pill.getAttribute('data-opt'));
       var activeScope = document.querySelector('input[name="printScope"][value="active"]');
       if(activeScope) activeScope.checked = true;
+      // Coming from a specific alternative's own menu, there's nothing
+      // left to choose here — showing "This month only"/"All months" as
+      // if it were still an open question read as an invitation to pick
+      // wrong and print more than just this one. Hidden entirely rather
+      // than just preselected; printScopeFieldset itself reappears via
+      // the main Print menu item's own click handler below, the one
+      // path that still needs the choice.
+      var scopeFieldset = document.getElementById('printScopeFieldset');
+      if(scopeFieldset) scopeFieldset.style.display = 'none';
       if(printPanel) printPanel.classList.add('show');
     });
     pop.appendChild(printRow);
@@ -7503,7 +7539,7 @@
     if(currentUserRole === 'owner'){
       var delRow = document.createElement('div');
       delRow.className = 'itemmenu-row danger';
-      delRow.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>Delete alternative';
+      delRow.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>' + t('pillmenu_delete');
       delRow.addEventListener('click', function(e){
         e.stopPropagation();
         closePop();
@@ -7541,8 +7577,8 @@
 
     function noteText(){
       return getOptionMembers(panel).length
-        ? 'Only checked members can see this month.'
-        : 'Everyone can currently see this month.';
+        ? t('pillmenu_only_checked_see')
+        : t('pillmenu_everyone_sees');
     }
 
     function afterChange(){
@@ -8231,9 +8267,9 @@
     // openTypeConfirmModal). Same modal, same word, as clearing a day or
     // deleting a whole month.
     openTypeConfirmModal({
-      title: 'Delete this alternative?',
-      message: 'This will delete "' + name + '" and everything in it. This can\'t be undone.',
-      confirmLabel: 'Delete alternative',
+      title: t('pillmenu_delete_confirm_title'),
+      message: t('pillmenu_delete_confirm_pre') + name + t('pillmenu_delete_confirm_post'),
+      confirmLabel: t('pillmenu_delete'),
       onConfirm: doRemoveAlternative
     });
   }
@@ -8536,6 +8572,12 @@
   if(printBtn){
     if(!IS_HOSTED){ printBtn.classList.add('show'); if(actionMenu) actionMenu.classList.add('show'); }
     printBtn.addEventListener('click', function(){
+      // Reappears here — the pill menu's own Print row (see
+      // openPillContextMenu) hides this same fieldset, since printing
+      // one specific alternative leaves nothing left to choose. This is
+      // the one path that still needs the choice.
+      var scopeFieldset = document.getElementById('printScopeFieldset');
+      if(scopeFieldset) scopeFieldset.style.display = '';
       if(printPanel) printPanel.classList.add('show');
       closeActionMenu();
     });
