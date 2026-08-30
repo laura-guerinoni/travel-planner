@@ -150,11 +150,20 @@
      away, and overlapping the next face's own square in a way that
      read as the whole row looking washed-out/transparent rather than a
      clean stack of circles. */
-  .pill .pill-access-face { display:inline-block; width:16px; height:16px; border-radius:50%;
+  .pill .pill-access-face { position:relative; display:inline-block; width:16px; height:16px; border-radius:50%;
     overflow:hidden; border:1.5px solid var(--card); margin-left:-5px; background:var(--card); opacity:1; }
   .pill.on .pill-access-face { border-color:#fff; background:#fff; }
   .pill-access-face:first-child { margin-left:0; }
   .pill-access-face svg { display:block; width:100%; height:100%; }
+  /* Situational awareness, not a badge that changes any actual access —
+     a bright ring says "here right now", distinct enough from the plain
+     border every face already has at rest. A small corner dot would've
+     read more like a standard "online" badge, but this element's own
+     overflow:hidden (needed to clip the avatar SVG into a circle — see
+     its own comment above) clips a pseudo-element positioned to
+     overflow past its edge the exact same way, so the dot would have
+     been invisible rather than just subtle. */
+  .pill-access-face.present { box-shadow:0 0 0 2px var(--secondary); }
   /* Extra padding-right (9px, vs the base 6px) so the × sits centered
      between the price pill and the dashed border's own inset right edge
      (4px in from the pill) instead of crowding the dashed line — only
@@ -2222,6 +2231,7 @@
       pillmenu_only_checked_see: 'Only checked members can see this month.',
       pillmenu_delete_confirm_title: 'Delete this alternative?',
       pillmenu_delete_confirm_pre: 'This will delete “', pillmenu_delete_confirm_post: '” and everything in it. This can’t be undone.',
+      paysplit_participated: 'Participated in this activity',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
@@ -2262,6 +2272,7 @@
       pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
       pillmenu_delete_confirm_title: 'Eliminare questa alternativa?',
       pillmenu_delete_confirm_pre: 'Questo eliminerà “', pillmenu_delete_confirm_post: '” e tutto il suo contenuto. Non può essere annullato.',
+      paysplit_participated: 'Ha partecipato a questa attività',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
@@ -2302,6 +2313,7 @@
       pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
       pillmenu_delete_confirm_title: '¿Eliminar esta alternativa?',
       pillmenu_delete_confirm_pre: 'Esto eliminará “', pillmenu_delete_confirm_post: '” y todo su contenido. No se puede deshacer.',
+      paysplit_participated: 'Participó en esta actividad',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
@@ -2399,6 +2411,11 @@
   var currentUserEmail = null;
   var currentUserKey = null;
   var currentUserRole = null; // 'owner' | 'invited' | null
+  // Set once startSync() actually creates it — module-level (not local to
+  // startSync) so activatePillByOpt can push an updated opt onto the same
+  // record whenever the active pill changes, without startSync itself
+  // needing to know anything about pill switching.
+  var myPresenceRef = null;
   var authGateEl = document.getElementById('authGate');
   var authStatusEl = document.getElementById('authGateStatus');
   var authDeniedEl = document.getElementById('authGateDenied');
@@ -3198,6 +3215,7 @@
         var override = avatarOverrides[key];
         var face = document.createElement('span');
         face.className = 'pill-access-face';
+        face.setAttribute('data-key', key);
         face.title = displayNameFor(email, override);
         // avatarSvgFor's full 64x64 canvas — a big background disc (sized
         // for showing at 28px+ elsewhere, on the page/card background
@@ -4133,6 +4151,47 @@
     var newPanel = document.getElementById('panel-' + id);
     if(newPanel){ var nd = getPanelDate(newPanel); filterPillsByMonth(nd.year, nd.month); }
     renderPaymentOverview();
+    updateMyPresenceOpt();
+  }
+  // data-opt of whichever panel is currently .on — what presence reports
+  // as "which alternative this viewer is looking at" (see startSync's
+  // own presence block and renderPresenceHighlights below).
+  function currentActiveOpt(){
+    var p = document.querySelector('.panel.on');
+    return p ? optOf(p) : null;
+  }
+  // Pushes the current opt onto this client's own presence record —
+  // called from activatePillByOpt (every pill switch), not on some
+  // interval; a stale opt just means the highlight lags behind by one
+  // switch until the next one, never wrong in a way that keeps growing.
+  function updateMyPresenceOpt(){
+    if(!myPresenceRef) return;
+    myPresenceRef.update({ opt: currentActiveOpt() }).catch(function(){});
+  }
+  // Rings a face in a pill's own face row (see renderPillAccessFacesFromData)
+  // while the person it belongs to is actually looking at that specific
+  // alternative right now — situational awareness, not a security
+  // boundary, same spirit as the existing "N viewing" count this shares
+  // its data with. Only ever highlights *other* people's faces, same as
+  // the face row itself already excludes your own.
+  function renderPresenceHighlights(presenceVal){
+    document.querySelectorAll('.pill-access-face.present').forEach(function(f){ f.classList.remove('present'); });
+    if(!presenceVal) return;
+    var viewingOpt = {};
+    Object.keys(presenceVal).forEach(function(clientId){
+      var entry = presenceVal[clientId];
+      if(!entry || !entry.key || !entry.opt || entry.key === currentUserKey) return;
+      viewingOpt[entry.opt] = viewingOpt[entry.opt] || [];
+      if(viewingOpt[entry.opt].indexOf(entry.key) === -1) viewingOpt[entry.opt].push(entry.key);
+    });
+    Object.keys(viewingOpt).forEach(function(opt){
+      var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+      if(!pill) return;
+      viewingOpt[opt].forEach(function(key){
+        var face = pill.querySelector('.pill-access-face[data-key="' + key + '"]');
+        if(face) face.classList.add('present');
+      });
+    });
   }
   document.addEventListener('click', function(e){
     if(suppressNextPillClick){ suppressNextPillClick = false; return; }
@@ -4908,8 +4967,26 @@
     try{ var v = JSON.parse(li.getAttribute('data-pay') || '[]'); return Array.isArray(v) ? v : []; }
     catch(e){ return []; }
   }
+  // Explicit "didn't participate" — distinct from simply having no
+  // data-pay entry (see setPaySplits, which now keeps an a:0 entry
+  // instead of stripping it), which means "participated, owes nothing"
+  // rather than "wasn't part of this at all". Separate attribute rather
+  // than folding into data-pay itself, since it needs to persist even
+  // while data-pay has nothing for that person to hold onto.
+  function getPaySplitExcluded(li){
+    try{ var v = JSON.parse(li.getAttribute('data-pay-excluded') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setPaySplitExcluded(li, keys){
+    if(keys.length) li.setAttribute('data-pay-excluded', JSON.stringify(keys));
+    else li.removeAttribute('data-pay-excluded');
+  }
   function setPaySplits(li, splits){
-    var clean = splits.filter(function(s){ return s.a > 0; });
+    // a >= 0 (not > 0) — an explicit 0 means "participated, owes
+    // nothing" now, a real, distinct, intentionally-kept state (see
+    // openPaySplitPopover's own Participated checkbox), not the same
+    // as never having been assigned at all.
+    var clean = splits.filter(function(s){ return s.a >= 0; });
     if(clean.length) li.setAttribute('data-pay', JSON.stringify(clean));
     else li.removeAttribute('data-pay');
     renderPaySplit(li);
@@ -4969,9 +5046,25 @@
         empty.textContent = t('pillmenu_no_access_yet');
         pop.appendChild(empty);
       }
+      var excluded = getPaySplitExcluded(li);
       eligible.forEach(function(m){
-        var row = document.createElement('div');
+        var row = document.createElement('label');
         row.className = 'paysplit-row';
+        row.setAttribute('data-key', m.key);
+        var isExcluded = excluded.indexOf(m.key) !== -1;
+        // Checked = participated (owes whatever the amount field says,
+        // 0 included) — unchecked = wasn't part of this activity at
+        // all, no amount to even set. Defaults checked for anyone not
+        // explicitly excluded, not just whoever already has a data-pay
+        // entry — a fresh activity should read as "everyone eligible
+        // participated" until someone says otherwise, not "nobody has".
+        var participatedCb = document.createElement('input');
+        participatedCb.type = 'checkbox';
+        participatedCb.className = 'paysplit-participated';
+        participatedCb.checked = !isExcluded;
+        participatedCb.title = t('paysplit_participated');
+        participatedCb.addEventListener('click', function(e){ e.stopPropagation(); });
+        row.appendChild(participatedCb);
         var face = document.createElement('span');
         face.className = 'participant-avatar';
         face.innerHTML = avatarSvgFor(m.email, data.avatars[m.key]);
@@ -4986,13 +5079,21 @@
         input.type = 'text'; input.inputMode = 'decimal';
         input.className = 'paysplit-amount';
         input.placeholder = '0';
-        input.value = existing ? existing.a : '';
+        // Shows "0" as soon as it's checked, even with no data-pay entry
+        // yet — matches "left at 0" reading as a real, positive
+        // statement ("participated, owes nothing"), not just an empty
+        // field nobody's looked at. Nothing is actually written until
+        // there's a real interaction (typing, or the checkbox itself),
+        // so just opening this popover and closing it again still
+        // leaves no trace.
+        input.value = existing ? existing.a : (isExcluded ? '' : '0');
+        input.style.display = isExcluded ? 'none' : '';
         input.addEventListener('click', function(e){ e.stopPropagation(); });
-        input.addEventListener('input', function(){
+        function commitAmount(){
           var amt = parseFloat(String(input.value).replace(',', '.'));
           var idx = -1;
           splits.forEach(function(s, i){ if(s.k === m.key) idx = i; });
-          if(!isNaN(amt) && amt > 0){
+          if(!isNaN(amt) && amt >= 0){
             if(idx === -1) splits.push({ k: m.key, a: amt });
             else splits[idx].a = amt;
           } else if(idx !== -1){
@@ -5000,6 +5101,28 @@
           }
           refreshHeader();
           setPaySplits(li, splits);
+        }
+        input.addEventListener('input', commitAmount);
+        participatedCb.addEventListener('change', function(){
+          var exArr = getPaySplitExcluded(li);
+          var exIdx = exArr.indexOf(m.key);
+          if(participatedCb.checked){
+            if(exIdx !== -1) exArr.splice(exIdx, 1);
+            setPaySplitExcluded(li, exArr);
+            input.style.display = '';
+            if(!input.value) input.value = '0';
+            commitAmount();
+          } else {
+            if(exIdx === -1) exArr.push(m.key);
+            setPaySplitExcluded(li, exArr);
+            input.style.display = 'none';
+            input.value = '';
+            var idx = -1;
+            splits.forEach(function(s, i){ if(s.k === m.key) idx = i; });
+            if(idx !== -1) splits.splice(idx, 1);
+            refreshHeader();
+            setPaySplits(li, splits);
+          }
         });
         row.appendChild(input);
         pop.appendChild(row);
@@ -5007,16 +5130,32 @@
       refreshHeader();
       positionPopover(pop, anchorEl);
     }
+    // Background refresh only (see the hadCache block below) can't just
+    // call render() again — this popover's rows are live <input>s, and
+    // rebuilding them out from under the user mid-keystroke would drop
+    // focus and interrupt typing. Updates just the faces/names in place
+    // instead, by row, leaving every input (and the checkbox states)
+    // completely untouched — fixes a stale avatar (a customization made
+    // moments before this popover was already open) without that cost.
+    function refreshFacesInPlace(data){
+      if(openPop !== pop) return;
+      pop.querySelectorAll('.paysplit-row[data-key]').forEach(function(row){
+        var key = row.getAttribute('data-key');
+        var member = data.members.filter(function(x){ return x.key === key; })[0];
+        if(!member) return;
+        var face = row.querySelector('.participant-avatar');
+        if(face) face.innerHTML = avatarSvgFor(member.email, data.avatars[key]);
+        var label = row.querySelector('.paysplit-email');
+        if(label) label.textContent = displayNameFor(member.email, data.avatars[key]);
+      });
+    }
     // Render from the cache first — instant, no "Loading…" flash, if
-    // this isn't the first popover opened this session. Unlike the
-    // participant picker (see openParticipantPicker), the background
-    // refresh here only updates the cache silently, without re-rendering
-    // this popover — its rows are live <input>s, and rebuilding them out
-    // from under the user mid-keystroke would drop focus and interrupt
-    // typing.
+    // this isn't the first popover opened this session. The background
+    // refresh doesn't call render() again (see refreshFacesInPlace's own
+    // comment for why) — just the faces/names, in place.
     var hadCache = !!memberAvatarDataPromise;
     loadMemberAvatarData().then(render);
-    if(hadCache) loadMemberAvatarData(true);
+    if(hadCache) loadMemberAvatarData(true).then(refreshFacesInPlace);
   }
 
   // ---- photo ----
@@ -9956,14 +10095,20 @@
     // Lightweight "N viewing" presence — not used for conflict resolution,
     // just situational awareness. onDisconnect() cleans this client's entry
     // up automatically (tab close, network drop) with no server code.
-    var presenceRef = firebase.database().ref('presence/' + CLIENT_ID);
-    presenceRef.set({ ts: firebase.database.ServerValue.TIMESTAMP });
-    presenceRef.onDisconnect().remove();
+    // key/opt (who, and which alternative they're currently looking at)
+    // ride along on the same tiny record — see updateMyPresenceOpt, called
+    // whenever the active pill changes, and renderPresenceHighlights below,
+    // which uses this to ring a face in a pill's own face row while that
+    // person is actually looking at it.
+    myPresenceRef = firebase.database().ref('presence/' + CLIENT_ID);
+    myPresenceRef.set({ ts: firebase.database.ServerValue.TIMESTAMP, key: currentUserKey || null, opt: currentActiveOpt() });
+    myPresenceRef.onDisconnect().remove();
     firebase.database().ref('presence').on('value', function(s){
       var val = s.val();
       var count = val ? Object.keys(val).length : 1;
       var el = document.getElementById('presenceCount');
       if(el) el.textContent = count > 1 ? count + ' viewing' : '';
+      renderPresenceHighlights(val);
     });
   }
 
