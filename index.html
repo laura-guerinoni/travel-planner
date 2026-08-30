@@ -2173,7 +2173,22 @@
     AUD: 'A$'
   };
   var currentCurrency = 'EUR';
-  function currencySymbol(){ return CURRENCIES[currentCurrency] || CURRENCIES.EUR; }
+  // ctx (optional): a panel element (reads its own data-currency, falling
+  // back to the plan-wide default if unset — see canSeeOption's own
+  // "empty means the general case" convention, same idea here) or a
+  // literal currency code string directly. Every existing call with no
+  // argument at all keeps behaving exactly as before (the one plan-wide
+  // currentCurrency) — this only changes anything for a call site that's
+  // been updated to actually pass an alternative's own panel.
+  function currencySymbol(ctx){
+    var code = currentCurrency;
+    if(typeof ctx === 'string') code = ctx;
+    else if(ctx && ctx.getAttribute){
+      var own = ctx.getAttribute('data-currency');
+      if(own) code = own;
+    }
+    return CURRENCIES[code] || CURRENCIES.EUR;
+  }
   // Swaps just the LEADING currency symbol (plus the one fixed space
   // after it — see ensurePriceValPrefix/guardFixedPrefix) off a
   // price-val's own text — ".price-val" is always "<symbol> <number>
@@ -2199,9 +2214,16 @@
   // cascades into recomputePanel() for the pill/budget totals, so
   // sweeping every day cell covers all of that; .price-val is swept
   // separately since recomputeCell only reads it, never rewrites it.
+  // recomputeCell (and everything it cascades into — recomputePanel,
+  // renderPaymentOverview) is already panel-aware as of the per-
+  // alternative currency picker (see openPillContextMenu's Currency row)
+  // — sweeping every cell re-stamps each one with *its own* panel's
+  // currency, not necessarily this one, for any panel that's set its
+  // own override. .price-val itself needs the same per-panel lookup
+  // directly since nothing else rewrites its text.
   function refreshAllMoneyDisplays(){
     document.querySelectorAll('.price-val').forEach(function(pv){
-      pv.textContent = currencySymbol() + ' ' + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
+      pv.textContent = currencySymbol(pv.closest('.panel')) + ' ' + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
     });
     document.querySelectorAll('.cell:not(.empty)').forEach(recomputeCell);
   }
@@ -2232,6 +2254,7 @@
       pillmenu_delete_confirm_title: 'Delete this alternative?',
       pillmenu_delete_confirm_pre: 'This will delete “', pillmenu_delete_confirm_post: '” and everything in it. This can’t be undone.',
       paysplit_participated: 'Participated in this activity',
+      pillmenu_currency: 'Currency', pillmenu_currency_default: 'Plan default',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
       print_layout_list: 'Day list', print_size: 'Paper size', print_size_letter: 'US Letter',
@@ -2273,6 +2296,7 @@
       pillmenu_delete_confirm_title: 'Eliminare questa alternativa?',
       pillmenu_delete_confirm_pre: 'Questo eliminerà “', pillmenu_delete_confirm_post: '” e tutto il suo contenuto. Non può essere annullato.',
       paysplit_participated: 'Ha partecipato a questa attività',
+      pillmenu_currency: 'Valuta', pillmenu_currency_default: 'Predefinita del piano',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
       print_layout_list: 'Elenco giorni', print_size: 'Formato carta', print_size_letter: 'US Letter',
@@ -2314,6 +2338,7 @@
       pillmenu_delete_confirm_title: '¿Eliminar esta alternativa?',
       pillmenu_delete_confirm_pre: 'Esto eliminará “', pillmenu_delete_confirm_post: '” y todo su contenido. No se puede deshacer.',
       paysplit_participated: 'Participó en esta actividad',
+      pillmenu_currency: 'Moneda', pillmenu_currency_default: 'Predeterminada del plan',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
       print_layout_list: 'Lista de días', print_size: 'Tamaño de papel', print_size_letter: 'Carta EE. UU.',
@@ -3957,7 +3982,7 @@
     el.textContent = prefix + el.textContent.replace(/^🕒\s*/, '');
   }
   function ensurePriceValPrefix(el){
-    var prefix = currencySymbol() + ' ';
+    var prefix = currencySymbol(el.closest('.panel')) + ' ';
     if(el.textContent.indexOf(prefix) === 0) return;
     el.textContent = prefix + el.textContent.replace(CURRENCY_SYMBOL_RE, '');
   }
@@ -4321,10 +4346,10 @@
     while((addM = addRe.exec(rest))){ total += parseFloat(addM[1]); }
     return total;
   }
-  function formatMoney(n){
+  function formatMoney(n, ctx){
     n = Math.round(n * 100) / 100;
-    if (Math.round(n) === n) return currencySymbol() + Math.round(n);
-    return currencySymbol() + n.toFixed(2);
+    if (Math.round(n) === n) return currencySymbol(ctx) + Math.round(n);
+    return currencySymbol(ctx) + n.toFixed(2);
   }
 
   function recomputeCell(cell){
@@ -4355,7 +4380,7 @@
         var addLocEl = cell.querySelector(':scope > .addloc');
         if(addLocEl) cell.insertBefore(costEl, addLocEl); else cell.appendChild(costEl);
       }
-      costEl.textContent = 'Day total ' + formatMoney(sum);
+      costEl.textContent = 'Day total ' + formatMoney(sum, cell.closest('.panel'));
     }
     // Mirrors costEl's own total into a badge inside .loc (location name
     // left, total right — see .loc's CSS) — the on-screen display now,
@@ -4374,7 +4399,7 @@
         badge.className = 'daytotal-badge has-content';
         locEl.appendChild(badge);
       }
-      badge.textContent = formatMoney(sum);
+      badge.textContent = formatMoney(sum, cell.closest('.panel'));
     }
     updateCellAllBooked(cell);
     recomputePanel(cell.closest('.panel'));
@@ -4412,12 +4437,12 @@
     var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
     if(pill){
       var priceSpan = pill.querySelector('.pill-price');
-      if(priceSpan) priceSpan.textContent = formatMoney(sum);
+      if(priceSpan) priceSpan.textContent = formatMoney(sum, panel);
     }
     var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
     if(budgetLi){
       var strong = budgetLi.querySelector('strong');
-      if(strong) strong.textContent = formatMoney(sum);
+      if(strong) strong.textContent = formatMoney(sum, panel);
     }
     renderPaymentOverview();
   }
@@ -4496,7 +4521,7 @@
         left.appendChild(label);
         li.appendChild(left);
         var strong = document.createElement('strong');
-        strong.textContent = formatMoney(fresh.totals[key]);
+        strong.textContent = formatMoney(fresh.totals[key], current);
         li.appendChild(strong);
         ul.appendChild(li);
       });
@@ -4507,7 +4532,7 @@
         uleft.textContent = t('payment_unassigned');
         uli.appendChild(uleft);
         var ustrong = document.createElement('strong');
-        ustrong.textContent = formatMoney(fresh.unassigned);
+        ustrong.textContent = formatMoney(fresh.unassigned, current);
         uli.appendChild(ustrong);
         ul.appendChild(uli);
       }
@@ -5033,7 +5058,7 @@
       function refreshHeader(){
         var assigned = splits.reduce(function(sum, s){ return sum + s.a; }, 0);
         var remaining = total - assigned;
-        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining);
+        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining, ownerPanel);
         header.classList.toggle('over', remaining < 0);
       }
       // Same eligibility rule as openParticipantPicker — someone without
@@ -5191,6 +5216,7 @@
   // different-looking ones for what's the same action at two different
   // scopes.
   var ICON_PRINT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>';
+  var ICON_CURRENCY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2.5 0 0 0-2.5-1.5c-1.66 0-3 1.12-3 2.5s1.34 2.5 3 2.5 3 1.12 3 2.5-1.34 2.5-3 2.5A2.5 2.5 0 0 1 9.5 15"/><path d="M12 6.5v11"/></svg>';
   // "Who can see this" — an eye, not the two-people glyph (ICON_PEOPLE),
   // which is for adding/editing *who's on* something, a different
   // action from checking visibility.
@@ -7681,6 +7707,16 @@
       if(printPanel) printPanel.classList.add('show');
     });
     pop.appendChild(printRow);
+    var currencyRow = document.createElement('div');
+    currencyRow.className = 'itemmenu-row';
+    currencyRow.innerHTML = '<span class="itemmenu-icon">' + ICON_CURRENCY + '</span>' + t('pillmenu_currency');
+    currencyRow.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      if(panel) openPanelCurrencyMenu(panel, pill);
+    });
+    pop.appendChild(currencyRow);
     // Owner-only, same as the old bare × this replaced always was — the
     // trigger itself (.pill-remove, whether reached by hover or right-
     // click) is already hidden from a non-owner via body.owner-mode's
@@ -7706,6 +7742,42 @@
     pop.style.left = (window.scrollX + left) + 'px';
     pop.style.top = (window.scrollY + top) + 'px';
     openPop = pop;
+  }
+
+  // Per-alternative currency — an unset data-currency means "use the
+  // plan-wide default" (see currencySymbol's own ctx handling), same
+  // "empty means the general case" convention as data-members. Setting
+  // one here re-stamps every price *belonging to this panel specifically*
+  // (day totals/badges, the pill's own price, its budget row, Payment
+  // overview if it's the active one) — every one of those already reads
+  // its symbol through currencySymbol(panel)/formatMoney(n, panel) as of
+  // this feature, so nothing else needs to change to make them agree.
+  function openPanelCurrencyMenu(panel, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    var current = panel.getAttribute('data-currency') || '';
+    function applyAndRestamp(code){
+      if(code) panel.setAttribute('data-currency', code);
+      else panel.removeAttribute('data-currency');
+      recomputePanel(panel);
+      panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(recomputeCell);
+      panel.querySelectorAll('.price-val').forEach(ensurePriceValPrefix);
+      scheduleAutoSave(); scheduleUndoSnapshot();
+    }
+    var defaultRow = document.createElement('div');
+    defaultRow.className = 'itemmenu-row' + (current === '' ? ' current' : '');
+    defaultRow.textContent = t('pillmenu_currency_default') + ' (' + currencySymbol() + ')';
+    defaultRow.addEventListener('click', function(e){ e.stopPropagation(); closePop(); applyAndRestamp(null); });
+    pop.appendChild(defaultRow);
+    Object.keys(CURRENCIES).forEach(function(code){
+      var row = document.createElement('div');
+      row.className = 'itemmenu-row' + (current === code ? ' current' : '');
+      row.textContent = code + ' (' + CURRENCIES[code] + ')';
+      row.addEventListener('click', function(e){ e.stopPropagation(); closePop(); applyAndRestamp(code); });
+      pop.appendChild(row);
+    });
+    positionPopover(pop, anchorEl);
   }
 
   // Which global members (see the Participants panel) can even see this
