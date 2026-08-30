@@ -7049,6 +7049,18 @@
       var acts = ensureActs();
       var li = newActivityLi();
       acts.appendChild(li);
+      // Exactly two people with access to this alternative (its
+      // creator, plus one invited member) is the common small-trip
+      // case — defaulting both onto every new activity means someone
+      // doesn't have to open the participant picker and add the one
+      // other person by hand every single time. Anything else (just
+      // the creator alone, three or more people, or "open to
+      // everyone" with no explicit list to read a count from
+      // synchronously) is genuinely ambiguous about who belongs on a
+      // given activity, so it's left unset rather than guessed at.
+      var ownerPanel = cell.closest('.panel');
+      var defaultMembers = ownerPanel ? getOptionMembers(ownerPanel) : [];
+      if(defaultMembers.length === 2) setParticipants(li, defaultMembers.slice());
       attachItemControls(li);
       recomputeCell(cell);
       refreshHoliCell(cell);
