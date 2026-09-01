@@ -347,6 +347,16 @@
      not as "should this person be charged at all". */
   .paysplit .paysplit-hint { color:var(--muted); font-size:12px; margin:0 0 8px; }
   .paysplit .paysplit-row.excluded { opacity:.5; }
+  /* Shown in place of the calendar/budget content only on a genuinely
+     empty plan — nothing saved anywhere yet (see showEmptyPlanState) —
+     never once a first month actually exists, even one with nothing
+     in it yet (that reads as a normal empty month, not this). */
+  .plan-empty-state { background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:40px 24px; margin:0 0 20px; text-align:center; }
+  .plan-empty-title { margin:0 0 8px; font-size:19px; font-weight:800; color:var(--ink); }
+  .plan-empty-hint { margin:0 0 20px; color:var(--muted); font-size:14px; max-width:420px;
+    margin-left:auto; margin-right:auto; }
+  .plan-empty-cta { width:auto; padding:10px 22px; font-size:14px; }
   .fine { color:var(--muted); font-size:12px; margin:10px 0 0; }
   footer { margin-top:28px; text-align:center; color:var(--muted); font-size:13px; }
   /* Print / Save as PDF. Page size+orientation come from a dynamically
@@ -2364,6 +2374,8 @@
       day_menu: 'Day options', move_day: 'Move to another day',
       assign_payment: 'Assign payment', paysplit_remaining: 'Unassigned:',
       actcurrency_tooltip: 'Currency for this item', actcurrency_default: 'Same as alternative',
+      emptyplan_title: 'Nothing planned yet', emptyplan_hint: 'Create your first month to start adding days, activities, and prices.',
+      emptyplan_cta: '+ Create your first month',
       payment_overview: 'Payment overview', payment_unassigned: 'Unassigned',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
@@ -2413,6 +2425,8 @@
       day_menu: 'Opzioni giorno', move_day: 'Sposta in un altro giorno',
       assign_payment: 'Assegna pagamento', paysplit_remaining: 'Non assegnato:',
       actcurrency_tooltip: 'Valuta per questo elemento', actcurrency_default: 'Come l’alternativa',
+      emptyplan_title: 'Ancora nulla in programma', emptyplan_hint: 'Crea il tuo primo mese per iniziare ad aggiungere giorni, attività e prezzi.',
+      emptyplan_cta: '+ Crea il tuo primo mese',
       payment_overview: 'Riepilogo pagamenti', payment_unassigned: 'Non assegnato',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
@@ -2462,6 +2476,8 @@
       day_menu: 'Opciones del día', move_day: 'Mover a otro día',
       assign_payment: 'Asignar pago', paysplit_remaining: 'Sin asignar:',
       actcurrency_tooltip: 'Moneda de este elemento', actcurrency_default: 'Igual que la alternativa',
+      emptyplan_title: 'Todavía no hay nada planeado', emptyplan_hint: 'Crea tu primer mes para empezar a añadir días, actividades y precios.',
+      emptyplan_cta: '+ Crear tu primer mes',
       payment_overview: 'Resumen de pagos', payment_unassigned: 'Sin asignar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
@@ -3985,6 +4001,17 @@
       panel.dataset.month = String(m);
     }
     return { year: y, month: m };
+  }
+  // Every "+ Add alternative"/"+ Month" menu row reads a starting
+  // year/month off whichever panel is active — getPanelDate(panel)
+  // itself requires a real panel, which doesn't exist at all on a
+  // genuinely empty plan (see showEmptyPlanState) before its very
+  // first month has been created. Falls back to today's real date in
+  // that one case instead of throwing.
+  function todayOrPanelDate(panel){
+    if(panel) return getPanelDate(panel);
+    var now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
   }
   function setPanelDate(panel, year, month){
     panel.dataset.year = String(year);
@@ -7786,7 +7813,16 @@
     var displayNum = 1; // the "1.", "2." shown to the user — counts only within this month
     panels.forEach(function(p){ var d = getPanelDate(p); if(d.year === year && d.month === month) displayNum++; });
     var template = panels[0];
-    var clone = template.cloneNode(true);
+    // No existing panel to clone a skeleton from at all — the very
+    // first alternative anyone ever creates (a genuinely empty plan,
+    // see showEmptyPlanState). buildCalendarGrid below builds the
+    // entire weekday-heads/day-cells structure from nothing regardless
+    // of which path got here — cloning a template was only ever a
+    // shortcut for the outer <section>, never load-bearing for the
+    // grid itself (see its own .grid.heads/.grid.week teardown+rebuild
+    // at its own start).
+    var clone = template ? template.cloneNode(true) : document.createElement('section');
+    clone.className = 'panel';
     clone.id = 'panel-option-' + n;
     clone.classList.remove('on');
     clone.removeAttribute('data-holiday-start');
@@ -7821,7 +7857,16 @@
       clone.setAttribute('data-creator', currentUserKey);
     }
     var allPanels = document.querySelectorAll('.panel');
-    allPanels[allPanels.length - 1].insertAdjacentElement('afterend', clone);
+    if(allPanels.length){
+      allPanels[allPanels.length - 1].insertAdjacentElement('afterend', clone);
+    } else {
+      // The very first panel ever — no sibling to anchor after, so this
+      // goes right before the budget section instead (a heading that's
+      // always present in the static markup, unlike any .panel).
+      var budgetTitleEl = document.getElementById('budgetOverviewTitle');
+      if(budgetTitleEl) budgetTitleEl.insertAdjacentElement('beforebegin', clone);
+      else document.querySelector('.wrap').appendChild(clone);
+    }
 
     var pillsWrap = document.querySelector('.pills');
     var newPill = document.createElement('button');
@@ -8143,7 +8188,7 @@
       }
       menuRow('+ Add alternative', function(){
         var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-        var d = getPanelDate(activePanel);
+        var d = todayOrPanelDate(activePanel);
         createOption(d.year, d.month);
       });
       menuRow('+ Add holiday period', function(){
@@ -8201,6 +8246,12 @@
     var firstMatch = null;
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
       var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      // A pill whose panel doesn't actually exist any more (stale
+      // reference — e.g. a leftover row a caller forgot to clear
+      // alongside its panel) used to crash getPanelDate(null) outright;
+      // skip it instead, same "just don't match" treatment as any
+      // other option that isn't this month's.
+      if(!panel) return;
       var d = getPanelDate(panel);
       // canSeeOption folded straight into "matches" — a month/option this
       // viewer isn't a participant of (see getOptionMembers) is filtered
@@ -8216,6 +8267,7 @@
     // every month's totals in one list regardless of the pill filter above.
     document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
       var panel = document.getElementById('panel-' + li.getAttribute('data-opt'));
+      if(!panel) return; // same stale-reference guard as the pill loop above
       var d = getPanelDate(panel);
       li.classList.toggle('budget-filtered-out', !(d.year === year && d.month === month && canSeeOption(panel)));
     });
@@ -9285,7 +9337,7 @@
     menuRow('+ Activity', openFabAdd);
     menuRow('+ Alternative', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = getPanelDate(activePanel);
+      var d = todayOrPanelDate(activePanel);
       createOption(d.year, d.month);
     });
     menuRow('+ Holiday period', function(){
@@ -9294,7 +9346,7 @@
     });
     menuRow('+ Month', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = getPanelDate(activePanel);
+      var d = todayOrPanelDate(activePanel);
       openMonthPickerPopover(mobileAddFab, d.year, d.month, 'Add', function(newYear, newMonth){
         var newPanel = createOption(newYear, newMonth);
         document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
@@ -10304,6 +10356,77 @@
     renderPillAccessFaces();
   }
 
+  // A genuinely empty /plan (see startSync's own first-load branch) —
+  // nothing in Firebase yet, and no local migration seed to carry
+  // over either — would otherwise just leave whatever scratch content
+  // happens to be baked into this deployed copy of the file sitting on
+  // screen, fully live and editable as if it were real. That's correct
+  // for exactly one deployment (whichever one this file was last saved
+  // from) and wrong — someone else's real trip, editable by a total
+  // stranger to it — for every other one. Clears it and shows a real
+  // "create your first month" state instead.
+  function showEmptyPlanState(){
+    document.querySelectorAll('.panel').forEach(function(p){ p.remove(); });
+    document.querySelectorAll('.pill[data-opt]').forEach(function(p){ p.remove(); });
+    // Budget overview's own rows are a second, independent list of the
+    // same options (see filterPillsByMonth's own comment on that) — left
+    // behind here, each one would still point at a now-deleted panel id,
+    // and the very next filterPillsByMonth call (createOption's own, the
+    // moment someone creates their first month) would call
+    // getPanelDate(null) on one of them and throw.
+    document.querySelectorAll('.budget li[data-opt]').forEach(function(p){ p.remove(); });
+    var budgetTitleEl = document.getElementById('budgetOverviewTitle');
+    var budgetDiv = document.querySelector('.budget:not(.payment-overview)');
+    // Hidden while genuinely empty (an untitled "Budget overview" over
+    // an empty list reads as broken, not as "nothing yet") — restored
+    // once the first month actually exists below, same visibility
+    // renderPaymentOverview already manages for every month after this.
+    if(budgetTitleEl) budgetTitleEl.style.display = 'none';
+    if(budgetDiv) budgetDiv.style.display = 'none';
+    renderMonthSidebar();
+    syncBarLayout();
+
+    var empty = document.createElement('div');
+    empty.className = 'plan-empty-state';
+    var title = document.createElement('p');
+    title.className = 'plan-empty-title';
+    title.textContent = t('emptyplan_title');
+    empty.appendChild(title);
+    var hint = document.createElement('p');
+    hint.className = 'plan-empty-hint';
+    hint.textContent = t('emptyplan_hint');
+    empty.appendChild(hint);
+    var cta = document.createElement('button');
+    cta.type = 'button';
+    cta.className = 'plan-empty-cta modal-primary-btn';
+    cta.textContent = t('emptyplan_cta');
+    empty.appendChild(cta);
+    cta.addEventListener('click', function(e){
+      e.stopPropagation();
+      var now = new Date();
+      openMonthPickerPopover(cta, now.getFullYear(), now.getMonth() + 1, 'Add', function(newYear, newMonth){
+        var newPanel = createOption(newYear, newMonth);
+        document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
+        newPanel.classList.add('on');
+        var newPill = document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]');
+        if(newPill) newPill.classList.add('on');
+        empty.remove();
+        renderMonthSidebar();
+        syncBarLayout();
+        filterPillsByMonth(newYear, newMonth);
+        // recomputePanel -> renderPaymentOverview is what actually
+        // decides Budget vs. Payment overview's visibility (Payment
+        // overview always wins now — see recomputePanel's own
+        // history) — nothing left to restore manually here regardless
+        // of what showEmptyPlanState hid.
+        recomputePanel(newPanel);
+      });
+    });
+
+    if(budgetTitleEl) budgetTitleEl.insertAdjacentElement('beforebegin', empty);
+    else document.querySelector('.wrap').appendChild(empty);
+  }
+
   // One-time migration seed (only ever runs while /plan is empty): prefer
   // this browser's existing localStorage save — the real, possibly-newer
   // content someone was actually editing — over the static defaults baked
@@ -10414,7 +10537,14 @@
           });
         } else if(!VIEW_ONLY){
           var seed = getMigrationSeedPayload();
+          // A real local save exists — carry it over exactly as before
+          // (this is still someone's own content, just not synced up
+          // yet). Only a genuinely empty /plan AND no local seed means
+          // nobody has ever saved anything at all here — see
+          // showEmptyPlanState for why that can't just leave the
+          // page's own static scratch content sitting there instead.
           if(seed) saveToBackend(seed);
+          else showEmptyPlanState();
           document.documentElement.style.visibility = '';
         } else {
           document.documentElement.style.visibility = '';
