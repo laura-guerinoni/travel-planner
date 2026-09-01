@@ -491,10 +491,21 @@
      still read as visually attached to "2026" closely enough to pull
      the eye's sense of the text's center off from a tab's own centered
      label below it. Nothing else here to compete with means nothing
-     else to misjudge the center by — nothing beside "2026" now can. */
+     else to misjudge the center by — nothing beside "2026" now can.
+     Styled as one of the same rounded, colored tabs as the month
+     segments right below it (--ink rather than a SEG_COLORS entry —
+     it's chrome, not a month, so it deliberately doesn't read as one
+     of them) rather than plain floating text — same shape, same
+     rotated label, same "tab" language; the two used to look like two
+     different components stacked on top of each other. Individual
+     month tabs no longer carry their own year in the label (see
+     renderMonthSidebar) now that this is the one place it's shown, so
+     dropping this would leave the year not stated anywhere at all. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    padding:4px 0; margin:0; border:none; background:none; color:var(--muted); cursor:pointer; }
-  .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.02em; line-height:1; }
+    padding:10px 0; margin:0 0 2px; border:none; border-radius:0 16px 16px 0;
+    background:var(--ink); color:#fff; cursor:pointer; min-height:40px; }
+  .month-year-switcher .yr-label { writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
+    font-size:13px; font-weight:800; letter-spacing:.12em; line-height:1; white-space:nowrap; }
   .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
     border-radius:0 16px 16px 0; }
@@ -1132,6 +1143,12 @@
     .month-segment { flex:1 0 88px; min-width:88px; min-height:0; padding:10px 8px;
       border-radius:0 0 14px 14px; }
     .seg-label { writing-mode:horizontal-tb; transform:none; font-size:12px; letter-spacing:.05em; }
+    /* Same flip as .month-segment/.seg-label just above — the switcher
+       hangs off the same now-horizontal bar, so it gets the same
+       bottom-rounded shape and horizontal label instead of the desktop
+       vertical tab treatment. */
+    .month-year-switcher { flex:0 0 auto; padding:10px 8px; margin:0; border-radius:0 0 14px 14px; }
+    .month-year-switcher .yr-label { writing-mode:horizontal-tb; transform:none; font-size:12px; letter-spacing:.05em; }
     .month-segment.current::before { top:0; right:5px; bottom:5px; left:5px;
       border-radius:0 0 11px 11px; border-width:2px; border-color:rgba(255,255,255,.85);
       border-style:none dashed dashed dashed; }
@@ -8055,6 +8072,20 @@
     if(segCount <= 6) return MONTH_SHORT[month - 1] + ' ' + yy;
     return (month < 10 ? '0' + month : month) + '/' + yy;
   }
+  // Month-only counterpart for renderMonthSidebar's own segment labels
+  // specifically — every segment visible at once already belongs to the
+  // one single year the switcher above them shows (see renderMonthSidebar:
+  // visibleMonths is always filtered to sidebarYear), so repeating that
+  // year on every tab below it was pure redundancy. formatMonthLabel
+  // itself stays untouched — everything else that calls it (modal
+  // titles, "Notes — August 2026", the share-scope heading, …) appears
+  // on its own, with no adjacent year switcher to lean on, and still
+  // needs the year spelled out.
+  function formatMonthOnlyLabel(month, segCount){
+    if(segCount <= 2) return MONTH_FULL[month - 1];
+    if(segCount <= 6) return MONTH_SHORT[month - 1];
+    return (month < 10 ? '0' + month : month);
+  }
 
   // Clicking a sidebar segment shows only the options that belong to its
   // month (others stay in the DOM, just hidden) and switches to one of
@@ -8458,7 +8489,13 @@
 
       var label = document.createElement('span');
       label.className = 'seg-label';
-      label.textContent = formatMonthLabel(s.year, s.month, visibleMonths.length);
+      // Only drop the year here when the switcher above is actually
+      // showing it (years.length > 1, same gate that switcher itself
+      // uses) — with just one year, there's no switcher at all, so this
+      // is the only place the year would ever appear.
+      label.textContent = years.length > 1
+        ? formatMonthOnlyLabel(s.month, visibleMonths.length)
+        : formatMonthLabel(s.year, s.month, visibleMonths.length);
       label.title = 'Click to show this month\'s alternatives — double-click to change the month';
       // Single click just navigates, same as clicking anywhere else on the
       // tab (most of the tab's visible area IS the label, so without this
