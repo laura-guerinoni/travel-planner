@@ -362,28 +362,12 @@
      rows just have the one strong, plain as before. */
   .payment-overview .payov-amounts { display:flex; align-items:baseline; gap:6px; flex:0 0 auto; }
   .payment-overview .payov-amt-converted { font-size:12px; font-weight:400; color:var(--muted); white-space:nowrap; }
-  /* Settle up — a short list of real transfers under Payment overview's
-     own per-person totals (see computeSettleUp/renderSettleUp); hidden
-     entirely (display:none, not removed — see renderSettleUp) whenever
-     nobody's set who actually paid for anything yet. */
-  .payment-overview .settleup { margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
-  .payment-overview .settleup-title { margin:0 0 8px; font-size:12px; font-weight:800; color:var(--muted);
-    text-transform:uppercase; letter-spacing:.04em; }
-  .payment-overview .settleup-list { margin:0; padding:0; list-style:none; }
-  .payment-overview .settleup-row { display:flex; align-items:center; gap:8px; font-size:14px; padding:6px 0; border-bottom:none; }
-  .payment-overview .settleup-row .participant-avatar { width:22px; height:22px; border-radius:50%; overflow:hidden; flex:0 0 22px; }
-  .payment-overview .settleup-row .participant-avatar svg { display:block; width:100%; height:100%; }
-  .payment-overview .settleup-arrow { color:var(--muted); flex:0 0 auto; }
-  .payment-overview .settleup-amount { margin-left:auto; color:var(--primary); flex:0 0 auto; }
-  /* "Paid by" row at the top of the pay-split popover (see
-     openPaySplitPopover) — a plain native <select>, not another
-     itemmenu-row, since it's a single choice from a list rather than a
-     row of independently-clickable options. */
-  .paysplit .paysplit-paidby-row { display:flex; align-items:center; gap:8px; padding:2px 0 10px;
-    margin-bottom:6px; border-bottom:1px solid var(--line); font-size:13px; }
-  .paysplit .paysplit-paidby-label { color:var(--muted); flex:0 0 auto; }
-  .paysplit .paysplit-paidby-select { flex:1; min-width:0; font:inherit; font-size:13px; padding:5px 6px;
-    border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  /* Explains what the pay-split popover's own checkbox actually means —
+     see openPaySplitPopover/.paysplit-participated — since a plain
+     checkbox next to an amount field read as part of the split itself,
+     not as "should this person be charged at all". */
+  .paysplit .paysplit-hint { color:var(--muted); font-size:12px; margin:0 0 8px; }
+  .paysplit .paysplit-row.excluded { opacity:.5; }
   .fine { color:var(--muted); font-size:12px; margin:10px 0 0; }
   footer { margin-top:28px; text-align:center; color:var(--muted); font-size:13px; }
   /* Print / Save as PDF. Page size+orientation come from a dynamically
@@ -2356,9 +2340,13 @@
       pillmenu_only_checked_see: 'Only checked members can see this month.',
       pillmenu_delete_confirm_title: 'Delete this alternative?',
       pillmenu_delete_confirm_pre: 'This will delete “', pillmenu_delete_confirm_post: '” and everything in it. This can’t be undone.',
-      paysplit_participated: 'Participated in this activity',
-      paysplit_paid_by: 'Paid by', paysplit_paid_by_none: 'Not set',
-      settle_up_title: 'Settle up',
+      paysplit_participated: 'Charge this person for this activity',
+      paysplit_hint: 'Uncheck anyone who shouldn’t be charged for this activity.',
+      deletemonth_title: 'Delete this month?',
+      deletemonth_msg_pre: 'This will delete ', deletemonth_msg_mid: ' and all ',
+      deletemonth_msg_post: ' alternative(s) in it. This can’t be undone.',
+      deletemonth_confirm: 'Delete month',
+      deletemonth_only_left: 'Can’t remove the only month/alternative left.',
       pillmenu_currency: 'Currency', pillmenu_currency_default: 'Plan default',
       print_title: 'Print / Save as PDF', print_include: 'Include', print_scope_active: 'This month only',
       print_scope_all: 'All months', print_layout: 'Layout', print_layout_grid: 'Calendar grid',
@@ -2400,9 +2388,13 @@
       pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
       pillmenu_delete_confirm_title: 'Eliminare questa alternativa?',
       pillmenu_delete_confirm_pre: 'Questo eliminerà “', pillmenu_delete_confirm_post: '” e tutto il suo contenuto. Non può essere annullato.',
-      paysplit_participated: 'Ha partecipato a questa attività',
-      paysplit_paid_by: 'Pagato da', paysplit_paid_by_none: 'Non impostato',
-      settle_up_title: 'Pareggiare i conti',
+      paysplit_participated: 'Addebita questa persona per questa attività',
+      paysplit_hint: 'Deseleziona chi non deve essere addebitato per questa attività.',
+      deletemonth_title: 'Eliminare questo mese?',
+      deletemonth_msg_pre: 'Questo eliminerà ', deletemonth_msg_mid: ' e tutte le ',
+      deletemonth_msg_post: ' alternative al suo interno. Non può essere annullato.',
+      deletemonth_confirm: 'Elimina mese',
+      deletemonth_only_left: 'Non puoi rimuovere l’unico mese/alternativa rimasto.',
       pillmenu_currency: 'Valuta', pillmenu_currency_default: 'Predefinita del piano',
       print_title: 'Stampa / Salva come PDF', print_include: 'Includi', print_scope_active: 'Solo questo mese',
       print_scope_all: 'Tutti i mesi', print_layout: 'Layout', print_layout_grid: 'Griglia calendario',
@@ -2444,9 +2436,13 @@
       pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
       pillmenu_delete_confirm_title: '¿Eliminar esta alternativa?',
       pillmenu_delete_confirm_pre: 'Esto eliminará “', pillmenu_delete_confirm_post: '” y todo su contenido. No se puede deshacer.',
-      paysplit_participated: 'Participó en esta actividad',
-      paysplit_paid_by: 'Pagado por', paysplit_paid_by_none: 'Sin definir',
-      settle_up_title: 'Ajustar cuentas',
+      paysplit_participated: 'Cobrar a esta persona por esta actividad',
+      paysplit_hint: 'Desmarca a quien no deba pagar por esta actividad.',
+      deletemonth_title: '¿Eliminar este mes?',
+      deletemonth_msg_pre: 'Esto eliminará ', deletemonth_msg_mid: ' y todas las ',
+      deletemonth_msg_post: ' alternativas que contiene. No se puede deshacer.',
+      deletemonth_confirm: 'Eliminar mes',
+      deletemonth_only_left: 'No puedes eliminar el único mes/alternativa que queda.',
       pillmenu_currency: 'Moneda', pillmenu_currency_default: 'Predeterminada del plan',
       print_title: 'Imprimir / Guardar como PDF', print_include: 'Incluir', print_scope_active: 'Solo este mes',
       print_scope_all: 'Todos los meses', print_layout: 'Diseño', print_layout_grid: 'Vista calendario',
@@ -4583,56 +4579,6 @@
     return { totals: totals, unassigned: unassigned, anyAssigned: anyAssigned };
   }
 
-  // ---- settle up: turns the per-person totals above (who owes what
-  // share) plus each activity's own "paid by" (who actually fronted the
-  // money — see getPaidBy/setPaidBy) into the smallest real set of
-  // transfers that would even everyone out — standard greedy debt
-  // simplification (largest creditor paired against largest debtor,
-  // repeat). Deliberately conservative: an activity with no "paid by"
-  // set contributes nothing to the paid side (its cost just stays
-  // unsettled rather than guessed at), so this never invents a transfer
-  // from data nobody actually entered — and returns null the moment
-  // nobody in this panel has a "paid by" set anywhere, so Payment
-  // overview can hide the whole section instead of showing an all-zero
-  // list.
-  function computeSettleUp(panel){
-    if(!panel) return null;
-    var totals = computePaymentTotals(panel).totals;
-    var paid = {}, anyPaid = false;
-    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li:not(.act-span-ghost)').forEach(function(li){
-      var payer = getPaidBy(li);
-      if(!payer) return;
-      anyPaid = true;
-      var priceVal = li.querySelector(':scope > .price > .price-val');
-      var amount = priceVal ? parseMoney(priceVal.textContent) : 0;
-      paid[payer] = (paid[payer] || 0) + amount;
-    });
-    if(!anyPaid) return null;
-    var keys = {};
-    Object.keys(totals).forEach(function(k){ keys[k] = true; });
-    Object.keys(paid).forEach(function(k){ keys[k] = true; });
-    var net = {};
-    Object.keys(keys).forEach(function(k){ net[k] = Math.round(((paid[k] || 0) - (totals[k] || 0)) * 100) / 100; });
-    var creditors = [], debtors = [];
-    Object.keys(net).forEach(function(k){
-      if(net[k] > 0.004) creditors.push({ k: k, v: net[k] });
-      else if(net[k] < -0.004) debtors.push({ k: k, v: -net[k] });
-    });
-    creditors.sort(function(a, b){ return b.v - a.v; });
-    debtors.sort(function(a, b){ return b.v - a.v; });
-    var transfers = [];
-    var ci = 0, di = 0;
-    while(ci < creditors.length && di < debtors.length){
-      var c = creditors[ci], d = debtors[di];
-      var amt = Math.min(c.v, d.v);
-      if(amt > 0.004) transfers.push({ from: d.k, to: c.k, amount: Math.round(amt * 100) / 100 });
-      c.v -= amt; d.v -= amt;
-      if(c.v <= 0.004) ci++;
-      if(d.v <= 0.004) di++;
-    }
-    return transfers;
-  }
-
   // Swaps Budget overview for Payment overview (see the two sections in
   // the markup) as soon as the currently active option has at least one
   // payment assigned anywhere in it — otherwise Budget overview is what's
@@ -4721,62 +4667,6 @@
         appendAmount(uli, fresh.unassigned);
         ul.appendChild(uli);
       }
-      renderSettleUp(payDiv, current, data);
-    });
-  }
-
-  // Renders (or hides) the "settle up" section beneath Payment overview's
-  // own per-person list — a short list of real transfers ("who should
-  // send how much to whom") computed by computeSettleUp. Lives inside
-  // #paymentOverview itself (created on first use, reused after) so it
-  // comes and goes with the rest of that view rather than needing its
-  // own visibility wiring.
-  function renderSettleUp(payDiv, panel, data){
-    var section = payDiv.querySelector('.settleup');
-    var transfers = computeSettleUp(panel);
-    if(!transfers || !transfers.length){
-      if(section) section.style.display = 'none';
-      return;
-    }
-    if(!section){
-      section = document.createElement('div');
-      section.className = 'settleup';
-      var title = document.createElement('h3');
-      title.className = 'settleup-title';
-      title.setAttribute('data-i18n', 'settle_up_title');
-      section.appendChild(title);
-      var list = document.createElement('ul');
-      list.className = 'settleup-list';
-      section.appendChild(list);
-      payDiv.appendChild(section);
-    }
-    section.style.display = '';
-    section.querySelector('.settleup-title').textContent = t('settle_up_title');
-    var list = section.querySelector('.settleup-list');
-    list.innerHTML = '';
-    function faceFor(key){
-      var member = data.members.filter(function(m){ return m.key === key; })[0];
-      var email = member ? member.email : key.replace(/,/g, '.');
-      var span = document.createElement('span');
-      span.className = 'participant-avatar';
-      span.innerHTML = avatarSvgFor(email, data.avatars[key]);
-      span.title = email;
-      return span;
-    }
-    transfers.forEach(function(tr){
-      var row = document.createElement('li');
-      row.className = 'settleup-row';
-      row.appendChild(faceFor(tr.from));
-      var arrow = document.createElement('span');
-      arrow.className = 'settleup-arrow';
-      arrow.textContent = '→';
-      row.appendChild(arrow);
-      row.appendChild(faceFor(tr.to));
-      var amt = document.createElement('strong');
-      amt.className = 'settleup-amount';
-      amt.textContent = formatMoney(tr.amount, panel);
-      row.appendChild(amt);
-      list.appendChild(row);
     });
   }
 
@@ -5269,19 +5159,6 @@
     // afterward) would never actually get saved.
     scheduleAutoSave(); scheduleUndoSnapshot();
   }
-  // ---- who actually paid: independent of the per-person splits above
-  // (which just say who owes what share) — this is who fronted the
-  // whole amount, the other half "settle up" needs to compute real
-  // transfers instead of just balances. Unset (most activities, most of
-  // the time) means "unknown", not "nobody" — settle-up simply leaves
-  // that activity's cost out of the paid side until it's set. ----
-  function getPaidBy(li){ return li.getAttribute('data-paid-by') || ''; }
-  function setPaidBy(li, key){
-    if(key) li.setAttribute('data-paid-by', key);
-    else li.removeAttribute('data-paid-by');
-    renderPaymentOverview();
-    scheduleAutoSave(); scheduleUndoSnapshot();
-  }
   function renderPaySplit(li){
     var priceEl = li.querySelector(':scope > .price');
     if(!priceEl) return;
@@ -5332,36 +5209,16 @@
         empty.textContent = t('pillmenu_no_access_yet');
         pop.appendChild(empty);
       }
-      // Who actually fronted the money for this activity — separate from
-      // the per-person splits below (who owes what share). Only offered
-      // when there's someone to pick from; feeds "settle up" in Payment
-      // overview (see computeSettleUp), never the splits/totals math
-      // itself.
+      // Spells out what the checkbox on each row below actually does —
+      // on its own it reads as part of the split (like the amount field
+      // right next to it), not as "should this person be charged for
+      // this at all" (see the .excluded styling toggle below, and
+      // getPaySplitExcluded/setPaySplitExcluded).
       if(eligible.length){
-        var paidByRow = document.createElement('div');
-        paidByRow.className = 'paysplit-paidby-row';
-        var paidByLabel = document.createElement('span');
-        paidByLabel.className = 'paysplit-paidby-label';
-        paidByLabel.textContent = t('paysplit_paid_by');
-        paidByRow.appendChild(paidByLabel);
-        var paidBySelect = document.createElement('select');
-        paidBySelect.className = 'paysplit-paidby-select';
-        var noneOpt = document.createElement('option');
-        noneOpt.value = '';
-        noneOpt.textContent = t('paysplit_paid_by_none');
-        paidBySelect.appendChild(noneOpt);
-        var currentPaidBy = getPaidBy(li);
-        eligible.forEach(function(m){
-          var opt = document.createElement('option');
-          opt.value = m.key;
-          opt.textContent = displayNameFor(m.email, data.avatars[m.key]);
-          if(m.key === currentPaidBy) opt.selected = true;
-          paidBySelect.appendChild(opt);
-        });
-        paidBySelect.addEventListener('click', function(e){ e.stopPropagation(); });
-        paidBySelect.addEventListener('change', function(){ setPaidBy(li, paidBySelect.value); });
-        paidByRow.appendChild(paidBySelect);
-        pop.appendChild(paidByRow);
+        var hint = document.createElement('div');
+        hint.className = 'paysplit-hint';
+        hint.textContent = t('paysplit_hint');
+        pop.appendChild(hint);
       }
       var excluded = getPaySplitExcluded(li);
       eligible.forEach(function(m){
@@ -5369,6 +5226,7 @@
         row.className = 'paysplit-row';
         row.setAttribute('data-key', m.key);
         var isExcluded = excluded.indexOf(m.key) !== -1;
+        row.classList.toggle('excluded', isExcluded);
         // Checked = participated (owes whatever the amount field says,
         // 0 included) — unchecked = wasn't part of this activity at
         // all, no amount to even set. Defaults checked for anyone not
@@ -5426,12 +5284,14 @@
           if(participatedCb.checked){
             if(exIdx !== -1) exArr.splice(exIdx, 1);
             setPaySplitExcluded(li, exArr);
+            row.classList.remove('excluded');
             input.style.display = '';
             if(!input.value) input.value = '0';
             commitAmount();
           } else {
             if(exIdx === -1) exArr.push(m.key);
             setPaySplitExcluded(li, exArr);
+            row.classList.add('excluded');
             input.style.display = 'none';
             input.value = '';
             var idx = -1;
@@ -8319,7 +8179,7 @@
     });
     var totalOptions = document.querySelectorAll('.pill[data-opt]').length;
     if(opts.length >= totalOptions){
-      window.alert("Can't remove the only month/alternative left.");
+      window.alert(t('deletemonth_only_left'));
       return;
     }
     function doRemove(){
@@ -8348,9 +8208,9 @@
     if(panels.every(panelIsEmpty)){ doRemove(); return; }
     var label = formatMonthLabel(year, month, 1);
     openTypeConfirmModal({
-      title: 'Delete this month?',
-      message: 'This will delete ' + label + ' and all ' + opts.length + ' alternative(s) in it. This can\'t be undone.',
-      confirmLabel: 'Delete month',
+      title: t('deletemonth_title'),
+      message: t('deletemonth_msg_pre') + label + t('deletemonth_msg_mid') + opts.length + t('deletemonth_msg_post'),
+      confirmLabel: t('deletemonth_confirm'),
       onConfirm: doRemove
     });
   }
