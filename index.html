@@ -936,6 +936,13 @@
   .payicon svg { width:13px; height:13px; }
   .payicon:hover { color:var(--primary); }
   .payicon.has-pay { color:var(--primary); }
+  /* Same treatment as .payicon right next to it — see
+     renderActivityCurrencyIcon/openActivityCurrencyMenu — muted until
+     this one activity actually has its own currency override. */
+  .actcurrency-icon { display:inline-flex; align-items:center; vertical-align:middle; margin-left:4px; color:var(--muted); cursor:pointer; }
+  .actcurrency-icon svg { width:13px; height:13px; }
+  .actcurrency-icon:hover { color:var(--primary); }
+  .actcurrency-icon.has-currency { color:var(--primary); }
   .paysplit { width:260px; max-height:320px; overflow-y:auto; }
   .paysplit-header { padding:6px 10px; font-size:12px; font-weight:700; color:var(--muted); }
   .paysplit-header.over { color:#c0392b; }
@@ -2264,7 +2271,11 @@
   // directly since nothing else rewrites its text.
   function refreshAllMoneyDisplays(){
     document.querySelectorAll('.price-val').forEach(function(pv){
-      pv.textContent = currencySymbol(pv.closest('.panel')) + ' ' + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
+      // priceValCurrencyCtx (not a bare .closest('.panel')) — an
+      // activity with its own currency override (see
+      // openActivityCurrencyMenu) must keep it across a plan-wide
+      // switch, the same way a panel's own override already does.
+      pv.textContent = currencySymbol(priceValCurrencyCtx(pv)) + ' ' + pv.textContent.replace(CURRENCY_SYMBOL_RE, '');
     });
     document.querySelectorAll('.cell:not(.empty)').forEach(recomputeCell);
   }
@@ -2352,6 +2363,7 @@
       add_location: '+ Add location', add_activity: '+ Add activity', clear_day: 'Clear day',
       day_menu: 'Day options', move_day: 'Move to another day',
       assign_payment: 'Assign payment', paysplit_remaining: 'Unassigned:',
+      actcurrency_tooltip: 'Currency for this item', actcurrency_default: 'Same as alternative',
       payment_overview: 'Payment overview', payment_unassigned: 'Unassigned',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
       auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
@@ -2400,6 +2412,7 @@
       add_location: '+ Aggiungi località', add_activity: '+ Aggiungi attività', clear_day: 'Svuota giorno',
       day_menu: 'Opzioni giorno', move_day: 'Sposta in un altro giorno',
       assign_payment: 'Assegna pagamento', paysplit_remaining: 'Non assegnato:',
+      actcurrency_tooltip: 'Valuta per questo elemento', actcurrency_default: 'Come l’alternativa',
       payment_overview: 'Riepilogo pagamenti', payment_unassigned: 'Non assegnato',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
       auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
@@ -2448,6 +2461,7 @@
       add_location: '+ Añadir ubicación', add_activity: '+ Añadir actividad', clear_day: 'Vaciar día',
       day_menu: 'Opciones del día', move_day: 'Mover a otro día',
       assign_payment: 'Asignar pago', paysplit_remaining: 'Sin asignar:',
+      actcurrency_tooltip: 'Moneda de este elemento', actcurrency_default: 'Igual que la alternativa',
       payment_overview: 'Resumen de pagos', payment_unassigned: 'Sin asignar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
       auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
@@ -4462,6 +4476,14 @@
     // day — the ghost echoes show the same price text for recognizability,
     // but only its share counts toward that day's total.
     var sum = 0, count = 0;
+    // An activity with its own currency override (see
+    // openActivityCurrencyMenu) contributes its converted-to-the-
+    // panel's-own-currency amount here, not its raw typed number —
+    // otherwise one $20 item sitting among a bunch of €N ones would
+    // just add 20 straight onto the day's € total. convertAmount
+    // returning null (rate not loaded yet) falls back to the raw
+    // amount rather than dropping the activity from the total.
+    var panelCode = resolveCurrencyCode(cell.closest('.panel'));
     cell.querySelectorAll(':scope > .acts > li').forEach(function(li){
       var v = li.querySelector(':scope > .price > .price-val');
       if(!v) return;
@@ -4471,6 +4493,11 @@
       if(start && end){
         var days = parseInt(end, 10) - parseInt(start, 10) + 1;
         if(days > 1) amount = amount / days;
+      }
+      var itemCode = resolveCurrencyCode(li);
+      if(itemCode !== panelCode){
+        var converted = convertAmount(amount, itemCode, panelCode);
+        if(converted !== null) amount = converted;
       }
       sum += amount;
     });
@@ -4540,17 +4567,34 @@
   function computePaymentTotals(panel){
     var totals = {}, unassigned = 0, anyAssigned = false;
     if(!panel) return { totals: totals, unassigned: unassigned, anyAssigned: anyAssigned };
+    // Same reasoning as recomputeCell's own panelCode/convertAmount use —
+    // an activity's own split amounts (and its own remainder) are typed
+    // in ITS currency, not necessarily the panel's; convert each into
+    // the panel's own currency before folding into these shared,
+    // cross-activity totals, or a differently-priced item would just
+    // add its raw number onto everyone else's.
+    var panelCode = resolveCurrencyCode(panel);
     panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li:not(.act-span-ghost)').forEach(function(li){
       var priceVal = li.querySelector(':scope > .price > .price-val');
       var total = priceVal ? parseMoney(priceVal.textContent) : 0;
+      var itemCode = resolveCurrencyCode(li);
+      var needsConvert = itemCode !== panelCode;
+      function toPanelCurrency(amount){
+        if(!needsConvert) return amount;
+        var converted = convertAmount(amount, itemCode, panelCode);
+        return converted === null ? amount : converted;
+      }
       var splits = getPaySplits(li);
       if(splits.length) anyAssigned = true;
       var assignedSum = 0;
       splits.forEach(function(s){
-        totals[s.k] = (totals[s.k] || 0) + s.a;
+        totals[s.k] = (totals[s.k] || 0) + toPanelCurrency(s.a);
         assignedSum += s.a;
       });
-      var remainder = total - assignedSum;
+      // Computed in the activity's own currency first (both total and
+      // assignedSum are already native to it), converted as one figure
+      // afterward — avoids compounding two separate roundings.
+      var remainder = toPanelCurrency(total - assignedSum);
       if(remainder > 0.004) unassigned += remainder;
     });
     return { totals: totals, unassigned: unassigned, anyAssigned: anyAssigned };
@@ -5149,6 +5193,63 @@
       priceEl.appendChild(icon);
     }
     icon.classList.toggle('has-pay', getPaySplits(li).length > 0);
+    renderActivityCurrencyIcon(li);
+  }
+  // A small control on an activity's own price letting just that one
+  // item carry a different currency from the rest of its alternative
+  // (see openActivityCurrencyMenu) — most activities never touch this,
+  // so it stays muted/plain until one actually has an override, same
+  // "quiet unless in use" treatment as .payicon right next to it.
+  function renderActivityCurrencyIcon(li){
+    var priceEl = li.querySelector(':scope > .price');
+    if(!priceEl) return;
+    var icon = priceEl.querySelector(':scope > .actcurrency-icon');
+    if(!icon){
+      icon = document.createElement('span');
+      icon.className = 'actcurrency-icon';
+      icon.innerHTML = ICON_CURRENCY;
+      icon.title = t('actcurrency_tooltip'); icon.setAttribute('aria-label', t('actcurrency_tooltip'));
+      icon.addEventListener('click', function(ev){ ev.stopPropagation(); openActivityCurrencyMenu(li, icon); });
+      priceEl.appendChild(icon);
+    }
+    icon.classList.toggle('has-currency', !!li.getAttribute('data-currency'));
+  }
+  // code (optional): set/clear this one activity's own currency
+  // override — data-currency on the <li> itself, checked first by
+  // resolveCurrencyCode (li's own value, then its panel's, then the
+  // plan default; see its own comment). Re-stamps just this activity's
+  // price prefix directly (ensurePriceValPrefix) and re-sums its cell —
+  // recomputeCell cascades into recomputePanel/renderPaymentOverview on
+  // its own, same as every other price-affecting change.
+  function openActivityCurrencyMenu(li, anchorEl){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'itemmenu';
+    var current = li.getAttribute('data-currency') || '';
+    var priceValEl = li.querySelector(':scope > .price > .price-val');
+    function applyAndRestamp(code){
+      if(code) li.setAttribute('data-currency', code);
+      else li.removeAttribute('data-currency');
+      if(priceValEl) ensurePriceValPrefix(priceValEl);
+      renderActivityCurrencyIcon(li);
+      var cell = li.closest('.cell');
+      if(cell) recomputeCell(cell);
+      renderPaymentOverview();
+      scheduleAutoSave(); scheduleUndoSnapshot();
+    }
+    var defaultRow = document.createElement('div');
+    defaultRow.className = 'itemmenu-row' + (current === '' ? ' current' : '');
+    defaultRow.textContent = t('actcurrency_default') + ' (' + currencySymbol(li.closest('.panel')) + ')';
+    defaultRow.addEventListener('click', function(e){ e.stopPropagation(); closePop(); applyAndRestamp(null); });
+    pop.appendChild(defaultRow);
+    Object.keys(CURRENCIES).forEach(function(code){
+      var row = document.createElement('div');
+      row.className = 'itemmenu-row' + (current === code ? ' current' : '');
+      row.textContent = code + ' (' + CURRENCIES[code] + ')';
+      row.addEventListener('click', function(e){ e.stopPropagation(); closePop(); applyAndRestamp(code); });
+      pop.appendChild(row);
+    });
+    positionPopover(pop, anchorEl);
   }
   function openPaySplitPopover(li, anchorEl){
     closePop();
@@ -5173,7 +5274,13 @@
       function refreshHeader(){
         var assigned = splits.reduce(function(sum, s){ return sum + s.a; }, 0);
         var remaining = total - assigned;
-        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining, ownerPanel);
+        // li itself, not ownerPanel — total/assigned/remaining here are
+        // all native to this one activity's own price, which may carry
+        // its own currency override (see openActivityCurrencyMenu)
+        // distinct from its alternative's. currencySymbol/formatMoney
+        // already walk li -> its panel -> the plan default in that
+        // order, so this reads correctly either way.
+        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining, li);
         header.classList.toggle('over', remaining < 0);
       }
       // Same eligibility rule as openParticipantPicker — someone without
