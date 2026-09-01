@@ -219,23 +219,6 @@
     min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; }
   .cell.empty { background:transparent; border:none; min-height:0; }
   .cell.active { border-color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.06); }
-  /* Whole day tints green once every real activity in it has a ticket
-     attached — a JS-toggled class (see updateCellAllBooked), not a
-     :has() expression:
-     the natural selector needs :has() nested inside another :has(), which
-     every engine rejects as an invalid selector (a hard CSS restriction,
-     not a support gap).
-     Same opaque var(--card) base + translucent gradient as the checked
-     activity cards themselves (see .acts li below) — a plain rgba()
-     here replaces .cell's own opaque background with the shorthand
-     (background resets background-image too), so the tint ends up
-     blended against the page behind the cell instead of white, a
-     visibly different, slightly duller green than the activity cards'
-     own tint sitting on white. */
-  .cell.all-booked {
-    background-color:var(--card);
-    background-image:linear-gradient(rgba(63,217,109,.14), rgba(63,217,109,.14));
-  }
   .cellhead { display:flex; align-items:baseline; gap:6px; }
   .daynum { font-weight:700; font-size:15px; }
   .wd { font-size:11px; color:var(--muted); }
@@ -295,17 +278,13 @@
      ticket is the actual evidence a reservation exists, so that's what
      "booked" means now rather than a separate manual toggle (dropped —
      it read as "already experienced", like a to-do list checkmark,
-     which is the wrong signal for something booked for later). easy to
-     spot what's already sorted at a glance among a busy day. Padding/
-     radius are shared with every activity (see .acts li above) so this
-     never shifts anything, only colors it. Opaque var(--card) base +
-     translucent gradient on top (same trick as the holiday .banner
-     elsewhere), not a plain translucent background — a plain rgba()
-     here would show a visibly DARKER green once the whole day also
-     earns its own tint (.cell.all-booked, right below), the two
-     translucent layers stacking instead of reading as one consistent
-     color. This renders identically whether the card sits on a white
-     cell or an already-green one. */
+     which is the wrong signal for something booked for later). Easy to
+     spot what's already sorted at a glance among a busy day — scoped to
+     the activity itself only (an earlier version also tinted the whole
+     day once every activity in it had a ticket; dropped as too broad a
+     signal, one booked activity said nothing about the rest of the
+     day). Padding/radius are shared with every activity (see .acts li
+     above) so this never shifts anything, only colors it. */
   .acts li[data-ticket] {
     background-color:var(--card);
     background-image:linear-gradient(rgba(63,217,109,.14), rgba(63,217,109,.14));
@@ -4509,26 +4488,7 @@
       }
       badge.textContent = formatMoney(sum, cell.closest('.panel'));
     }
-    updateCellAllBooked(cell);
     recomputePanel(cell.closest('.panel'));
-  }
-
-  // Tints the whole day once every real activity in it is booked — plain
-  // JS toggling a class rather than a CSS :has() expression, because the
-  // natural selector for "no activity is missing a checked checkbox" is
-  // :not(:has(...)) nested inside the cell's own :has(...), and :has()
-  // can't contain another :has() in its argument (a hard CSS restriction,
-  // not a support gap — every engine throws on it). Ghosts (a multi-day
-  // activity's read-only echo elsewhere) have no checkbox of their own
-  // and don't count. Called from recomputeCell (covers add/delete/drag,
-  // anything that changes which activities are even in the cell) and
-  // directly from renderTicket (recomputeCell isn't otherwise triggered
-  // by just attaching/removing a ticket).
-  function updateCellAllBooked(cell){
-    var real = Array.prototype.slice.call(cell.querySelectorAll(':scope > .acts > li'))
-      .filter(function(li){ return !li.classList.contains('act-span-ghost'); });
-    var allBooked = real.length > 0 && real.every(function(li){ return li.hasAttribute('data-ticket'); });
-    cell.classList.toggle('all-booked', allBooked);
   }
 
   // Matched by data-opt (not DOM position) everywhere, so pills, panels, and
@@ -5972,11 +5932,6 @@
     var existing = li.querySelector('.ticketicon');
     if(!url){
       if(existing) existing.remove();
-      // A ticket is what marks an activity (and, once every activity in
-      // it has one, the whole day) as booked now — removing it can take
-      // the day out of all-booked, so that has to be re-checked here too.
-      var cellAfterRemove = li.closest('.cell');
-      if(cellAfterRemove) updateCellAllBooked(cellAfterRemove);
       return;
     }
     if(!existing){
@@ -6065,8 +6020,6 @@
     } else if(wrap){
       wrap.remove();
     }
-    var cell = li.closest('.cell');
-    if(cell) updateCellAllBooked(cell);
   }
   function buildTicketPreviewWrap(li, kind){
     var wrap = document.createElement('span');
@@ -9416,7 +9369,7 @@
       if(spanPanel) renderActivitySpans(spanPanel);
     }
     var cell = li.closest('.cell');
-    if(cell){ recomputeCell(cell); updateCellAllBooked(cell); }
+    if(cell) recomputeCell(cell);
   });
 
   function downloadCopy(htmlStr){
