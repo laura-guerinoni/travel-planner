@@ -2208,13 +2208,47 @@
   // currentCurrency) — this only changes anything for a call site that's
   // been updated to actually pass an alternative's own panel.
   function currencySymbol(ctx){
-    var code = currentCurrency;
-    if(typeof ctx === 'string') code = ctx;
-    else if(ctx && ctx.getAttribute){
-      var own = ctx.getAttribute('data-currency');
-      if(own) code = own;
+    return CURRENCIES[resolveCurrencyCode(ctx)] || CURRENCIES.EUR;
+  }
+  // ctx (optional): a literal currency code string, or an element to
+  // resolve one from — an activity <li>'s own override if it has one
+  // (a specific activity priced in a currency different from the rest
+  // of its alternative — not built yet as a UI, but this already
+  // resolves it correctly the moment something sets it), else its own
+  // alternative's override (see openPanelCurrencyMenu), else the
+  // plan-wide default. Passing anything else (or nothing) is the
+  // plan-wide default too — the "empty means the general case"
+  // convention data-members already uses.
+  function resolveCurrencyCode(ctx){
+    if(!ctx) return currentCurrency;
+    if(typeof ctx === 'string') return CURRENCIES[ctx] ? ctx : currentCurrency;
+    if(!ctx.getAttribute) return currentCurrency;
+    var own = ctx.getAttribute('data-currency');
+    if(own) return own;
+    if(ctx.closest){
+      var panel = ctx.closest('.panel');
+      if(panel && panel !== ctx){
+        var panelCode = panel.getAttribute('data-currency');
+        if(panelCode) return panelCode;
+      }
     }
-    return CURRENCIES[code] || CURRENCIES.EUR;
+    return currentCurrency;
+  }
+  // The one thing every price-val write site (creating one, editing one,
+  // or guardFixedPrefix's own per-keystroke prefix length) must resolve
+  // its currency through, and ALWAYS via the same expression — see the
+  // MX$ corruption bug this replaces: guardFixedPrefix's getPrefix used a
+  // bare currencySymbol() (silently the plan default) right next to
+  // ensurePriceValPrefix's panel-aware one, so the two disagreed on the
+  // prefix's actual length the moment an alternative's own currency (a
+  // multi-character symbol like "MX$") differed from the plan default —
+  // every keystroke then spliced in at the wrong offset, landing inside
+  // the symbol itself and corrupting it further with each character
+  // typed. Two call sites reading the same context two different ways is
+  // exactly how that kind of drift happens again, so this is the only
+  // thing either of them should ever call.
+  function priceValCurrencyCtx(el){
+    return el.closest('.acts > li') || el.closest('.panel');
   }
   // Swaps just the LEADING currency symbol (plus the one fixed space
   // after it — see ensurePriceValPrefix/guardFixedPrefix) off a
@@ -4057,7 +4091,7 @@
     el.textContent = prefix + el.textContent.replace(/^🕒\s*/, '');
   }
   function ensurePriceValPrefix(el){
-    var prefix = currencySymbol(el.closest('.panel')) + ' ';
+    var prefix = currencySymbol(priceValCurrencyCtx(el)) + ' ';
     if(el.textContent.indexOf(prefix) === 0) return;
     el.textContent = prefix + el.textContent.replace(CURRENCY_SYMBOL_RE, '');
   }
@@ -4219,7 +4253,10 @@
     // plain free text throughout); every .price-val always is one, since
     // that field never holds anything else.
     if(el.classList.contains('price-val')){
-      guardFixedPrefix(el, function(){ return currencySymbol() + ' '; }, ensurePriceValPrefix);
+      // Same resolution as ensurePriceValPrefix itself, via the same
+      // shared priceValCurrencyCtx — see its own comment for why this
+      // pair must never read the context two different ways again.
+      guardFixedPrefix(el, function(){ return currencySymbol(priceValCurrencyCtx(el)) + ' '; }, ensurePriceValPrefix);
     } else if(el.classList.contains('line') && isTimeLineText(el.textContent)){
       guardFixedPrefix(el, function(){ return '🕒 '; }, ensureTimeLinePrefix);
     }
@@ -6480,7 +6517,11 @@
       priceEl.className = 'price';
       var priceVal = document.createElement('span');
       priceVal.className = 'price-val';
-      priceVal.textContent = currencySymbol() + ' ';
+      // li (unlike priceVal itself right now) is already attached to
+      // its real panel — resolve through it directly rather than the
+      // plan default, same reasoning as every other price-val write
+      // site (see priceValCurrencyCtx's own comment).
+      priceVal.textContent = currencySymbol(priceValCurrencyCtx(li)) + ' ';
       priceEl.appendChild(priceVal);
       li.insertBefore(priceEl, findDescLine(li) || null);
       makeEditable(priceVal);
@@ -6788,6 +6829,12 @@
     price.className = 'price';
     var priceVal = document.createElement('span');
     priceVal.className = 'price-val';
+    // li isn't attached to a panel yet at this point (this factory just
+    // builds and returns it — the caller inserts it) — a bare plan-
+    // default symbol here is only ever a placeholder: attachItemControls
+    // (called right after insertion) runs makeEditable on this same
+    // element, which re-stamps it correctly via ensurePriceValPrefix
+    // once li's real panel actually exists to resolve against.
     priceVal.textContent = currencySymbol() + ' ';
     price.appendChild(priceVal);
 
@@ -9367,7 +9414,13 @@
           priceEl.appendChild(priceVal);
           newLi.appendChild(priceEl);
         }
-        priceVal.textContent = currencySymbol() + ' ' + amountVal;
+        // newLi is already inserted into its real cell/panel by this
+        // point (see acts.lastElementChild above) — a bare currencySymbol()
+        // here would silently reset an alternative's own currency
+        // override back to the plan default (and, worse, then disagree
+        // with guardFixedPrefix's own resolution on the very next
+        // keystroke — see priceValCurrencyCtx's comment).
+        priceVal.textContent = currencySymbol(priceValCurrencyCtx(newLi)) + ' ' + amountVal;
         if(priceValIsNew) makeEditable(priceVal);
       }
       recomputeCell(cell);
@@ -9486,7 +9539,9 @@
       }
       var priceValEl = priceEl.querySelector('.price-val');
       if(priceValEl){
-        priceValEl.textContent = currencySymbol() + ' ' + amountVal;
+        // li is the existing activity being edited — same reasoning as
+        // openFabAdd's own price write (see priceValCurrencyCtx).
+        priceValEl.textContent = currencySymbol(priceValCurrencyCtx(li)) + ' ' + amountVal;
         if(priceElIsNew) makeEditable(priceValEl);
       }
     } else if(priceEl){
