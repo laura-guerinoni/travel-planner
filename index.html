@@ -543,12 +543,19 @@
      never the text, it was this frame it's being judged against. Only
      top/bottom keep their own 5px inset (unrelated to left-right
      balance) for the "traced just inside the edge" look on those two
-     sides. border-radius bumped to nearly match the tab's own 16px so
-     the corner still nests cleanly at this much smaller inset. */
+     sides. border-radius set to EXACTLY match .month-segment's own
+     16px, not just close to it — this box now shares the segment's
+     exact left/right extent (confirmed via a live probe: 0px overflow
+     either way), so any radius mismatch, even 1px, made the dashed
+     curve trace a visibly different path than the solid pink shape's
+     own edge under it — right where the two curves diverged, the white
+     dash's own anti-aliasing spilled past the pink into the page
+     background, reading as the border "poking out". Matching the
+     radius exactly means both curves are the identical path. */
   .month-segment.current { z-index:1; }
   .month-segment.current::before {
     content:''; position:absolute; top:5px; right:0; bottom:5px; left:0; pointer-events:none;
-    border-radius:0 15px 15px 0;
+    border-radius:0 16px 16px 0;
     border:2px dashed rgba(255,255,255,.85);
     border-left:none;
   }
