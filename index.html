@@ -8345,11 +8345,34 @@
   // DOM order un-pinned.
   function pinCurrentSegment(){
     if(window.matchMedia('(max-width:720px)').matches) return;
+    var sidebarEl = document.getElementById('monthSidebar');
+    var sidebarRect = sidebarEl ? sidebarEl.getBoundingClientRect() : null;
     document.querySelectorAll('.month-segment.current').forEach(function(seg){
       if(!seg.parentElement) return;
       var r = seg.parentElement.getBoundingClientRect();
+      var top = r.top;
+      // The sidebar itself scrolls (overflow-y:auto — see its own CSS,
+      // needed once there are enough years/months to outgrow the
+      // viewport), and the slot read above is a normal in-flow child of
+      // that scrolling box, so ITS rect already reflects however far the
+      // sidebar happens to be scrolled — including negative, once it's
+      // scrolled past the sidebar's own top edge. Pinning straight to
+      // that used to send the segment (position:fixed, and correctly so
+      // — see this function's own comment above on why that's what lets
+      // it escape the sidebar's clipping in the first place) right off
+      // the actual BROWSER viewport, floating above the page instead of
+      // just disappearing behind the sidebar's own edge the way a normal
+      // in-flow, clipped child would. Clamping to the sidebar's own
+      // current visible band keeps the pinned copy stuck at whichever
+      // edge it's being scrolled past instead — the "sticky" behavior
+      // overflow-y:auto would have given it for free if position:fixed
+      // didn't deliberately bypass that clipping.
+      if(sidebarRect){
+        var maxTop = Math.max(sidebarRect.top, sidebarRect.bottom - r.height);
+        top = Math.min(Math.max(top, sidebarRect.top), maxTop);
+      }
       seg.style.transition = 'none';
-      seg.style.top = r.top + 'px';
+      seg.style.top = top + 'px';
       seg.style.left = r.left + 'px';
       seg.style.height = r.height + 'px';
     });
