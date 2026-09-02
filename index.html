@@ -8501,8 +8501,30 @@
     }
     var curKey = monthKey(year, month);
     document.querySelectorAll('.month-segment').forEach(function(seg){
-      seg.classList.toggle('current', seg.dataset.monthKey === curKey);
+      var wasCurrent = seg.classList.contains('current');
+      var isCurrent = seg.dataset.monthKey === curKey;
+      seg.classList.toggle('current', isCurrent);
+      // A segment LOSING current (switching away from it) has to give up
+      // whatever top/left/height/transition pinCurrentSegment last froze
+      // it at — inline styles beat any stylesheet rule regardless of
+      // specificity, so without this, .month-segment's own CSS (position:
+      // absolute; inset:0, once .current's position:fixed no longer
+      // applies) would lose to a stale inline top like "124px", leaving a
+      // now-collapsed tab rendering 124px down from its own slot's
+      // top-left instead of filling it. Clearing lets the base CSS take
+      // back over cleanly, same as a segment that was never pinned at all.
+      if(wasCurrent && !isCurrent){
+        seg.style.transition = ''; seg.style.top = ''; seg.style.left = ''; seg.style.height = '';
+      }
     });
+    // A segment GAINING current here (not through renderMonthSidebar's own
+    // full rebuild, which already calls this itself) needs the exact same
+    // pin — without it, .current's position:fixed applies with no top/left
+    // ever set, and (confirmed live, not just in theory) that does NOT
+    // reliably fall back to the segment's own natural in-flow position —
+    // it can render pinned at the viewport's own top-left instead,
+    // overlapping the year switcher above it.
+    pinCurrentSegment();
   }
 
   // Re-derives and re-applies the pill filter from whatever panel is
