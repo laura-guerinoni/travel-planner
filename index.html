@@ -9674,6 +9674,17 @@
   var archiveMenuBtn = document.getElementById('archiveMenuBtn');
   var archivePanel = document.getElementById('archivePanel');
   var archiveCloseX = document.getElementById('archiveCloseX');
+  // Every direct child of #actionMenuDropdown is display:none by default
+  // and needs its OWN .show added explicitly (see that rule's own
+  // comment — "each top-level item keeps its own independent show/hide")
+  // — unlike Participants/Print/Sign out, which are gated by role or
+  // hosted-mode, archiving is available to any viewer regardless (it's
+  // a personal, per-viewer preference — see setArchivedForMe), so this
+  // needs no condition, just adding the class outright. Missing this
+  // line was the actual bug behind an early report of the row not
+  // showing up in the menu at all — the click handler below was wired
+  // correctly the whole time, the button was just never told to render.
+  if(archiveMenuBtn) archiveMenuBtn.classList.add('show');
   if(archiveMenuBtn) archiveMenuBtn.addEventListener('click', function(){
     if(archivePanel) archivePanel.classList.add('show');
     renderArchivedMonthsPanel();
