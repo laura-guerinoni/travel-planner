@@ -92,9 +92,24 @@
      this exactly like .wrap centers the calendar, while left:46px/
      right:16px still hold as the absolute floor/ceiling on a narrower
      window where there's no extra room to center away with. */
-  .pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+  /* Single row, horizontally scrollable — not wrapping to more rows as
+     alternatives are added — same "sheet tabs" language mobile's own
+     .pills rule already uses (see its own comment), just anchored to
+     the top edge here instead of the bottom. A wrapping row grew taller
+     the more alternatives there were, no ceiling on it at all; even
+     with this rule's own max-width keeping it from ever reaching the
+     sidebar horizontally (see that comment above), an unbounded height
+     was never going to end well against a permanently-expanded sidebar
+     segment that happens to land at the same height (still possible on
+     a narrower desktop window with less room to spare) — staying
+     exactly one row tall regardless of how many alternatives exist
+     removes that risk at the root instead of just capping how far
+     across it reaches. */
+  .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:flex-start; overflow-x:auto;
     position:fixed; top:0; left:46px; right:16px; max-width:1120px; margin:0 auto; z-index:40;
-    background-color:var(--bg); background-image:var(--texture); padding:0 8px 14px; }
+    background-color:var(--bg); background-image:var(--texture); padding:0 8px 14px;
+    scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
+  .pills::-webkit-scrollbar { display:none; }
   /* Fills the strip between the pills bar's bottom edge and wherever the
      sticky weekday header (.grid.heads) catches — that strip is just
      .wrap's padding-top, not any element's own box, so nothing painted
@@ -1296,22 +1311,25 @@
        on touch instead of hover-gated — nothing more to override here. */
 
     /* Sheet-tabs-at-the-bottom, the way Google Sheets does it on mobile —
-       a horizontally scrollable single row (not the desktop's wrapping
-       multi-row layout) anchored to the bottom edge instead of stacked
-       under the month bar at the top. The bar now spans the full width
+       a horizontally scrollable single row, anchored to the bottom edge
+       instead of stacked under the month bar at the top like desktop's
+       own copy of this same row. The bar now spans the full width
        (right:0) so its background is continuous behind the round "+"
        (#mobileAddFab below) too, rather than stopping short and leaving
        the FAB floating over whatever scrolled underneath — the extra
        right padding on the row itself keeps pill content from scrolling
-       under the FAB, which still sits fixed on top of the shared strip. */
-    .pills { left:0; right:0; top:auto; bottom:0; gap:8px;
-      flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto;
+       under the FAB, which still sits fixed on top of the shared strip.
+       flex-wrap/justify-content/overflow-x/the scrollbar-hiding
+       properties are the base rule's own now too (see its own comment)
+       — nothing to repeat here any more, just the genuinely
+       bottom/mobile-specific pieces: position, the FAB's reserved
+       padding, and pan-x touch handling. max-width/margin explicitly
+       reset — the base rule's own 1120px cap (see its own comment)
+       exists to match the desktop calendar's width, which has nothing
+       to do with this full-width mobile bar. */
+    .pills { left:0; right:0; top:auto; bottom:0; max-width:none; margin:0;
       padding:10px 74px 10px 8px; box-shadow:0 -2px 8px rgba(0,0,0,.15);
-      scrollbar-width:none; -ms-overflow-style:none;
-      -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; }
-    /* Hide the scrollbar itself (WebKit/Blink) — scrolling still works,
-       there's just no visible track/thumb cluttering the tab strip. */
-    .pills::-webkit-scrollbar { display:none; }
+      touch-action:pan-x; overscroll-behavior-x:contain; }
     /* Top-rounded, not bottom — hanging off the bottom edge now, the
        opposite edge from before, so the rounded corners point the
        opposite way too (same "rounded at the edge pointing away from
@@ -8595,20 +8613,17 @@
       document.getElementById('panel-' + firstMatch.getAttribute('data-opt')).classList.add('on');
     }
     var curKey = monthKey(year, month);
+    // Every year's own months are always shown now (see
+    // renderMonthSidebar's own year loop — years are purely a grouping
+    // header, not a filter any more), so a month click can legitimately
+    // land in a *different* year than whichever one was current before
+    // — its own year segment needs to pick up "current" right along with
+    // it, not just the month itself. One key format check covering both
+    // kinds in the same pass, rather than a separate pass for each.
+    var curYearKey = 'year-' + year;
     document.querySelectorAll('.month-segment').forEach(function(seg){
-      // Year segments (see renderMonthSidebar's own loop) share this
-      // same class for all its visual/hover machinery, but a MONTH click
-      // has nothing to say about which YEAR is current — its own
-      // dataset.monthKey ("year-2026") could never equal a real month's
-      // curKey ("2026-8") anyway, but skipping it outright here (rather
-      // than falling through to a toggle('current', false) that always
-      // resolves the same way) also skips the cleanup branch below that
-      // would otherwise strip a still-current year segment's pinned
-      // position/dashed border for no reason, just because some
-      // unrelated month tab got clicked.
-      if(seg.dataset.yearSeg) return;
       var wasCurrent = seg.classList.contains('current');
-      var isCurrent = seg.dataset.monthKey === curKey;
+      var isCurrent = seg.dataset.yearSeg ? (seg.dataset.monthKey === curYearKey) : (seg.dataset.monthKey === curKey);
       seg.classList.toggle('current', isCurrent);
       // A segment LOSING current (switching away from it) has to give up
       // whatever top/left/height/transition pinCurrentSegment last froze
@@ -8645,7 +8660,7 @@
     // ever set, and (confirmed live, not just in theory) that does NOT
     // reliably fall back to the segment's own natural in-flow position —
     // it can render pinned at the viewport's own top-left instead,
-    // overlapping the year switcher above it.
+    // overlapping whatever's actually at the top of the sidebar.
     pinCurrentSegment();
   }
 
@@ -8958,12 +8973,6 @@
     positionPopover(pop, anchorEl);
   }
 
-  // Which year the sidebar is currently showing — persists across
-  // re-renders (an edit, a remote sync) so switching years to look at
-  // something doesn't get undone by an unrelated autosave-triggered
-  // rebuild; only actually reset if that year no longer has anything in
-  // it (see renderMonthSidebar's own landing logic).
-  var sidebarYear = null;
   function renderMonthSidebar(){
     var sidebar = document.getElementById('monthSidebar');
     if(!sidebar) return;
@@ -9016,7 +9025,7 @@
     years.sort(function(a, b){ return a - b; });
     // Drop a year whose every month is archived — the same "doesn't get
     // a tab of its own any more" treatment an individually-archived
-    // month already gets (see visibleMonths below). Still reachable (and
+    // month already gets (see monthsInYear below). Still reachable (and
     // un-archivable) from the flat "Archived" list either way, exactly
     // like any single archived month — archiving a whole year (see
     // setYearArchivedForMe/openYearSegmentMenu) is just archiving every
@@ -9025,27 +9034,37 @@
     years = years.filter(function(yr){
       return allMonths.some(function(s){ return s.year === yr && !s.archived; });
     });
-    if(sidebarYear == null || years.indexOf(sidebarYear) === -1){
-      sidebarYear = (activeYear != null && years.indexOf(activeYear) !== -1) ? activeYear : (years[years.length - 1] || new Date().getFullYear());
-    }
 
-    // A full calendar year (12 months) is already close to what
-    // comfortably fits without scrolling — not worth showing any year UI
-    // at all for the common case of everything fitting in one year
-    // already. Each year gets its own segment now, not one button that
-    // opens a dropdown of the rest — same collapsed/hover-expand/pinned-
-    // while-current language as a month tab (see .month-segment's own
-    // CSS and attachSegHoverExpand), just picking which year's months
-    // show below instead of which alternative shows in the calendar.
-    // Its own "⋯" (see openYearSegmentMenu) is how an entire year gets
-    // archived in one action.
-    if(years.length > 1){
-      years.forEach(function(yr){
+    // Across every year, not just — there's no longer a "which year is
+    // showing" to be relative to at all — someone shouldn't have to
+    // remember which year they archived a month from to ever find it
+    // again in the "Archived" list.
+    var archivedMonths = allMonths.filter(function(s){ return s.archived; });
+
+    // Every year's own months sit directly beneath it now, not behind a
+    // separate "pick a year to see its months" step — the whole sidebar
+    // is just one flat, chronological list, grouped visually into
+    // year-then-its-months runs. A full calendar year (12 months) is
+    // already close to what comfortably fits without scrolling on its
+    // own — not worth showing any year header at all for the common
+    // case of everything fitting in one year already; with more than
+    // one, each year gets its own segment, same collapsed/hover-expand/
+    // pinned-while-current language as a month tab (see .month-segment's
+    // own CSS and attachSegHoverExpand) — "current" here just means
+    // "the year the active alternative's month belongs to" (see
+    // activeYear above), the same relationship a month segment's own
+    // "current" already has to activeKey, not a pickable filter state
+    // any more. Its own "⋯" (see openYearSegmentMenu) is how an entire
+    // year gets archived in one action; a plain click does nothing now
+    // — there's nothing left for it to switch.
+    var showYearHeaders = years.length > 1;
+    years.forEach(function(yr){
+      if(showYearHeaders){
         var yearSlot = document.createElement('div');
         yearSlot.className = 'month-segment-slot';
 
         var yearSeg = document.createElement('div');
-        yearSeg.className = 'month-segment' + (yr === sidebarYear ? ' current' : '');
+        yearSeg.className = 'month-segment' + (yr === activeYear ? ' current' : '');
         // A distinct key space ("year-2026") from any real month's own
         // "YYYY-M" key ("2026-8") — never collides on its own, but
         // data-year-seg (right below) is the actual marker everything
@@ -9054,11 +9073,7 @@
         yearSeg.dataset.monthKey = 'year-' + yr;
         yearSeg.dataset.yearSeg = '1';
         yearSeg.style.background = 'var(--ink)'; // chrome, not a month — same reasoning as the old switcher's own color choice
-        yearSeg.title = 'Click to show ' + yr + '’s months';
-        yearSeg.addEventListener('click', function(){
-          sidebarYear = yr;
-          renderMonthSidebar();
-        });
+        yearSeg.title = yr;
 
         // Short and full hold the same text here — unlike a month name, a
         // year number is already maximally compact, nothing to abbreviate
@@ -9090,110 +9105,105 @@
         sidebar.appendChild(yearSlot);
 
         attachSegHoverExpand(yearSeg);
-      });
-    }
+      }
 
-    var visibleMonths = allMonths.filter(function(s){ return s.year === sidebarYear && !s.archived; });
-    // Across every year, not just the one currently selected — someone
-    // shouldn't have to remember which year they archived a month from
-    // to ever find it again in the "Archived" list.
-    var archivedMonths = allMonths.filter(function(s){ return s.archived; });
+      var monthsInYear = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
+      monthsInYear.forEach(function(s){
+        // A fixed-size flex slot that stays in the column's normal flow no
+        // matter what — the actual .month-segment inside it is what
+        // switches to position:fixed on hover (see attachSegHoverExpand),
+        // pulling itself out of flow to grow past the sidebar's own
+        // 46px width without being clipped by its overflow-y:auto (a
+        // mismatched overflow-x:visible next to overflow-y:auto computes
+        // right back to auto/clipped, so growing the segment's own box —
+        // not relying on visible overflow — is the only way this
+        // actually escapes the rail). Keeping the slot in flow, sized
+        // exactly like every .month-segment used to be sized directly,
+        // means every OTHER tab never shifts position when one expands.
+        var slot = document.createElement('div');
+        slot.className = 'month-segment-slot';
 
-    visibleMonths.forEach(function(s){
-      // A fixed-size flex slot that stays in the column's normal flow no
-      // matter what — the actual .month-segment inside it is what
-      // switches to position:fixed on hover (see attachSegHoverExpand),
-      // pulling itself out of flow to grow past the sidebar's own
-      // 46px width without being clipped by its overflow-y:auto (a
-      // mismatched overflow-x:visible next to overflow-y:auto computes
-      // right back to auto/clipped, so growing the segment's own box —
-      // not relying on visible overflow — is the only way this
-      // actually escapes the rail). Keeping the slot in flow, sized
-      // exactly like every .month-segment used to be sized directly,
-      // means every OTHER tab never shifts position when one expands.
-      var slot = document.createElement('div');
-      slot.className = 'month-segment-slot';
-
-      var seg = document.createElement('div');
-      seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
-      seg.dataset.monthKey = s.key;
-      seg.style.background = colorByKey[s.key];
-      seg.title = 'Click to show only this month\'s alternatives — double-click to change the month';
-      seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
-      seg.addEventListener('dblclick', function(e){
-        e.stopPropagation();
-        openMonthPickerPopover(seg, s.year, s.month, 'Apply', function(newYear, newMonth){
-          document.querySelectorAll('.panel').forEach(function(panel){
-            var d2 = getPanelDate(panel);
-            if(d2.year === s.year && d2.month === s.month){
-              setPanelDate(panel, newYear, newMonth);
-              buildCalendarGrid(panel);
-            }
+        var seg = document.createElement('div');
+        seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
+        seg.dataset.monthKey = s.key;
+        seg.style.background = colorByKey[s.key];
+        seg.title = 'Click to show only this month\'s alternatives — double-click to change the month';
+        seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
+        seg.addEventListener('dblclick', function(e){
+          e.stopPropagation();
+          openMonthPickerPopover(seg, s.year, s.month, 'Apply', function(newYear, newMonth){
+            document.querySelectorAll('.panel').forEach(function(panel){
+              var d2 = getPanelDate(panel);
+              if(d2.year === s.year && d2.month === s.month){
+                setPanelDate(panel, newYear, newMonth);
+                buildCalendarGrid(panel);
+              }
+            });
+            renderMonthSidebar();
+            filterPillsByMonth(newYear, newMonth);
           });
-          renderMonthSidebar();
-          filterPillsByMonth(newYear, newMonth);
         });
+
+        // Two labels, not one text swapped by JS — short (a real, locale-
+        // correct 3-letter abbreviation, e.g. MONTH_SHORT's own "Ago"/
+        // "Aug"/"Sep", not a CSS ellipsis mid-word) is what a collapsed
+        // 46px-wide tab can actually fit horizontally; full only ever
+        // shows once the tab has grown to fit it (desktop hover — see
+        // .seg-expanded; always-on on mobile instead, where there's no
+        // hover at all but the tab is already wide enough). Only drop the
+        // year from the full label when a year header is actually
+        // showing above it (showYearHeaders, same gate the headers
+        // themselves use) — with just one year, there are no headers at
+        // all, so this is the only place it would ever appear.
+        var labelShort = document.createElement('span');
+        labelShort.className = 'seg-label seg-label-short';
+        labelShort.textContent = MONTH_SHORT[s.month - 1];
+        var labelFull = document.createElement('span');
+        labelFull.className = 'seg-label seg-label-full';
+        labelFull.textContent = MONTH_FULL[s.month - 1] + (showYearHeaders ? '' : ' ' + s.year);
+        seg.appendChild(labelShort);
+        seg.appendChild(labelFull);
+
+        // Add/notes/archive/share/remove all live behind this one trigger
+        // now (see openMonthSegmentMenu) — same "⋯" language as every other
+        // menu in the app, instead of an ever-growing pile of tiny buttons
+        // fighting for room in a 46px-wide strip. Positioned top/right of
+        // .month-segment itself (see its own CSS) so it automatically ends
+        // up past whichever label is actually showing, short or full,
+        // rather than needing separate coordinates for each.
+        var menuBtn = document.createElement('button');
+        menuBtn.type = 'button'; menuBtn.className = 'itemmenu-btn jsctl'; menuBtn.textContent = '⋯';
+        menuBtn.title = 'More options for ' + labelFull.textContent;
+        // Click still works (belt and suspenders, and the only option at
+        // all on touch — see attachSegMenuHover's own mobile guard), but
+        // desktop opens it straight from a hover on the trigger itself,
+        // same "no click needed" language as the tab's own expand.
+        menuBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          openMonthSegmentMenu(menuBtn, s);
+        });
+        seg.appendChild(menuBtn);
+        attachSegMenuHover(menuBtn, s, openMonthSegmentMenu);
+
+        slot.appendChild(seg);
+        sidebar.appendChild(slot);
+
+        // The active month is pinned into the exact same "permanently
+        // expanded" state a hover only ever gives any other tab
+        // TEMPORARILY — see pinCurrentSegment, also re-run from
+        // syncBarLayout so this never goes stale after a later layout
+        // shift. Attached unconditionally, even to the currently-active
+        // segment: expand()/scheduleCollapse() already bail out on their
+        // own whenever the segment they're attached to is .current (see
+        // their own guards), so this correctly stays inert while active
+        // and correctly springs back to life the moment a *different*
+        // month becomes active — skipping the attach here for whichever
+        // segment happened to be active at render time used to leave that
+        // one segment permanently without hover-expand for the rest of its
+        // life, the instant something else (filterPillsByMonth, on a real
+        // tab click) made it non-current without a full re-render.
+        attachSegHoverExpand(seg);
       });
-
-      // Two labels, not one text swapped by JS — short (a real, locale-
-      // correct 3-letter abbreviation, e.g. MONTH_SHORT's own "Ago"/
-      // "Aug"/"Sep", not a CSS ellipsis mid-word) is what a collapsed
-      // 46px-wide tab can actually fit horizontally; full only ever
-      // shows once the tab has grown to fit it (desktop hover — see
-      // .seg-expanded; always-on on mobile instead, where there's no
-      // hover at all but the tab is already wide enough). Only drop the
-      // year from the full label when the switcher above is actually
-      // showing it (years.length > 1, same gate that switcher itself
-      // uses) — with just one year, there's no switcher at all, so this
-      // is the only place it would ever appear.
-      var labelShort = document.createElement('span');
-      labelShort.className = 'seg-label seg-label-short';
-      labelShort.textContent = MONTH_SHORT[s.month - 1];
-      var labelFull = document.createElement('span');
-      labelFull.className = 'seg-label seg-label-full';
-      labelFull.textContent = MONTH_FULL[s.month - 1] + (years.length > 1 ? '' : ' ' + s.year);
-      seg.appendChild(labelShort);
-      seg.appendChild(labelFull);
-
-      // Add/notes/archive/share/remove all live behind this one trigger
-      // now (see openMonthSegmentMenu) — same "⋯" language as every other
-      // menu in the app, instead of an ever-growing pile of tiny buttons
-      // fighting for room in a 46px-wide strip. Positioned top/right of
-      // .month-segment itself (see its own CSS) so it automatically ends
-      // up past whichever label is actually showing, short or full,
-      // rather than needing separate coordinates for each.
-      var menuBtn = document.createElement('button');
-      menuBtn.type = 'button'; menuBtn.className = 'itemmenu-btn jsctl'; menuBtn.textContent = '⋯';
-      menuBtn.title = 'More options for ' + labelFull.textContent;
-      // Click still works (belt and suspenders, and the only option at
-      // all on touch — see attachSegMenuHover's own mobile guard), but
-      // desktop opens it straight from a hover on the trigger itself,
-      // same "no click needed" language as the tab's own expand.
-      menuBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        openMonthSegmentMenu(menuBtn, s);
-      });
-      seg.appendChild(menuBtn);
-      attachSegMenuHover(menuBtn, s, openMonthSegmentMenu);
-
-      slot.appendChild(seg);
-      sidebar.appendChild(slot);
-
-      // The selected month is pinned into the exact same "permanently
-      // expanded" state a hover only ever gives any other tab
-      // TEMPORARILY — see pinCurrentSegment, also re-run from
-      // syncBarLayout so this never goes stale after a later layout
-      // shift. Attached unconditionally, even to the currently-selected
-      // segment: expand()/scheduleCollapse() already bail out on their
-      // own whenever the segment they're attached to is .current (see
-      // their own guards), so this correctly stays inert while selected
-      // and correctly springs back to life the moment a *different*
-      // month becomes current — skipping the attach here for whichever
-      // segment happened to be active at render time used to leave that
-      // one segment permanently without hover-expand for the rest of its
-      // life, the instant something else (filterPillsByMonth, on a real
-      // tab click) made it non-current without a full re-render.
-      attachSegHoverExpand(seg);
     });
     pinCurrentSegment();
 
@@ -9217,10 +9227,10 @@
     // Every option pill gets the exact same fill as its own month's
     // sidebar tab (not just the active one) — the pill's own selected
     // state is conveyed by the stitch border alone, same as the sidebar.
-    // Uses colorByKey, which (unlike visibleMonths) covers every month
-    // regardless of year/archive state, so a pill under an archived or
-    // other-year month still gets its real color rather than falling
-    // back to SEG_COLORS[0].
+    // Uses colorByKey, which (unlike the per-year monthsInYear filter
+    // above) covers every month regardless of archive state, so a pill
+    // under an archived month still gets its real color rather than
+    // falling back to SEG_COLORS[0].
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
       var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
       if(!panel) return;
