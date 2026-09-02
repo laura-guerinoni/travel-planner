@@ -516,7 +516,13 @@
     background:var(--ink); color:#fff; cursor:pointer; min-height:40px; }
   .month-year-switcher .yr-label { writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
     font-size:13px; font-weight:800; letter-spacing:.12em; line-height:1; white-space:nowrap; }
-  .month-segment { position:relative; flex:1 1 0; min-height:64px; display:flex;
+  /* Holds the flex-sizing role a .month-segment used to carry directly —
+     stays in the column's normal flow at this exact size regardless of
+     whether the segment inside it is expanded (see attachSegHoverExpand
+     and .seg-expanded below), so no OTHER tab ever shifts position while
+     one is hovered. */
+  .month-segment-slot { position:relative; flex:1 1 0; min-height:64px; }
+  .month-segment { position:absolute; inset:0; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
     border-radius:0 16px 16px 0; }
   /* the segment matching whichever option is currently on screen — left
@@ -530,14 +536,38 @@
     border:2px dashed rgba(255,255,255,.85);
     border-left:none;
   }
-  .seg-label { color:#fff; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
-    font-weight:800; font-size:14px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
+  /* Horizontal now, not vertical/rotated — a rotated label made room for
+     the "⋯" trigger awkward to reach without also fighting the text (see
+     the request this replaced it for). Short is a real, locale-correct
+     3-letter abbreviation (MONTH_SHORT — "Ago"/"Aug"/"Sep", not a mid-
+     word CSS ellipsis) sized to actually fit the collapsed 46px rail;
+     full only ever renders once the tab has grown to fit it. */
+  .seg-label { color:#fff; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    cursor:pointer; white-space:nowrap; }
+  .seg-label-short { font-size:13px; }
+  .seg-label-full { font-size:14px; display:none; padding:0 26px 0 12px; }
+  /* Pulled out of the slot's flow into a fixed overlay sized/positioned
+     by attachSegHoverExpand (top/left/height set inline there, matching
+     exactly where the collapsed segment already was) — width grows to
+     fit its content instead of staying pinned to the slot's 46px, and
+     position:fixed's containing block is the viewport itself, not any
+     clipping ancestor, which is what actually lets it grow past the
+     sidebar's own overflow-y:auto (an overflow-x:visible right next to
+     that would just compute back to auto/clipped per spec — not
+     available here regardless of how this is written). */
+  .month-segment.seg-expanded { position:fixed; right:auto; bottom:auto; width:auto; min-width:150px;
+    overflow:visible; z-index:40; box-shadow:0 4px 16px rgba(0,0,0,.25); }
+  .month-segment.seg-expanded .seg-label-short { display:none; }
+  .month-segment.seg-expanded .seg-label-full { display:inline; }
   /* Add/notes/archive/share/remove all live behind this one "⋯" trigger
      now (see openMonthSegmentMenu) instead of a growing pile of small
      buttons fighting for room in a 46px-wide strip — same hover-reveal
      and hidden/open state as .itemmenu-btn everywhere else, just also
      scoped to .month-segment:hover (that class's own default rule is
-     li:hover, and a segment isn't an <li>). */
+     li:hover, and a segment isn't an <li>). Positioned off .month-segment
+     itself, so it lands past whichever label is actually showing (short
+     collapsed, full expanded) without needing separate coordinates for
+     either — see .seg-label-full's own right padding, sized to clear it. */
   .month-segment .itemmenu-btn { position:absolute; top:4px; right:4px; width:18px; height:18px;
     border-radius:50%; background:rgba(255,255,255,.9); font-size:11px; }
   .month-segment:hover .itemmenu-btn { visibility:visible; }
@@ -1157,9 +1187,24 @@
        their own minimum. flex-shrink:0 with min-width still holds each
        segment to a legible floor and falls back to the existing
        horizontal scroll once there are too many to keep dividing. */
-    .month-segment { flex:1 0 88px; min-width:88px; min-height:0; padding:10px 8px;
-      border-radius:0 0 14px 14px; }
-    .seg-label { writing-mode:horizontal-tb; transform:none; font-size:12px; letter-spacing:.05em; }
+    /* The slot/position:absolute indirection above (see .month-segment-
+       slot's own desktop comment) exists only for desktop's hover-expand
+       — display:contents removes the slot from the box tree entirely on
+       mobile, so .month-segment goes back to being a normal, directly-
+       sized flex item of .month-sidebar itself (flex-direction:row here)
+       exactly like before that indirection existed. Without this, the
+       slot's only child being position:absolute (inset:0, filling
+       whatever height the slot has) left the slot with nothing of its
+       own to size a height FROM — collapsing the whole bar to 0px tall. */
+    .month-segment-slot { display:contents; }
+    .month-segment { position:relative; flex:1 0 88px; min-width:88px;
+      padding:10px 8px; border-radius:0 0 14px 14px; }
+    /* No hover at all on touch — the desktop short/full split (see
+       .seg-label-short/.seg-label-full's own desktop rules) doesn't
+       apply here; a mobile tab is already wide enough to just always
+       show the full name, exactly as it did before that split existed. */
+    .seg-label-short { display:none; }
+    .seg-label-full { display:inline; font-size:12px; letter-spacing:.05em; padding:0; }
     /* Same flip as .month-segment/.seg-label just above — the switcher
        hangs off the same now-horizontal bar, so it gets the same
        bottom-rounded shape and horizontal label instead of the desktop
@@ -8224,19 +8269,44 @@
     if(segCount <= 6) return MONTH_SHORT[month - 1] + ' ' + yy;
     return (month < 10 ? '0' + month : month) + '/' + yy;
   }
-  // Month-only counterpart for renderMonthSidebar's own segment labels
-  // specifically — every segment visible at once already belongs to the
-  // one single year the switcher above them shows (see renderMonthSidebar:
-  // visibleMonths is always filtered to sidebarYear), so repeating that
-  // year on every tab below it was pure redundancy. formatMonthLabel
-  // itself stays untouched — everything else that calls it (modal
-  // titles, "Notes — August 2026", the share-scope heading, …) appears
-  // on its own, with no adjacent year switcher to lean on, and still
-  // needs the year spelled out.
-  function formatMonthOnlyLabel(month, segCount){
-    if(segCount <= 2) return MONTH_FULL[month - 1];
-    if(segCount <= 6) return MONTH_SHORT[month - 1];
-    return (month < 10 ? '0' + month : month);
+  // Desktop-only: pulls a month-sidebar segment out of its flex slot into
+  // a position:fixed overlay on hover, so its full (untruncated) label
+  // can grow past the 46px rail without being clipped — a mismatched
+  // overflow-x:visible next to the sidebar's own required
+  // overflow-y:auto computes right back to auto/clipped per spec, so
+  // "let it overflow visibly" was never actually available; growing the
+  // segment's own box onto position:fixed (whose containing block is
+  // the viewport, not any clipping ancestor) is what actually works.
+  // The slot it leaves behind (see renderMonthSidebar) keeps the exact
+  // same size the segment itself used to occupy directly, so this never
+  // shifts any other tab's position while expanded.
+  // A short grace period before collapsing (mirrors attachHoverReveal's
+  // own reasoning) absorbs the moment the pointer crosses from the
+  // segment onto its own now-visible "⋯" button sitting past where the
+  // short label used to end.
+  function attachSegHoverExpand(seg){
+    var hideTimer = null;
+    function expand(){
+      if(window.matchMedia('(max-width:720px)').matches) return; // no hover on touch/mobile
+      if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+      if(!seg.classList.contains('seg-expanded')){
+        var r = seg.getBoundingClientRect();
+        seg.style.top = r.top + 'px';
+        seg.style.left = r.left + 'px';
+        seg.style.height = r.height + 'px';
+        seg.classList.add('seg-expanded');
+      }
+    }
+    function scheduleCollapse(){
+      if(hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(function(){
+        seg.classList.remove('seg-expanded');
+        seg.style.top = ''; seg.style.left = ''; seg.style.height = '';
+        hideTimer = null;
+      }, 200);
+    }
+    seg.addEventListener('mouseenter', expand);
+    seg.addEventListener('mouseleave', scheduleCollapse);
   }
 
   // Clicking a sidebar segment shows only the options that belong to its
@@ -8639,33 +8709,27 @@
     var archivedMonths = allMonths.filter(function(s){ return s.archived; });
 
     visibleMonths.forEach(function(s){
+      // A fixed-size flex slot that stays in the column's normal flow no
+      // matter what — the actual .month-segment inside it is what
+      // switches to position:fixed on hover (see attachSegHoverExpand),
+      // pulling itself out of flow to grow past the sidebar's own
+      // 46px width without being clipped by its overflow-y:auto (a
+      // mismatched overflow-x:visible next to overflow-y:auto computes
+      // right back to auto/clipped, so growing the segment's own box —
+      // not relying on visible overflow — is the only way this
+      // actually escapes the rail). Keeping the slot in flow, sized
+      // exactly like every .month-segment used to be sized directly,
+      // means every OTHER tab never shifts position when one expands.
+      var slot = document.createElement('div');
+      slot.className = 'month-segment-slot';
+
       var seg = document.createElement('div');
       seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
       seg.dataset.monthKey = s.key;
       seg.style.background = colorByKey[s.key];
-      seg.title = 'Click to show only this month\'s alternatives';
+      seg.title = 'Click to show only this month\'s alternatives — double-click to change the month';
       seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
-
-      var label = document.createElement('span');
-      label.className = 'seg-label';
-      // Only drop the year here when the switcher above is actually
-      // showing it (years.length > 1, same gate that switcher itself
-      // uses) — with just one year, there's no switcher at all, so this
-      // is the only place the year would ever appear.
-      label.textContent = years.length > 1
-        ? formatMonthOnlyLabel(s.month, visibleMonths.length)
-        : formatMonthLabel(s.year, s.month, visibleMonths.length);
-      label.title = 'Click to show this month\'s alternatives — double-click to change the month';
-      // Single click just navigates, same as clicking anywhere else on the
-      // tab (most of the tab's visible area IS the label, so without this
-      // almost every click on the tab was opening the month-change popover
-      // instead of switching to it). Changing the month itself is a
-      // double-click action.
-      label.addEventListener('click', function(e){
-        e.stopPropagation();
-        filterPillsByMonth(s.year, s.month);
-      });
-      label.addEventListener('dblclick', function(e){
+      seg.addEventListener('dblclick', function(e){
         e.stopPropagation();
         openMonthPickerPopover(seg, s.year, s.month, 'Apply', function(newYear, newMonth){
           document.querySelectorAll('.panel').forEach(function(panel){
@@ -8679,22 +8743,46 @@
           filterPillsByMonth(newYear, newMonth);
         });
       });
-      seg.appendChild(label);
+
+      // Two labels, not one text swapped by JS — short (a real, locale-
+      // correct 3-letter abbreviation, e.g. MONTH_SHORT's own "Ago"/
+      // "Aug"/"Sep", not a CSS ellipsis mid-word) is what a collapsed
+      // 46px-wide tab can actually fit horizontally; full only ever
+      // shows once the tab has grown to fit it (desktop hover — see
+      // .seg-expanded; always-on on mobile instead, where there's no
+      // hover at all but the tab is already wide enough). Only drop the
+      // year from the full label when the switcher above is actually
+      // showing it (years.length > 1, same gate that switcher itself
+      // uses) — with just one year, there's no switcher at all, so this
+      // is the only place it would ever appear.
+      var labelShort = document.createElement('span');
+      labelShort.className = 'seg-label seg-label-short';
+      labelShort.textContent = MONTH_SHORT[s.month - 1];
+      var labelFull = document.createElement('span');
+      labelFull.className = 'seg-label seg-label-full';
+      labelFull.textContent = MONTH_FULL[s.month - 1] + (years.length > 1 ? '' : ' ' + s.year);
+      seg.appendChild(labelShort);
+      seg.appendChild(labelFull);
 
       // Add/notes/archive/share/remove all live behind this one trigger
       // now (see openMonthSegmentMenu) — same "⋯" language as every other
       // menu in the app, instead of an ever-growing pile of tiny buttons
-      // fighting for room in a 46px-wide strip.
+      // fighting for room in a 46px-wide strip. Positioned top/right of
+      // .month-segment itself (see its own CSS) so it automatically ends
+      // up past whichever label is actually showing, short or full,
+      // rather than needing separate coordinates for each.
       var menuBtn = document.createElement('button');
       menuBtn.type = 'button'; menuBtn.className = 'itemmenu-btn jsctl'; menuBtn.textContent = '⋯';
-      menuBtn.title = 'More options for ' + label.textContent;
+      menuBtn.title = 'More options for ' + labelFull.textContent;
       menuBtn.addEventListener('click', function(e){
         e.stopPropagation();
         openMonthSegmentMenu(menuBtn, s);
       });
       seg.appendChild(menuBtn);
 
-      sidebar.appendChild(seg);
+      attachSegHoverExpand(seg);
+      slot.appendChild(seg);
+      sidebar.appendChild(slot);
     });
 
     var archiveToggleBtn = document.getElementById('monthArchivedToggle');
