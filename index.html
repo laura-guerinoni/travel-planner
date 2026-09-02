@@ -604,9 +604,28 @@
      softer, and gives the dashed "current" border (see below) more
      believable room to sit inset on 3 sides without either shape's
      curve looking cramped. */
-  .month-segment { position:absolute; inset:0; display:flex;
+  /* Rounded corner on the LEFT now, toward the page's own outer margin
+     — flipped from the original "flush at the true edge, rounded
+     pointing in toward the content" shape. The straight edge moved to
+     the right along with it: a plain, square-cornered edge is the same
+     visual language the calendar's own outline around a month's active
+     days already uses (see .cell.active — also just a straight-edged
+     rectangle, no rounding), so this end now reads as a continuation of
+     that same "outline" family instead of a decorative flourish of its
+     own. inset's left value (6px, not 0) is what actually gives the
+     rounded corner room to be seen at all — flush against the true
+     viewport edge, a rounded corner just reads as clipped/cut off; this
+     leaves a visible margin for the curve to sit inside, the "toward the
+     margins of the page" half of this. .month-segment-slot itself keeps
+     its full 46px width and position completely unchanged — this inset
+     only affects the segment's own rendered box within it, so nothing
+     else that measures the slot (pills' own clearance, etc.) needs to
+     know or care. The expanded/pinned states (see pinCurrentSegment and
+     attachSegHoverExpand) add this same 6px to whatever left they
+     compute, for the identical reason, on the identical edge. */
+  .month-segment { position:absolute; inset:0 0 0 6px; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
-    border-radius:0 10px 10px 0; transition:width .16s ease, box-shadow .16s ease; }
+    border-radius:10px 0 0 10px; transition:width .16s ease, box-shadow .16s ease; }
   /* The selected month is never shown collapsed with just a dashed
      decoration on it — see .month-segment.seg-expanded,
      .month-segment.current below, which pins it permanently into the
@@ -614,16 +633,17 @@
      any other tab, kept in sync at render time AND after any later
      layout shift (see renderMonthSidebar and syncBarLayout's own calls
      to pinCurrentSegment) rather than ever needing a hover to see it.
-     Equal 6px inset on top, right, AND bottom now (was 5px top/bottom
-     but flush 0 on the right — the actual complaint: on a wide,
-     permanently-open chip there's no reason those three shouldn't
-     match). Left stays flush (0, no border segment there at all) —
-     the "attached to the spine" edge, unaffected by any of this. */
+     Mirrors the segment's own flipped shape above: equal 6px inset on
+     top, LEFT, and bottom, flush 0 now on the RIGHT (used to be the
+     left — that's the edge attached to the sidebar/margin side now,
+     see .month-segment's own comment) — no border segment drawn there
+     at all, same "attached to the spine" reasoning as before, just on
+     the other edge now that the spine itself flipped sides. */
   .month-segment.current::before {
-    content:''; position:absolute; top:6px; right:6px; bottom:6px; left:0; pointer-events:none;
-    border-radius:0 6px 6px 0;
+    content:''; position:absolute; top:6px; right:0; bottom:6px; left:6px; pointer-events:none;
+    border-radius:6px 0 0 6px;
     border:2px dashed rgba(255,255,255,.85);
-    border-left:none;
+    border-right:none;
   }
   /* Horizontal now, not vertical/rotated — a rotated label made room for
      the "⋯" trigger awkward to reach without also fighting the text (see
@@ -8522,7 +8542,16 @@
       }
       seg.style.transition = 'none';
       seg.style.top = top + 'px';
-      seg.style.left = r.left + 'px';
+      // +6, not the slot's own bare left — matches the same 6px inset
+      // .month-segment's own CSS gives the collapsed state (see its own
+      // comment on why: room for the now-left-side rounded corner to
+      // actually be visible against the page instead of clipped flush
+      // against the true edge). The slot itself carries no such inset —
+      // its own left is still the sidebar's bare edge — so this has to
+      // add it back explicitly, on top of the coordinate this function
+      // already deliberately reads from the slot rather than the
+      // segment (see this function's own comment above).
+      seg.style.left = (r.left + 6) + 'px';
       seg.style.height = r.height + 'px';
     });
   }
