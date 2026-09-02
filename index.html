@@ -547,27 +547,52 @@
      wasn't enough of a difference on its own to read as a genuinely
      different kind of chip, just a differently-colored one. */
   .month-segment-slot[data-year-slot] { height:36px; }
-  /* Solid, not dashed — dashed is already "this is the selected one"
-     everywhere else on a chip (see .month-segment.current::before); a
-     year should never read as selected (it never gets .current at all
-     any more — see its own comment), just visually marked as a header,
-     so this needed its own distinct language rather than reusing that
-     one. A first pass at this used a 2px/40%-opacity ring alone — too
-     subtle to actually register as "a different kind of chip" rather
-     than "the same chip, very slightly restyled" at a normal glance, not
-     a DevTools zoom. Thicker (3px) and more opaque (65%) rings the chip
-     on all 4 sides evenly — a month's own dashed border is 3-sided
-     (inset from the "spine" side only) because it's marking a smaller
-     region *within* an already-larger, already-expanded chip; a year is
-     never expanded like that, so there's no larger chip for a partial
-     border to sit inside. The diagonal stripe texture underneath is the
-     other half of actually solving this — genuine surface texture reads
-     as different at a glance in a way a flat color with any border,
-     however heavy, still doesn't; the stripe spacing is deliberately
-     tight (6px) so it still reads as a texture, not individually
-     countable lines, even on the short/collapsed 46×36 state. */
-  .month-segment[data-year-seg] { border:3px solid rgba(255,255,255,.65);
-    background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.14) 0 3px, transparent 3px 9px); }
+  /* Permanently escaped from the sidebar's own 46px rail via
+     position:fixed (see .month-segment.seg-expanded/.current's own
+     comment on why fixed, not overflow:visible, is what actually lets a
+     segment grow past the sidebar's overflow-y:auto) — unconditionally
+     now, not only while hovered or current the way a month tab's own
+     .seg-expanded/.current state works. Years used to share that exact
+     hover-to-grow animation, but a year's own label never actually
+     needed the extra room it was for — short and full hold identical
+     text (see renderMonthSidebar's own year loop), there's no
+     abbreviation to spell out the way a month's short "AGO" expanding to
+     "AGOSTO" needs. Growing only on hover just meant sitting narrow
+     (46px) the rest of the time for no real reason — a little wider,
+     always, instead: room for the label and the "…" trigger without
+     ever having to move to get there. pinCurrentSegment (see its own
+     comment) positions this now, the same way it already positioned the
+     once-hover/current-only .seg-expanded state — just unconditionally,
+     for every year segment. */
+  /* White, not --ink — together with the border/stripe below, distinct
+     from every month color a trip could ever use (all drawn from
+     SEG_COLORS, never white), so a year reads as its own kind of chip by
+     shape AND color, not just by being *a* consistent color the way the
+     old --ink choice was (a color that still had to compete for
+     attention alongside a page of otherwise-vivid month colors). Border
+     and stripe now dark against that light background instead of light
+     against dark — same "solid ring + tight diagonal texture" language
+     as before (see the ring's own reasoning: dashed already means
+     "selected" elsewhere, a year never is; texture reads as a distinct
+     surface at a glance in a way a border alone, however heavy,
+     doesn't), just recolored to still show up against white. */
+  .month-segment[data-year-seg] { position:fixed; right:auto; bottom:auto; width:80px;
+    z-index:45; box-shadow:0 2px 8px rgba(0,0,0,.15);
+    background-color:#fff; color:var(--ink);
+    border:3px solid rgba(61,53,104,.35);
+    background-image:repeating-linear-gradient(45deg, rgba(61,53,104,.08) 0 3px, transparent 3px 9px); }
+  .month-segment[data-year-seg] .seg-label { color:var(--ink); }
+  /* Right padding only, not symmetric — flex justify-content:center
+     centers the label's own OUTER box (padding included) as a whole
+     within the segment, so adding room on just this one side shifts the
+     visible text itself left inside that box without needing to touch
+     the segment's own width. A month's expanded .seg-label-full can get
+     away with small, symmetric padding (see its own comment) because
+     140px leaves plenty of slack either way; at a deliberately-narrower
+     80px a year needs (confirmed by direct measurement, not guessed)
+     this much dedicated clearance or the label's centered text runs
+     straight into the "…" trigger's own reserved zone on the right. */
+  .month-segment[data-year-seg] .seg-label-short { padding-right:12px; }
   /* Corner radius less pronounced than it used to be (16px) — 10px reads
      softer, and gives the dashed "current" border (see below) more
      believable room to sit inset on 3 sides without either shape's
@@ -684,23 +709,17 @@
      else (full name, dashed border), no reason the one control that
      acts on it specifically should still be hover-gated. */
   .month-segment:hover .itemmenu-btn, .month-segment.current .itemmenu-btn { visibility:visible; }
-  /* Persistent, not one of the sidebar's own scrolling flex children (see
-     #monthArchivedToggle's own comment) — same tab shape/width as a
-     .month-segment so it reads as part of the same stack, just anchored
-     below it regardless of scroll position. Hidden via JS (not CSS)
-     until there's actually at least one archived month to show. */
-  .month-archived-toggle { display:none; position:fixed; left:0; bottom:8px; width:46px; height:40px; z-index:30;
-    border:none; border-radius:0 12px 12px 0; background:var(--card); color:var(--muted); font-size:10px;
-    font-weight:800; letter-spacing:.04em; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.15); }
-  .month-archived-toggle.show { display:block; }
-  .month-archived-panel { display:none; position:fixed; left:50px; bottom:8px; z-index:31; background:var(--card);
-    border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.2); padding:8px; min-width:180px; max-height:60vh; overflow-y:auto; }
-  .month-archived-panel.show { display:block; }
+  /* Rows inside #archiveListContainer (see archivePanel — reached from
+     the profile menu's own "Archive" row now, not a sidebar-anchored
+     toggle+popover any more). #archivePanel itself needs no styling of
+     its own beyond what .modal-overlay/.map-inner already give every
+     other panel behind that menu. */
   .month-archived-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
     padding:8px 10px; border-radius:8px; font-size:13px; }
   .month-archived-row:hover { background:var(--bg); }
   .month-archived-row button { border:none; background:none; color:var(--primary); font-size:12px;
     font-weight:700; cursor:pointer; padding:2px 4px; }
+  .archive-empty { color:var(--muted); font-size:13px; margin:8px 0 0; }
 
   /* !important because a later, equal-or-higher-specificity rule (.pill's
      own display:inline-flex, .budget li's own display:flex) would
@@ -1335,6 +1354,16 @@
        nothing special here at all — just undoing what would otherwise
        leak in. */
     .month-segment.current { position:relative; width:auto; overflow:hidden; box-shadow:none; }
+    /* Same reasoning as .month-segment.current's own override right
+       above — [data-year-seg]'s desktop rule is unconditional
+       position:fixed now (not gated behind a class, see its own
+       comment), and its higher specificity (one class + one attribute)
+       would otherwise still win here even inside this media query.
+       Every mobile tab is already a uniform 88px wide regardless of
+       kind (see .month-segment's own mobile rule above) — a year needing
+       to be "a little wider" than a month is a desktop-only distinction
+       to begin with, nothing to undo further than position/width here. */
+    .month-segment[data-year-seg] { position:relative; width:auto; overflow:hidden; box-shadow:none; }
     /* No hover at all on touch — the desktop short/full split (see
        .seg-label-short/.seg-label-full's own desktop rules) doesn't
        apply here; a mobile tab is already wide enough to just always
@@ -1837,6 +1866,22 @@
     <button type="button" id="printGoBtn" class="modal-primary-btn" data-i18n="print_go">Print / Save as PDF</button>
   </div>
 </div>
+<!-- Reachable from the profile menu now (see actionMenuDropdown's own
+     "Archive" row), not a small dot anchored to the sidebar — one flat
+     list of everything archived (a whole year's worth is just every one
+     of its months, archived together — see setYearArchivedForMe), same
+     as before, just living in the same modal-overlay language every
+     other panel behind that menu already uses instead of a bespoke
+     popover. Built/emptied by renderArchivedMonthsPanel, only while open. -->
+<div id="archivePanel" class="modal-overlay">
+  <div class="map-inner">
+    <div class="map-header">
+      <h2 data-i18n="archive_title">Archived</h2>
+      <button type="button" id="archiveCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div id="archiveListContainer"></div>
+  </div>
+</div>
 <div id="clearDayConfirmPanel" class="modal-overlay">
   <div class="map-inner">
     <div class="map-header">
@@ -1858,13 +1903,6 @@
   </div>
 </div>
 <div id="monthSidebar" class="month-sidebar"></div>
-<!-- Fixed below the (independently scrolling) sidebar itself, not one of
-     its own flex children — stays reachable regardless of scroll
-     position once there are enough months to need it. Built/shown by
-     renderMonthSidebar; jsctl so it disappears from print/export like
-     every other piece of chrome. -->
-<button type="button" id="monthArchivedToggle" class="month-archived-toggle jsctl" title="Show archived months"></button>
-<div id="monthArchivedPanel" class="month-archived-panel"></div>
 <div class="pills-gapfill" aria-hidden="true"></div>
 <div class="wrap">
   <header>
@@ -1880,6 +1918,7 @@
       <button type="button" id="saveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span id="saveBtnLabel">Save</span></button>
       <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="menu_manage">Participants</span></button>
       <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span data-i18n="menu_print">Print</span></button>
+      <button type="button" id="archiveMenuBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg><span data-i18n="menu_archive">Archive</span></button>
       <div class="actionMenuDivider"></div>
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
@@ -2525,6 +2564,7 @@
   var TRANSLATIONS = {
     en: {
       menu_save: 'Save', menu_download: 'Download', menu_manage: 'Participants', menu_print: 'Print',
+      menu_archive: 'Archive', archive_title: 'Archived', archive_empty: 'Nothing archived yet.', archive_unarchive: 'Unarchive',
       menu_theme: 'Theme', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
       manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
@@ -2576,6 +2616,7 @@
     },
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
+      menu_archive: 'Archivio', archive_title: 'Archiviati', archive_empty: 'Ancora niente di archiviato.', archive_unarchive: 'Ripristina',
       menu_theme: 'Tema', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
       manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
@@ -2627,6 +2668,7 @@
     },
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
+      menu_archive: 'Archivo', archive_title: 'Archivados', archive_empty: 'Nada archivado todavía.', archive_unarchive: 'Restaurar',
       menu_theme: 'Tema', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
       manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
@@ -8435,16 +8477,19 @@
   // this safe to call repeatedly: the slot never leaves normal flow, so
   // it's always an accurate source of truth regardless of how many times
   // this runs.
-  // Plural now, not a single querySelector — a current MONTH and a
-  // current YEAR (see renderMonthSidebar's own year-segment loop) can
-  // both be pinned at once, each in its own unrelated slot; querying just
-  // the first match used to leave whichever of the two came second in
-  // DOM order un-pinned.
+  // Plural, not a single querySelector — the current MONTH (see
+  // renderMonthSidebar's own month loop) and EVERY year segment (see its
+  // own year loop — a year needs this unconditionally now, not just
+  // while current, since [data-year-seg]'s own CSS keeps it permanently
+  // position:fixed rather than only during a hover/current state the
+  // way a month tab's .seg-expanded/.current works) can all need pinning
+  // at once, each in its own unrelated slot; querying just the first
+  // match used to leave whichever came later in DOM order un-pinned.
   function pinCurrentSegment(){
     if(window.matchMedia('(max-width:720px)').matches) return;
     var sidebarEl = document.getElementById('monthSidebar');
     var sidebarRect = sidebarEl ? sidebarEl.getBoundingClientRect() : null;
-    document.querySelectorAll('.month-segment.current').forEach(function(seg){
+    document.querySelectorAll('.month-segment.current, .month-segment[data-year-seg]').forEach(function(seg){
       if(!seg.parentElement) return;
       var r = seg.parentElement.getBoundingClientRect();
       var top = r.top;
@@ -9083,11 +9128,6 @@
       return allMonths.some(function(s){ return s.year === yr && !s.archived; });
     });
 
-    // Across every year, not just — there's no longer a "which year is
-    // showing" to be relative to at all — someone shouldn't have to
-    // remember which year they archived a month from to ever find it
-    // again in the "Archived" list.
-    var archivedMonths = allMonths.filter(function(s){ return s.archived; });
 
     // Every year's own months sit directly beneath it now, not behind a
     // separate "pick a year to see its months" step — the whole sidebar
@@ -9124,23 +9164,20 @@
         // quietly reopen that door.
         yearSeg.dataset.monthKey = 'year-' + yr;
         yearSeg.dataset.yearSeg = '1';
-        // backgroundColor, not the background shorthand — the shorthand
-        // also implicitly resets background-image to none, which would
-        // have silently overridden the CSS-driven stripe texture (see
-        // [data-year-seg]'s own rule) every time this ran, since an
-        // inline style always beats a stylesheet rule regardless of
-        // specificity. The longhand only touches color, leaving that
-        // separate property alone.
-        yearSeg.style.backgroundColor = 'var(--ink)'; // chrome, not a month — same reasoning as the old switcher's own color choice
+        // Background/text color, border, and stripe are all handled by
+        // [data-year-seg]'s own CSS now — nothing inline needed here any
+        // more, since (unlike a month, whose fill varies per month via
+        // colorByKey) every year looks identical to every other one.
         yearSeg.title = yr;
 
         // Short and full hold the same text here — unlike a month name, a
         // year number is already maximally compact, nothing to abbreviate
-        // down to. Still needs both spans: the hover-expand/current
-        // machinery this shares with a month tab keys off which of the
-        // two is currently showing (see .seg-label-short/-full's own
-        // CSS), and the wider expanded box is still what makes room for
-        // the "⋯" trigger, same as a month.
+        // down to. Still needs both spans regardless: mobile always shows
+        // .seg-label-full and hides .seg-label-short (see their own
+        // mobile rules), desktop the other way around by default — this
+        // is the one label a year segment ever shows, on either, since it
+        // never grows into an "expanded" state that would swap to the
+        // other span the way a month tab's hover/current state does.
         var yrLabelShort = document.createElement('span');
         yrLabelShort.className = 'seg-label seg-label-short';
         yrLabelShort.textContent = yr;
@@ -9158,12 +9195,15 @@
           openYearSegmentMenu(yearMenuBtn, yr);
         });
         yearSeg.appendChild(yearMenuBtn);
+        // Still hover-to-open, even though the segment itself no longer
+        // grows on hover (see [data-year-seg]'s own CSS) — the "…"
+        // trigger's own visibility is separately hover-gated by
+        // .month-segment:hover .itemmenu-btn, unrelated to width, so
+        // this still works exactly the same as it always did.
         attachSegMenuHover(yearMenuBtn, yr, openYearSegmentMenu);
 
         yearSlot.appendChild(yearSeg);
         sidebar.appendChild(yearSlot);
-
-        attachSegHoverExpand(yearSeg);
       }
 
       var monthsInYear = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
@@ -9266,23 +9306,6 @@
     });
     pinCurrentSegment();
 
-    var archiveToggleBtn = document.getElementById('monthArchivedToggle');
-    var archivedPanelEl = document.getElementById('monthArchivedPanel');
-    if(archiveToggleBtn){
-      if(archivedMonths.length){
-        archiveToggleBtn.classList.add('show');
-        archiveToggleBtn.textContent = 'Archived'; // no count — just a plain label, see its own click handler for why no picking step is needed either
-        archiveToggleBtn.onclick = function(){
-          var willShow = !archivedPanelEl.classList.contains('show');
-          archivedPanelEl.classList.toggle('show', willShow);
-          if(willShow) renderArchivedMonthsPanel(archivedMonths);
-        };
-      } else {
-        archiveToggleBtn.classList.remove('show');
-        if(archivedPanelEl) archivedPanelEl.classList.remove('show');
-      }
-    }
-
     // Every option pill gets the exact same fill as its own month's
     // sidebar tab (not just the active one) — the pill's own selected
     // state is conveyed by the stitch border alone, same as the sidebar.
@@ -9301,31 +9324,65 @@
     });
     syncBarLayout();
   }
-  // The small expandable list behind the "Archived" toggle — deliberately
-  // just one flat list of everything archived, not a menu you first pick
-  // a month (or year) out of to drill into; clicking the toggle is the
-  // only step. Kept separate from the main sidebar markup since it's
-  // positioned outside it (see #monthArchivedPanel's own comment) and
-  // only ever needs to exist while actually open.
-  function renderArchivedMonthsPanel(archivedMonths){
-    var panel = document.getElementById('monthArchivedPanel');
-    if(!panel) return;
-    panel.innerHTML = '';
-    archivedMonths.slice().sort(function(a, b){ return a.year - b.year || a.month - b.month; }).forEach(function(s){
+  // Recomputed fresh on demand (see archiveMenuBtn's own click handler)
+  // rather than reusing renderMonthSidebar's own internal grouping —
+  // that one only exists for the duration of a single render call, and
+  // the archive panel now opens independently of any render, from the
+  // profile menu, not a toggle renderMonthSidebar itself builds/shows.
+  // Same grouping shape as renderMonthSidebar's own allMonths ({ key,
+  // year, month, panels, archived }), just filtered to archived up front
+  // instead of computing every month only to filter most of them out
+  // again immediately after.
+  function getArchivedMonths(){
+    var monthsByKey = {};
+    document.querySelectorAll('.panel').forEach(function(panel){
+      if(!canSeeOption(panel)) return;
+      var d = getPanelDate(panel);
+      var key = monthKey(d.year, d.month);
+      if(!monthsByKey[key]){ monthsByKey[key] = { key:key, year:d.year, month:d.month, panels:[] }; }
+      monthsByKey[key].panels.push(panel);
+    });
+    return Object.keys(monthsByKey).map(function(k){ return monthsByKey[k]; })
+      .filter(function(m){ return m.panels.every(isArchivedForMe); });
+  }
+  // The list behind the profile menu's "Archive" row (see actionMenuDropdown)
+  // — deliberately just one flat list of everything archived, not a menu
+  // you first pick a month (or year) out of to drill into; opening the
+  // panel is the only step. A whole archived year shows here exactly as
+  // a run of its own individually-archived months, same as one archived
+  // on its own — there's no separate "year" entry, since archiving a
+  // year (see setYearArchivedForMe) never was anything but archiving
+  // every one of its months together in the first place.
+  function renderArchivedMonthsPanel(){
+    var container = document.getElementById('archiveListContainer');
+    if(!container) return;
+    var archivedMonths = getArchivedMonths();
+    container.innerHTML = '';
+    if(!archivedMonths.length){
+      var empty = document.createElement('p');
+      empty.className = 'archive-empty';
+      empty.textContent = t('archive_empty');
+      container.appendChild(empty);
+      return;
+    }
+    archivedMonths.sort(function(a, b){ return a.year - b.year || a.month - b.month; }).forEach(function(s){
       var row = document.createElement('div');
       row.className = 'month-archived-row';
       var label = document.createElement('span');
       label.textContent = MONTH_FULL[s.month - 1] + ' ' + s.year;
       var unarchiveBtn = document.createElement('button');
-      unarchiveBtn.type = 'button'; unarchiveBtn.textContent = 'Unarchive';
+      unarchiveBtn.type = 'button'; unarchiveBtn.textContent = t('archive_unarchive');
       unarchiveBtn.addEventListener('click', function(){
         s.panels.forEach(function(p){ setArchivedForMe(p, false); });
         scheduleAutoSave(); scheduleUndoSnapshot();
-        panel.classList.remove('show');
         renderMonthSidebar();
+        // Re-render in place rather than closing — restoring several
+        // months (a whole formerly-archived year, say) in one visit
+        // shouldn't need reopening the menu and panel again per month.
+        renderArchivedMonthsPanel();
       });
       row.appendChild(label); row.appendChild(unarchiveBtn);
-      panel.appendChild(row);
+      container.appendChild(row);
     });
   }
 
@@ -9605,6 +9662,15 @@
   var printPanel = document.getElementById('printPanel');
   var printCloseX = document.getElementById('printCloseX');
   var printGoBtn = document.getElementById('printGoBtn');
+  var archiveMenuBtn = document.getElementById('archiveMenuBtn');
+  var archivePanel = document.getElementById('archivePanel');
+  var archiveCloseX = document.getElementById('archiveCloseX');
+  if(archiveMenuBtn) archiveMenuBtn.addEventListener('click', function(){
+    if(archivePanel) archivePanel.classList.add('show');
+    renderArchivedMonthsPanel();
+    closeActionMenu();
+  });
+  if(archiveCloseX) archiveCloseX.addEventListener('click', function(){ if(archivePanel) archivePanel.classList.remove('show'); });
 
   // ---- Action menu: groups Manage access / Print / Sign out behind one
   // icon, since none of them are needed on every visit the way the
