@@ -110,7 +110,20 @@
      right at the box's own edge looking abruptly truncated rather than
      like there's more to scroll to; the extra room reads as an
      intentional "peek" of the next pill instead. */
-  .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:flex-start; overflow-x:auto;
+  /* safe center, not plain flex-start — with only one or a couple of
+     alternatives (the common case for a fresh trip), a row that never
+     needs to scroll at all still read as pinned to the left edge, with
+     a big empty gap on the right that made it look off-balance rather
+     than intentionally laid out. "safe" is what keeps this from
+     backfiring once there ARE enough alternatives to actually need
+     scrolling — plain center on an overflowing flex row can center the
+     overflow itself, pushing the very first pill half off the left edge
+     with no way to scroll back to see all of it; the "safe" keyword
+     falls back to start-alignment specifically once content doesn't
+     fit, so scrolling to the true beginning always reaches a fully
+     visible first pill, and centering only ever applies when there's
+     nothing to scroll to begin with. */
+  .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:safe center; overflow-x:auto;
     position:fixed; top:0; left:46px; right:16px; max-width:1120px; margin:0 auto; z-index:40;
     background-color:var(--bg); background-image:var(--texture); padding:0 32px 14px;
     scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
