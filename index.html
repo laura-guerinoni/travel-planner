@@ -460,15 +460,15 @@
   /* Styled like the little fabric/paper page-marker tabs that stick out
      from the edge of a book — separate rounded tabs with a gap of page
      showing between them. Flat, no drop shadow. */
-  /* flex:1 1 0 below stretches segments to fill the sidebar's fixed
-     height when there are few of them — fine on its own, but once each
-     segment's own min-height floor (64px) × how many months exist
-     exceeds that fixed height, flexbox stops shrinking them further and
-     the extra segments simply spilled past the bottom of the viewport
-     with no way to reach them at all. overflow-y turns that into a
-     scrollable list past that point instead — segments still stretch to
-     fill when there's room, exactly as before, only the "too many to
-     fit" case actually changes. */
+  /* A fixed, compact height, not stretched to fill whatever room the
+     sidebar has (the old vertical/rotated label needed real height to
+     spell a whole month out top-to-bottom; horizontal short text — see
+     .seg-label-short — needs nowhere near that, and letting a couple of
+     months stretch to fill an entire tall viewport read as a mostly-
+     empty giant tab once the label stopped needing the room). Stacks
+     compactly at the top instead; overflow-y on the sidebar itself is
+     already what turns "too many to fit" into a scroll, unrelated to
+     this. */
   /* top:24px (was 28px), height shortened to match (100vh - 52px, still
      a 28px bottom margin: 24 + 28 = 52) — 4px more room at the very top
      specifically for the year switcher below to actually use. It used
@@ -521,10 +521,10 @@
      whether the segment inside it is expanded (see attachSegHoverExpand
      and .seg-expanded below), so no OTHER tab ever shifts position while
      one is hovered. */
-  .month-segment-slot { position:relative; flex:1 1 0; min-height:64px; }
+  .month-segment-slot { position:relative; flex:0 0 auto; height:44px; }
   .month-segment { position:absolute; inset:0; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
-    border-radius:0 16px 16px 0; }
+    border-radius:0 16px 16px 0; transition:width .16s ease, box-shadow .16s ease; }
   /* the segment matching whichever option is currently on screen — left
      edge stays flush with the others (no horizontal shift); a running
      stitch traced just inside the edge (like hand-sewing around a fabric
@@ -555,7 +555,15 @@
      sidebar's own overflow-y:auto (an overflow-x:visible right next to
      that would just compute back to auto/clipped per spec — not
      available here regardless of how this is written). */
-  .month-segment.seg-expanded { position:fixed; right:auto; bottom:auto; width:auto; min-width:150px;
+  /* A fixed target, not width:auto — auto can't interpolate (there's no
+     "halfway" between "shrink-to-fit" and a pixel value for a browser to
+     animate through), which is what actually let .month-segment's own
+     transition:width above animate this growing open smoothly instead
+     of snapping straight to its final size the instant .seg-expanded
+     lands. 190px comfortably fits the longest realistic full label
+     across every supported language ("SETTEMBRE 2026") plus the "..."
+     trigger's own reserved padding (see .seg-label-full). */
+  .month-segment.seg-expanded { position:fixed; right:auto; bottom:auto; width:190px;
     overflow:visible; z-index:40; box-shadow:0 4px 16px rgba(0,0,0,.25); }
   .month-segment.seg-expanded .seg-label-short { display:none; }
   .month-segment.seg-expanded .seg-label-full { display:inline; }
@@ -8286,23 +8294,53 @@
   // short label used to end.
   function attachSegHoverExpand(seg){
     var hideTimer = null;
+    var collapseTimer = null;
+    // .month-segment's own transition:width can't animate a jump straight
+    // from position:absolute's implicit auto-width (inset:0, whatever the
+    // slot happens to be) to seg-expanded's fixed 190px — there's no real
+    // "halfway" for the browser to interpolate from a keyword, and
+    // changing `position` in the very same step drops the box's existing
+    // layout box entirely, so it just snapped instead of growing. Freezing
+    // an explicit pixel width first, forcing layout, THEN letting the
+    // width change on the next frame (the standard FLIP technique) gives
+    // the transition two real pixel values to animate between instead.
     function expand(){
       if(window.matchMedia('(max-width:720px)').matches) return; // no hover on touch/mobile
       if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
-      if(!seg.classList.contains('seg-expanded')){
-        var r = seg.getBoundingClientRect();
-        seg.style.top = r.top + 'px';
-        seg.style.left = r.left + 'px';
-        seg.style.height = r.height + 'px';
-        seg.classList.add('seg-expanded');
-      }
+      if(collapseTimer){ clearTimeout(collapseTimer); collapseTimer = null; }
+      if(seg.classList.contains('seg-expanded')) return;
+      var r = seg.getBoundingClientRect();
+      seg.style.top = r.top + 'px';
+      seg.style.left = r.left + 'px';
+      seg.style.height = r.height + 'px';
+      seg.style.width = r.width + 'px'; // freeze at the collapsed width first
+      seg.classList.add('seg-expanded');
+      seg.getBoundingClientRect(); // force layout so the freeze above actually commits
+      requestAnimationFrame(function(){
+        seg.style.width = ''; // now let .seg-expanded's own 190px take over, animated
+      });
     }
     function scheduleCollapse(){
       if(hideTimer) clearTimeout(hideTimer);
       hideTimer = setTimeout(function(){
-        seg.classList.remove('seg-expanded');
-        seg.style.top = ''; seg.style.left = ''; seg.style.height = '';
         hideTimer = null;
+        if(!seg.classList.contains('seg-expanded')) return;
+        // Same FLIP shape in reverse: freeze at the current (expanded)
+        // width explicitly, force layout, then transition down to the
+        // collapsed width — only removing seg-expanded (and the inline
+        // position it depended on) once that shrink has actually
+        // finished, or it'd jump straight back to 46px mid-animation.
+        var collapsedWidth = seg.parentElement.getBoundingClientRect().width; // the slot's own real width, not a hardcoded guess
+        seg.style.width = seg.getBoundingClientRect().width + 'px';
+        seg.getBoundingClientRect();
+        requestAnimationFrame(function(){
+          seg.style.width = collapsedWidth + 'px';
+        });
+        collapseTimer = setTimeout(function(){
+          seg.classList.remove('seg-expanded');
+          seg.style.top = ''; seg.style.left = ''; seg.style.height = ''; seg.style.width = '';
+          collapseTimer = null;
+        }, 180);
       }, 200);
     }
     seg.addEventListener('mouseenter', expand);
@@ -10334,8 +10372,25 @@
   var LOCAL_EDIT_GRACE_MS = 1500;
   var localEditUntil = 0;
 
+  // data-currency/data-pay/data-pay-excluded: their own setters (see
+  // openPanelCurrencyMenu/openActivityCurrencyMenu/setPaySplits/
+  // setPaySplitExcluded) already call scheduleAutoSave()/
+  // scheduleUndoSnapshot() explicitly, same as data-members's own — but
+  // that alone was never the whole story: skipping the filter here also
+  // skips this observer's OTHER job, arming localEditUntil (see
+  // isLocallyBusy below). Without an attribute in this list, changing it
+  // never counts as "a local edit just happened", so a remote snapshot
+  // arriving in the same ~1s window (an echo of some earlier write,
+  // ordinary sync latency) sails straight through isLocallyBusy's check
+  // and gets applied immediately — rebuilding the whole DOM from
+  // whatever the server had a moment ago, before this change's own
+  // still-in-flight save had landed there. That's what a currency (or
+  // pay-split) change visibly reverting a second after picking it
+  // actually was: never lost, just briefly overwritten by a stale
+  // server snapshot that hadn't caught up yet, because nothing told
+  // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
