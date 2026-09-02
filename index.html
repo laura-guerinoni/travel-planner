@@ -8890,6 +8890,12 @@
       // display:none on mobile anyway, so none of that machinery applies
       // here. A new padding-bottom instead clears the fixed bottom bar
       // so scrolled content never ends up hidden behind it.
+      // .style.left too, not just top — the desktop branch below sets an
+      // inline left (aligning with .wrap's own edge, see its own
+      // comment) that would otherwise outrank mobile's own left:0 CSS
+      // regardless of specificity once left behind by a resize down from
+      // desktop, the exact same reason .style.top needs clearing here.
+      pillsEl.style.left = '';
       pillsEl.style.top = '';
       var target = sidebarH + GAP;
       wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
@@ -8901,6 +8907,24 @@
       return;
     }
     wrapEl.style.paddingBottom = '';
+    // Left edge hard-aligned with .wrap's own left edge (where the
+    // calendar itself starts) — not just "clear the sidebar" (46px, this
+    // rule's own CSS default) any more. .wrap centers itself
+    // (max-width:1120px, margin:0 auto) within body's own content box,
+    // whose left padding is 56px — a different available width than
+    // .pills' own left:46/right:16 CSS, so its actual rendered left edge
+    // can land a few pixels past 46px, at a point that also shifts with
+    // viewport width as the centering math changes. A pill — especially
+    // the first one, centered whenever there's room to spare (see
+    // .pills' own justify-content:safe center) — rendering to the left
+    // of where the calendar's own day cells start read as misaligned
+    // rather than like two pieces of the same layout meant to line up.
+    // Measured here, not hardcoded, so it keeps tracking correctly
+    // however .wrap's own centering resolves at any given width. Right
+    // stays free (no matching cap in .pills' own CSS) — this only ever
+    // pulls the left edge in to match, never limits how far right the
+    // row can still reach once there's enough content to need it.
+    pillsEl.style.left = wrapEl.getBoundingClientRect().left + 'px';
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
     // Aligns the topmost year segment's own vertical center with the
