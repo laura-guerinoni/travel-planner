@@ -529,24 +529,33 @@
      and .seg-expanded below), so no OTHER tab ever shifts position while
      one is hovered. */
   .month-segment-slot { position:relative; flex:0 0 auto; height:44px; }
-  /* Corner radius less pronounced than it used to be (16px) — 10px reads
-     softer, and gives the dashed "current" border (see below) more
-     believable room to sit inset on 3 sides without either shape's
-     curve looking cramped. */
   .month-segment { position:absolute; inset:0; display:flex;
     align-items:center; justify-content:center; overflow:hidden; cursor:pointer;
-    border-radius:0 10px 10px 0; transition:width .16s ease, box-shadow .16s ease; }
-  /* The selected month is never shown collapsed with just a dashed
-     decoration on it any more — see .month-segment.seg-expanded,
-     .month-segment.current below, which pins it permanently into the
-     exact same "full name, real width" state a hover temporarily gives
-     any other tab, set once at render time (renderMonthSidebar) rather
-     than needing a hover to ever see it. A small chip with a dashed
-     line squeezed into a 46px collapsed rail never had room to look
-     right regardless of how the padding was tuned. */
+    border-radius:0 16px 16px 0; transition:width .16s ease, box-shadow .16s ease; }
+  /* the segment matching whichever option is currently on screen — left
+     edge stays flush with the others (no horizontal shift); a running
+     stitch traced just inside the edge (like hand-sewing around a fabric
+     patch) marks it as "in use" instead. Flush (0) on BOTH left and
+     right now, not just left — an inset only on the right (5px, was)
+     made the dashed frame itself sit visibly off-center horizontally,
+     which is what a correctly-centered label (see .seg-label-short's
+     own fix) still read as lopsided against: the actual complaint was
+     never the text, it was this frame it's being judged against. Only
+     top/bottom keep their own 5px inset (unrelated to left-right
+     balance) for the "traced just inside the edge" look on those two
+     sides. border-radius set to EXACTLY match .month-segment's own
+     16px, not just close to it — this box now shares the segment's
+     exact left/right extent (confirmed via a live probe: 0px overflow
+     either way), so any radius mismatch, even 1px, made the dashed
+     curve trace a visibly different path than the solid pink shape's
+     own edge under it — right where the two curves diverged, the white
+     dash's own anti-aliasing spilled past the pink into the page
+     background, reading as the border "poking out". Matching the
+     radius exactly means both curves are the identical path. */
+  .month-segment.current { z-index:1; }
   .month-segment.current::before {
-    content:''; position:absolute; top:6px; right:6px; bottom:6px; left:0; pointer-events:none;
-    border-radius:0 6px 6px 0;
+    content:''; position:absolute; top:5px; right:0; bottom:5px; left:0; pointer-events:none;
+    border-radius:0 16px 16px 0;
     border:2px dashed rgba(255,255,255,.85);
     border-left:none;
   }
@@ -590,14 +599,10 @@
      lands. 190px comfortably fits the longest realistic full label
      across every supported language ("SETTEMBRE 2026") plus the "..."
      trigger's own reserved padding (see .seg-label-full). */
-  /* .current shares this exact treatment (see renderMonthSidebar,
-     where it's pinned into it once at render time instead of via
-     hover) — the selected month IS the permanently-expanded state now,
-     not a temporary one two classes apart from each other. */
-  .month-segment.seg-expanded, .month-segment.current { position:fixed; right:auto; bottom:auto; width:190px;
+  .month-segment.seg-expanded { position:fixed; right:auto; bottom:auto; width:190px;
     overflow:visible; z-index:40; box-shadow:0 4px 16px rgba(0,0,0,.25); }
-  .month-segment.seg-expanded .seg-label-short, .month-segment.current .seg-label-short { display:none; }
-  .month-segment.seg-expanded .seg-label-full, .month-segment.current .seg-label-full { display:inline; }
+  .month-segment.seg-expanded .seg-label-short { display:none; }
+  .month-segment.seg-expanded .seg-label-full { display:inline; }
   /* Add/notes/archive/share/remove all live behind this one "⋯" trigger
      now (see openMonthSegmentMenu) instead of a growing pile of small
      buttons fighting for room in a 46px-wide strip — same hover-reveal
@@ -611,10 +616,7 @@
      tab in the first place already works with no click either. */
   .month-segment .itemmenu-btn { position:absolute; top:50%; right:6px; transform:translateY(-50%);
     width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.9); font-size:11px; }
-  /* .current too, unconditionally — it's already showing everything
-     else (full name, dashed border), no reason the one control that
-     acts on it specifically should still be hover-gated. */
-  .month-segment:hover .itemmenu-btn, .month-segment.current .itemmenu-btn { visibility:visible; }
+  .month-segment:hover .itemmenu-btn { visibility:visible; }
   /* Persistent, not one of the sidebar's own scrolling flex children (see
      #monthArchivedToggle's own comment) — same tab shape/width as a
      .month-segment so it reads as part of the same stack, just anchored
@@ -1243,18 +1245,6 @@
     .month-segment-slot { display:contents; }
     .month-segment { position:relative; flex:1 0 88px; min-width:88px;
       padding:10px 8px; border-radius:0 0 14px 14px; }
-    /* .month-segment.current (see the desktop rule pinning it into a
-       permanently-expanded position:fixed, real-width state) has HIGHER
-       specificity than the plain .month-segment override just above —
-       coming later in the file isn't enough to win against that on its
-       own, so without this override it would still win here too,
-       pulling one mobile tab out of the horizontal bar's normal flow at
-       whatever pixel position JS happened to freeze it at on desktop.
-       Every mobile tab already shows its full name regardless of which
-       one is current (see .seg-label-full above), so current needs
-       nothing special here at all — just undoing what would otherwise
-       leak in. */
-    .month-segment.current { position:relative; width:auto; overflow:hidden; box-shadow:none; }
     /* No hover at all on touch — the desktop short/full split (see
        .seg-label-short/.seg-label-full's own desktop rules) doesn't
        apply here; a mobile tab is already wide enough to just always
@@ -8905,32 +8895,9 @@
       seg.appendChild(menuBtn);
       attachSegMenuHover(menuBtn, s);
 
+      attachSegHoverExpand(seg);
       slot.appendChild(seg);
       sidebar.appendChild(slot);
-
-      // The selected month is pinned into the exact same "permanently
-      // expanded" state a hover only ever gives any other tab TEMPORARILY
-      // — full name, real width, the dashed border — set once right here
-      // instead of ever needing someone to already know to hover it.
-      // Measuring its rect only works now that it's actually in the DOM
-      // (just above) sitting in its natural collapsed slot position — same
-      // measure-then-freeze shape attachSegHoverExpand's own expand() uses
-      // for a temporary hover, just with no transition to animate from,
-      // and no listener ever un-pinning it while it stays the selected one.
-      // Desktop only — mobile's .month-segment is position:relative in its
-      // own normal flex flow (see the mobile media query), not something
-      // top/left/height should ever be pinning at all; every mobile tab
-      // already shows its full name unconditionally regardless of which
-      // one is current, so there's nothing extra to set up there.
-      if(s.key === activeKey && !window.matchMedia('(max-width:720px)').matches){
-        var r = seg.getBoundingClientRect();
-        seg.style.transition = 'none';
-        seg.style.top = r.top + 'px';
-        seg.style.left = r.left + 'px';
-        seg.style.height = r.height + 'px';
-      } else if(s.key !== activeKey){
-        attachSegHoverExpand(seg);
-      }
     });
 
     var archiveToggleBtn = document.getElementById('monthArchivedToggle');
