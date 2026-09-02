@@ -512,10 +512,14 @@
      renderMonthSidebar) now that this is the one place it's shown, so
      dropping this would leave the year not stated anywhere at all. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    padding:10px 0; margin:0 0 2px; border:none; border-radius:0 16px 16px 0;
-    background:var(--ink); color:#fff; cursor:pointer; min-height:40px; }
-  .month-year-switcher .yr-label { writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
-    font-size:13px; font-weight:800; letter-spacing:.12em; line-height:1; white-space:nowrap; }
+    padding:8px 0; margin:0 0 2px; border:none; border-radius:0 16px 16px 0;
+    background:var(--ink); color:#fff; cursor:pointer; height:44px; box-sizing:border-box; }
+  /* Horizontal now, matching the month tabs right below it (see their
+     own switch away from writing-mode:vertical-rl) — four digits fit
+     the 46px rail just as comfortably as a 3-letter month abbreviation
+     did, no rotation needed here either. */
+  .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.04em;
+    line-height:1; white-space:nowrap; }
   /* Holds the flex-sizing role a .month-segment used to carry directly —
      stays in the column's normal flow at this exact size regardless of
      whether the segment inside it is expanded (see attachSegHoverExpand
@@ -545,7 +549,12 @@
   .seg-label { color:#fff; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
     cursor:pointer; white-space:nowrap; }
   .seg-label-short { font-size:13px; }
-  .seg-label-full { font-size:14px; display:none; padding:0 26px 0 12px; }
+  /* Equal padding on both sides of the text itself (16px) — the "..."
+     trigger no longer eats into the right side specifically now that
+     it's vertically centered rather than pinned in the top corner (see
+     .month-segment .itemmenu-btn below), so the label doesn't need
+     lopsided room reserved for it any more either. */
+  .seg-label-full { font-size:14px; display:none; padding:0 16px; }
   /* Pulled out of the slot's flow into a fixed overlay sized/positioned
      by attachSegHoverExpand (top/left/height set inline there, matching
      exactly where the collapsed segment already was) — width grows to
@@ -572,12 +581,14 @@
      buttons fighting for room in a 46px-wide strip — same hover-reveal
      and hidden/open state as .itemmenu-btn everywhere else, just also
      scoped to .month-segment:hover (that class's own default rule is
-     li:hover, and a segment isn't an <li>). Positioned off .month-segment
-     itself, so it lands past whichever label is actually showing (short
-     collapsed, full expanded) without needing separate coordinates for
-     either — see .seg-label-full's own right padding, sized to clear it. */
-  .month-segment .itemmenu-btn { position:absolute; top:4px; right:4px; width:18px; height:18px;
-    border-radius:50%; background:rgba(255,255,255,.9); font-size:11px; }
+     li:hover, and a segment isn't an <li>). Vertically centered (was
+     pinned to the top corner, which read as sitting awkwardly on top of
+     the label rather than beside it now that the label itself is
+     centered) — opens straight from a hover on the trigger itself, no
+     click needed (see attachSegMenuHover), matching how expanding the
+     tab in the first place already works with no click either. */
+  .month-segment .itemmenu-btn { position:absolute; top:50%; right:6px; transform:translateY(-50%);
+    width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.9); font-size:11px; }
   .month-segment:hover .itemmenu-btn { visibility:visible; }
   /* Persistent, not one of the sidebar's own scrolling flex children (see
      #monthArchivedToggle's own comment) — same tab shape/width as a
@@ -8346,6 +8357,40 @@
     seg.addEventListener('mouseenter', expand);
     seg.addEventListener('mouseleave', scheduleCollapse);
   }
+  // Desktop-only: opens the "⋯" menu straight from a hover on the
+  // trigger itself, no click needed — same language as the tab's own
+  // expand-on-hover right next to it. The click handler on menuBtn
+  // (wired at its own call site) still works underneath this — it's the
+  // only way in at all on touch, where .itemmenu-btn is unconditionally
+  // visible rather than hover-revealed (see the (hover:none) media
+  // query), and hovering means nothing there to begin with.
+  function attachSegMenuHover(menuBtn, s){
+    var hideTimer = null;
+    function show(){
+      if(window.matchMedia('(max-width:720px)').matches) return;
+      if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+      // Already open for this exact segment (e.g. re-entering the
+      // trigger during its own hide grace period) — nothing to redo.
+      if(openPop && openPop._segMenuFor === s) return;
+      openMonthSegmentMenu(menuBtn, s);
+      if(openPop){
+        openPop._segMenuFor = s;
+        openPop.addEventListener('mouseenter', function(){
+          if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+        });
+        openPop.addEventListener('mouseleave', scheduleHide);
+      }
+    }
+    function scheduleHide(){
+      if(hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(function(){
+        hideTimer = null;
+        if(openPop && openPop._segMenuFor === s) closePop();
+      }, 250);
+    }
+    menuBtn.addEventListener('mouseenter', show);
+    menuBtn.addEventListener('mouseleave', scheduleHide);
+  }
 
   // Clicking a sidebar segment shows only the options that belong to its
   // month (others stay in the DOM, just hidden) and switches to one of
@@ -8812,11 +8857,16 @@
       var menuBtn = document.createElement('button');
       menuBtn.type = 'button'; menuBtn.className = 'itemmenu-btn jsctl'; menuBtn.textContent = '⋯';
       menuBtn.title = 'More options for ' + labelFull.textContent;
+      // Click still works (belt and suspenders, and the only option at
+      // all on touch — see attachSegMenuHover's own mobile guard), but
+      // desktop opens it straight from a hover on the trigger itself,
+      // same "no click needed" language as the tab's own expand.
       menuBtn.addEventListener('click', function(e){
         e.stopPropagation();
         openMonthSegmentMenu(menuBtn, s);
       });
       seg.appendChild(menuBtn);
+      attachSegMenuHover(menuBtn, s);
 
       attachSegHoverExpand(seg);
       slot.appendChild(seg);
