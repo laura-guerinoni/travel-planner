@@ -8812,6 +8812,25 @@
     document.documentElement.style.setProperty('--pills-gap', GAP + 'px');
   }
   window.addEventListener('resize', syncBarLayout);
+  // The very first sync of a page load can run before the Nunito web
+  // font (see its own <link>, loaded with display:swap) has actually
+  // swapped in — text renders in the fallback system font first, and
+  // that fallback's metrics don't exactly match Nunito's, so the pills
+  // row's real rendered height can end up slightly different once the
+  // swap happens. Nothing about that swap fires a 'resize' event or any
+  // other signal this file was already listening for, so a segment
+  // pinned (see pinCurrentSegment) from the pre-swap measurement stayed
+  // frozen there even after the page's own layout had already moved on
+  // — a real bug that shipped: the current tab rendering visibly
+  // misaligned/cut off against the rest of the sidebar, on a plain page
+  // load, no interaction needed to trigger it. document.fonts.ready
+  // resolves once every font actually referenced on the page has
+  // finished loading (immediately, if it already had by then — this
+  // costs nothing on a warm cache), so this re-syncs once more right
+  // after, on top of whatever synchronous call already ran.
+  if(window.document && document.fonts && document.fonts.ready){
+    document.fonts.ready.then(function(){ syncBarLayout(); }).catch(function(){});
+  }
 
   // A month segment's "⋯" menu — same row/icon/divider language as
   // openItemMenu/openDayMenu/openMemberRowMenu, reusing .itemmenu rather
@@ -10950,7 +10969,7 @@
     // Scoped to only ever fire post-auth, unlike the old unconditional
     // page-load timer this replaced, which would have handed the real
     // content to anyone who simply waited it out, signed in or not.
-    setTimeout(function(){ document.documentElement.style.visibility = ''; }, 4000);
+    setTimeout(function(){ document.documentElement.style.visibility = ''; syncBarLayout(); }, 4000);
     planRef.on('value', function(snapshot){
       var val = snapshot.val();
       if(!firstLoadDone){
@@ -10968,6 +10987,17 @@
           // for what eventually lands in Firebase, not what's on screen
           // right now.
           document.documentElement.style.visibility = '';
+          // renderMonthSidebar (inside applyRemoteSnapshot above) already
+          // synced the bar once, but that ran while the page was still
+          // hidden — visibility:hidden keeps layout/geometry intact (so
+          // that sync wasn't measuring garbage), but re-running it now,
+          // right as the page actually becomes visible, is a cheap,
+          // idempotent safety net against any other subtle reflow
+          // difference between the hidden and visible states this file
+          // isn't aware of (see the fonts.ready listener near
+          // syncBarLayout's own resize listener for one already-confirmed
+          // example: a web font settling in after this first render).
+          syncBarLayout();
           // One-time migration: any data-img/data-ticket still holding a
           // raw data: URI predates /media support (see saveMediaToDb's
           // own comment for why embedding it directly in /plan is
@@ -11021,8 +11051,10 @@
           if(seed) saveToBackend(seed);
           else showEmptyPlanState();
           document.documentElement.style.visibility = '';
+          syncBarLayout(); // same safety net as the branch above — see its own comment
         } else {
           document.documentElement.style.visibility = '';
+          syncBarLayout();
         }
         return;
       }
