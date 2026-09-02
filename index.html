@@ -564,23 +564,19 @@
      comment) positions this now, the same way it already positioned the
      once-hover/current-only .seg-expanded state — just unconditionally,
      for every year segment. */
-  /* White, not --ink — together with the border/stripe below, distinct
-     from every month color a trip could ever use (all drawn from
-     SEG_COLORS, never white), so a year reads as its own kind of chip by
-     shape AND color, not just by being *a* consistent color the way the
-     old --ink choice was (a color that still had to compete for
-     attention alongside a page of otherwise-vivid month colors). Border
-     and stripe now dark against that light background instead of light
-     against dark — same "solid ring + tight diagonal texture" language
-     as before (see the ring's own reasoning: dashed already means
-     "selected" elsewhere, a year never is; texture reads as a distinct
-     surface at a glance in a way a border alone, however heavy,
-     doesn't), just recolored to still show up against white. */
+  /* Plain white, not --ink — distinct from every month color a trip
+     could ever use (all drawn from SEG_COLORS, never white), so a year
+     reads as its own kind of chip by shape AND color, not just by being
+     *a* consistent color the way the old --ink choice was (a color that
+     still had to compete for attention alongside a page of otherwise-
+     vivid month colors). Border and diagonal stripe texture (both tried
+     here at one point, dark-on-white, as a further "this isn't a month"
+     signal) turned out to be more visual noise than help once actually
+     seen against real content — the width/color/position difference
+     from a month tab was already doing that job on its own. */
   .month-segment[data-year-seg] { position:fixed; right:auto; bottom:auto; width:80px;
     z-index:45; box-shadow:0 2px 8px rgba(0,0,0,.15);
-    background-color:#fff; color:var(--ink);
-    border:3px solid rgba(61,53,104,.35);
-    background-image:repeating-linear-gradient(45deg, rgba(61,53,104,.08) 0 3px, transparent 3px 9px); }
+    background-color:#fff; color:var(--ink); }
   .month-segment[data-year-seg] .seg-label { color:var(--ink); }
   /* Right padding only, not symmetric — flex justify-content:center
      centers the label's own OUTER box (padding included) as a whole
