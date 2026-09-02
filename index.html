@@ -105,9 +105,14 @@
      exactly one row tall regardless of how many alternatives exist
      removes that risk at the root instead of just capping how far
      across it reaches. */
+  /* Left/right padding 32px, not 8px — with a scrollable row (see the
+     flex-wrap/overflow-x rule right above), 8px left whatever's cut off
+     right at the box's own edge looking abruptly truncated rather than
+     like there's more to scroll to; the extra room reads as an
+     intentional "peek" of the next pill instead. */
   .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:flex-start; overflow-x:auto;
     position:fixed; top:0; left:46px; right:16px; max-width:1120px; margin:0 auto; z-index:40;
-    background-color:var(--bg); background-image:var(--texture); padding:0 8px 14px;
+    background-color:var(--bg); background-image:var(--texture); padding:0 32px 14px;
     scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
   .pills::-webkit-scrollbar { display:none; }
   /* Fills the strip between the pills bar's bottom edge and wherever the
@@ -534,6 +539,25 @@
      and .seg-expanded below), so no OTHER tab ever shifts position while
      one is hovered. */
   .month-segment-slot { position:relative; flex:0 0 auto; height:44px; }
+  /* A year segment's own slot (see renderMonthSidebar's year loop) —
+     shorter than a month's, 36px instead of 44px. Together with the
+     ring border below, reads as a compact header sitting above its own
+     run of months rather than another equal-weight item in the same
+     list — color alone (the old --ink "chrome, not a month" choice)
+     wasn't enough of a difference on its own to read as a genuinely
+     different kind of chip, just a differently-colored one. */
+  .month-segment-slot[data-year-slot] { height:36px; }
+  /* Solid, not dashed — dashed is already "this is the selected one" everywhere
+     else on a chip (see .month-segment.current::before); a year should
+     never read as selected (it never gets .current at all any more —
+     see its own comment), just visually marked as a header, so this
+     needed its own distinct language rather than reusing that one.
+     Semi-transparent white rings the chip on all 4 sides evenly — a
+     month's own dashed border is 3-sided (inset from the "spine" side
+     only) because it's marking a smaller region *within* an already-
+     larger, already-expanded chip; a year is never expanded like that,
+     so there's no larger chip for a partial border to sit inside. */
+  .month-segment[data-year-seg] { border:2px solid rgba(255,255,255,.4); }
   /* Corner radius less pronounced than it used to be (16px) — 10px reads
      softer, and gives the dashed "current" border (see below) more
      believable room to sit inset on 3 sides without either shape's
@@ -8613,17 +8637,20 @@
       document.getElementById('panel-' + firstMatch.getAttribute('data-opt')).classList.add('on');
     }
     var curKey = monthKey(year, month);
-    // Every year's own months are always shown now (see
-    // renderMonthSidebar's own year loop — years are purely a grouping
-    // header, not a filter any more), so a month click can legitimately
-    // land in a *different* year than whichever one was current before
-    // — its own year segment needs to pick up "current" right along with
-    // it, not just the month itself. One key format check covering both
-    // kinds in the same pass, rather than a separate pass for each.
-    var curYearKey = 'year-' + year;
     document.querySelectorAll('.month-segment').forEach(function(seg){
+      // Year segments (see renderMonthSidebar's own year loop) share this
+      // same class for all its visual/hover machinery, but never get
+      // .current at all any more — which year the active month belongs
+      // to is already conveyed by nesting alone, not by pinning the year
+      // open too (see that loop's own comment). Skipping them outright
+      // here (rather than falling through to a toggle('current', false)
+      // that always resolves the same way) also skips the cleanup branch
+      // below that would otherwise strip a year segment's transient
+      // hover-expand state for no reason, just because some unrelated
+      // month tab got clicked.
+      if(seg.dataset.yearSeg) return;
       var wasCurrent = seg.classList.contains('current');
-      var isCurrent = seg.dataset.yearSeg ? (seg.dataset.monthKey === curYearKey) : (seg.dataset.monthKey === curKey);
+      var isCurrent = seg.dataset.monthKey === curKey;
       seg.classList.toggle('current', isCurrent);
       // A segment LOSING current (switching away from it) has to give up
       // whatever top/left/height/transition pinCurrentSegment last froze
@@ -9048,23 +9075,27 @@
     // already close to what comfortably fits without scrolling on its
     // own — not worth showing any year header at all for the common
     // case of everything fitting in one year already; with more than
-    // one, each year gets its own segment, same collapsed/hover-expand/
-    // pinned-while-current language as a month tab (see .month-segment's
-    // own CSS and attachSegHoverExpand) — "current" here just means
-    // "the year the active alternative's month belongs to" (see
-    // activeYear above), the same relationship a month segment's own
-    // "current" already has to activeKey, not a pickable filter state
-    // any more. Its own "⋯" (see openYearSegmentMenu) is how an entire
-    // year gets archived in one action; a plain click does nothing now
-    // — there's nothing left for it to switch.
+    // one, each year gets its own segment, sharing the collapsed/hover-
+    // expand language a month tab uses (see .month-segment's own CSS and
+    // attachSegHoverExpand) — but never the PINNED-permanently-open half
+    // of it. A year never gets .current at all: which year the active
+    // month belongs to is already conveyed by the grouping itself — it's
+    // nested directly under that year's own header, nothing else it
+    // could be under — so pinning the year open too said the same thing
+    // twice, at the cost of a second permanently-expanded chip sitting
+    // right above the one that actually matters. Its own "⋯" (see
+    // openYearSegmentMenu) is how an entire year gets archived in one
+    // action; a plain click does nothing — there's nothing left for it
+    // to switch.
     var showYearHeaders = years.length > 1;
     years.forEach(function(yr){
       if(showYearHeaders){
         var yearSlot = document.createElement('div');
         yearSlot.className = 'month-segment-slot';
+        yearSlot.dataset.yearSlot = '1'; // shorter than a month's own slot — see [data-year-slot]'s own CSS
 
         var yearSeg = document.createElement('div');
-        yearSeg.className = 'month-segment' + (yr === activeYear ? ' current' : '');
+        yearSeg.className = 'month-segment'; // never .current — see this block's own comment above
         // A distinct key space ("year-2026") from any real month's own
         // "YYYY-M" key ("2026-8") — never collides on its own, but
         // data-year-seg (right below) is the actual marker everything
