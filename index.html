@@ -8990,17 +8990,28 @@
     var wrapLeft = wrapEl.getBoundingClientRect().left;
     pillsEl.style.left = wrapLeft + 'px';
     pillsEl.style.top = sidebarH + 'px';
-    // The sidebar itself now sits flush against that same measured edge
-    // — its own right side touching .wrap's left, rather than staying
-    // pinned to the true viewport edge (this rule's own CSS default,
-    // left:0) with however much empty margin ends up between the two on
-    // a wide window once .wrap's own centering pushes it well past 46px.
-    // Every tab's own straight edge (see .month-segment's own comment on
-    // the flip) reads as belonging to the calendar's own outline
-    // specifically because there's nothing floating in between any more.
+    // The sidebar itself now sits close to that same measured edge —
+    // rather than staying pinned to the true viewport edge (this rule's
+    // own CSS default, left:0) with however much empty margin ends up
+    // between the two on a wide window once .wrap's own centering pushes
+    // it well past 46px — but NOT flush against it (a first pass tried
+    // that, positioning the sidebar's own collapsed 46px width right up
+    // against .wrap's edge). A collapsed tab is only ever 46px wide, but
+    // the permanently-expanded current one (see .month-segment.current's
+    // own CSS) is 140px, growing rightward from that same anchor —
+    // flush left no room at all for that growth, so it landed 94px deep
+    // into the calendar itself, overlapping real content (and the same
+    // for a year segment's own 80px width). 140 (plus the same 6px
+    // margin pinCurrentSegment's own left calculation already adds) is
+    // exactly enough room reserved for the widest thing this sidebar
+    // ever has to show — the expanded current month lands its own right
+    // edge exactly on .wrap's, touching it precisely the way a
+    // collapsed tab flush against it would have, while the narrower
+    // (80px) expanded year segment and every merely-collapsed (46px)
+    // tab simply sit with a bit of visible clearance before that edge
+    // instead of overlapping past it.
     if(sidebarEl){
-      var sidebarW = sidebarEl.getBoundingClientRect().width;
-      sidebarEl.style.left = (wrapLeft - sidebarW) + 'px';
+      sidebarEl.style.left = (wrapLeft - 140 - 6) + 'px';
     }
     var pillsH = pillsEl.getBoundingClientRect().height;
     // Aligns the topmost year segment's own vertical center with the
