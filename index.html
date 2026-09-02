@@ -9870,6 +9870,10 @@
     if(participants.length) a.pt = participants;
     var paySplits = getPaySplits(li);
     if(paySplits.length) a.py = paySplits;
+    var paySplitExcluded = getPaySplitExcluded(li);
+    if(paySplitExcluded.length) a.pyx = paySplitExcluded;
+    var currency = li.getAttribute('data-currency');
+    if(currency) a.cur = currency;
     return a;
   }
 
@@ -9898,6 +9902,8 @@
       if(ab.length) o.arc = ab;
       var cr = getOptionCreator(panel);
       if(cr) o.cr = cr;
+      var cur = panel.getAttribute('data-currency');
+      if(cur) o.cur = cur;
       var days = {}, hasDay = false;
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var dn = dayNumOfCell(cell);
@@ -9999,6 +10005,8 @@
     if(a.tk) li.setAttribute('data-ticket', a.tk);
     if(a.pt && a.pt.length) li.setAttribute('data-participants', JSON.stringify(a.pt));
     if(a.py && a.py.length) li.setAttribute('data-pay', JSON.stringify(a.py));
+    if(a.pyx && a.pyx.length) li.setAttribute('data-pay-excluded', JSON.stringify(a.pyx));
+    if(a.cur) li.setAttribute('data-currency', a.cur);
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     return li;
@@ -10060,6 +10068,7 @@
       if(o.mb && o.mb.length) setOptionMembers(panel, o.mb);
       if(o.arc && o.arc.length) setArchivedBy(panel, o.arc);
       if(o.cr) panel.setAttribute('data-creator', o.cr);
+      if(o.cur) panel.setAttribute('data-currency', o.cur);
       if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
       buildCalendarGrid(panel);
 
