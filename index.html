@@ -162,7 +162,7 @@
      otherwise makes this read at the exact same visual weight as
      .pill-name right next to it, just smaller) — a date range is a
      secondary detail, not competing with the option name for attention. */
-  .pill-dates:not(:empty) { font-size:11px; margin:0 2px; opacity:.55; font-weight:500; }
+  .pill-dates:not(:empty) { font-size:11px; margin:0 2px; opacity:.55; font-weight:500; white-space:nowrap; }
   /* Small stacked avatar row (see renderPillAccessFaces) — who currently
      has access to this specific alternative, at a glance, without
      opening Participants and checking each one in turn. Negative margin
@@ -547,17 +547,27 @@
      wasn't enough of a difference on its own to read as a genuinely
      different kind of chip, just a differently-colored one. */
   .month-segment-slot[data-year-slot] { height:36px; }
-  /* Solid, not dashed — dashed is already "this is the selected one" everywhere
-     else on a chip (see .month-segment.current::before); a year should
-     never read as selected (it never gets .current at all any more —
-     see its own comment), just visually marked as a header, so this
-     needed its own distinct language rather than reusing that one.
-     Semi-transparent white rings the chip on all 4 sides evenly — a
-     month's own dashed border is 3-sided (inset from the "spine" side
-     only) because it's marking a smaller region *within* an already-
-     larger, already-expanded chip; a year is never expanded like that,
-     so there's no larger chip for a partial border to sit inside. */
-  .month-segment[data-year-seg] { border:2px solid rgba(255,255,255,.4); }
+  /* Solid, not dashed — dashed is already "this is the selected one"
+     everywhere else on a chip (see .month-segment.current::before); a
+     year should never read as selected (it never gets .current at all
+     any more — see its own comment), just visually marked as a header,
+     so this needed its own distinct language rather than reusing that
+     one. A first pass at this used a 2px/40%-opacity ring alone — too
+     subtle to actually register as "a different kind of chip" rather
+     than "the same chip, very slightly restyled" at a normal glance, not
+     a DevTools zoom. Thicker (3px) and more opaque (65%) rings the chip
+     on all 4 sides evenly — a month's own dashed border is 3-sided
+     (inset from the "spine" side only) because it's marking a smaller
+     region *within* an already-larger, already-expanded chip; a year is
+     never expanded like that, so there's no larger chip for a partial
+     border to sit inside. The diagonal stripe texture underneath is the
+     other half of actually solving this — genuine surface texture reads
+     as different at a glance in a way a flat color with any border,
+     however heavy, still doesn't; the stripe spacing is deliberately
+     tight (6px) so it still reads as a texture, not individually
+     countable lines, even on the short/collapsed 46×36 state. */
+  .month-segment[data-year-seg] { border:3px solid rgba(255,255,255,.65);
+    background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.14) 0 3px, transparent 3px 9px); }
   /* Corner radius less pronounced than it used to be (16px) — 10px reads
      softer, and gives the dashed "current" border (see below) more
      believable room to sit inset on 3 sides without either shape's
@@ -755,7 +765,18 @@
      reorder-drag only ever engages for non-touch pointers now, so this
      was just blocking the mobile pills bar's own native horizontal
      scroll for no benefit. */
-  .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; }
+  /* flex-shrink:0 — same reasoning as .chip's own copy of this rule (see
+     its own comment): without it, a pill inside the now-scrollable
+     .pills row (see that rule's own comment on switching from wrapping
+     to horizontal scroll) had nothing stopping it from shrinking to fit
+     whatever room was left in the visible row instead of keeping its
+     natural width and letting the row's own overflow-x:auto handle the
+     rest by scrolling. A squeezed pill still had .pill-name's own
+     ellipsis to fall back on, but .pill-dates has no such truncation —
+     a squeezed pill just wrapped its date range internally instead
+     ("13–" over "26"), reading as two numbers stacked on top of each
+     other rather than the one range it actually is. */
+  .pill { position:relative; display:inline-flex; align-items:center; gap:6px; cursor:grab; flex-shrink:0; }
   .pill.dragging { opacity:.55; cursor:grabbing; }
   /* Stays on one line and lets the pill grow wider instead — without
      this, editing a name could squeeze the contenteditable span down to
@@ -9103,7 +9124,14 @@
         // quietly reopen that door.
         yearSeg.dataset.monthKey = 'year-' + yr;
         yearSeg.dataset.yearSeg = '1';
-        yearSeg.style.background = 'var(--ink)'; // chrome, not a month — same reasoning as the old switcher's own color choice
+        // backgroundColor, not the background shorthand — the shorthand
+        // also implicitly resets background-image to none, which would
+        // have silently overridden the CSS-driven stripe texture (see
+        // [data-year-seg]'s own rule) every time this ran, since an
+        // inline style always beats a stylesheet rule regardless of
+        // specificity. The longhand only touches color, leaving that
+        // separate property alone.
+        yearSeg.style.backgroundColor = 'var(--ink)'; // chrome, not a month — same reasoning as the old switcher's own color choice
         yearSeg.title = yr;
 
         // Short and full hold the same text here — unlike a month name, a
