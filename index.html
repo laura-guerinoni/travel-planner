@@ -129,26 +129,27 @@
      fit, so scrolling to the true beginning always reaches a fully
      visible first pill, and centering only ever applies when there's
      nothing to scroll to begin with. */
-  /* Same border color/weight as .wrap's own (see its own comment) — the
-     two together are the "outline of the month" a sidebar tab's straight
-     edge visually belongs to. Rounded only on top (matching .wrap's own
-     rounded top corners) since this sits directly above it, not around
-     it on every side the way .wrap's border wraps the calendar itself.
-     max-width:1120px matches .wrap's own cap now too, for the same
-     reason — the two need to actually be the same width to read as one
-     outline instead of a wider lid sitting oddly on top of a narrower
-     box. syncBarLayout's own left:JS-set (not this rule's left:46px,
-     only the floor on a narrower window with no room to spare) already
-     pins this row's left edge to .wrap's exact measured one; with that
-     already exact, the max-width alone is enough to land the right edge
-     in the same place too — .wrap's own right edge is just as far from
-     an identical left edge, at an identical width. Anything past that
-     cap still scrolls, same as before — the cap only bounds the row's
-     own visible box, not how much content can exist inside it. */
+  /* max-width:1120px matches .wrap's own cap — the calendar's own
+     outline (see .wrap's own border/comment) needs this row to be the
+     exact same width to look like it belongs above it, even without a
+     border of its own here any more (a first pass drew one — too much,
+     reading as its own separate boxed-in element rather than a row of
+     loose pills sitting above the calendar). syncBarLayout's own
+     left:JS-set (not this rule's left:46px, only the floor on a
+     narrower window with no room to spare) already pins this row's left
+     edge to .wrap's exact measured one; with that already exact, the
+     max-width alone is enough to land the right edge in the same place
+     too. Anything past that cap still scrolls, same as before — the cap
+     only bounds the row's own visible box, not how much content can
+     exist inside it. */
+  /* 8px top padding, not 0 — a pill's own rounded top corner (see .pill's
+     own comment on the flip) sitting flush at this row's own top:0 would
+     have nothing above it to actually curve into, same "reads as clipped
+     against the true edge" problem the sidebar tabs' own left-margin fix
+     solved the same way. */
   .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:safe center; overflow-x:auto;
     position:fixed; top:0; left:46px; right:16px; max-width:1120px; z-index:40;
-    border:2px solid var(--ink); border-radius:14px 14px 0 0;
-    background-color:var(--bg); background-image:var(--texture); padding:0 32px 14px;
+    background-color:var(--bg); background-image:var(--texture); padding:8px 32px 14px;
     scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
   .pills::-webkit-scrollbar { display:none; }
   /* Fills the strip between the pills bar's bottom edge and wherever the
@@ -160,11 +161,14 @@
   .pills-gapfill { position:fixed; left:0; right:0; top:var(--pills-bottom, 0px);
     height:var(--pills-gap, 0px); z-index:29; pointer-events:none;
     background-color:var(--bg); background-image:var(--texture); }
-  /* Second-tier bookmarks: same tab-hanging-off-an-edge idea as the month
-     sidebar, just smaller and hanging off the TOP edge instead of the
-     left — rounded only at the bottom (the edge pointing away from what
-     they're attached to). Flat, no shadow, so the hierarchy (sidebar =
-     month, pills = option within it) reads through scale/color alone. */
+  /* Second-tier bookmarks: same tab idea as the month sidebar, just
+     smaller and sitting along the TOP edge instead of the left — rounded
+     at the top now (was the bottom), matching the sidebar's own flip to
+     a margin-facing rounded corner (see .month-segment's own comment):
+     the rounded edge faces the page's own top margin, the flat edge
+     faces down into the calendar below. Flat, no shadow, so the
+     hierarchy (sidebar = month, pills = option within it) reads through
+     scale/color alone. */
   /* Left/right padding deliberately asymmetric (24px / 6px), not the
      same value on both sides — the × sits on the right (reserved via
      .pill-remove's own layout box, see below) and adds ~18px on top of
@@ -181,7 +185,7 @@
      Left/right stay asymmetric on purpose (see the comment above) to
      visually balance the hover-only × button's reserved space. */
   .pill { cursor:pointer; font:inherit; font-size:14px; font-weight:600; border:1px solid var(--line);
-    background:var(--card); color:var(--ink); border-radius:0 0 12px 12px; padding:10px 6px 10px 24px; }
+    background:var(--card); color:var(--ink); border-radius:12px 12px 0 0; padding:10px 6px 10px 24px; }
   .pill span { opacity:.7; font-weight:700; }
   /* Same small-badge treatment as each day's own total, rather than
      plain dimmed text — a price reads as its own piece of information
@@ -8980,12 +8984,24 @@
     // of where the calendar's own day cells start read as misaligned
     // rather than like two pieces of the same layout meant to line up.
     // Measured here, not hardcoded, so it keeps tracking correctly
-    // however .wrap's own centering resolves at any given width. Right
-    // stays free (no matching cap in .pills' own CSS) — this only ever
-    // pulls the left edge in to match, never limits how far right the
-    // row can still reach once there's enough content to need it.
-    pillsEl.style.left = wrapEl.getBoundingClientRect().left + 'px';
+    // however .wrap's own centering resolves at any given width. (.pills'
+    // own max-width now matches .wrap's, so the right edge lands in the
+    // same place too, without needing its own separate measurement here.)
+    var wrapLeft = wrapEl.getBoundingClientRect().left;
+    pillsEl.style.left = wrapLeft + 'px';
     pillsEl.style.top = sidebarH + 'px';
+    // The sidebar itself now sits flush against that same measured edge
+    // — its own right side touching .wrap's left, rather than staying
+    // pinned to the true viewport edge (this rule's own CSS default,
+    // left:0) with however much empty margin ends up between the two on
+    // a wide window once .wrap's own centering pushes it well past 46px.
+    // Every tab's own straight edge (see .month-segment's own comment on
+    // the flip) reads as belonging to the calendar's own outline
+    // specifically because there's nothing floating in between any more.
+    if(sidebarEl){
+      var sidebarW = sidebarEl.getBoundingClientRect().width;
+      sidebarEl.style.left = (wrapLeft - sidebarW) + 'px';
+    }
     var pillsH = pillsEl.getBoundingClientRect().height;
     // Aligns the topmost year segment's own vertical center with the
     // pills row's, computed here rather than guessed — several manual
