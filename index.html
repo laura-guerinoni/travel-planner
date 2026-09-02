@@ -57,7 +57,15 @@
     background-image: var(--texture);
     font-family:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   button, input, textarea, select { font-family:inherit; }
-  .wrap { max-width:1120px; margin:0 auto; }
+  /* The outline the sidebar tabs' own straight edge (see .month-segment's
+     own comment) reads as belonging to — a real, visible border around
+     the calendar itself now, not just an implied style echo. .pills (see
+     its own matching border, added the same way) forms the top of the
+     same outline; the two don't touch directly — .wrap's own dynamic
+     padding-top already keeps a deliberate GAP-sized gap clear under the
+     pills bar (see syncBarLayout) — but sharing the identical color/
+     weight/inset reads as one continuous system despite the seam. */
+  .wrap { max-width:1120px; margin:0 auto; border:2px solid var(--ink); border-radius:14px; padding:16px; }
   /* margin-bottom:0 (not 20px) — header's only child (.pills) is
      position:fixed, so header itself already collapses to zero height,
      but a leftover margin still applies to a collapsed box. That stray
@@ -121,8 +129,25 @@
      fit, so scrolling to the true beginning always reaches a fully
      visible first pill, and centering only ever applies when there's
      nothing to scroll to begin with. */
+  /* Same border color/weight as .wrap's own (see its own comment) — the
+     two together are the "outline of the month" a sidebar tab's straight
+     edge visually belongs to. Rounded only on top (matching .wrap's own
+     rounded top corners) since this sits directly above it, not around
+     it on every side the way .wrap's border wraps the calendar itself.
+     max-width:1120px matches .wrap's own cap now too, for the same
+     reason — the two need to actually be the same width to read as one
+     outline instead of a wider lid sitting oddly on top of a narrower
+     box. syncBarLayout's own left:JS-set (not this rule's left:46px,
+     only the floor on a narrower window with no room to spare) already
+     pins this row's left edge to .wrap's exact measured one; with that
+     already exact, the max-width alone is enough to land the right edge
+     in the same place too — .wrap's own right edge is just as far from
+     an identical left edge, at an identical width. Anything past that
+     cap still scrolls, same as before — the cap only bounds the row's
+     own visible box, not how much content can exist inside it. */
   .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:safe center; overflow-x:auto;
-    position:fixed; top:0; left:46px; right:16px; z-index:40;
+    position:fixed; top:0; left:46px; right:16px; max-width:1120px; z-index:40;
+    border:2px solid var(--ink); border-radius:14px 14px 0 0;
     background-color:var(--bg); background-image:var(--texture); padding:0 32px 14px;
     scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
   .pills::-webkit-scrollbar { display:none; }
@@ -529,8 +554,14 @@
      the bottom, so it just got silently clipped there instead of
      visible higher up. Moving the room into the container avoids that
      entirely: nothing here has to escape its own box to use it. */
+  /* Plain white now, not the page's own lavender-textured background
+     showing through — the sidebar sits outside the bordered "outline of
+     the month" (see .wrap/.pills' own matching borders), so it reads as
+     its own distinct region rather than a continuation of whatever's
+     inside that outline. */
   .month-sidebar { position:fixed; left:0; top:16px; width:46px; z-index:30; display:flex;
-    flex-direction:column; gap:14px; height:calc(100vh - 44px); overflow-y:auto; overflow-x:hidden; }
+    flex-direction:column; gap:14px; height:calc(100vh - 44px); overflow-y:auto; overflow-x:hidden;
+    background-color:var(--card); }
   /* A full calendar year is already 12 tabs — close to what comfortably
      fits without scrolling on its own — so this is the main lever
      against sidebar overflow, with archiving and the scroll above as
