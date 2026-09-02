@@ -535,11 +535,20 @@
   /* the segment matching whichever option is currently on screen — left
      edge stays flush with the others (no horizontal shift); a running
      stitch traced just inside the edge (like hand-sewing around a fabric
-     patch) marks it as "in use" instead. */
+     patch) marks it as "in use" instead. Flush (0) on BOTH left and
+     right now, not just left — an inset only on the right (5px, was)
+     made the dashed frame itself sit visibly off-center horizontally,
+     which is what a correctly-centered label (see .seg-label-short's
+     own fix) still read as lopsided against: the actual complaint was
+     never the text, it was this frame it's being judged against. Only
+     top/bottom keep their own 5px inset (unrelated to left-right
+     balance) for the "traced just inside the edge" look on those two
+     sides. border-radius bumped to nearly match the tab's own 16px so
+     the corner still nests cleanly at this much smaller inset. */
   .month-segment.current { z-index:1; }
   .month-segment.current::before {
-    content:''; position:absolute; top:5px; right:5px; bottom:5px; left:0; pointer-events:none;
-    border-radius:0 12px 12px 0;
+    content:''; position:absolute; top:5px; right:0; bottom:5px; left:0; pointer-events:none;
+    border-radius:0 15px 15px 0;
     border:2px dashed rgba(255,255,255,.85);
     border-left:none;
   }
