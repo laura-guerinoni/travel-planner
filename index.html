@@ -510,9 +510,13 @@
      different components stacked on top of each other. Individual
      month tabs no longer carry their own year in the label (see
      renderMonthSidebar) now that this is the one place it's shown, so
-     dropping this would leave the year not stated anywhere at all. */
+     dropping this would leave the year not stated anywhere at all.
+     Corner radius matches .month-segment's own collapsed radius below
+     exactly (10px) — it was left at the segment's old, pre-redesign
+     16px when that later got softened, so the year chip and a closed
+     month chip stopped reading as the same shape. */
   .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    padding:8px 0; margin:0 0 2px; border:none; border-radius:0 16px 16px 0;
+    padding:8px 0; margin:0 0 2px; border:none; border-radius:0 10px 10px 0;
     background:var(--ink); color:#fff; cursor:pointer; height:44px; box-sizing:border-box; }
   /* Horizontal now, matching the month tabs right below it (see their
      own switch away from writing-mode:vertical-rl) — four digits fit
@@ -598,8 +602,19 @@
      rarer case with the year appended (only when there's a single year
      at all, so no switcher to lean on instead) sits a little tighter
      but still fits. */
+  /* No overflow:visible here (there used to be one) — nothing inside
+     actually needs to render past this box's own edge once it's
+     genuinely 140px wide (the "⋯" trigger and the dashed border below
+     both sit fully inset; box-shadow isn't a descendant, so overflow
+     never clipped it anyway). Staying overflow:hidden for the ENTIRE
+     width transition instead — not just before it starts — means the
+     segment's own edge always safely masks whatever the full label's
+     natural width is against however wide the box happens to be at any
+     given instant, so the exact JS/CSS frame timing of when the label
+     swaps in can never matter: there is no longer a moment where full
+     text can render past the chip, full stop. */
   .month-segment.seg-expanded, .month-segment.current { position:fixed; right:auto; bottom:auto; width:140px;
-    overflow:visible; z-index:40; box-shadow:0 4px 16px rgba(0,0,0,.25); }
+    z-index:40; box-shadow:0 4px 16px rgba(0,0,0,.25); }
   .month-segment.seg-expanded .seg-label-short, .month-segment.current .seg-label-short { display:none; }
   .month-segment.seg-expanded .seg-label-full, .month-segment.current .seg-label-full { display:inline; }
   /* Add/notes/archive/share/remove all live behind this one "⋯" trigger
@@ -8383,24 +8398,17 @@
     // width change on the next frame (the standard FLIP technique) gives
     // the transition two real pixel values to animate between instead.
     // .seg-expanded also drives which label (short "OCT" vs full
-    // "OCTUBRE") is visible, via CSS. That class used to flip on the
-    // exact same tick as the pin/unpin above, one whole frame (expand)
-    // or ~160ms (collapse) before the width transition it's paired with
-    // actually reaches its target — so the full label was rendered
-    // squeezed into a box that hadn't grown yet, or was still shrinking
-    // out from under it, chopping letters off mid-animation ("twitch").
-    // Forcing the label explicitly, in lockstep with each width change,
-    // keeps the visible text matched to the box size throughout.
-    var labelFull = seg.querySelector('.seg-label-full');
-    var labelShort = seg.querySelector('.seg-label-short');
-    function forceLabel(showFull){
-      if(labelFull) labelFull.style.display = showFull ? '' : 'none';
-      if(labelShort) labelShort.style.display = showFull ? 'none' : '';
-    }
-    function releaseLabel(){ // hand control back to the CSS class rules
-      if(labelFull) labelFull.style.display = '';
-      if(labelShort) labelShort.style.display = '';
-    }
+    // "OCTUBRE") is visible, via CSS — flipping the instant this class
+    // is added/removed, not synced to the width transition it's paired
+    // with in any way. That used to matter: the segment briefly rendered
+    // the full label inside a box that hadn't grown to fit it yet (or
+    // was still shrinking out from under it), spilling text past the
+    // chip. Now that .month-segment.seg-expanded/.current no longer
+    // switches overflow to visible (see that rule's own comment), the
+    // segment's own edge safely clips (rather than spills) whatever
+    // mismatch there is between the full label's natural width and
+    // however wide the box currently is — so the label can just follow
+    // the class directly again, no manual JS timing needed at all.
     function expand(){
       if(window.matchMedia('(max-width:720px)').matches) return; // no hover on touch/mobile
       // A segment can go from "just a hover target" to "the permanently
@@ -8419,22 +8427,10 @@
       seg.style.left = r.left + 'px';
       seg.style.height = r.height + 'px';
       seg.style.width = r.width + 'px'; // freeze at the collapsed width first
-      forceLabel(false); // stay on the short label while still at the collapsed width
       seg.classList.add('seg-expanded');
       seg.getBoundingClientRect(); // force layout so the freeze above actually commits
       requestAnimationFrame(function(){
-        seg.style.width = ''; // now let .seg-expanded's own 190px take over, animated
-        // A single rAF only guarantees "runs before the next paint" — it
-        // does NOT guarantee the width transition has actually started
-        // animating by then, that only happens once the browser has
-        // processed that paint. Revealing the full label in this same
-        // callback still showed it, for one real frame, inside a box
-        // rendered at its old frozen (collapsed) width — the text
-        // visibly spilled past the chip before it had grown at all.
-        // Nesting a second rAF waits for that frame to actually happen.
-        requestAnimationFrame(function(){
-          forceLabel(true); // swap to the full label only once growth has genuinely begun
-        });
+        seg.style.width = ''; // now let .seg-expanded's own 140px take over, animated
       });
     }
     function scheduleCollapse(){
@@ -8461,12 +8457,10 @@
         seg.getBoundingClientRect();
         requestAnimationFrame(function(){
           seg.style.width = collapsedWidth + 'px';
-          forceLabel(false); // swap to the short label right as the shrink starts, not after
         });
         collapseTimer = setTimeout(function(){
           seg.classList.remove('seg-expanded');
           seg.style.top = ''; seg.style.left = ''; seg.style.height = ''; seg.style.width = '';
-          releaseLabel();
           collapseTimer = null;
         }, 180);
       }, 200);
@@ -8576,12 +8570,11 @@
       // right alongside .current, even after this segment later loses
       // current again. Strip it here so a freshly-current segment always
       // starts from a clean, CSS-driven state before pinCurrentSegment
-      // below pins its position.
+      // below pins its position. (The label itself needs no separate
+      // reset — it's purely CSS-class-driven now, never touched inline.)
       if(!wasCurrent && isCurrent){
         seg.classList.remove('seg-expanded');
         seg.style.width = '';
-        var lbl = seg.querySelector('.seg-label-full'); if(lbl) lbl.style.display = '';
-        lbl = seg.querySelector('.seg-label-short'); if(lbl) lbl.style.display = '';
       }
     });
     // A segment GAINING current here (not through renderMonthSidebar's own
@@ -9038,8 +9031,17 @@
       // expanded" state a hover only ever gives any other tab
       // TEMPORARILY — see pinCurrentSegment, also re-run from
       // syncBarLayout so this never goes stale after a later layout
-      // shift. Only non-selected tabs get the temporary hover-expand.
-      if(s.key !== activeKey) attachSegHoverExpand(seg);
+      // shift. Attached unconditionally, even to the currently-selected
+      // segment: expand()/scheduleCollapse() already bail out on their
+      // own whenever the segment they're attached to is .current (see
+      // their own guards), so this correctly stays inert while selected
+      // and correctly springs back to life the moment a *different*
+      // month becomes current — skipping the attach here for whichever
+      // segment happened to be active at render time used to leave that
+      // one segment permanently without hover-expand for the rest of its
+      // life, the instant something else (filterPillsByMonth, on a real
+      // tab click) made it non-current without a full re-render.
+      attachSegHoverExpand(seg);
     });
     pinCurrentSegment();
 
