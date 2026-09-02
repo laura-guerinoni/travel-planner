@@ -9017,7 +9017,7 @@
     row(icon('📝') + (MONTH_NOTES[s.key] ? 'Edit notes' : 'Add notes'), function(){
       openMonthNotes(s.year, s.month);
     });
-    row(icon(ICON_ARCHIVE) + 'Archive (just for you)', function(){
+    row(icon(ICON_ARCHIVE) + 'Archive', function(){
       s.panels.forEach(function(p){ setArchivedForMe(p, true); });
       // Not in MO_OPTS' attributeFilter (data-archived-by is a purely
       // personal preference, not something every attribute-watching
@@ -9060,7 +9060,7 @@
       return r;
     }
     function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
-    row(icon(ICON_ARCHIVE) + 'Archive ' + year + ' (just for you)', function(){
+    row(icon(ICON_ARCHIVE) + 'Archive', function(){
       setYearArchivedForMe(year, true);
       // Same reasoning as the single-month archive action right above —
       // data-archived-by is a personal preference, not in MO_OPTS'
