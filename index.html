@@ -73,25 +73,23 @@
      to the left — .wrap's padding-top is kept in sync with this bar's
      real (dynamic) height via JS, since pills can wrap to more than one
      row as options are added. */
-  /* max-width:1120px + margin:0 auto — the same cap .wrap itself uses for
-     the calendar below, deliberately: with only left/right (no width
-     cap) this stretched all the way across whatever's left of a wide
-     viewport after the sidebar, far wider than the calendar it sits
-     above ever gets, and reaching that far out — well past where the
-     calendar visually ends — is what let a lot of alternatives (plenty
-     of real trips have many) put a pill directly underneath the sidebar
-     itself. That's the actual reason a permanently-expanded sidebar
-     segment landing in that same top strip could ever end up sharing
-     screen space with .pills in the first place (see .month-segment.
-     seg-expanded/.current's own z-index for the belt-and-suspenders fix
-     on top of this one) — not something z-index alone was ever going to
-     fully solve, since the two elements had no business overlapping to
-     begin with on anything but a narrow window. With left/right/max-
-     width/margin:auto all in play at once here, the two auto margins
-     absorb whatever room is left over once the cap kicks in, centering
-     this exactly like .wrap centers the calendar, while left:46px/
-     right:16px still hold as the absolute floor/ceiling on a narrower
-     window where there's no extra room to center away with. */
+  /* No max-width here any more (there used to be one, matching .wrap's
+     own 1120px calendar cap) — this row now uses every bit of width
+     between the sidebar and the right edge, deliberately, rather than
+     stopping short and leaving unused space on a wide window even when
+     there are plenty of alternatives that could use the extra room to
+     scroll through more comfortably. That cap existed to stop a wide,
+     unbounded row from reaching under a permanently-expanded sidebar
+     segment sharing the same top strip — but that's already handled two
+     other ways independently of width: this row stays exactly one row
+     tall regardless of how many alternatives exist (see the rule right
+     below), so it can never reach FURTHER DOWN into the sidebar's
+     vertical space than it already does, and an expanded segment's own
+     z-index (see .month-segment.seg-expanded/.current) already wins
+     that overlap outright whenever it does happen. The one thing this
+     row now reaches under on a wide window is the profile menu button
+     top-right — its own z-index (70, see #actionMenu) is well above
+     this row's (40), so it stays on top and clickable regardless. */
   /* Single row, horizontally scrollable — not wrapping to more rows as
      alternatives are added — same "sheet tabs" language mobile's own
      .pills rule already uses (see its own comment), just anchored to
@@ -124,7 +122,7 @@
      visible first pill, and centering only ever applies when there's
      nothing to scroll to begin with. */
   .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:safe center; overflow-x:auto;
-    position:fixed; top:0; left:46px; right:16px; max-width:1120px; margin:0 auto; z-index:40;
+    position:fixed; top:0; left:46px; right:16px; z-index:40;
     background-color:var(--bg); background-image:var(--texture); padding:0 32px 14px;
     scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
   .pills::-webkit-scrollbar { display:none; }
