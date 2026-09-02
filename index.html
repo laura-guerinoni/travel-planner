@@ -580,8 +580,23 @@
      given instant, so the exact JS/CSS frame timing of when the label
      swaps in can never matter: there is no longer a moment where full
      text can render past the chip, full stop. */
+  /* z-index:45, not the 40 every other .month-segment (and .pills — see
+     its own rule) uses — an expanded segment's real, on-screen box (140px
+     wide, left:0) reaches well past the 46px sidebar rail it normally
+     stays confined to, into .pills' own territory (left:46px) once both
+     happen to sit near the same vertical position — the topmost sidebar
+     row (a year segment, or a month if there's only one year) is exactly
+     at that height, right where .pills starts (top:0). Tied at the same
+     z-index, .pills — later in the document — painted over most of that
+     segment's width, leaving only its leftmost 46px sliver visible: the
+     "cut off" chip this was actually diagnosed as (never a positioning
+     bug at all — the segment's own top/left/height were always correct).
+     One step above is enough to always win that particular overlap
+     without outranking anything else stacked above a plain collapsed
+     segment (still 40, still correctly below any of the app's own
+     popovers/menus, which all sit well past both of these). */
   .month-segment.seg-expanded, .month-segment.current { position:fixed; right:auto; bottom:auto; width:140px;
-    z-index:40; box-shadow:0 4px 16px rgba(0,0,0,.25); }
+    z-index:45; box-shadow:0 4px 16px rgba(0,0,0,.25); }
   .month-segment.seg-expanded .seg-label-short, .month-segment.current .seg-label-short { display:none; }
   .month-segment.seg-expanded .seg-label-full, .month-segment.current .seg-label-full { display:inline; }
   /* Add/notes/archive/share/remove all live behind this one "⋯" trigger
