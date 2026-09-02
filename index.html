@@ -518,7 +518,10 @@
      own switch away from writing-mode:vertical-rl) — four digits fit
      the 46px rail just as comfortably as a 3-letter month abbreviation
      did, no rotation needed here either. */
-  .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:.04em;
+  /* No letter-spacing — same reasoning as .seg-label-short right below:
+     inside this same tiny 46px rail, the trailing space it adds after
+     the last digit visibly pushed "2026" left of true-center. */
+  .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:normal;
     line-height:1; white-space:nowrap; }
   /* Holds the flex-sizing role a .month-segment used to carry directly —
      stays in the column's normal flow at this exact size regardless of
@@ -548,7 +551,15 @@
      full only ever renders once the tab has grown to fit it. */
   .seg-label { color:#fff; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
     cursor:pointer; white-space:nowrap; }
-  .seg-label-short { font-size:13px; }
+  /* letter-spacing (see .seg-label above) adds trailing space after the
+     LAST character too, not just between letters — invisible, but still
+     part of the box flex centers, so the actual glyphs of a short
+     3-letter word sat visibly left of true-center inside this tiny 46px
+     rail (plenty of room after "O", noticeably less before "A"). Not a
+     problem for the full label — the same trailing sliver is
+     imperceptible against its own much wider box and generous padding —
+     so this only overrides it back to normal here. */
+  .seg-label-short { font-size:13px; letter-spacing:normal; }
   /* Equal padding on both sides of the text itself (16px) — the "..."
      trigger no longer eats into the right side specifically now that
      it's vertically centered rather than pinned in the top corner (see
