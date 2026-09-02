@@ -8382,6 +8382,25 @@
     // an explicit pixel width first, forcing layout, THEN letting the
     // width change on the next frame (the standard FLIP technique) gives
     // the transition two real pixel values to animate between instead.
+    // .seg-expanded also drives which label (short "OCT" vs full
+    // "OCTUBRE") is visible, via CSS. That class used to flip on the
+    // exact same tick as the pin/unpin above, one whole frame (expand)
+    // or ~160ms (collapse) before the width transition it's paired with
+    // actually reaches its target — so the full label was rendered
+    // squeezed into a box that hadn't grown yet, or was still shrinking
+    // out from under it, chopping letters off mid-animation ("twitch").
+    // Forcing the label explicitly, in lockstep with each width change,
+    // keeps the visible text matched to the box size throughout.
+    var labelFull = seg.querySelector('.seg-label-full');
+    var labelShort = seg.querySelector('.seg-label-short');
+    function forceLabel(showFull){
+      if(labelFull) labelFull.style.display = showFull ? '' : 'none';
+      if(labelShort) labelShort.style.display = showFull ? 'none' : '';
+    }
+    function releaseLabel(){ // hand control back to the CSS class rules
+      if(labelFull) labelFull.style.display = '';
+      if(labelShort) labelShort.style.display = '';
+    }
     function expand(){
       if(window.matchMedia('(max-width:720px)').matches) return; // no hover on touch/mobile
       if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
@@ -8392,10 +8411,12 @@
       seg.style.left = r.left + 'px';
       seg.style.height = r.height + 'px';
       seg.style.width = r.width + 'px'; // freeze at the collapsed width first
+      forceLabel(false); // stay on the short label while still at the collapsed width
       seg.classList.add('seg-expanded');
       seg.getBoundingClientRect(); // force layout so the freeze above actually commits
       requestAnimationFrame(function(){
         seg.style.width = ''; // now let .seg-expanded's own 190px take over, animated
+        forceLabel(true); // swap to the full label in the same tick the box starts growing
       });
     }
     function scheduleCollapse(){
@@ -8413,10 +8434,12 @@
         seg.getBoundingClientRect();
         requestAnimationFrame(function(){
           seg.style.width = collapsedWidth + 'px';
+          forceLabel(false); // swap to the short label right as the shrink starts, not after
         });
         collapseTimer = setTimeout(function(){
           seg.classList.remove('seg-expanded');
           seg.style.top = ''; seg.style.left = ''; seg.style.height = ''; seg.style.width = '';
+          releaseLabel();
           collapseTimer = null;
         }, 180);
       }, 200);
