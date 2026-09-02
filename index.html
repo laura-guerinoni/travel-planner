@@ -73,8 +73,27 @@
      to the left — .wrap's padding-top is kept in sync with this bar's
      real (dynamic) height via JS, since pills can wrap to more than one
      row as options are added. */
+  /* max-width:1120px + margin:0 auto — the same cap .wrap itself uses for
+     the calendar below, deliberately: with only left/right (no width
+     cap) this stretched all the way across whatever's left of a wide
+     viewport after the sidebar, far wider than the calendar it sits
+     above ever gets, and reaching that far out — well past where the
+     calendar visually ends — is what let a lot of alternatives (plenty
+     of real trips have many) put a pill directly underneath the sidebar
+     itself. That's the actual reason a permanently-expanded sidebar
+     segment landing in that same top strip could ever end up sharing
+     screen space with .pills in the first place (see .month-segment.
+     seg-expanded/.current's own z-index for the belt-and-suspenders fix
+     on top of this one) — not something z-index alone was ever going to
+     fully solve, since the two elements had no business overlapping to
+     begin with on anything but a narrow window. With left/right/max-
+     width/margin:auto all in play at once here, the two auto margins
+     absorb whatever room is left over once the cap kicks in, centering
+     this exactly like .wrap centers the calendar, while left:46px/
+     right:16px still hold as the absolute floor/ceiling on a narrower
+     window where there's no extra room to center away with. */
   .pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
-    position:fixed; top:0; left:46px; right:16px; z-index:40;
+    position:fixed; top:0; left:46px; right:16px; max-width:1120px; margin:0 auto; z-index:40;
     background-color:var(--bg); background-image:var(--texture); padding:0 8px 14px; }
   /* Fills the strip between the pills bar's bottom edge and wherever the
      sticky weekday header (.grid.heads) catches — that strip is just
