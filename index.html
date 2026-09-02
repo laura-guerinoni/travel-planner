@@ -484,49 +484,16 @@
   /* A full calendar year is already 12 tabs — close to what comfortably
      fits without scrolling on its own — so this is the main lever
      against sidebar overflow, with archiving and the scroll above as
-     backup for whatever's still too much within one year. The sidebar's
-     own first flex child, not a separate fixed element like the archived
-     toggle below — it should scroll away with the rest if the list
-     itself ever needed to, unlike the toggle, which has to stay
-     reachable regardless of scroll position. */
-  /* One row, not three (used to be a prev-year button, the year, and a
-     next-year button stacked vertically — noticeably tall for what it
-     does). Tapping it opens a short list of every year that actually has
-     months in it (see openYearSwitcherMenu) so you jump straight to one
-     instead of stepping through them one at a time. */
-  /* No caret or any other second element next to the year — one used to
-     sit beside it (a small ▾), and even pulled fully out of the
-     centered flex row (absolute-positioned, not a sibling flex item —
-     the label's own box measured as correctly centered on its own), it
-     still read as visually attached to "2026" closely enough to pull
-     the eye's sense of the text's center off from a tab's own centered
-     label below it. Nothing else here to compete with means nothing
-     else to misjudge the center by — nothing beside "2026" now can.
-     Styled as one of the same rounded, colored tabs as the month
-     segments right below it (--ink rather than a SEG_COLORS entry —
-     it's chrome, not a month, so it deliberately doesn't read as one
-     of them) rather than plain floating text — same shape, same
-     rotated label, same "tab" language; the two used to look like two
-     different components stacked on top of each other. Individual
-     month tabs no longer carry their own year in the label (see
-     renderMonthSidebar) now that this is the one place it's shown, so
-     dropping this would leave the year not stated anywhere at all.
-     Corner radius matches .month-segment's own collapsed radius below
-     exactly (10px) — it was left at the segment's old, pre-redesign
-     16px when that later got softened, so the year chip and a closed
-     month chip stopped reading as the same shape. */
-  .month-year-switcher { flex:none; display:flex; align-items:center; justify-content:center;
-    padding:8px 0; margin:0 0 2px; border:none; border-radius:0 10px 10px 0;
-    background:var(--ink); color:#fff; cursor:pointer; height:44px; box-sizing:border-box; }
-  /* Horizontal now, matching the month tabs right below it (see their
-     own switch away from writing-mode:vertical-rl) — four digits fit
-     the 46px rail just as comfortably as a 3-letter month abbreviation
-     did, no rotation needed here either. */
-  /* No letter-spacing — same reasoning as .seg-label-short right below:
-     inside this same tiny 46px rail, the trailing space it adds after
-     the last digit visibly pushed "2026" left of true-center. */
-  .month-year-switcher .yr-label { font-size:13px; font-weight:800; letter-spacing:normal;
-    line-height:1; white-space:nowrap; }
+     backup for whatever's still too much within one year. Which year is
+     showing used to be one single "2026" switcher button living here,
+     opening a dropdown of the rest on click — now every year that
+     actually has months in it gets its own tab instead (see
+     renderMonthSidebar's own year-segment loop, right above the month
+     segments it filters), sharing .month-segment's CSS directly rather
+     than a bespoke set of rules of its own — same collapsed/hover-
+     expand/pinned-while-current shape as a month, same --ink "chrome,
+     not a month" color choice the old switcher used, just picking a
+     year instead of a month. */
   /* Holds the flex-sizing role a .month-segment used to carry directly —
      stays in the column's normal flow at this exact size regardless of
      whether the segment inside it is expanded (see attachSegHoverExpand
@@ -635,15 +602,13 @@
      acts on it specifically should still be hover-gated. */
   .month-segment:hover .itemmenu-btn, .month-segment.current .itemmenu-btn { visibility:visible; }
   /* Persistent, not one of the sidebar's own scrolling flex children (see
-     #monthArchivedToggle's own comment) — anchored at the same spot below
-     the tab stack regardless of scroll position. Hidden via JS (not CSS)
-     until there's actually at least one archived month to show. Plain
-     text on the page's own background now, no chip/card treatment
-     (background, border-radius, shadow) — it isn't a tab, just a label
-     that happens to be clickable. */
+     #monthArchivedToggle's own comment) — same tab shape/width as a
+     .month-segment so it reads as part of the same stack, just anchored
+     below it regardless of scroll position. Hidden via JS (not CSS)
+     until there's actually at least one archived month to show. */
   .month-archived-toggle { display:none; position:fixed; left:0; bottom:8px; width:46px; height:40px; z-index:30;
-    border:none; background:none; color:var(--muted); font-size:10px;
-    font-weight:800; letter-spacing:.04em; cursor:pointer; }
+    border:none; border-radius:0 12px 12px 0; background:var(--card); color:var(--muted); font-size:10px;
+    font-weight:800; letter-spacing:.04em; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.15); }
   .month-archived-toggle.show { display:block; }
   .month-archived-panel { display:none; position:fixed; left:50px; bottom:8px; z-index:31; background:var(--card);
     border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.2); padding:8px; min-width:180px; max-height:60vh; overflow-y:auto; }
@@ -854,10 +819,10 @@
   .itemmenu-row:hover { background:var(--bg); }
   .itemmenu-row.danger { color:#d9534f; }
   .itemmenu-row.danger:hover { background:rgba(217,83,79,.1); }
-  /* The year switcher's own list (see openYearSwitcherMenu) marks
-     whichever year is currently showing — plain bold, not a full accent
-     background, since this is just "you are here", not a selectable
-     state change like everywhere else .itemmenu-row shows up. */
+  /* Used by any itemmenu-row list that marks one of its own rows as
+     "you are here" (e.g. the currency picker below) — plain bold, not a
+     full accent background, since it isn't a selectable state change
+     like everywhere else .itemmenu-row shows up. */
   .itemmenu-row.current { font-weight:800; color:var(--primary); }
   /* openAccessScopeMenu's own popover — checkbox rows instead of the
      usual single-click-and-close action rows, so it reuses .itemmenu-row
@@ -1282,12 +1247,10 @@
        show the full name, exactly as it did before that split existed. */
     .seg-label-short { display:none; }
     .seg-label-full { display:inline; font-size:12px; letter-spacing:.05em; padding:0; }
-    /* Same flip as .month-segment/.seg-label just above — the switcher
-       hangs off the same now-horizontal bar, so it gets the same
-       bottom-rounded shape and horizontal label instead of the desktop
-       vertical tab treatment. */
-    .month-year-switcher { flex:0 0 auto; padding:10px 8px; margin:0; border-radius:0 0 14px 14px; }
-    .month-year-switcher .yr-label { writing-mode:horizontal-tb; transform:none; font-size:12px; letter-spacing:.05em; }
+    /* A year segment (see renderMonthSidebar's own year-segment loop)
+       needs no rule of its own here any more than it does on desktop —
+       it's a plain .month-segment sharing every one of these same
+       mobile rules already, year segments and month segments alike. */
     .month-segment.current::before { top:0; right:5px; bottom:5px; left:5px;
       border-radius:0 0 11px 11px; border-width:2px; border-color:rgba(255,255,255,.85);
       border-style:none dashed dashed dashed; }
@@ -4963,7 +4926,7 @@
   document.addEventListener('click', function(e){
     if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
        !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn') &&
-       !e.target.closest('.daymenu-btn') && !e.target.closest('.month-year-switcher')){
+       !e.target.closest('.daymenu-btn')){
       closePop();
     }
   });
@@ -5121,6 +5084,19 @@
     if(archived && idx === -1) keys.push(currentUserKey);
     else if(!archived && idx !== -1) keys.splice(idx, 1);
     setArchivedBy(panel, keys);
+  }
+  // "Archive this whole year" (see openYearSegmentMenu) is nothing more
+  // than calling the exact same per-panel setArchivedForMe above for
+  // every month that year holds — there's no separate "year archived"
+  // flag anywhere to keep in sync; a year simply stops having a segment
+  // of its own (see renderMonthSidebar's own years filter) once every
+  // one of its months independently is, and un-archiving is already just
+  // whichever of those months you unarchive from the flat "Archived"
+  // list, one at a time or all of them.
+  function setYearArchivedForMe(year, archived){
+    document.querySelectorAll('.panel').forEach(function(panel){
+      if(getPanelDate(panel).year === year) setArchivedForMe(panel, archived);
+    });
   }
   // Recorded once, at creation (see createOption) — never edited after,
   // so it stays a reliable answer to "did I create this month, or was I
@@ -8346,31 +8322,37 @@
     if(segCount <= 6) return MONTH_SHORT[month - 1] + ' ' + yy;
     return (month < 10 ? '0' + month : month) + '/' + yy;
   }
-  // Freezes .month-segment.current's position:fixed top/left/height to
-  // wherever its own slot (see renderMonthSidebar) naturally sits right
+  // Freezes every .month-segment.current's position:fixed top/left/height
+  // to wherever its own slot (see renderMonthSidebar) naturally sits right
   // now — called once when it's first built AND again from
-  // syncBarLayout, every time that function's own year-switcher
-  // alignment moves the WHOLE sidebar's top. A version of this shipped
-  // once already without the second call: the pin was measured and
-  // frozen at render time, then syncBarLayout moved the sidebar (and
-  // with it, every collapsed tab and the switcher) out from under that
-  // now-stale frozen position — the switcher and the pinned tab
-  // visibly disagreed about where the sidebar actually was. Reading
-  // the SLOT's own rect (not the segment's, which is already
-  // position:fixed and therefore unreliable to measure a second time —
-  // its own top/left would just reflect wherever it was last frozen,
-  // not its natural position) is what makes this safe to call
-  // repeatedly: the slot never leaves normal flow, so it's always an
-  // accurate source of truth regardless of how many times this runs.
+  // syncBarLayout, every time that function's own year-segment alignment
+  // moves the WHOLE sidebar's top. A version of this shipped once already
+  // without the second call: the pin was measured and frozen at render
+  // time, then syncBarLayout moved the sidebar (and with it, every
+  // collapsed tab) out from under that now-stale frozen position — the
+  // rest of the sidebar and the pinned tab visibly disagreed about where
+  // the sidebar actually was. Reading the SLOT's own rect (not the
+  // segment's, which is already position:fixed and therefore unreliable
+  // to measure a second time — its own top/left would just reflect
+  // wherever it was last frozen, not its natural position) is what makes
+  // this safe to call repeatedly: the slot never leaves normal flow, so
+  // it's always an accurate source of truth regardless of how many times
+  // this runs.
+  // Plural now, not a single querySelector — a current MONTH and a
+  // current YEAR (see renderMonthSidebar's own year-segment loop) can
+  // both be pinned at once, each in its own unrelated slot; querying just
+  // the first match used to leave whichever of the two came second in
+  // DOM order un-pinned.
   function pinCurrentSegment(){
     if(window.matchMedia('(max-width:720px)').matches) return;
-    var seg = document.querySelector('.month-segment.current');
-    if(!seg || !seg.parentElement) return;
-    var r = seg.parentElement.getBoundingClientRect();
-    seg.style.transition = 'none';
-    seg.style.top = r.top + 'px';
-    seg.style.left = r.left + 'px';
-    seg.style.height = r.height + 'px';
+    document.querySelectorAll('.month-segment.current').forEach(function(seg){
+      if(!seg.parentElement) return;
+      var r = seg.parentElement.getBoundingClientRect();
+      seg.style.transition = 'none';
+      seg.style.top = r.top + 'px';
+      seg.style.left = r.left + 'px';
+      seg.style.height = r.height + 'px';
+    });
   }
   // Desktop-only: pulls a month-sidebar segment out of its flex slot into
   // a position:fixed overlay on hover, so its full (untruncated) label
@@ -8477,7 +8459,17 @@
   // only way in at all on touch, where .itemmenu-btn is unconditionally
   // visible rather than hover-revealed (see the (hover:none) media
   // query), and hovering means nothing there to begin with.
-  function attachSegMenuHover(menuBtn, s){
+  // openMenuFn is which menu to actually open — openMonthSegmentMenu for
+  // a month tab, openYearSegmentMenu for a year segment (see
+  // renderMonthSidebar's two call sites) — everything else about the
+  // hover choreography (grace period, re-entering while already open,
+  // handing control to the popover's own hover once it exists) is
+  // identical either way. s is just this trigger's own identity for the
+  // "already open for this one" check below — a month's own grouping
+  // object for a month tab, the bare year number for a year segment;
+  // never compared across the two, so there's no risk of a number
+  // happening to look like some month's object reference.
+  function attachSegMenuHover(menuBtn, s, openMenuFn){
     var hideTimer = null;
     function show(){
       if(window.matchMedia('(max-width:720px)').matches) return;
@@ -8485,7 +8477,7 @@
       // Already open for this exact segment (e.g. re-entering the
       // trigger during its own hide grace period) — nothing to redo.
       if(openPop && openPop._segMenuFor === s) return;
-      openMonthSegmentMenu(menuBtn, s);
+      openMenuFn(menuBtn, s);
       if(openPop){
         openPop._segMenuFor = s;
         openPop.addEventListener('mouseenter', function(){
@@ -8547,6 +8539,17 @@
     }
     var curKey = monthKey(year, month);
     document.querySelectorAll('.month-segment').forEach(function(seg){
+      // Year segments (see renderMonthSidebar's own loop) share this
+      // same class for all its visual/hover machinery, but a MONTH click
+      // has nothing to say about which YEAR is current — its own
+      // dataset.monthKey ("year-2026") could never equal a real month's
+      // curKey ("2026-8") anyway, but skipping it outright here (rather
+      // than falling through to a toggle('current', false) that always
+      // resolves the same way) also skips the cleanup branch below that
+      // would otherwise strip a still-current year segment's pinned
+      // position/dashed border for no reason, just because some
+      // unrelated month tab got clicked.
+      if(seg.dataset.yearSeg) return;
       var wasCurrent = seg.classList.contains('current');
       var isCurrent = seg.dataset.monthKey === curKey;
       seg.classList.toggle('current', isCurrent);
@@ -8728,15 +8731,19 @@
     wrapEl.style.paddingBottom = '';
     pillsEl.style.top = sidebarH + 'px';
     var pillsH = pillsEl.getBoundingClientRect().height;
-    // Aligns the year switcher's own vertical center with the pills
-    // row's, computed here rather than guessed — several manual pixel
-    // nudges to .month-sidebar's CSS top kept missing because the two
-    // are unrelated boxes (this sidebar's static top offset vs. the
+    // Aligns the topmost year segment's own vertical center with the
+    // pills row's, computed here rather than guessed — several manual
+    // pixel nudges to .month-sidebar's CSS top kept missing because the
+    // two are unrelated boxes (this sidebar's static top offset vs. the
     // pills' own fixed position/height) with no reason to line up by
     // coincidence. Overrides that CSS top with a measured one instead,
     // so it tracks correctly even if the pills bar's own height changes
-    // later (wrapping to two lines, a font-size change, etc).
-    var switcherEl = sidebarEl && sidebarEl.querySelector('.month-year-switcher');
+    // later (wrapping to two lines, a font-size change, etc). Any one
+    // year segment works as the reference (see renderMonthSidebar's own
+    // year-segment loop) — they're all the same 44px-tall row; this is
+    // just standing in for "is there a year segment at all", same as the
+    // single year-switcher button this used to specifically look for.
+    var switcherEl = sidebarEl && sidebarEl.querySelector('.month-segment[data-year-seg]');
     if(switcherEl){
       var pillsRect = pillsEl.getBoundingClientRect();
       var pillsCenterY = pillsRect.top + pillsRect.height / 2;
@@ -8842,26 +8849,36 @@
     positionPopover(pop, anchorEl);
   }
 
-  // One tap-to-open list instead of stepping through years one at a time
-  // with prev/next buttons — see the switcher's own click handler in
-  // renderMonthSidebar. Newest year first, since that's usually the one
-  // being planned right now.
-  function openYearSwitcherMenu(years, anchorEl){
+  // The "⋯" menu on a year segment (see renderMonthSidebar's own
+  // year-segment loop) — deliberately just the one action. Picking the
+  // year itself already happens by clicking the segment directly, same
+  // as a month tab; this menu only needs to hold what a plain click
+  // can't already do.
+  function openYearSegmentMenu(anchorEl, year){
     closePop();
     var pop = document.createElement('div');
     pop.className = 'itemmenu';
-    years.slice().sort(function(a, b){ return b - a; }).forEach(function(yr){
-      var row = document.createElement('div');
-      row.className = 'itemmenu-row' + (yr === sidebarYear ? ' current' : '');
-      row.textContent = yr;
-      row.addEventListener('click', function(e){
-        e.stopPropagation();
-        closePop();
-        sidebarYear = yr;
-        renderMonthSidebar();
-      });
-      pop.appendChild(row);
+    function row(html, fn){
+      var r = document.createElement('div');
+      r.className = 'itemmenu-row';
+      r.innerHTML = html;
+      r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
+      pop.appendChild(r);
+      return r;
+    }
+    function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
+    row(icon(ICON_ARCHIVE) + 'Archive ' + year + ' (just for you)', function(){
+      setYearArchivedForMe(year, true);
+      // Same reasoning as the single-month archive action right above —
+      // data-archived-by is a personal preference, not in MO_OPTS'
+      // attributeFilter, so nothing else picks this up on its own.
+      scheduleAutoSave(); scheduleUndoSnapshot();
+      ensureAccessibleActivePanel();
+      renderMonthSidebar();
     });
+    pop._anchorEl = anchorEl;
+    anchorEl.style.visibility = 'visible';
+    anchorEl.classList.add('open');
     positionPopover(pop, anchorEl);
   }
 
@@ -8921,26 +8938,83 @@
     var years = [];
     allMonths.forEach(function(s){ if(years.indexOf(s.year) === -1) years.push(s.year); });
     years.sort(function(a, b){ return a - b; });
+    // Drop a year whose every month is archived — the same "doesn't get
+    // a tab of its own any more" treatment an individually-archived
+    // month already gets (see visibleMonths below). Still reachable (and
+    // un-archivable) from the flat "Archived" list either way, exactly
+    // like any single archived month — archiving a whole year (see
+    // setYearArchivedForMe/openYearSegmentMenu) is just archiving every
+    // month in it one by one under the hood, nothing year-specific about
+    // how it's tracked or how it comes back.
+    years = years.filter(function(yr){
+      return allMonths.some(function(s){ return s.year === yr && !s.archived; });
+    });
     if(sidebarYear == null || years.indexOf(sidebarYear) === -1){
       sidebarYear = (activeYear != null && years.indexOf(activeYear) !== -1) ? activeYear : (years[years.length - 1] || new Date().getFullYear());
     }
 
-    // A full calendar year (12) is already close to what comfortably fits
-    // without scrolling — not worth showing a switcher for the common
-    // case of everything fitting in one year already.
+    // A full calendar year (12 months) is already close to what
+    // comfortably fits without scrolling — not worth showing any year UI
+    // at all for the common case of everything fitting in one year
+    // already. Each year gets its own segment now, not one button that
+    // opens a dropdown of the rest — same collapsed/hover-expand/pinned-
+    // while-current language as a month tab (see .month-segment's own
+    // CSS and attachSegHoverExpand), just picking which year's months
+    // show below instead of which alternative shows in the calendar.
+    // Its own "⋯" (see openYearSegmentMenu) is how an entire year gets
+    // archived in one action.
     if(years.length > 1){
-      var switcher = document.createElement('button');
-      switcher.type = 'button';
-      switcher.className = 'month-year-switcher jsctl';
-      switcher.title = 'Switch year';
-      var yrLabel = document.createElement('span');
-      yrLabel.className = 'yr-label'; yrLabel.textContent = sidebarYear;
-      switcher.appendChild(yrLabel);
-      switcher.addEventListener('click', function(e){
-        e.stopPropagation();
-        openYearSwitcherMenu(years, switcher);
+      years.forEach(function(yr){
+        var yearSlot = document.createElement('div');
+        yearSlot.className = 'month-segment-slot';
+
+        var yearSeg = document.createElement('div');
+        yearSeg.className = 'month-segment' + (yr === sidebarYear ? ' current' : '');
+        // A distinct key space ("year-2026") from any real month's own
+        // "YYYY-M" key ("2026-8") — never collides on its own, but
+        // data-year-seg (right below) is the actual marker everything
+        // else checks for, so a month's key format changing later can't
+        // quietly reopen that door.
+        yearSeg.dataset.monthKey = 'year-' + yr;
+        yearSeg.dataset.yearSeg = '1';
+        yearSeg.style.background = 'var(--ink)'; // chrome, not a month — same reasoning as the old switcher's own color choice
+        yearSeg.title = 'Click to show ' + yr + '’s months';
+        yearSeg.addEventListener('click', function(){
+          sidebarYear = yr;
+          renderMonthSidebar();
+        });
+
+        // Short and full hold the same text here — unlike a month name, a
+        // year number is already maximally compact, nothing to abbreviate
+        // down to. Still needs both spans: the hover-expand/current
+        // machinery this shares with a month tab keys off which of the
+        // two is currently showing (see .seg-label-short/-full's own
+        // CSS), and the wider expanded box is still what makes room for
+        // the "⋯" trigger, same as a month.
+        var yrLabelShort = document.createElement('span');
+        yrLabelShort.className = 'seg-label seg-label-short';
+        yrLabelShort.textContent = yr;
+        var yrLabelFull = document.createElement('span');
+        yrLabelFull.className = 'seg-label seg-label-full';
+        yrLabelFull.textContent = yr;
+        yearSeg.appendChild(yrLabelShort);
+        yearSeg.appendChild(yrLabelFull);
+
+        var yearMenuBtn = document.createElement('button');
+        yearMenuBtn.type = 'button'; yearMenuBtn.className = 'itemmenu-btn jsctl'; yearMenuBtn.textContent = '⋯';
+        yearMenuBtn.title = 'More options for ' + yr;
+        yearMenuBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          openYearSegmentMenu(yearMenuBtn, yr);
+        });
+        yearSeg.appendChild(yearMenuBtn);
+        attachSegMenuHover(yearMenuBtn, yr, openYearSegmentMenu);
+
+        yearSlot.appendChild(yearSeg);
+        sidebar.appendChild(yearSlot);
+
+        attachSegHoverExpand(yearSeg);
       });
-      sidebar.appendChild(switcher);
     }
 
     var visibleMonths = allMonths.filter(function(s){ return s.year === sidebarYear && !s.archived; });
@@ -9024,7 +9098,7 @@
         openMonthSegmentMenu(menuBtn, s);
       });
       seg.appendChild(menuBtn);
-      attachSegMenuHover(menuBtn, s);
+      attachSegMenuHover(menuBtn, s, openMonthSegmentMenu);
 
       slot.appendChild(seg);
       sidebar.appendChild(slot);
@@ -9052,7 +9126,7 @@
     if(archiveToggleBtn){
       if(archivedMonths.length){
         archiveToggleBtn.classList.add('show');
-        archiveToggleBtn.textContent = 'Archived (' + archivedMonths.length + ')';
+        archiveToggleBtn.textContent = 'Archived'; // no count — just a plain label, see its own click handler for why no picking step is needed either
         archiveToggleBtn.onclick = function(){
           var willShow = !archivedPanelEl.classList.contains('show');
           archivedPanelEl.classList.toggle('show', willShow);
@@ -9082,10 +9156,12 @@
     });
     syncBarLayout();
   }
-  // The small expandable list behind the "Archived (N)" toggle — kept
-  // separate from the main sidebar markup since it's positioned outside
-  // it (see #monthArchivedPanel's own comment) and only ever needs to
-  // exist while actually open.
+  // The small expandable list behind the "Archived" toggle — deliberately
+  // just one flat list of everything archived, not a menu you first pick
+  // a month (or year) out of to drill into; clicking the toggle is the
+  // only step. Kept separate from the main sidebar markup since it's
+  // positioned outside it (see #monthArchivedPanel's own comment) and
+  // only ever needs to exist while actually open.
   function renderArchivedMonthsPanel(archivedMonths){
     var panel = document.getElementById('monthArchivedPanel');
     if(!panel) return;
