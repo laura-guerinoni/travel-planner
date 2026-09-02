@@ -8403,6 +8403,14 @@
     }
     function expand(){
       if(window.matchMedia('(max-width:720px)').matches) return; // no hover on touch/mobile
+      // A segment can go from "just a hover target" to "the permanently
+      // selected one" (see filterPillsByMonth) without this listener
+      // ever being torn down and reattached — a real tab click reuses
+      // the exact same DOM node, it doesn't go through a fresh
+      // renderMonthSidebar rebuild. .current already keeps it expanded
+      // on its own; running this too would fight it the moment the
+      // pointer next leaves (see scheduleCollapse's matching guard).
+      if(seg.classList.contains('current')) return;
       if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
       if(collapseTimer){ clearTimeout(collapseTimer); collapseTimer = null; }
       if(seg.classList.contains('seg-expanded')) return;
@@ -8416,14 +8424,33 @@
       seg.getBoundingClientRect(); // force layout so the freeze above actually commits
       requestAnimationFrame(function(){
         seg.style.width = ''; // now let .seg-expanded's own 190px take over, animated
-        forceLabel(true); // swap to the full label in the same tick the box starts growing
+        // A single rAF only guarantees "runs before the next paint" — it
+        // does NOT guarantee the width transition has actually started
+        // animating by then, that only happens once the browser has
+        // processed that paint. Revealing the full label in this same
+        // callback still showed it, for one real frame, inside a box
+        // rendered at its old frozen (collapsed) width — the text
+        // visibly spilled past the chip before it had grown at all.
+        // Nesting a second rAF waits for that frame to actually happen.
+        requestAnimationFrame(function(){
+          forceLabel(true); // swap to the full label only once growth has genuinely begun
+        });
       });
     }
     function scheduleCollapse(){
+      if(seg.classList.contains('current')) return; // permanently expanded already — nothing to schedule
       if(hideTimer) clearTimeout(hideTimer);
       hideTimer = setTimeout(function(){
         hideTimer = null;
         if(!seg.classList.contains('seg-expanded')) return;
+        // Re-check here too, not just on entry above — a real tab click
+        // can land during this grace period itself, and this callback
+        // firing afterward must not shrink a segment that's since
+        // become the permanently-current one (that shrink, followed by
+        // .current's own CSS snapping it back open once seg-expanded is
+        // finally removed below, is exactly the "goes small then goes
+        // big again" twitch on hovering off a just-selected tab).
+        if(seg.classList.contains('current')) return;
         // Same FLIP shape in reverse: freeze at the current (expanded)
         // width explicitly, force layout, then transition down to the
         // collapsed width — only removing seg-expanded (and the inline
@@ -8538,6 +8565,23 @@
       // back over cleanly, same as a segment that was never pinned at all.
       if(wasCurrent && !isCurrent){
         seg.style.transition = ''; seg.style.top = ''; seg.style.left = ''; seg.style.height = '';
+      }
+      // A segment GAINING current can still be carrying seg-expanded and
+      // its width freeze from attachSegHoverExpand — e.g. the pointer
+      // was already hovering it (mid-expand) at the exact moment it got
+      // clicked into selection. attachSegHoverExpand's own listeners now
+      // bail out for a .current segment (see its guards), so nothing
+      // would ever clean this up on its own: seg-expanded would stay
+      // stuck applying .month-segment.seg-expanded's rules forever,
+      // right alongside .current, even after this segment later loses
+      // current again. Strip it here so a freshly-current segment always
+      // starts from a clean, CSS-driven state before pinCurrentSegment
+      // below pins its position.
+      if(!wasCurrent && isCurrent){
+        seg.classList.remove('seg-expanded');
+        seg.style.width = '';
+        var lbl = seg.querySelector('.seg-label-full'); if(lbl) lbl.style.display = '';
+        lbl = seg.querySelector('.seg-label-short'); if(lbl) lbl.style.display = '';
       }
     });
     // A segment GAINING current here (not through renderMonthSidebar's own
