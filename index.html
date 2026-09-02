@@ -635,13 +635,15 @@
      acts on it specifically should still be hover-gated. */
   .month-segment:hover .itemmenu-btn, .month-segment.current .itemmenu-btn { visibility:visible; }
   /* Persistent, not one of the sidebar's own scrolling flex children (see
-     #monthArchivedToggle's own comment) — same tab shape/width as a
-     .month-segment so it reads as part of the same stack, just anchored
-     below it regardless of scroll position. Hidden via JS (not CSS)
-     until there's actually at least one archived month to show. */
+     #monthArchivedToggle's own comment) — anchored at the same spot below
+     the tab stack regardless of scroll position. Hidden via JS (not CSS)
+     until there's actually at least one archived month to show. Plain
+     text on the page's own background now, no chip/card treatment
+     (background, border-radius, shadow) — it isn't a tab, just a label
+     that happens to be clickable. */
   .month-archived-toggle { display:none; position:fixed; left:0; bottom:8px; width:46px; height:40px; z-index:30;
-    border:none; border-radius:0 12px 12px 0; background:var(--card); color:var(--muted); font-size:10px;
-    font-weight:800; letter-spacing:.04em; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.15); }
+    border:none; background:none; color:var(--muted); font-size:10px;
+    font-weight:800; letter-spacing:.04em; cursor:pointer; }
   .month-archived-toggle.show { display:block; }
   .month-archived-panel { display:none; position:fixed; left:50px; bottom:8px; z-index:31; background:var(--card);
     border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.2); padding:8px; min-width:180px; max-height:60vh; overflow-y:auto; }
