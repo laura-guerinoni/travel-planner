@@ -47,23 +47,33 @@
     --texture: repeating-linear-gradient(0deg, rgba(28,52,56,.016) 0, rgba(28,52,56,.016) 1px, transparent 1px, transparent 5px),
       repeating-linear-gradient(90deg, rgba(28,52,56,.016) 0, rgba(28,52,56,.016) 1px, transparent 1px, transparent 5px); }
   * { box-sizing:border-box; }
-  /* A very faint woven-linen crosshatch under the flat page background —
-     just enough to hint at fabric/embroidery without ever competing with
-     the actual content sitting on top of it. Shared via --texture so the
-     fixed bars (pills, month sidebar) that sit on top of the page can
-     carry it too — otherwise their own flat fill reads as a seam/gap at
-     the very top instead of a continuation of the same background. */
-  body { margin:0; padding:32px 16px 32px 56px; background-color:var(--bg); color:var(--ink);
-    background-image: var(--texture);
+  /* Plain white now, not the faint woven-linen crosshatch — that texture
+     moved onto .wrap itself (see its own comment below), so it reads as
+     belonging to the calendar block specifically, "the pages of the
+     book," rather than the whole page. Everywhere outside that block —
+     this body background, the pills bar, the gapfill strip, the month
+     sidebar (already --card since an earlier pass) — now shares this
+     same plain white, so the calendar reads as one solid, textured block
+     sitting on a plain page rather than a texture that just keeps going
+     underneath everything. */
+  body { margin:0; padding:32px 16px 32px 56px; background-color:var(--card); color:var(--ink);
     font-family:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   button, input, textarea, select { font-family:inherit; }
-  /* The outline the sidebar tabs' own straight edge (see .month-segment's
-     own comment) reads as belonging to — a real, visible border around
-     the calendar itself. var(--muted) rather than --ink — a first pass
-     used --ink (near-black) here, heavier than this needed to be for
-     what's really just a quiet frame, not another foreground element
-     competing with the calendar's own content for attention. */
-  .wrap { max-width:1120px; margin:0 auto; border:2px solid var(--muted); border-radius:14px; padding:16px; }
+  /* No border any more — a first pass drew one (var(--muted), softened
+     down from --ink), but with the page around it now plain white (see
+     body's own comment) and this block carrying its own textured fill
+     (background-color/image below — used to just be the page's own
+     background showing through a fully transparent .wrap), the color
+     contrast between the two already reads as a solid block on a page,
+     the same "book" the border used to have to work to suggest on its
+     own. One less line competing with the calendar's own content.
+     margin-top is set inline by syncBarLayout(), not here — real margin,
+     not padding, so this block's own top edge (and its rounded corners)
+     actually sits BELOW the fixed pills bar instead of starting underneath
+     it — a border-box that starts hidden under an opaque sibling has no
+     visible corner to speak of, regardless of how the radius is set. */
+  .wrap { max-width:1120px; margin:0 auto; border-radius:14px; padding:16px;
+    background-color:var(--bg); background-image:var(--texture); }
   /* margin-bottom:0 (not 20px) — header's only child (.pills) is
      position:fixed, so header itself already collapses to zero height,
      but a leftover margin still applies to a collapsed box. That stray
@@ -127,8 +137,8 @@
      fit, so scrolling to the true beginning always reaches a fully
      visible first pill, and centering only ever applies when there's
      nothing to scroll to begin with. */
-  /* max-width:1120px matches .wrap's own cap — the calendar's own
-     outline (see .wrap's own border/comment) needs this row to be the
+  /* max-width:1120px matches .wrap's own cap — the calendar block (see
+     .wrap's own background/comment) needs this row to be the
      exact same width to look like it belongs above it, even without a
      border of its own here any more (a first pass drew one — too much,
      reading as its own separate boxed-in element rather than a row of
@@ -144,21 +154,30 @@
      own comment on the flip) sitting flush at this row's own top:0 would
      have nothing above it to actually curve into, same "reads as clipped
      against the true edge" problem the sidebar tabs' own left-margin fix
-     solved the same way. */
+     solved the same way.
+     Plain white now (--card), not the page's own --bg/--texture — this
+     bar sits OUTSIDE the calendar block now (see .wrap's own comment on
+     where that texture moved to), so it takes the same plain white
+     everything else outside the block uses instead of carrying a texture
+     that no longer belongs to the page around it. */
   .pills { display:flex; flex-wrap:nowrap; gap:8px; justify-content:safe center; overflow-x:auto;
     position:fixed; top:0; left:46px; right:16px; max-width:1120px; z-index:40;
-    background-color:var(--bg); background-image:var(--texture); padding:8px 32px 14px;
+    background-color:var(--card); padding:8px 32px 14px;
     scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
   .pills::-webkit-scrollbar { display:none; }
   /* Fills the strip between the pills bar's bottom edge and wherever the
-     sticky weekday header (.grid.heads) catches — that strip is just
-     .wrap's padding-top, not any element's own box, so nothing painted
-     over it and whatever the page scrolled underneath showed straight
-     through. A plain fixed div with the same background, kept in sync by
-     syncBarLayout() via --pills-bottom/--pills-gap, papers over it. */
+     sticky weekday header (.grid.heads) catches. Used to matter more than
+     it does now — that strip used to be .wrap's own padding-top, an
+     empty stretch of a fully transparent box with nothing of its own
+     painted there, so this needed to paper over whatever scrolled
+     underneath. .wrap now sits below the pills bar via a real margin-top
+     instead (see its own comment) and paints its own background, so
+     there's really nothing left scrolling behind this strip any more —
+     still harmless to leave in place (plain white now, matching the page
+     around it, see .pills' own comment), just no longer load-bearing. */
   .pills-gapfill { position:fixed; left:0; right:0; top:var(--pills-bottom, 0px);
     height:var(--pills-gap, 0px); z-index:29; pointer-events:none;
-    background-color:var(--bg); background-image:var(--texture); }
+    background-color:var(--card); }
   /* Second-tier bookmarks: same tab idea as the month sidebar, just
      smaller and sitting along the TOP edge instead of the left — rounded
      at the top now (was the bottom), matching the sidebar's own flip to
@@ -246,12 +265,18 @@
      (4px in from the pill) instead of crowding the dashed line — only
      matters once the dashed border exists at all, i.e. selected pills. */
   .pill.on { background:var(--primary); border-color:var(--primary); color:#fff; padding-right:9px; }
-  /* the selected option's stitch — open on top, since that's the edge
-     it's "hanging" from, mirroring the sidebar's own current-tab treatment */
+  /* the selected option's stitch — open on the BOTTOM now, since that's
+     the edge it's "hanging" from since .pill's own corner flip (rounded
+     top, flat bottom attached to the calendar below — see .pill's own
+     comment), mirroring the sidebar's own current-tab treatment
+     (.month-segment.current::before) the exact same way: closed/rounded
+     on the free edge, open/flush on the attached one. Used to be the
+     other way around, back when the pill itself hung rounded-bottom
+     from a flat top edge. */
   .pill.on::after {
-    content:''; position:absolute; left:4px; right:4px; bottom:4px; top:0; pointer-events:none;
-    border-radius:0 0 9px 9px;
-    border:2px dashed rgba(255,255,255,.85); border-top:none;
+    content:''; position:absolute; left:4px; right:4px; top:4px; bottom:0; pointer-events:none;
+    border-radius:9px 9px 0 0;
+    border:2px dashed rgba(255,255,255,.85); border-bottom:none;
   }
   .panel { display:none; }
   .panel.on { display:block; }
@@ -556,11 +581,11 @@
      the bottom, so it just got silently clipped there instead of
      visible higher up. Moving the room into the container avoids that
      entirely: nothing here has to escape its own box to use it. */
-  /* Plain white now, not the page's own lavender-textured background
-     showing through — the sidebar sits outside the bordered "outline of
-     the month" (see .wrap/.pills' own matching borders), so it reads as
-     its own distinct region rather than a continuation of whatever's
-     inside that outline. */
+  /* Plain white — same as the page around it now (see body's own
+     comment) — not the lavender-textured fill .wrap carries; the
+     sidebar sits outside the calendar block, so it reads as part of the
+     page the block sits on rather than a continuation of what's inside
+     that block. */
   .month-sidebar { position:fixed; left:0; top:16px; width:46px; z-index:30; display:flex;
     flex-direction:column; gap:14px; height:calc(100vh - 44px); overflow-y:auto; overflow-x:hidden;
     background-color:var(--card); }
@@ -8575,8 +8600,9 @@
       seg.style.top = top + 'px';
       // Anchored via right, not left — the collapsed state's own right
       // edge sits flush with the slot's own right edge (see
-      // .month-segment's own inset:0 0 0 6px), touching the calendar's
-      // outline (see .wrap's own border/comment); pinning the expanded
+      // .month-segment's own inset:0 0 0 6px), touching the calendar
+      // block's own edge (see .wrap's own background/comment); pinning
+      // the expanded
       // state to that SAME right coordinate, rather than to a left
       // coordinate the way an earlier version did, is what makes it grow
       // outward (away from the calendar, widening into the sidebar's own
@@ -8977,6 +9003,14 @@
       // desktop, the exact same reason .style.top needs clearing here.
       pillsEl.style.left = '';
       pillsEl.style.top = '';
+      // .style.marginTop too, not just padding-top below — the desktop
+      // branch sets an inline margin-top now (see its own comment) that
+      // would otherwise keep pushing this box down by a stale desktop
+      // amount on top of mobile's own padding-top, the exact same
+      // "leftover inline style outranks the CSS default it should have
+      // reverted to" issue .style.left/.style.top just above exist to
+      // avoid.
+      wrapEl.style.marginTop = '';
       var target = sidebarH + GAP;
       wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
       document.documentElement.style.setProperty('--pills-height', target + 'px');
@@ -8987,6 +9021,13 @@
       return;
     }
     wrapEl.style.paddingBottom = '';
+    // .style.paddingTop too — leftover from the mobile branch above
+    // (its own inline padding-top would otherwise keep stacking on top
+    // of this branch's own margin-top after a resize down from mobile,
+    // the same stale-inline-style issue its own comment describes).
+    // Static CSS padding:16px (see .wrap's own rule) takes back over
+    // once this is cleared.
+    wrapEl.style.paddingTop = '';
     // Left edge hard-aligned with .wrap's own left edge (where the
     // calendar itself starts) — not just "clear the sidebar" (46px, this
     // rule's own CSS default) any more. .wrap centers itself
@@ -9026,61 +9067,78 @@
       sidebarEl.style.left = (wrapLeft - sidebarW) + 'px';
     }
     var pillsH = pillsEl.getBoundingClientRect().height;
-    // Aligns the topmost year segment's own vertical center with the
-    // pills row's, computed here rather than guessed — several manual
-    // pixel nudges to .month-sidebar's CSS top kept missing because the
-    // two are unrelated boxes (this sidebar's static top offset vs. the
-    // pills' own fixed position/height) with no reason to line up by
-    // coincidence. Overrides that CSS top with a measured one instead,
-    // so it tracks correctly even if the pills bar's own height changes
-    // later (wrapping to two lines, a font-size change, etc). Any one
-    // year segment works as the reference (see renderMonthSidebar's own
-    // year-segment loop) — they're all the same 44px-tall row; this is
-    // just standing in for "is there a year segment at all", same as the
-    // single year-switcher button this used to specifically look for.
-    var switcherEl = sidebarEl && sidebarEl.querySelector('.month-segment[data-year-seg]');
-    if(switcherEl){
-      var pillsRect = pillsEl.getBoundingClientRect();
-      var pillsCenterY = pillsRect.top + pillsRect.height / 2;
-      var switcherH = switcherEl.getBoundingClientRect().height;
-      sidebarEl.style.top = Math.max(0, pillsCenterY - switcherH / 2) + 'px';
+    // Where .wrap's own top edge (and its rounded top corners — see its
+    // own comment) actually lands now that it's pushed down by a real
+    // margin-top instead of hidden under the pills bar via padding.
+    // Computed once here, shared below by the sidebar's own top AND
+    // .wrap's margin-top/--pills-height math, so all three agree on
+    // exactly where the calendar block starts instead of three separate
+    // guesses that could drift apart from each other.
+    var blockTop = sidebarH + pillsH + GAP;
+    // The sidebar's own tabs used to start centered on the pills row
+    // itself — level with the alternatives tabs above the calendar,
+    // well above the calendar block's own top edge. Starting there read
+    // as floating loose above the book rather than like tabs sticking
+    // out the side of it. blockTop lines the sidebar's own top up with
+    // the calendar block's own newly-visible top edge instead — the
+    // book's own top-left corner — plus 14px (this same rule's own
+    // border-radius) so the very first tab clears that corner's curve
+    // rather than colliding with it; a book's own index tabs start
+    // below its curved corner, never overlapping it. Always computed
+    // now, not just when a year segment exists to measure against (the
+    // switcher-relative approach this replaced had no answer at all for
+    // the common single-year case) — every month/year segment shares
+    // the exact same sidebar-relative slot positions regardless.
+    if(sidebarEl){
+      sidebarEl.style.top = Math.max(0, blockTop + 14) + 'px';
     }
-    // The sidebar's own top just moved (or, with no switcher, could
-    // still have shifted for some other reason this function runs for)
-    // — re-freeze the permanently-expanded current segment (see
-    // pinCurrentSegment's own comment for why this exact bug shipped
-    // once already without this call) so it never disagrees with
-    // wherever the sidebar/switcher/collapsed tabs actually ended up.
+    // The sidebar's own top just moved (or could still have shifted for
+    // some other reason this function runs for) — re-freeze the
+    // permanently-expanded current segment (see pinCurrentSegment's own
+    // comment for why this exact bug shipped once already without this
+    // call) so it never disagrees with wherever the sidebar/collapsed
+    // tabs actually ended up.
     pinCurrentSegment();
-    // The SAME target (sidebarH + pillsH + GAP, a position measured from
-    // the VIEWPORT, matching .pills' own position:fixed frame of
-    // reference) feeds both .wrap's padding-top and --pills-height, so
-    // the gap between the pills bar and the weekday header reads as
+    // blockTop (a position measured from the VIEWPORT, matching .pills'
+    // own position:fixed frame of reference) feeds .wrap's margin-top,
+    // so the gap between the pills bar and the calendar block reads as
     // identical whether the page is scrolled or sitting at the top.
-    // .wrap's padding-top is itself measured from .wrap's OWN top edge
+    // .wrap's margin-top is itself measured from .wrap's OWN top edge
     // though, not the viewport — subtracting wrapTop converts the
-    // viewport-relative target back into that frame, or the header would
-    // land 30-40px further down than intended, by however far .wrap's
-    // own top sits below y=0.
+    // viewport-relative blockTop back into that frame, or the block
+    // would land 30-40px further down than intended, by however far
+    // .wrap's own top sits below y=0.
     //
     // getBoundingClientRect().top is itself relative to the current
     // scroll position, not the document — adding scrollY back converts
     // it to .wrap's scroll-INDEPENDENT offset from the top of the page.
     // Without this, calling syncBarLayout() (on resize, or after any
     // content change) while the page happened to be scrolled down used
-    // a large negative wrapTop, which made target - wrapTop balloon into
-    // a huge padding-top — a real bug that shipped: hundreds of pixels
-    // of blank space between the pills bar and the weekday header,
+    // a large negative wrapTop, which made blockTop - wrapTop balloon
+    // into a huge margin-top — a real bug that shipped against the old
+    // padding-top version of this same math: hundreds of pixels of
+    // blank space between the pills bar and the weekday header,
     // reproduced by scrolling partway down and firing a resize event.
-    var pillsBottom = sidebarH + pillsH;
-    var target = pillsBottom + GAP;
-    wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
-    document.documentElement.style.setProperty('--pills-height', target + 'px');
-    // .pills-gapfill (see its own CSS rule) papers over the strip between
-    // the pills bar's bottom edge and where the sticky weekday header
-    // catches — nothing else paints that strip, so without this, page
-    // content scrolling past underneath was visible right through it.
-    document.documentElement.style.setProperty('--pills-bottom', pillsBottom + 'px');
+    //
+    // margin-top, not padding-top — real space in normal document flow
+    // that pushes .wrap's own border-box (and its rounded top corners)
+    // out from under the fixed pills bar, rather than padding, which
+    // just shifted this box's CONTENT down within a border-box that
+    // still started hidden underneath the bar itself, corners included
+    // (see .wrap's own comment for the full reasoning).
+    wrapEl.style.marginTop = Math.max(0, blockTop - wrapTop) + 'px';
+    // Where the sticky weekday header (.grid.heads) should catch once
+    // scrolled — blockTop is where the calendar block's own top edge
+    // lands, plus .wrap's own static 16px padding (no longer overridden
+    // per-render — see its own CSS) between that edge and the header
+    // itself sitting inside it.
+    document.documentElement.style.setProperty('--pills-height', (blockTop + 16) + 'px');
+    // .pills-gapfill (see its own CSS rule) is inert now that .wrap
+    // paints its own background below a real margin instead of an empty
+    // padding strip nothing else painted (see its own comment) — these
+    // two custom properties still feed it a harmless (matching-white,
+    // non-overlapping) position/size, just no longer load-bearing.
+    document.documentElement.style.setProperty('--pills-bottom', (sidebarH + pillsH) + 'px');
     document.documentElement.style.setProperty('--pills-gap', GAP + 'px');
   }
   window.addEventListener('resize', syncBarLayout);
