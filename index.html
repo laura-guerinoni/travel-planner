@@ -59,13 +59,11 @@
   button, input, textarea, select { font-family:inherit; }
   /* The outline the sidebar tabs' own straight edge (see .month-segment's
      own comment) reads as belonging to — a real, visible border around
-     the calendar itself now, not just an implied style echo. .pills (see
-     its own matching border, added the same way) forms the top of the
-     same outline; the two don't touch directly — .wrap's own dynamic
-     padding-top already keeps a deliberate GAP-sized gap clear under the
-     pills bar (see syncBarLayout) — but sharing the identical color/
-     weight/inset reads as one continuous system despite the seam. */
-  .wrap { max-width:1120px; margin:0 auto; border:2px solid var(--ink); border-radius:14px; padding:16px; }
+     the calendar itself. var(--muted) rather than --ink — a first pass
+     used --ink (near-black) here, heavier than this needed to be for
+     what's really just a quiet frame, not another foreground element
+     competing with the calendar's own content for attention. */
+  .wrap { max-width:1120px; margin:0 auto; border:2px solid var(--muted); border-radius:14px; padding:16px; }
   /* margin-bottom:0 (not 20px) — header's only child (.pills) is
      position:fixed, so header itself already collapses to zero height,
      but a leftover margin still applies to a collapsed box. That stray
@@ -735,21 +733,19 @@
      given instant, so the exact JS/CSS frame timing of when the label
      swaps in can never matter: there is no longer a moment where full
      text can render past the chip, full stop. */
-  /* z-index:45, not the 40 every other .month-segment (and .pills — see
-     its own rule) uses — an expanded segment's real, on-screen box (140px
-     wide, left:0) reaches well past the 46px sidebar rail it normally
-     stays confined to, into .pills' own territory (left:46px) once both
-     happen to sit near the same vertical position — the topmost sidebar
-     row (a year segment, or a month if there's only one year) is exactly
-     at that height, right where .pills starts (top:0). Tied at the same
-     z-index, .pills — later in the document — painted over most of that
-     segment's width, leaving only its leftmost 46px sliver visible: the
-     "cut off" chip this was actually diagnosed as (never a positioning
-     bug at all — the segment's own top/left/height were always correct).
-     One step above is enough to always win that particular overlap
-     without outranking anything else stacked above a plain collapsed
-     segment (still 40, still correctly below any of the app's own
-     popovers/menus, which all sit well past both of these). */
+  /* Grows outward now, away from the calendar — pinCurrentSegment and
+     attachSegHoverExpand both position this via an explicit inline
+     .style.right (see their own comments), anchoring the RIGHT edge in
+     place and letting width grow the LEFT edge leftward instead, the
+     opposite of the original left-anchored/grows-rightward version.
+     right:auto here is just the resting default before either of those
+     ever runs — always overridden by that inline value once a segment
+     actually needs positioning. z-index:45, not the 40 every other
+     .month-segment (and .pills) uses, is a defensive holdover from when
+     this used to grow rightward and could land on top of .pills at the
+     same tied z-index — growing away from the calendar now instead
+     means that overlap shouldn't be reachable any more, but there's no
+     real cost to leaving the extra z-index in place regardless. */
   .month-segment.seg-expanded, .month-segment.current { position:fixed; right:auto; bottom:auto; width:140px;
     z-index:45; box-shadow:0 4px 16px rgba(0,0,0,.25); }
   .month-segment.seg-expanded .seg-label-short, .month-segment.current .seg-label-short { display:none; }
@@ -8577,16 +8573,21 @@
       }
       seg.style.transition = 'none';
       seg.style.top = top + 'px';
-      // +6, not the slot's own bare left — matches the same 6px inset
-      // .month-segment's own CSS gives the collapsed state (see its own
-      // comment on why: room for the now-left-side rounded corner to
-      // actually be visible against the page instead of clipped flush
-      // against the true edge). The slot itself carries no such inset —
-      // its own left is still the sidebar's bare edge — so this has to
-      // add it back explicitly, on top of the coordinate this function
-      // already deliberately reads from the slot rather than the
-      // segment (see this function's own comment above).
-      seg.style.left = (r.left + 6) + 'px';
+      // Anchored via right, not left — the collapsed state's own right
+      // edge sits flush with the slot's own right edge (see
+      // .month-segment's own inset:0 0 0 6px), touching the calendar's
+      // outline (see .wrap's own border/comment); pinning the expanded
+      // state to that SAME right coordinate, rather than to a left
+      // coordinate the way an earlier version did, is what makes it grow
+      // outward (away from the calendar, widening into the sidebar's own
+      // margin) instead of inward, into the calendar itself. left set to
+      // 'auto' alongside it — position:fixed with left, right, AND an
+      // explicit width all set at once is over-constrained, and left
+      // (were it still carrying some earlier inline value) would win
+      // over right in that fight regardless of which one this function
+      // actually means to control right now.
+      seg.style.right = (window.innerWidth - (r.left + r.width)) + 'px';
+      seg.style.left = 'auto';
       seg.style.height = r.height + 'px';
     });
   }
@@ -8644,13 +8645,22 @@
       if(seg.classList.contains('seg-expanded')) return;
       var r = seg.getBoundingClientRect();
       seg.style.top = r.top + 'px';
-      seg.style.left = r.left + 'px';
+      // right, not left — freezing the RIGHT edge (already sitting flush
+      // against the calendar's own outline, same as every collapsed tab
+      // — see .month-segment's own inset:0 0 0 6px) and letting width
+      // grow from there is what makes this open outward, away from the
+      // calendar, instead of the reverse. left explicitly 'auto' so it
+      // can't fight right for control of the position once both width
+      // and both edges would otherwise be specified at once — see
+      // pinCurrentSegment's own identical reasoning.
+      seg.style.right = (window.innerWidth - r.right) + 'px';
+      seg.style.left = 'auto';
       seg.style.height = r.height + 'px';
       seg.style.width = r.width + 'px'; // freeze at the collapsed width first
       seg.classList.add('seg-expanded');
       seg.getBoundingClientRect(); // force layout so the freeze above actually commits
       requestAnimationFrame(function(){
-        seg.style.width = ''; // now let .seg-expanded's own 140px take over, animated
+        seg.style.width = ''; // now let .seg-expanded's own 140px take over, animated — right stays put, so this grows the left edge outward
       });
     }
     function scheduleCollapse(){
@@ -8680,7 +8690,13 @@
         });
         collapseTimer = setTimeout(function(){
           seg.classList.remove('seg-expanded');
-          seg.style.top = ''; seg.style.left = ''; seg.style.height = ''; seg.style.width = '';
+          // .style.right too, not just left — expand() (see its own
+          // comment) sets right explicitly now instead of left; leaving
+          // it behind here would keep overriding the collapsed state's
+          // own CSS (inset:0 0 0 6px, effectively right:0) with this
+          // stale frozen value forever, since an inline style always
+          // wins over a stylesheet rule regardless of specificity.
+          seg.style.top = ''; seg.style.left = ''; seg.style.right = ''; seg.style.height = ''; seg.style.width = '';
           collapseTimer = null;
         }, 180);
       }, 200);
@@ -8799,7 +8815,7 @@
       // top-left instead of filling it. Clearing lets the base CSS take
       // back over cleanly, same as a segment that was never pinned at all.
       if(wasCurrent && !isCurrent){
-        seg.style.transition = ''; seg.style.top = ''; seg.style.left = ''; seg.style.height = '';
+        seg.style.transition = ''; seg.style.top = ''; seg.style.left = ''; seg.style.right = ''; seg.style.height = '';
       }
       // A segment GAINING current can still be carrying seg-expanded and
       // its width freeze from attachSegHoverExpand — e.g. the pointer
@@ -8990,28 +9006,24 @@
     var wrapLeft = wrapEl.getBoundingClientRect().left;
     pillsEl.style.left = wrapLeft + 'px';
     pillsEl.style.top = sidebarH + 'px';
-    // The sidebar itself now sits close to that same measured edge —
-    // rather than staying pinned to the true viewport edge (this rule's
-    // own CSS default, left:0) with however much empty margin ends up
-    // between the two on a wide window once .wrap's own centering pushes
-    // it well past 46px — but NOT flush against it (a first pass tried
-    // that, positioning the sidebar's own collapsed 46px width right up
-    // against .wrap's edge). A collapsed tab is only ever 46px wide, but
-    // the permanently-expanded current one (see .month-segment.current's
-    // own CSS) is 140px, growing rightward from that same anchor —
-    // flush left no room at all for that growth, so it landed 94px deep
-    // into the calendar itself, overlapping real content (and the same
-    // for a year segment's own 80px width). 140 (plus the same 6px
-    // margin pinCurrentSegment's own left calculation already adds) is
-    // exactly enough room reserved for the widest thing this sidebar
-    // ever has to show — the expanded current month lands its own right
-    // edge exactly on .wrap's, touching it precisely the way a
-    // collapsed tab flush against it would have, while the narrower
-    // (80px) expanded year segment and every merely-collapsed (46px)
-    // tab simply sit with a bit of visible clearance before that edge
-    // instead of overlapping past it.
+    // The sidebar itself now sits flush against that same measured edge
+    // — its own right side touching .wrap's left, rather than staying
+    // pinned to the true viewport edge (this rule's own CSS default,
+    // left:0) with however much empty margin ends up between the two on
+    // a wide window once .wrap's own centering pushes it well past 46px.
+    // Safe to sit flush now, collapsed tab AND permanently-expanded
+    // current one alike (an earlier pass here reserved 140+6px of extra
+    // clearance specifically because it wasn't yet safe — the expanded
+    // state used to grow rightward, away from its own anchor, straight
+    // into the calendar). Every expanding segment now grows the other
+    // way instead (see .month-segment.current's own width/right, and
+    // attachSegHoverExpand/pinCurrentSegment's own right-anchored
+    // positioning) — outward, away from the calendar, never toward it —
+    // so there's nothing left to reserve room for; flush is the only
+    // measurement that ever mattered.
     if(sidebarEl){
-      sidebarEl.style.left = (wrapLeft - 140 - 6) + 'px';
+      var sidebarW = sidebarEl.getBoundingClientRect().width;
+      sidebarEl.style.left = (wrapLeft - sidebarW) + 'px';
     }
     var pillsH = pillsEl.getBoundingClientRect().height;
     // Aligns the topmost year segment's own vertical center with the
