@@ -1876,19 +1876,20 @@
        inside the column instead of running on below the page's bottom
        edge, attached to nothing. (top is set inline by syncBarLayout.) */
     .month-sidebar { height:auto; max-height:calc(100vh - var(--pills-bottom, 60px) - 86px); }
-    /* A collapsed year: the heading plus one small bar, cut into as many
-       segments as the year has months, each in that month's tab color —
-       the closed year's tabs seen end-on. A fixed width however many
-       months there are (a dot per month ran off the column's edge from
-       about seven months up). The whole line is clickable; its "⋯" is
-       left out (open the year to get at it). */
-    .month-segment[data-year-seg][data-collapsed] { cursor:pointer; }
-    .year-dots { display:flex; flex:none; width:44px; height:9px; margin-right:9px; border-radius:5px; overflow:hidden;
-      box-shadow:0 0 0 1.5px rgba(255,255,255,.8); transition:transform .15s ease; }
-    .year-dots span { flex:1 1 0; min-width:0; height:100%; }
-    .month-segment[data-year-seg][data-collapsed] .itemmenu-btn { display:none; }
-    .month-segment[data-year-seg][data-collapsed]:hover .seg-label-short { opacity:1; color:var(--ink); }
-    .month-segment[data-year-seg][data-collapsed]:hover .year-dots { transform:scaleY(1.25); }
+    /* Years collapse the ordinary way: a small arrow in front of the year,
+       pointing right when it's closed and down when it's open (drawn from
+       two borders, turned with a rotation). Only there when there's more
+       than one year. The year you're in can't be closed, so it isn't
+       clickable. */
+    .month-segment[data-year-seg][data-toggle] .seg-label-short::before { content:''; display:inline-block;
+      width:5px; height:5px; margin-right:8px; vertical-align:2px;
+      border-right:2px solid currentColor; border-bottom:2px solid currentColor;
+      transform:rotate(45deg); transition:transform .18s ease; }
+    .month-segment[data-year-seg][data-toggle="closed"] .seg-label-short::before { transform:rotate(-45deg); vertical-align:1px; }
+    .month-segment[data-year-seg][data-toggle][title^="Show"], .month-segment[data-year-seg][data-toggle][title^="Hide"] { cursor:pointer; }
+    .month-segment[data-year-seg][data-toggle][title^="Show"]:hover .seg-label-short,
+    .month-segment[data-year-seg][data-toggle][title^="Hide"]:hover .seg-label-short { opacity:1; color:var(--ink); }
+    .month-segment[data-year-seg][data-toggle] .itemmenu-btn { right:84px; }
     .actionMenuYearsRow { cursor:pointer; }
     .actionMenuYearsRow input { width:16px; height:16px; margin:0; accent-color:var(--primary); cursor:pointer; }
     /* The "+" after the alternatives, redrawn to be the very same glyph:
@@ -2034,7 +2035,9 @@
      plan's other alternatives sit right beside it and share the same
      list (see setPlanMembers), so repeating the faces on each only added
      noise. Every tab stays its own tab. */
-  .pill[data-plan-pos="mid"] .pill-access, .pill[data-plan-pos="last"] .pill-access { display:none; }
+  @media screen and (max-width: 720px) {
+    .pill[data-plan-pos="mid"] .pill-access, .pill[data-plan-pos="last"] .pill-access { display:none; }
+  }
   /* A day only offers "add an activity" now. Locations are set from the
      alternative's menu ("Add location", over as many days as you like)
      and can still be retyped on any single day; the per-day "+ Add
@@ -2092,6 +2095,23 @@
     .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { margin-left:-5px; }
     .pill[data-plan-pos="last"] { margin-right:14px; }
     .pill[data-plan-pos="first"]:not(:first-child) { margin-left:14px; }
+    /* A plan with several alternatives stands on a pale tray, and the
+       people who can see the plan sit once at the tray's end — after the
+       last tab, outside every tab — so they plainly belong to the plan,
+       not to one alternative. The tray is each tab's own outer shadow
+       (5px spread; neighbours' overlap across the 3px gap), so no tab
+       changes shape; its end piece is the last tab's ::before, as wide
+       as the faces (--faces-w, measured by sizePlanFaces). */
+    /* (.pills in front: these have to outrank the tucked/open tab shadows
+       declared further down, which they extend.) */
+    .pills .pill[data-plan-pos]:not(.on) { box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32), 0 0 0 5px rgba(255,255,255,.74); }
+    .pills .pill[data-plan-pos].on { box-shadow:0 0 0 5px rgba(255,255,255,.74); }
+    .pill[data-plan-pos="first"] .pill-access, .pill[data-plan-pos="mid"] .pill-access { display:none; }
+    .pill[data-plan-pos="last"][data-plan-faces] { margin-right:calc(var(--faces-w, 40px) + 34px); }
+    .pill[data-plan-pos="last"][data-plan-faces]::before { content:''; position:absolute; left:100%; top:-5px; bottom:0;
+      width:calc(var(--faces-w, 40px) + 20px); background:rgba(255,255,255,.74); border-radius:0 14px 0 0; pointer-events:none; }
+    .pill[data-plan-pos="last"] .pill-access { position:absolute; left:calc(100% + 10px); top:50%; transform:translateY(-50%); margin:0; }
+    .pill[data-plan-pos="last"]:not(.on) .pill-access { top:calc(50% - 3px); }
     /* The "+" menu: two choices, each with a line saying what it means. */
     .plan-add-menu { min-width:250px; max-width:300px; }
     .itemmenu-row.plan-row { display:block; padding:8px 10px; }
@@ -4075,6 +4095,7 @@
     // pills without this left a stale, too-small gap baked in between
     // the pills bar and the sticky weekday header underneath it, that
     // only got worse the more alternatives/faces a month had.
+    sizePlanFaces();
     syncBarLayout();
   }
   // Own /members + /avatars read for callers that don't already have a
@@ -5767,8 +5788,11 @@
       // Moving into a different year changes which year is open in the
       // month column (see "Collapse other years"), and the paths that
       // switch month only re-mark the existing tabs — rebuild them.
-      if(collapseOtherYears() && now.monthNum !== null && prev.monthNum !== null &&
-         Math.floor((now.monthNum - 1) / 12) !== Math.floor((prev.monthNum - 1) / 12)) renderMonthSidebar();
+      if(now.monthNum !== null && prev.monthNum !== null &&
+         Math.floor((now.monthNum - 1) / 12) !== Math.floor((prev.monthNum - 1) / 12)){
+        yearOpenOverride = {};
+        renderMonthSidebar();
+      }
       if(!prev.id || !now.id || prev.monthNum === null) return;
       // prev.panel can be gone (the open alternative was just deleted) —
       // nothing to turn away from then.
@@ -9156,6 +9180,23 @@
     positionPopover(pop, anchorEl);
     input.focus(); input.select();
   }
+  // The tray a multi-alternative plan stands on ends with the plan's
+  // faces (see the stylesheet); this tells each such plan's last tab how
+  // wide those faces are. Run after the tabs are grouped and again after
+  // the faces themselves are (re)drawn, since they arrive later.
+  function sizePlanFaces(){
+    document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
+      var faces = pill.getAttribute('data-plan-pos') === 'last' ? pill.querySelector('.pill-access') : null;
+      var width = faces ? Math.round(faces.getBoundingClientRect().width) : 0;
+      if(width){
+        if(pill.getAttribute('data-plan-faces') !== '1') pill.setAttribute('data-plan-faces', '1');
+        if(pill.style.getPropertyValue('--faces-w') !== width + 'px') pill.style.setProperty('--faces-w', width + 'px');
+      } else {
+        if(pill.hasAttribute('data-plan-faces')) pill.removeAttribute('data-plan-faces');
+        if(pill.style.getPropertyValue('--faces-w')) pill.style.removeProperty('--faces-w');
+      }
+    });
+  }
   // Marks up the visible tabs so the stylesheet can draw a plan's
   // alternatives as one joined group with the plan's name above it:
   // data-plan-pos (first / mid / last) on each tab of a plan that has more
@@ -9190,6 +9231,7 @@
         setAttr(mem.pill, 'data-plan-label', grouped && i === 0 ? (mem.panel.getAttribute('data-plan-name') || t('plan_label')) : null);
       });
     });
+    sizePlanFaces();
   }
 
   function createOption(year, month){
@@ -10433,6 +10475,8 @@
   function collapseOtherYears(){
     try { return localStorage.getItem(COLLAPSE_YEARS_KEY) !== '0'; } catch(e){ return true; }
   }
+  // Years opened or closed by hand in the month column (year -> bool).
+  var yearOpenOverride = {};
   function renderMonthSidebar(){
     var sidebar = document.getElementById('monthSidebar');
     if(!sidebar) return;
@@ -10575,27 +10619,28 @@
         yearSlot.appendChild(yearSeg);
         sidebar.appendChild(yearSlot);
       }
-      // Only the year you're in is open; every other year is just its
-      // heading (Menu -> "Collapse other years", on by default). A long
-      // plan otherwise runs the tabs past the bottom of the page, where
-      // they hang beside nothing. Clicking a collapsed year opens it on
-      // its first month.
+      // Years open and close like any collapsible list: a small arrow in
+      // front of the year (right = closed, down = open), and clicking the
+      // year toggles it in place without leaving the page you're on. The
+      // year you're in is always open. By default the others start closed
+      // (Menu -> "Collapse other years"); whatever you open or close by
+      // hand holds until you move to a different year.
       var yearMonths = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
-      if(collapseOtherYears() && activeYear !== null && yr !== activeYear && yearSeg && yearMonths.length){
-        yearSeg.dataset.collapsed = '1';
-        // One segment per month inside, each in that month's own tab
-        // color — the closed year's tabs, seen end-on (see .year-dots).
-        var dots = document.createElement('span');
-        dots.className = 'year-dots';
-        yearMonths.forEach(function(m){
-          var dot = document.createElement('span');
-          dot.style.background = colorByKey[m.key];
-          dots.appendChild(dot);
-        });
-        yearSeg.insertBefore(dots, yearSeg.firstChild);
-        yearSeg.title = 'Show ' + yr + ' (' + yearMonths.length + (yearMonths.length === 1 ? ' month)' : ' months)');
-        yearSeg.addEventListener('click', function(){ filterPillsByMonth(yearMonths[0].year, yearMonths[0].month); });
-        return;
+      if(yearSeg && years.length > 1 && yearMonths.length){
+        var isActiveYear = activeYear === null || yr === activeYear;
+        var open = isActiveYear || (yearOpenOverride.hasOwnProperty(yr) ? yearOpenOverride[yr] : !collapseOtherYears());
+        yearSeg.dataset.toggle = open ? 'open' : 'closed';
+        yearSeg.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if(!isActiveYear){
+          yearSeg.title = (open ? 'Hide ' : 'Show ') + yr + ' (' + yearMonths.length + (yearMonths.length === 1 ? ' month)' : ' months)');
+          (function(year, wasOpen){
+            yearSeg.addEventListener('click', function(){
+              yearOpenOverride[year] = !wasOpen;
+              renderMonthSidebar();
+            });
+          })(yr, open);
+        }
+        if(!open) return;
       }
 
       var monthsInYear = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
