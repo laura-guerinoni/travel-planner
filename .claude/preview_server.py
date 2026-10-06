@@ -7,8 +7,11 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8099
 class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k): super().__init__(*a, directory=ROOT, **k)
     def do_GET(self):
-        if self.path.split('?')[0] in ('/', '/index.html'):
-            s = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
+        path = self.path.split('?')[0]
+        if path == '/': path = '/index.html'
+        full = os.path.normpath(os.path.join(ROOT, path.lstrip('/')))
+        if path.endswith('.html') and full.startswith(ROOT) and os.path.isfile(full):
+            s = open(full, encoding='utf-8').read()
             s = s.replace("if (location.protocol === 'http:' || location.protocol === 'https:') {\n      document.documentElement.style.visibility = 'hidden';", "if (false) {\n      document.documentElement.style.visibility = 'hidden';", 1)
             s = s.replace("var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';", "var IS_HOSTED = false;", 1)
             b = s.encode('utf-8')

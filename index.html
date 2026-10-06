@@ -1826,29 +1826,64 @@
   .fabadd-time-sep { color:var(--muted); font-weight:700; }
   .fabadd-confirm-btn { width:100%; }
 
-  /* ---- Fixes on top of the original look (nothing above was restyled) ---- */
-  /* Lets width animate to/from max-content where supported (the month
-     tab's hover-expand below); elsewhere the tab simply opens at once. */
+  /* ---- Layout pass on top of the original look ----
+     Back to the earlier full-page layout: one lilac page edge to edge
+     (no white page with a lilac block floating on it), alternatives
+     hanging from the window's top edge, months flush against its left
+     edge, and the calendar filling the width that's left. */
   :root { interpolate-size:allow-keywords; }
+  body { background-color:var(--bg); background-image:var(--texture); }
+  .wrap { background:none; border-radius:0; }
+  .pills, .pills-gapfill, .month-sidebar { background-color:var(--bg); background-image:var(--texture); }
   @media screen and (min-width: 721px) {
-    /* Room for an expanded month tab to the LEFT of the calendar. With
-       the old 56px, the open month's tab (and a year tab) ran off the
-       left edge of any window narrower than about 1400px — "AUGUST 2026"
-       showing as just "202". */
-    body { padding-left:188px; }
-    /* As wide as its own label needs, instead of a fixed 140px that the
-       longer names ("SEPTEMBER 2026") never fit in; capped so it always
-       stays inside the room reserved above. */
-    .month-segment.seg-expanded, .month-segment.current { width:max-content; min-width:140px; max-width:178px; }
+    /* The left padding is the month tabs' column: wide enough for the
+       open month's full label, so no tab ever runs off the window or
+       over the calendar. */
+    body { padding:32px 24px 32px 194px; }
+    /* Fills the page instead of stopping at 1120px in the middle of it;
+       capped only so day columns don't get absurdly wide on a huge
+       monitor. Side padding gone with the block it used to inset from. */
+    .wrap { max-width:1700px; margin-left:0; margin-right:0; padding-left:0; padding-right:0; }
+    /* Hanging from the very top of the window: flat edge up against it,
+       rounded corners down — nothing underneath for them to float over. */
+    /* Right padding stops the "+" ending up under the menu button when
+       the row is full. */
+    .pills { max-width:none; right:16px; padding:0 60px 14px 32px; }
+    .pill { border-radius:0 0 12px 12px; }
+    .pill.on::after { top:0; bottom:4px; border-radius:0 0 9px 9px;
+      border:2px dashed rgba(255,255,255,.85); border-top:none; }
+    /* Same idea on the left edge: flat side on the window, rounded side
+       toward the calendar, stitch open where the tab is attached. */
+    /* Every tab shows its full name all the time now — the column is
+       there anyway, so short "AUG"/"SEP" stubs just left it looking
+       empty. The open month is still the one that stands out: full
+       column width, stitched, raised. */
+    .month-sidebar { width:182px; }
+    .month-segment { inset:0 auto 0 0; width:max-content; min-width:104px; max-width:172px;
+      justify-content:flex-start; border-radius:0 10px 10px 0; }
+    .month-segment .seg-label-short { display:none; }
+    .month-segment .seg-label-full { display:inline; font-size:12.5px; letter-spacing:.03em; }
+    .month-segment[data-year-seg] { min-width:0; }
+    .month-segment[data-year-seg] .seg-label-full { display:none; }
+    .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 30px 0 14px; }
+    .month-segment.current::before { left:0; right:6px; border-radius:0 6px 6px 0;
+      border:2px dashed rgba(255,255,255,.85); border-left:none; }
+    /* As wide as its own label needs (a fixed 140px never fit the longer
+       names), capped to the column reserved above. */
+    .month-segment.seg-expanded { width:max-content; min-width:104px; max-width:182px; }
+    .month-segment.current { width:182px; }
     /* Right padding keeps the label clear of the tab's own "⋯" button,
        which used to sit on top of the last digit of the year. */
-    .month-segment .seg-label-full { padding:0 30px 0 14px; overflow:hidden; text-overflow:ellipsis; }
+    .month-segment .seg-label-full { padding:0 28px 0 12px; overflow:hidden; text-overflow:ellipsis; }
   }
   /* The row may wrap, so on a narrow column the day total drops under
      the place name instead of squeezing it into mid-word breaks
      ("Zakopa" / "ne"). Words still break as a last resort. */
   .loc { flex-wrap:wrap; row-gap:4px; }
   .loc-text { flex:1 1 auto; overflow-wrap:break-word; word-break:normal; hyphens:manual; }
+  /* An alternative with nothing priced yet has no rows to show — hide the
+     heading and its empty box rather than leave a blank white strip. */
+  #paymentOverview:has(ul:empty), #paymentOverviewTitle:has(+ #paymentOverview ul:empty) { display:none; }
   /* Never split a day's number or weekday one character per line. */
   .daynum, .wd { white-space:nowrap; overflow-wrap:normal; }
   .daynum { flex:none; }
@@ -8661,8 +8696,8 @@
       // (were it still carrying some earlier inline value) would win
       // over right in that fight regardless of which one this function
       // actually means to control right now.
-      seg.style.right = (window.innerWidth - (r.left + r.width)) + 'px';
-      seg.style.left = 'auto';
+      seg.style.left = r.left + 'px';
+      seg.style.right = 'auto';
       seg.style.height = r.height + 'px';
     });
   }
@@ -8728,8 +8763,8 @@
       // can't fight right for control of the position once both width
       // and both edges would otherwise be specified at once — see
       // pinCurrentSegment's own identical reasoning.
-      seg.style.right = (window.innerWidth - r.right) + 'px';
-      seg.style.left = 'auto';
+      seg.style.left = r.left + 'px';
+      seg.style.right = 'auto';
       seg.style.height = r.height + 'px';
       seg.style.width = r.width + 'px'; // freeze at the collapsed width first
       seg.classList.add('seg-expanded');
@@ -9120,7 +9155,10 @@
     // measurement that ever mattered.
     if(sidebarEl){
       var sidebarW = sidebarEl.getBoundingClientRect().width;
-      sidebarEl.style.left = (wrapLeft - sidebarW) + 'px';
+      // Flush against the window's own left edge (as in the earlier
+      // full-page layout), not floating beside a centered block; tabs
+      // open rightward into the column body's padding-left reserves.
+      sidebarEl.style.left = '0px';
     }
     var pillsH = pillsEl.getBoundingClientRect().height;
     // Where .wrap's own top edge (and its rounded top corners — see its
