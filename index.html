@@ -5316,6 +5316,9 @@
       anims.push(lead);
     }
     lead.onfinish = pageTurnCleanup;
+    // Animations stall while the tab is in the background and onfinish with
+    // them; a plain timer makes sure the copies never outstay the turn.
+    setTimeout(pageTurnCleanup, duration + 500);
 
     // Day cards of the page being uncovered pop in along the edge that's
     // uncovering them: right-to-left behind a turning month, bottom-up
