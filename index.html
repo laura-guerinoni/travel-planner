@@ -1975,19 +1975,24 @@
     .page-turn-content { display:flex; flex-direction:column; min-height:100%; }
     .page-turn-content > .grid.week { flex:1 0 auto; }
     .page-turn-content > .grid.heads { position:static; }
-    /* The paper's back: a shade lighter than its face, with only a hint
-       of shading toward its free edge (the right edge of a month's page,
-       the bottom edge of an alternative's). */
+    /* The paper's back: the page's own color and grain — never white —
+       shifted a touch lighter or darker by --turn-tint (set per turn, see
+       playPageTurn), and falling very slightly into shade toward its free
+       edge (the right edge of a month's page, the bottom edge of an
+       alternative's), which is the part furthest from the light. */
     .page-turn-flap { transform-origin:0 0; will-change:transform, clip-path;
-      background-image:linear-gradient(270deg, rgba(40,25,60,.06), rgba(40,25,60,0) 80px),
-        linear-gradient(rgba(255,255,255,.6), rgba(255,255,255,.6)), var(--texture); }
-    .page-turn-flap-up { background-image:linear-gradient(0deg, rgba(40,25,60,.06), rgba(40,25,60,0) 80px),
-        linear-gradient(rgba(255,255,255,.6), rgba(255,255,255,.6)), var(--texture); }
-    /* On the fold: a bright glint along the crest, the lightest touch of
-       shade either side of it. */
+      background-image:linear-gradient(270deg, rgba(40,25,60,.07), rgba(40,25,60,0) 120px),
+        linear-gradient(var(--turn-tint, transparent), var(--turn-tint, transparent)), var(--texture); }
+    .page-turn-flap-up { background-image:linear-gradient(0deg, rgba(40,25,60,.07), rgba(40,25,60,0) 120px),
+        linear-gradient(var(--turn-tint, transparent), var(--turn-tint, transparent)), var(--texture); }
+    /* On the fold, as a bent sheet takes the light: the paper darkens a
+       little as it starts to curve, catches a soft highlight along the
+       crest (soft — paper isn't glossy), and drops a narrow shadow onto
+       the page it's lifting off. */
     .page-turn-band { position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform;
-      background:linear-gradient(90deg, rgba(40,25,60,0) 0%, rgba(40,25,60,.06) 34%,
-        rgba(255,255,255,.9) 47%, rgba(255,255,255,.35) 50%, rgba(40,25,60,.13) 50%, rgba(40,25,60,0) 100%); }
+      background:linear-gradient(90deg, rgba(40,25,60,0) 0%, rgba(40,25,60,.07) 30%, rgba(40,25,60,.02) 40%,
+        rgba(255,255,255,.42) 47%, rgba(255,255,255,.1) 50%, rgba(40,25,60,.16) 50%, rgba(40,25,60,.05) 72%, rgba(40,25,60,0) 100%); }
+    .page-turn-through { opacity:.24; background:none; border-color:transparent; }
     .page-turn-star { position:absolute; pointer-events:none; opacity:0;
       clip-path:polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
     /* Closed tabs are tucked behind the page: the inset shadow is the
@@ -5296,6 +5301,18 @@
     var flat = buildPage(forward ? oldPanel : newPanel);
     var flap = document.createElement('div');
     flap.className = 'page-turn-flap' + (isMonth ? '' : ' page-turn-flap-up');
+    // The back of the sheet is the same paper as its face. Lifting away
+    // (forward) it tips up toward the light and reads a touch lighter;
+    // coming down (back) its underside is turned from the light and
+    // reads a touch darker.
+    flap.style.setProperty('--turn-tint', forward ? 'rgba(255,255,255,.07)' : 'rgba(40,25,60,.045)');
+    // Paper this thin shows its other side through: a faint copy of the
+    // page's own cards on the back (mirrored for free — the flap's
+    // transform is the mirror), so the turned part still reads as this
+    // page rather than a blank sheet.
+    var through = buildPage(forward ? oldPanel : newPanel);
+    through.classList.add('page-turn-through');
+    flap.appendChild(through);
     var band = document.createElement('div');
     band.className = 'page-turn-band';
     var BAND_W = 120, BAND_L = 2 * Math.max(W, H) + 400;
