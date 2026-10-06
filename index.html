@@ -1876,16 +1876,19 @@
        inside the column instead of running on below the page's bottom
        edge, attached to nothing. (top is set inline by syncBarLayout.) */
     .month-sidebar { height:auto; max-height:calc(100vh - var(--pills-bottom, 60px) - 86px); }
-    /* A collapsed year: the heading plus a row of small dots, one per
-       month inside and in that month's tab color. The whole line is
-       clickable; its "⋯" is left out (open the year to get at it). */
+    /* A collapsed year: the heading plus one small bar, cut into as many
+       segments as the year has months, each in that month's tab color —
+       the closed year's tabs seen end-on. A fixed width however many
+       months there are (a dot per month ran off the column's edge from
+       about seven months up). The whole line is clickable; its "⋯" is
+       left out (open the year to get at it). */
     .month-segment[data-year-seg][data-collapsed] { cursor:pointer; }
-    .year-dots { display:flex; align-items:center; gap:3px; margin-right:8px; }
-    .year-dots span { width:7px; height:7px; border-radius:50%; box-shadow:0 0 0 1.5px rgba(255,255,255,.75); }
+    .year-dots { display:flex; flex:none; width:44px; height:9px; margin-right:9px; border-radius:5px; overflow:hidden;
+      box-shadow:0 0 0 1.5px rgba(255,255,255,.8); transition:transform .15s ease; }
+    .year-dots span { flex:1 1 0; min-width:0; height:100%; }
     .month-segment[data-year-seg][data-collapsed] .itemmenu-btn { display:none; }
     .month-segment[data-year-seg][data-collapsed]:hover .seg-label-short { opacity:1; color:var(--ink); }
-    .month-segment[data-year-seg][data-collapsed]:hover .year-dots span { transform:scale(1.2); }
-    .year-dots span { transition:transform .15s ease; }
+    .month-segment[data-year-seg][data-collapsed]:hover .year-dots { transform:scaleY(1.25); }
     .actionMenuYearsRow { cursor:pointer; }
     .actionMenuYearsRow input { width:16px; height:16px; margin:0; accent-color:var(--primary); cursor:pointer; }
     /* The "+" after the alternatives, redrawn to be the very same glyph:
@@ -10580,8 +10583,8 @@
       var yearMonths = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
       if(collapseOtherYears() && activeYear !== null && yr !== activeYear && yearSeg && yearMonths.length){
         yearSeg.dataset.collapsed = '1';
-        // One small dot per month inside, each in that month's own tab
-        // color — the closed year's tabs, seen end-on.
+        // One segment per month inside, each in that month's own tab
+        // color — the closed year's tabs, seen end-on (see .year-dots).
         var dots = document.createElement('span');
         dots.className = 'year-dots';
         yearMonths.forEach(function(m){
