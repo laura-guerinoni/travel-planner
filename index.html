@@ -1871,6 +1871,39 @@
       letter-spacing:.08em; color:var(--muted); }
     .month-segment[data-year-seg] .itemmenu-btn { background:none; }
   }
+  /* ---- What the book lies on (desktop) ----
+     Not flat white any more: a warm cream-to-lilac wash with soft glows
+     of the theme's own pink, coral, mint and lilac in the corners, and a
+     scatter of small four-point stars that slowly twinkle. Fixed to the window,
+     so it stays put while the page scrolls. */
+  @media screen and (min-width: 721px) {
+    :root { --backdrop:
+      radial-gradient(900px 620px at 4% -8%, rgba(var(--primary-rgb),.32), transparent 62%),
+      radial-gradient(820px 640px at 102% 4%, rgba(var(--accent-rgb),.28), transparent 60%),
+      radial-gradient(980px 760px at 92% 108%, rgba(var(--secondary-rgb),.28), transparent 60%),
+      radial-gradient(860px 700px at -4% 104%, rgba(150,120,220,.32), transparent 60%),
+      linear-gradient(165deg, #fff4ee 0%, #f8eefb 48%, #eef8f4 100%); }
+    body { background-color:#f8eefb; background-image:var(--backdrop); background-attachment:fixed; }
+    /* The alternatives bar has to stay opaque (the page scrolls under
+       it), so it wears the very same window-fixed wash and disappears
+       into it; the month column and gap strip have nothing to hide and
+       simply go see-through. */
+    .pills { background-color:#f8eefb; background-image:var(--backdrop); background-attachment:fixed; }
+    .month-sidebar, .pills-gapfill { background:none; }
+    body::before { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cpath transform='translate%2840 52%29 scale%281.25%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28212 34%29 scale%280.7%29' fill='%23f5a95f' fill-opacity='0.85' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28296 170%29 scale%281.05%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28118 236%29 scale%280.8%29' fill='%23ec6a9c' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%2822 198%29 scale%280.55%29' fill='%23f5a95f' fill-opacity='0.8' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
+      animation:backdrop-twinkle 7s ease-in-out infinite alternate; }
+    /* A second, sparser scatter of bigger stars, twinkling out of step
+       with the first. */
+    body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='470' height='410'%3E%3Cpath transform='translate%2890 120%29 scale%281.7%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28380 60%29 scale%280.9%29' fill='%23b79cf0' fill-opacity='0.7' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28250 300%29 scale%281.3%29' fill='%23f5a95f' fill-opacity='0.75' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28430 350%29 scale%280.6%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28150 380%29 scale%280.7%29' fill='%233fbf94' fill-opacity='0.55' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
+      animation:backdrop-twinkle 11s ease-in-out -4s infinite alternate-reverse; }
+    @media (prefers-reduced-motion: reduce) { body::before, body::after { animation:none; } }
+    /* Sits on a coloured page now, so the year heading and the "+" need
+       a little more weight than they did on white. */
+    .month-segment[data-year-seg] .seg-label-short { color:var(--ink); opacity:.7; }
+  }
+  @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
      edges show underneath it, a ribbon marker hangs out of the bottom, and the tabs that
@@ -1892,25 +1925,14 @@
     /* playPageTurn()'s stage: a clipped, see-through layer over the
        calendar holding copies of the pages involved in the turn. The
        copies get the same fill-the-page layout as the real .panel.on. */
-    .page-turn-stage { position:fixed; z-index:1; left:0; right:0; bottom:0; overflow:hidden; pointer-events:none; }
+    .page-turn-stage { position:fixed; z-index:1; right:0; bottom:0; overflow:hidden; pointer-events:none; }
     .page-turn-page { position:absolute; box-sizing:border-box; padding:16px; overflow:hidden; border-radius:14px;
       border:1px solid var(--line); background-color:var(--bg); background-image:var(--texture);
-      text-align:left; backface-visibility:hidden; }
+      text-align:left; }
     .page-turn-turning { will-change:transform; box-shadow:0 0 46px rgba(40,25,60,.34); }
     .page-turn-content { display:flex; flex-direction:column; min-height:100%; }
     .page-turn-content > .grid.week { flex:1 0 auto; }
     .page-turn-content > .grid.heads { position:static; }
-    .page-turn-shade { position:absolute; inset:0; pointer-events:none; }
-    /* A turning month: the page cut into strips, each nested in the one
-       before it and hinged on its own left edge, so their small rotations
-       add up into a curl. Each has a blank back for when it curls past
-       upright. */
-    .page-turn-curl, .page-turn-strip { position:absolute; top:0; transform-style:preserve-3d; transform-origin:left center; }
-    .page-turn-strip { will-change:transform; }
-    .page-turn-face, .page-turn-back { position:absolute; left:0; top:0; overflow:hidden; backface-visibility:hidden; }
-    .page-turn-face .page-turn-page { border-radius:14px; }
-    .page-turn-back { transform:rotateY(180deg); background-color:var(--bg);
-      background-image:linear-gradient(rgba(40,25,60,.1), rgba(40,25,60,.1)), var(--texture); }
     .page-turn-cast { position:absolute; border-radius:14px; background:rgba(40,25,60,.2); }
     /* Closed tabs are tucked behind the page: the inset shadow is the
        page's own edge lying over them, and the top ones stop a little
@@ -5145,23 +5167,22 @@
   // month tab click, adding a month or an alternative, removing the open
   // one) without going through activatePillByOpt, so the overview kept
   // the previous alternative's totals until something else re-rendered it.
-  // Page turns. The page that turns is the real one: a copy of the
-  // outgoing month/alternative, cards and all.
-  // Changing MONTH turns it like paper — the copy is cut into vertical
-  // strips chained edge to edge in 3D, so the free edge can curl up and
-  // lead while the hinge (the left edge, where the month tabs are)
-  // follows; its blank back shows where it curls past upright. Going
-  // forward it peels off the new page lying underneath; going back, the
-  // earlier page whips down onto the current one.
-  // Changing ALTERNATIVE is a different move, since it's the same month:
-  // the sheet is tugged up and out by its tab (or dropped in with a small
-  // bounce), flat, slightly askew — swapping loose sheets behind a divider.
+  // Page changes. The sheet that moves is the real one: a copy of the
+  // outgoing month/alternative, cards and all, kept flat the whole way
+  // (an earlier 3D turn put the weekday row and every card at an angle
+  // and stuttered). Each kind leaves toward its own tabs: an ALTERNATIVE
+  // is tugged up and out under the tab bar at the top, a MONTH is drawn
+  // out sideways under the month tabs' edge on the left — a longer,
+  // heavier move, since it's a whole different page. Going forward the
+  // old sheet leaves and uncovers the new page lying underneath; going
+  // back, the new sheet is slid in over the old one and settles with a
+  // small bounce.
   // Around both: the day cards of the uncovered page pop in along the
   // edge that's uncovering them, the tab that was picked springs, and
   // the ribbon swings.
   // Everything animated here is either inside a throwaway stage parked in
   // #statusBar (already in SAVE_EXCLUDE_SEL) or a Web Animation — no
-  // class or style ever touches the plan's own DOM, so a turn can't
+  // class or style ever touches the plan's own DOM, so a change can't
   // schedule a save or end up serialized. The copies deliberately aren't
   // .panel elements, so nothing that looks up ".panel.on" can find them.
   var pageTurnCleanup = null;
@@ -5183,35 +5204,25 @@
     var pageTop = r.top - stageTop;
     var visibleTop = Math.max(0, stageTop - r.top);
     var visibleHeight = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, stageTop);
-    // Clipped at the alternatives bar, like the real page is.
+    // Clipped where the sheet goes under its tabs: at the alternatives
+    // bar always, and at the page's own left edge for a month.
+    var stageLeft = isMonth ? r.left : 0;
+    var pageLeft = r.left - stageLeft;
     var stage = document.createElement('div');
     stage.className = 'page-turn-stage';
     stage.setAttribute('aria-hidden', 'true');
     stage.style.top = stageTop + 'px';
-    // Eye level with the hinge, not the page's middle: a page swinging
-    // toward the viewer is magnified away from the vanishing point, and
-    // centered that pushed its near edge out past the hinge, over the
-    // month tabs.
-    stage.style.perspective = '4200px';
-    stage.style.perspectiveOrigin = r.left + 'px ' + (pageTop + visibleTop + visibleHeight * .5) + 'px';
-    var shades = [];
-    function buildPage(panel, left, top){
+    stage.style.left = stageLeft + 'px';
+    function buildPage(panel){
       var page = document.createElement('div');
       page.className = 'page-turn-page';
-      page.style.left = left + 'px'; page.style.top = top + 'px';
+      page.style.left = pageLeft + 'px'; page.style.top = pageTop + 'px';
       page.style.width = r.width + 'px'; page.style.height = pageHeight + 'px';
       var copy = panel.cloneNode(true);
       copy.removeAttribute('id');
       copy.className = 'page-turn-content';
       page.appendChild(copy);
       return page;
-    }
-    function addShade(page, gradient){
-      var shade = document.createElement('div');
-      shade.className = 'page-turn-shade';
-      shade.style.background = gradient;
-      page.appendChild(shade);
-      shades.push(shade);
     }
     var anims = [];
     var done = false;
@@ -5221,108 +5232,56 @@
       anims.forEach(function(a){ try { a.cancel(); } catch(e){} });
       stage.remove();
     };
-    // forward: the old page leaves, the real new page is underneath.
+    // forward: the old sheet leaves, the real new page is underneath.
     // back: a still copy of the old page covers the real one while a copy
     // of the new page arrives on top of it.
-    if(!forward) stage.appendChild(buildPage(oldPanel, r.left, pageTop));
-    // The shadow the lifted page throws on whatever lies beneath it.
+    if(!forward) stage.appendChild(buildPage(oldPanel));
+    // The shadow the moving sheet throws on whatever lies beneath it.
     var cast = document.createElement('div');
     cast.className = 'page-turn-cast';
-    cast.style.left = r.left + 'px'; cast.style.top = pageTop + 'px';
+    cast.style.left = pageLeft + 'px'; cast.style.top = pageTop + 'px';
     cast.style.width = r.width + 'px'; cast.style.height = pageHeight + 'px';
     stage.appendChild(cast);
-    var movingPanel = forward ? oldPanel : newPanel;
-    var duration, lead;
-
-    if(isMonth){
-      duration = 980;
-      var STRIPS = 8, stripW = r.width / STRIPS;
-      var curl = document.createElement('div');
-      curl.className = 'page-turn-curl';
-      curl.style.left = r.left + 'px'; curl.style.top = pageTop + 'px';
-      curl.style.width = r.width + 'px'; curl.style.height = pageHeight + 'px';
-      var parent = curl, strips = [];
-      for(var k = 0; k < STRIPS; k++){
-        var strip = document.createElement('div');
-        strip.className = 'page-turn-strip';
-        strip.style.left = (k ? stripW : 0) + 'px';
-        strip.style.width = stripW + 'px'; strip.style.height = pageHeight + 'px';
-        // +1px so neighbouring strips overlap instead of showing a hairline.
-        var faceW = (stripW + (k < STRIPS - 1 ? 1 : 0)) + 'px';
-        var face = document.createElement('div');
-        face.className = 'page-turn-face';
-        face.style.width = faceW; face.style.height = pageHeight + 'px';
-        var slice = buildPage(movingPanel, -k * stripW, 0);
-        addShade(slice, 'linear-gradient(90deg, rgba(40,25,60,.04), rgba(40,25,60,.3))');
-        face.appendChild(slice);
-        var back = document.createElement('div');
-        back.className = 'page-turn-back';
-        back.style.width = faceW; back.style.height = pageHeight + 'px';
-        strip.appendChild(face); strip.appendChild(back);
-        parent.appendChild(strip);
-        parent = strip; strips.push(strip);
-      }
-      stage.appendChild(curl);
-      host.appendChild(stage);
-      var opts = { duration: duration, fill: 'both', direction: forward ? 'normal' : 'reverse' };
-      // The hinge hangs back, then sweeps; every other strip adds its own
-      // bend on top of the one before it (they're nested), peaking while
-      // the hinge has barely moved — that's the free edge curling over
-      // first — and straightening out as the page goes upright.
-      lead = strips[0].animate([
-        { transform: 'rotateY(0deg)', easing: 'cubic-bezier(.4,0,.6,.5)' },
-        { transform: 'rotateY(-16deg)', offset: .4, easing: 'cubic-bezier(.4,.3,.5,1)' },
-        { transform: 'rotateY(-90deg)' }
-      ], opts);
-      anims.push(lead);
-      for(var b = 1; b < STRIPS; b++){
-        // ~45deg in total at the peak: enough to read as paper giving, never
-        // enough to fold a strip back over its neighbour.
-        var bend = 3.6 + b * .75;
-        anims.push(strips[b].animate([
-          { transform: 'rotateY(0deg)', easing: 'cubic-bezier(.3,0,.3,1)' },
-          { transform: 'rotateY(' + (-bend) + 'deg)', offset: .46, easing: 'cubic-bezier(.5,0,.6,1)' },
-          { transform: 'rotateY(0deg)' }
-        ], opts));
-      }
-      shades.forEach(function(sh){ anims.push(sh.animate([{ opacity: 0 }, { opacity: 1 }], opts)); });
-      anims.push(cast.animate([{ opacity: 1 }, { opacity: .85, offset: .4 }, { opacity: 0 }], opts));
-    } else {
-      duration = 560;
-      var sheet = buildPage(movingPanel, r.left, pageTop);
-      sheet.classList.add('page-turn-turning');
-      sheet.style.transformOrigin = '30% ' + visibleTop + 'px';
-      stage.appendChild(sheet);
-      host.appendChild(stage);
-      var gone = 'translateY(' + (-(visibleHeight + 80)) + 'px) rotate(-2.4deg)';
-      if(forward){
-        // A small dip first, as if gripped by its tab, then out.
-        lead = sheet.animate([
-          { transform: 'translateY(0px) rotate(0deg)', easing: 'ease-out' },
-          { transform: 'translateY(9px) rotate(.5deg)', offset: .2, easing: 'cubic-bezier(.6,0,.8,.4)' },
-          { transform: gone }
-        ], { duration: duration, fill: 'both' });
-        anims.push(cast.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration, fill: 'both', easing: 'ease-in' }));
-      } else {
-        // Dropped in: lands a touch low, settles back.
-        lead = sheet.animate([
-          { transform: gone, easing: 'cubic-bezier(.2,.7,.3,1)' },
-          { transform: 'translateY(7px) rotate(.4deg)', offset: .72, easing: 'ease-in-out' },
-          { transform: 'translateY(-3px) rotate(-.15deg)', offset: .87, easing: 'ease-in-out' },
-          { transform: 'translateY(0px) rotate(0deg)' }
-        ], { duration: duration, fill: 'both' });
-        anims.push(cast.animate([{ opacity: 0 }, { opacity: 1, offset: .7 }, { opacity: 1 }], { duration: duration, fill: 'both' }));
-      }
-      anims.push(lead);
+    var sheet = buildPage(forward ? oldPanel : newPanel);
+    sheet.classList.add('page-turn-turning');
+    stage.appendChild(sheet);
+    host.appendChild(stage);
+    var duration = isMonth ? 700 : 560;
+    // t(d, a): d px along the sheet's own exit direction (negative = out),
+    // tilted a degrees.
+    function t(d, a){
+      return (isMonth ? 'translateX(' : 'translateY(') + d + 'px) rotate(' + (isMonth ? -a * .6 : a) + 'deg)';
     }
+    sheet.style.transformOrigin = isMonth ? ('0px ' + (visibleTop + visibleHeight * .3) + 'px') : ('30% ' + visibleTop + 'px');
+    var gone = t(-((isMonth ? r.width : visibleHeight) + 80), -2.4);
+    var lead;
+    if(forward){
+      // A small dip first, as if gripped by its tab, then out.
+      lead = sheet.animate([
+        { transform: t(0, 0), easing: 'ease-out' },
+        { transform: t(9, .5), offset: .2, easing: 'cubic-bezier(.6,0,.8,.4)' },
+        { transform: gone }
+      ], { duration: duration, fill: 'both' });
+      anims.push(cast.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration, fill: 'both', easing: 'ease-in' }));
+    } else {
+      // Slid in: lands a touch far, settles back.
+      lead = sheet.animate([
+        { transform: gone, easing: 'cubic-bezier(.2,.7,.3,1)' },
+        { transform: t(7, .4), offset: .72, easing: 'ease-in-out' },
+        { transform: t(-3, -.15), offset: .87, easing: 'ease-in-out' },
+        { transform: t(0, 0) }
+      ], { duration: duration, fill: 'both' });
+      anims.push(cast.animate([{ opacity: 0 }, { opacity: 1, offset: .7 }, { opacity: 1 }], { duration: duration, fill: 'both' }));
+    }
+    anims.push(lead);
     lead.onfinish = pageTurnCleanup;
     // Animations stall while the tab is in the background and onfinish with
     // them; a plain timer makes sure the copies never outstay the turn.
     setTimeout(pageTurnCleanup, duration + 500);
 
     // Day cards of the page being uncovered pop in along the edge that's
-    // uncovering them: right-to-left behind a turning month, bottom-up
-    // behind a sheet being pulled out. (Going back there's nothing to
+    // uncovering them: right-to-left behind a month drawn out to the
+    // left, bottom-up behind a sheet pulled out at the top. (Going back there's nothing to
     // uncover — the arriving page lands already complete.)
     if(forward){
       var weeks = newPanel.querySelectorAll(':scope > .grid.week');
@@ -5330,7 +5289,7 @@
         var cells = week.children;
         for(var col = 0; col < cells.length; col++){
           if(cells[col].classList.contains('empty')) continue;
-          var delay = isMonth ? duration * .34 + (6 - col) * 52 + row * 14
+          var delay = isMonth ? duration * .3 + (6 - col) * 46 + row * 10
                               : duration * .3 + (weeks.length - 1 - row) * 46 + col * 8;
           cells[col].animate([
             { opacity: 0, transform: 'translateY(10px) scale(.94)' },
