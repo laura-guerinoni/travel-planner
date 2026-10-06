@@ -1836,13 +1836,13 @@
   @media screen and (min-width: 721px) {
     /* Left padding = the month tabs' column, just wide enough for the
        open month's name (the year lives on its own chip now). */
-    body { padding:32px 24px 24px 148px; }
+    body { padding:32px 36px 60px 148px; }
     /* A flex column at least as tall as the window (--pills-bottom is where
        the block starts, see syncBarLayout), with the open month's weeks
        sharing whatever height is spare — so a short month on a tall screen
        fills the page instead of ending halfway down it with white below. */
     .wrap { max-width:1700px; margin-left:0; margin-right:0; display:flex; flex-direction:column;
-      min-height:calc(100vh - var(--pills-bottom, 60px) - 24px); }
+      min-height:calc(100vh - var(--pills-bottom, 60px) - 60px); }
     .panel.on { flex:1 0 auto; display:flex; flex-direction:column; }
     .panel.on > .grid.week { flex:1 0 auto; }
     /* No bottom padding: with syncBarLayout's gap gone too, a tab's flat
@@ -1870,6 +1870,40 @@
     .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 0 0 12px; font-size:15px;
       letter-spacing:.08em; color:var(--muted); }
     .month-segment[data-year-seg] .itemmenu-btn { background:none; }
+  }
+  /* ---- Book feel (desktop) ----
+     The lilac block is the open page of a thick planner: a few more page
+     edges show underneath it, a ribbon marker hangs out of the bottom,
+     the month is printed at the top of the page, and the tabs that
+     aren't open sit tucked behind the page's edge. Same colors, same
+     cards. */
+  @media screen and (min-width: 721px) {
+    /* Each pair of shadows is one more sheet underneath (fill + its edge
+       line), stepped down and to the right; the last is the book's own
+       shadow on the desk. */
+    .wrap { position:relative; border:1px solid var(--line);
+      box-shadow:4px 4px 0 -1px var(--bg), 4px 4px 0 0 var(--line),
+        8px 8px 0 -1px var(--bg), 8px 8px 0 0 var(--line),
+        12px 12px 0 -1px var(--bg), 12px 12px 0 0 var(--line),
+        18px 26px 44px -14px rgba(61,53,104,.38); }
+    /* Ribbon marker: behind the page stack (z-index:-1 with no stacking
+       context on .wrap), so only the tail below the last sheet shows. */
+    .wrap::after { content:''; position:absolute; z-index:-1; right:190px; bottom:-44px; width:22px; height:70px;
+      background:var(--accent); clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); }
+    /* Printed page heading — text from data-page-title/-year, set in
+       renderMonthSidebar. */
+    .panel.on::before { content:attr(data-page-title) " " attr(data-page-year); display:block; flex:none;
+      font-size:28px; font-weight:800; line-height:1.1; color:var(--ink); margin:6px 6px 4px; }
+    /* Closed tabs are tucked behind the page: the inset shadow is the
+       page's own edge lying over them, and the top ones stop a little
+       short. The open tab stays whole and in front. */
+    .pills { align-items:flex-end; }
+    .pill:not(.on):not(.add) { margin-top:6px; padding-top:8px; padding-bottom:8px;
+      box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32); }
+    .pill.on { box-shadow:0 -3px 10px -2px rgba(40,25,60,.22); }
+    .month-segment:not(.current):not([data-year-seg]) { box-shadow:inset -10px 0 8px -6px rgba(40,25,60,.32); }
+    .month-segment.seg-expanded:not(.current) { box-shadow:inset -10px 0 8px -6px rgba(40,25,60,.32), -3px 3px 10px rgba(40,25,60,.2); }
+    .month-segment.current { box-shadow:-4px 3px 12px -2px rgba(40,25,60,.3); }
   }
   /* The row may wrap, so on a narrow column the day total drops under
      the place name instead of squeezing it into mid-word breaks
@@ -9600,6 +9634,12 @@
       pill.style.background = color;
       pill.style.borderColor = color;
       pill.style.color = '#fff';
+      // The page's own printed heading (see .panel.on::before) — only
+      // written when it changes, and neither attribute is in MO_OPTS'
+      // attributeFilter, so this never schedules a save.
+      var pageTitle = MONTH_FULL[d.month - 1], pageYear = String(d.year);
+      if(panel.dataset.pageTitle !== pageTitle) panel.dataset.pageTitle = pageTitle;
+      if(panel.dataset.pageYear !== pageYear) panel.dataset.pageYear = pageYear;
     });
     syncBarLayout();
   }
