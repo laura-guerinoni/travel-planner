@@ -2058,6 +2058,10 @@
     .page-bookmark[data-state="on"] { height:86px; }
     .page-bookmark[data-state="on"]::after { content:'\2605'; }
     .page-bookmark[data-state="on"]:hover { height:92px; }
+    /* The open alternative always shows its "⋯", the way the open month
+       does — it used to appear on hover only, so there was nothing to
+       tell you a tab had a menu (holiday period, duplicate, share…). */
+    body.owner-mode .pill.on .pill-remove { visibility:visible; }
     /* Menus and pickers open above the ribbon (its host, #statusBar, is
        z-index 60), not underneath it. */
     .itemmenu, .monthpop, .tagpop, .linkpop { z-index:66; }
@@ -2776,6 +2780,11 @@
 <script>
 (function(){
   var IS_HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+  // Opened as a plain local file there's no sign-in and no roles — whoever
+  // has the file is its owner — so the owner-only affordances (the "⋯"
+  // on each alternative's tab, which is hidden unless body.owner-mode)
+  // should be there. Hosted, the sign-in flow sets this per role instead.
+  if(!IS_HOSTED) document.body.classList.add('owner-mode');
   // A share link (?view=1&month=<year>-<month>) opens one specific month
   // read-only, no Google sign-in required — see the anonymous-auth
   // branch in onAuthStateChanged below. VIEW_ONLY only ever flips true
