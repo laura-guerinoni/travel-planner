@@ -1,29 +1,24 @@
-# travel-planner — original look, fixed
+# travel-planner
 
-A copy of [laura-guerinoni/travel-planner](https://github.com/laura-guerinoni/travel-planner) (`main` at `3c06968`)
-with the same colors, cards and features. The layout sits between the two earlier ones: still a lilac calendar
-block on a white page, but the block fills the window, the alternatives' tabs stand directly on its top edge and
-the month tabs are attached to its left edge (year on its own chip, so the tab column stays narrow).
+Single-file trip planner (`index.html`, no build step), hosted on GitHub Pages and synced through Firebase.
 
-Defects fixed:
+## October 2026 redesign
 
-- **Calendar top spacing collapsing.** `syncBarLayout()` measured `.wrap` including the margin it had itself set on the
-  previous call, so every second call (resize, content change, font load) reset the margin to 0 and the alternatives
-  bar and sticky weekday header sat on top of the first week.
-- **Stale payment overview.** Switching alternative via a month tab, or by adding a month/alternative, kept showing the
-  previous alternative's totals.
-- **Month tabs cut off / label under its "⋯".** Tabs now have their own column and size to their label.
-- **Empty payment overview box** for an alternative with nothing priced is hidden.
-- **Place names broken mid-word** in narrow columns; day numbers can no longer wrap character by character.
-- **Phone:** the month ribbon's "⋯" no longer sits under the top-right menu button.
+- **Book look:** the calendar is a page in a stack, on a pastel backdrop (Menu → Background: starry or minimal; both follow the theme).
+  Alternatives are tabs along the top, months are tabs on the left edge, and switching either turns the page.
+- **Plans and alternatives:** a month can hold several separate plans, each with one or more alternatives. Alternatives of one plan sit
+  close together; "+" asks whether you're adding an alternative or a new plan; a tab's menu can join it to / split it from a plan.
+  Saved per alternative as `pl` / `pn`; older data (no `pl`) is one plan per tab.
+- **Spans:** "Add holiday period" and "Add location" (tab menu) take a from/to range and can run into later months.
+- **Month column:** full month names, years as headings, other years collapsed (Menu → Collapse other years), "+" adds a month.
+- **Star ribbon:** star the alternatives you prefer (stored per browser).
+- **Fixes:** calendar top spacing collapsing on every second layout pass, stale payment overview after switching, tabs running off-screen.
 
-CSS changes are one block at the end of `<style>` ("Layout pass on top of the original look"); JS changes are in
-`syncBarLayout()`, `renderMonthSidebar()` (year chip always shown) and next to `renderPaymentOverview()`.
+## Preview locally
 
-Preview without sign-in and without touching the shared Firebase plan:
+Opening `index.html` from disk runs it in local (non-synced) mode. To serve it over http without the sign-in gate
+and without touching the shared plan:
 
 ```bash
 python3 .claude/preview_server.py 8098
 ```
-
-Note: hosted as-is this copy would sign in to and edit the **same** Firebase plan as the original.
