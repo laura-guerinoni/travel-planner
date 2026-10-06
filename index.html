@@ -1873,8 +1873,7 @@
   }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
-     edges show underneath it, a ribbon marker hangs out of the bottom,
-     the month is printed at the top of the page, and the tabs that
+     edges show underneath it, a ribbon marker hangs out of the bottom, and the tabs that
      aren't open sit tucked behind the page's edge. Same colors, same
      cards. */
   @media screen and (min-width: 721px) {
@@ -1890,10 +1889,14 @@
        context on .wrap), so only the tail below the last sheet shows. */
     .wrap::after { content:''; position:absolute; z-index:-1; right:190px; bottom:-44px; width:22px; height:70px;
       background:var(--accent); clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); }
-    /* Printed page heading — text from data-page-title/-year, set in
-       renderMonthSidebar. */
-    .panel.on::before { content:attr(data-page-title) " " attr(data-page-year); display:block; flex:none;
-      font-size:28px; font-weight:800; line-height:1.1; color:var(--ink); margin:6px 6px 4px; }
+    /* The loose sheet playPageTurn() animates over the calendar when the
+       month or the alternative changes — a blank page of the same paper,
+       shaded toward its hinge. Sized/positioned inline to the visible
+       part of .wrap; --turn-shade points the shading at the hinge edge. */
+    .page-turn-sheet { position:fixed; z-index:1; pointer-events:none; border-radius:14px;
+      border:1px solid var(--line); background-color:var(--bg);
+      background-image:linear-gradient(var(--turn-shade, 90deg), rgba(40,25,60,.16), rgba(40,25,60,0) 34%), var(--texture);
+      box-shadow:0 10px 34px rgba(40,25,60,.3); backface-visibility:visible; will-change:transform, opacity; }
     /* Closed tabs are tucked behind the page: the inset shadow is the
        page's own edge lying over them, and the top ones stop a little
        short. The open tab stays whole and in front. */
@@ -5127,15 +5130,94 @@
   // month tab click, adding a month or an alternative, removing the open
   // one) without going through activatePillByOpt, so the overview kept
   // the previous alternative's totals until something else re-rendered it.
-  (function watchActivePanelForOverview(){
+  // Page turns. Changing MONTH turns a whole page sideways, hinged on the
+  // left edge where the month tabs are; changing ALTERNATIVE within a
+  // month flips a sheet up over the top edge where its own tabs are —
+  // shorter and lighter, since it's the same spread, just another
+  // version of it. Going forward (a later month / a tab further right)
+  // the sheet lifts off and away, uncovering the new page already lying
+  // underneath; going back, the sheet comes down onto the page first and
+  // the content appears as it settles.
+  // All Web Animations on a throwaway sheet parked inside #statusBar
+  // (already in SAVE_EXCLUDE_SEL) — no class or style ever touches the
+  // plan's own DOM, so a turn can't schedule a save or end up serialized.
+  var pageTurnAnims = [];
+  function playPageTurn(kind, forward, panel){
+    if(!window.matchMedia('(min-width:721px)').matches) return;
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var wrapEl = document.querySelector('.wrap');
+    var host = document.getElementById('statusBar') || document.body;
+    if(!wrapEl || !panel || !panel.animate) return;
+    pageTurnAnims.forEach(function(a){ try { a.cancel(); } catch(e){} });
+    pageTurnAnims = [];
+    document.querySelectorAll('.page-turn-sheet').forEach(function(el){ el.remove(); });
+    var r = wrapEl.getBoundingClientRect();
+    var barBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pills-bottom')) || 0;
+    var top = Math.max(r.top, barBottom);
+    var height = Math.min(r.bottom, window.innerHeight) - top;
+    if(height < 40) return;
+    var sheet = document.createElement('div');
+    sheet.className = 'page-turn-sheet';
+    sheet.setAttribute('aria-hidden', 'true');
+    sheet.style.left = r.left + 'px'; sheet.style.top = top + 'px';
+    sheet.style.width = r.width + 'px'; sheet.style.height = height + 'px';
+    var isMonth = kind === 'month';
+    sheet.style.transformOrigin = isMonth ? 'left center' : 'center top';
+    sheet.style.setProperty('--turn-shade', isMonth ? '90deg' : '180deg');
+    function at(deg){
+      return isMonth ? 'perspective(2600px) rotateY(' + (-deg) + 'deg)' : 'perspective(2200px) rotateX(' + deg + 'deg)';
+    }
+    var duration = isMonth ? 640 : 420;
+    var easing = 'cubic-bezier(.45,.05,.25,1)';
+    var sheetFrames, panelFrames = null;
+    if(forward){
+      sheetFrames = [
+        { transform: at(0), opacity: 1 },
+        { transform: at(86), opacity: 1, offset: .82 },
+        { transform: at(96), opacity: 0 }
+      ];
+    } else {
+      sheetFrames = [
+        { transform: at(96), opacity: 0 },
+        { transform: at(86), opacity: 1, offset: .12 },
+        { transform: at(0), opacity: 1, offset: .74 },
+        { transform: at(0), opacity: 0 }
+      ];
+      panelFrames = [ { opacity: 0 }, { opacity: 0, offset: .7 }, { opacity: 1 } ];
+    }
+    host.appendChild(sheet);
+    var sheetAnim = sheet.animate(sheetFrames, { duration: duration, easing: easing, fill: 'both' });
+    pageTurnAnims.push(sheetAnim);
+    sheetAnim.onfinish = sheetAnim.oncancel = function(){ sheet.remove(); };
+    if(panelFrames) pageTurnAnims.push(panel.animate(panelFrames, { duration: duration, easing: 'linear' }));
+  }
+
+  // Follows whichever alternative is actually showing. Several paths
+  // switch the active panel by toggling .on directly (a month tab click,
+  // adding a month or an alternative, removing the open one) without
+  // going through activatePillByOpt, so this is the one place that sees
+  // every switch: it refreshes the payment overview (which otherwise kept
+  // the previous alternative's totals) and plays the matching page turn.
+  (function watchActivePanel(){
     var wrapEl = document.querySelector('.wrap');
     if(!wrapEl || typeof MutationObserver === 'undefined') return;
-    var lastId = (document.querySelector('.panel.on') || {}).id || '';
+    function snapshot(){
+      var p = document.querySelector('.panel.on');
+      if(!p) return { id: '', monthNum: null, pillIdx: -1, panel: null };
+      var d = getPanelDate(p), idx = -1;
+      document.querySelectorAll('.pill[data-opt]').forEach(function(b, i){ if(b.classList.contains('on')) idx = i; });
+      return { id: p.id, monthNum: d.year * 12 + d.month, pillIdx: idx, panel: p };
+    }
+    var last = snapshot();
     new MutationObserver(function(){
-      var id = (document.querySelector('.panel.on') || {}).id || '';
-      if(id === lastId) return;
-      lastId = id;
+      var now = snapshot();
+      if(now.id === last.id) return;
+      var prev = last;
+      last = now;
       renderPaymentOverview();
+      if(!prev.id || !now.id || prev.monthNum === null) return;
+      if(now.monthNum !== prev.monthNum) playPageTurn('month', now.monthNum > prev.monthNum, now.panel);
+      else playPageTurn('alt', now.pillIdx >= prev.pillIdx, now.panel);
     }).observe(wrapEl, { subtree: true, attributes: true, attributeFilter: ['class'] });
   })();
 
@@ -9634,12 +9716,6 @@
       pill.style.background = color;
       pill.style.borderColor = color;
       pill.style.color = '#fff';
-      // The page's own printed heading (see .panel.on::before) — only
-      // written when it changes, and neither attribute is in MO_OPTS'
-      // attributeFilter, so this never schedules a save.
-      var pageTitle = MONTH_FULL[d.month - 1], pageYear = String(d.year);
-      if(panel.dataset.pageTitle !== pageTitle) panel.dataset.pageTitle = pageTitle;
-      if(panel.dataset.pageYear !== pageYear) panel.dataset.pageYear = pageYear;
     });
     syncBarLayout();
   }
