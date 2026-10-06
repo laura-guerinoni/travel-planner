@@ -1889,14 +1889,19 @@
        context on .wrap), so only the tail below the last sheet shows. */
     .wrap::after { content:''; position:absolute; z-index:-1; right:190px; bottom:-44px; width:22px; height:70px;
       background:var(--accent); clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); }
-    /* The loose sheet playPageTurn() animates over the calendar when the
-       month or the alternative changes — a blank page of the same paper,
-       shaded toward its hinge. Sized/positioned inline to the visible
-       part of .wrap; --turn-shade points the shading at the hinge edge. */
-    .page-turn-sheet { position:fixed; z-index:1; pointer-events:none; border-radius:14px;
-      border:1px solid var(--line); background-color:var(--bg);
-      background-image:linear-gradient(var(--turn-shade, 90deg), rgba(40,25,60,.16), rgba(40,25,60,0) 34%), var(--texture);
-      box-shadow:0 10px 34px rgba(40,25,60,.3); backface-visibility:visible; will-change:transform, opacity; }
+    /* playPageTurn()'s stage: a clipped, see-through layer over the
+       calendar holding copies of the pages involved in the turn. The
+       copies get the same fill-the-page layout as the real .panel.on. */
+    .page-turn-stage { position:fixed; z-index:1; left:0; right:0; bottom:0; overflow:hidden; pointer-events:none; }
+    .page-turn-page { position:absolute; box-sizing:border-box; padding:16px; overflow:hidden; border-radius:14px;
+      border:1px solid var(--line); background-color:var(--bg); background-image:var(--texture);
+      text-align:left; backface-visibility:hidden; }
+    .page-turn-turning { will-change:transform; box-shadow:0 0 46px rgba(40,25,60,.34); }
+    .page-turn-content { display:flex; flex-direction:column; min-height:100%; }
+    .page-turn-content > .grid.week { flex:1 0 auto; }
+    .page-turn-content > .grid.heads { position:static; }
+    .page-turn-shade { position:absolute; inset:0; pointer-events:none; }
+    .page-turn-cast { position:absolute; border-radius:14px; background:rgba(40,25,60,.2); }
     /* Closed tabs are tucked behind the page: the inset shadow is the
        page's own edge lying over them, and the top ones stop a little
        short. The open tab stays whole and in front. */
@@ -5130,66 +5135,99 @@
   // month tab click, adding a month or an alternative, removing the open
   // one) without going through activatePillByOpt, so the overview kept
   // the previous alternative's totals until something else re-rendered it.
-  // Page turns. Changing MONTH turns a whole page sideways, hinged on the
-  // left edge where the month tabs are; changing ALTERNATIVE within a
-  // month flips a sheet up over the top edge where its own tabs are —
-  // shorter and lighter, since it's the same spread, just another
-  // version of it. Going forward (a later month / a tab further right)
-  // the sheet lifts off and away, uncovering the new page already lying
-  // underneath; going back, the sheet comes down onto the page first and
-  // the content appears as it settles.
-  // All Web Animations on a throwaway sheet parked inside #statusBar
-  // (already in SAVE_EXCLUDE_SEL) — no class or style ever touches the
-  // plan's own DOM, so a turn can't schedule a save or end up serialized.
-  var pageTurnAnims = [];
-  function playPageTurn(kind, forward, panel){
+  // Page turns. The page that turns is the real one: a copy of the
+  // outgoing month/alternative, cards and all, lifts off its hinge and
+  // swings away to uncover the page that was lying underneath (or, going
+  // back, a copy of the incoming page swings down onto the old one).
+  // Changing MONTH turns the page sideways in 3D, hinged on the left edge
+  // where the month tabs are. Changing ALTERNATIVE is a different move
+  // altogether, since it's the same month: the sheet is pulled straight
+  // up and out by its tab (or the new one pushed down in), flat, no
+  // turning — like swapping loose sheets behind a divider.
+  // Everything lives in a throwaway stage parked inside #statusBar
+  // (already in SAVE_EXCLUDE_SEL) and is driven by Web Animations — no
+  // class or style ever touches the plan's own DOM, so a turn can't
+  // schedule a save or end up serialized. The copies deliberately aren't
+  // .panel elements, so nothing that looks up ".panel.on" can find them.
+  var pageTurnCleanup = null;
+  function playPageTurn(kind, forward, oldPanel, newPanel){
     if(!window.matchMedia('(min-width:721px)').matches) return;
     if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var wrapEl = document.querySelector('.wrap');
     var host = document.getElementById('statusBar') || document.body;
-    if(!wrapEl || !panel || !panel.animate) return;
-    pageTurnAnims.forEach(function(a){ try { a.cancel(); } catch(e){} });
-    pageTurnAnims = [];
-    document.querySelectorAll('.page-turn-sheet').forEach(function(el){ el.remove(); });
+    if(!wrapEl || !oldPanel || !newPanel || !wrapEl.animate) return;
+    if(pageTurnCleanup) pageTurnCleanup();
     var r = wrapEl.getBoundingClientRect();
     var barBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pills-bottom')) || 0;
-    var top = Math.max(r.top, barBottom);
-    var height = Math.min(r.bottom, window.innerHeight) - top;
-    if(height < 40) return;
-    var sheet = document.createElement('div');
-    sheet.className = 'page-turn-sheet';
-    sheet.setAttribute('aria-hidden', 'true');
-    sheet.style.left = r.left + 'px'; sheet.style.top = top + 'px';
-    sheet.style.width = r.width + 'px'; sheet.style.height = height + 'px';
+    var stageTop = Math.max(0, Math.min(barBottom, window.innerHeight));
+    if(r.bottom - stageTop < 40) return;
     var isMonth = kind === 'month';
-    sheet.style.transformOrigin = isMonth ? 'left center' : 'center top';
-    sheet.style.setProperty('--turn-shade', isMonth ? '90deg' : '180deg');
-    function at(deg){
-      return isMonth ? 'perspective(2600px) rotateY(' + (-deg) + 'deg)' : 'perspective(2200px) rotateX(' + deg + 'deg)';
+    // Nothing below the window's bottom edge is ever seen, and a sheet cut
+    // off there only has to travel the visible height to be gone.
+    var pageHeight = Math.min(r.height, window.innerHeight - r.top + 2);
+    // Clipped at the alternatives bar, like the real page is.
+    var stage = document.createElement('div');
+    stage.className = 'page-turn-stage';
+    stage.setAttribute('aria-hidden', 'true');
+    stage.style.top = stageTop + 'px';
+    // Where the visible part of the page starts, in the page's own box —
+    // the hinge for a flip-up, and the eye level for the perspective.
+    var visibleTop = Math.max(0, stageTop - r.top);
+    var visibleMid = visibleTop + (Math.min(r.bottom, window.innerHeight) - Math.max(r.top, stageTop)) / 2;
+    var visibleHeight = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, stageTop);
+    stage.style.perspective = '3600px';
+    stage.style.perspectiveOrigin = (r.left + r.width / 2) + 'px ' + (r.top - stageTop + visibleMid) + 'px';
+    function buildPage(panel){
+      var page = document.createElement('div');
+      page.className = 'page-turn-page';
+      page.style.left = r.left + 'px'; page.style.top = (r.top - stageTop) + 'px';
+      page.style.width = r.width + 'px'; page.style.height = pageHeight + 'px';
+      var copy = panel.cloneNode(true);
+      copy.removeAttribute('id');
+      copy.className = 'page-turn-content';
+      page.appendChild(copy);
+      var shade = document.createElement('div');
+      shade.className = 'page-turn-shade';
+      page.appendChild(shade);
+      page._shade = shade;
+      return page;
     }
-    var duration = isMonth ? 640 : 420;
-    var easing = 'cubic-bezier(.45,.05,.25,1)';
-    var sheetFrames, panelFrames = null;
-    if(forward){
-      sheetFrames = [
-        { transform: at(0), opacity: 1 },
-        { transform: at(86), opacity: 1, offset: .82 },
-        { transform: at(96), opacity: 0 }
-      ];
-    } else {
-      sheetFrames = [
-        { transform: at(96), opacity: 0 },
-        { transform: at(86), opacity: 1, offset: .12 },
-        { transform: at(0), opacity: 1, offset: .74 },
-        { transform: at(0), opacity: 0 }
-      ];
-      panelFrames = [ { opacity: 0 }, { opacity: 0, offset: .7 }, { opacity: 1 } ];
-    }
-    host.appendChild(sheet);
-    var sheetAnim = sheet.animate(sheetFrames, { duration: duration, easing: easing, fill: 'both' });
-    pageTurnAnims.push(sheetAnim);
-    sheetAnim.onfinish = sheetAnim.oncancel = function(){ sheet.remove(); };
-    if(panelFrames) pageTurnAnims.push(panel.animate(panelFrames, { duration: duration, easing: 'linear' }));
+    // forward: the old page lifts away, the real new page is underneath.
+    // back: a still copy of the old page covers the real one while a copy
+    // of the new page comes down on top of it.
+    var under = forward ? null : buildPage(oldPanel);
+    var turning = buildPage(forward ? oldPanel : newPanel);
+    turning.classList.add('page-turn-turning');
+    turning.style.transformOrigin = 'left center';
+    if(isMonth) turning._shade.style.background = 'linear-gradient(90deg, rgba(40,25,60,.05), rgba(40,25,60,.34))';
+    // The shadow the lifted page throws on whatever lies beneath it.
+    var cast = document.createElement('div');
+    cast.className = 'page-turn-cast';
+    cast.style.left = r.left + 'px'; cast.style.top = (r.top - stageTop) + 'px';
+    cast.style.width = r.width + 'px'; cast.style.height = pageHeight + 'px';
+    if(under) stage.appendChild(under);
+    stage.appendChild(cast);
+    stage.appendChild(turning);
+    host.appendChild(stage);
+    // "up" = fully off the page: edge-on at the hinge for a month, clear
+    // of the top edge (under the alternatives bar) for an alternative.
+    var flat = { transform: isMonth ? 'rotateY(0deg)' : 'translateY(0px)' };
+    var up = { transform: isMonth ? 'rotateY(-90deg)' : 'translateY(' + (-(visibleHeight + 60)) + 'px)' };
+    var opts = { duration: isMonth ? 760 : 460, fill: 'both',
+      easing: forward ? 'cubic-bezier(.55,.05,.75,.35)' : 'cubic-bezier(.2,.65,.3,1)' };
+    var anims = [
+      turning.animate(forward ? [flat, up] : [up, flat], opts),
+      turning._shade.animate(forward ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }], opts),
+      cast.animate(forward ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 1 }], opts)
+    ];
+    var done = false;
+    pageTurnCleanup = function(){
+      if(done) return;
+      done = true; pageTurnCleanup = null;
+      anims.forEach(function(a){ try { a.cancel(); } catch(e){} });
+      stage.remove();
+    };
+    anims[0].onfinish = pageTurnCleanup;
   }
 
   // Follows whichever alternative is actually showing. Several paths
@@ -5216,8 +5254,11 @@
       last = now;
       renderPaymentOverview();
       if(!prev.id || !now.id || prev.monthNum === null) return;
-      if(now.monthNum !== prev.monthNum) playPageTurn('month', now.monthNum > prev.monthNum, now.panel);
-      else playPageTurn('alt', now.pillIdx >= prev.pillIdx, now.panel);
+      // prev.panel can be gone (the open alternative was just deleted) —
+      // nothing to turn away from then.
+      if(!prev.panel || !prev.panel.isConnected) return;
+      if(now.monthNum !== prev.monthNum) playPageTurn('month', now.monthNum > prev.monthNum, prev.panel, now.panel);
+      else playPageTurn('alt', now.pillIdx >= prev.pillIdx, prev.panel, now.panel);
     }).observe(wrapEl, { subtree: true, attributes: true, attributeFilter: ['class'] });
   })();
 
