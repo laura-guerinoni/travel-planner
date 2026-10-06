@@ -2021,6 +2021,12 @@
     color-mix(in srgb, var(--primary) 16%, var(--bg)), color-mix(in srgb, var(--ink) 16%, var(--bg))); }
   @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
   @media screen and (max-width: 720px) { .page-bookmark { display:none; } }
+  /* A day only offers "add an activity" now. Locations are set from the
+     alternative's menu ("Add location", over as many days as you like)
+     and can still be retyped on any single day; the per-day "+ Add
+     location" button stays in the DOM (other code inserts before it) but
+     is never shown. */
+  .cell .addloc, .cell:hover .addloc { display:none !important; }
   /* Phone: the floating "+" button already offers "add a month". */
   @media screen and (max-width: 720px) { .month-add-slot { display:none; } }
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
@@ -2062,6 +2068,14 @@
        does — it used to appear on hover only, so there was nothing to
        tell you a tab had a menu (holiday period, duplicate, share…). */
     body.owner-mode .pill.on .pill-remove { visibility:visible; }
+    /* The from/to form for a holiday period or a multi-day location (see
+       openRangePopover) — the month picker's popover, a little wider. */
+    .monthpop.rangepop { width:232px; padding:10px; }
+    .rangepop-title { font-weight:800; font-size:13px; color:var(--ink); margin:0 0 8px; }
+    .monthpop.rangepop input[type="text"] { width:100%; box-sizing:border-box; font:inherit; font-size:12px;
+      padding:6px 8px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; color:var(--ink); }
+    .rangepop-days { display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:12px; color:var(--muted); }
+    .monthpop.rangepop .rangepop-days select { flex:1; width:auto; margin-bottom:0; }
     /* Menus and pickers open above the ribbon (its host, #statusBar, is
        z-index 60), not underneath it. */
     .itemmenu, .monthpop, .tagpop, .linkpop { z-index:66; }
@@ -2983,7 +2997,7 @@
       manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
       invite_scope_open_hint: 'Open to everyone — can’t be removed here',
       pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
-      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_delete: 'Delete alternative',
+      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
       pillmenu_no_access_yet: 'No one has access yet',
       pillmenu_everyone_sees: 'Everyone can currently see this month.',
       pillmenu_only_checked_see: 'Only checked members can see this month.',
@@ -3035,7 +3049,7 @@
       manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
       invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
       pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
-      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_delete: 'Elimina alternativa',
+      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
       pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
       pillmenu_everyone_sees: 'Tutti possono attualmente vedere questo mese.',
       pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
@@ -3087,7 +3101,7 @@
       manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
       invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
       pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
-      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_delete: 'Eliminar alternativa',
+      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
       pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
       pillmenu_everyone_sees: 'Todos pueden ver este mes actualmente.',
       pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
@@ -6504,6 +6518,7 @@
   // different-looking ones for what's the same action at two different
   // scopes.
   var ICON_HOLIDAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  var ICON_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
   var ICON_PRINT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>';
   var ICON_CURRENCY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2.5 0 0 0-2.5-1.5c-1.66 0-3 1.12-3 2.5s1.34 2.5 3 2.5 3 1.12 3 2.5-1.34 2.5-3 2.5A2.5 2.5 0 0 1 9.5 15"/><path d="M12 6.5v11"/></svg>';
   // "Who can see this" — an eye, not the two-people glyph (ICON_PEOPLE),
@@ -8576,6 +8591,93 @@
   // forward instead of back. Tracking movement relative to the drag's start
   // point sidesteps that ambiguity — no vertical movement keeps you in the
   // same week regardless of which row happens to be geometrically nearest.
+  // Puts one place name on every day from `start` to `end` of a panel —
+  // the same .loc element a day's own location is (see buildLocEl), so
+  // everything that reads or edits a day's location keeps working, and
+  // any day can still be retyped on its own afterwards.
+  function setLocationRange(panel, name, start, end){
+    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
+      var day = dayNumOfCell(cell);
+      if(day == null || day < start || day > end) return;
+      var loc = cell.querySelector(':scope > .loc');
+      if(loc){
+        var text = loc.querySelector(':scope > .loc-text');
+        if(text) text.textContent = name;
+      } else {
+        loc = buildLocEl(name);
+        cell.insertBefore(loc, cell.querySelector(':scope > .acts') || cell.querySelector(':scope > .addloc'));
+        cell.classList.add('active');
+      }
+      refreshHoliCell(cell);
+      var menuBtn = cell.querySelector(':scope > .cellhead .daymenu-btn');
+      if(menuBtn) menuBtn.classList.toggle('has-content', cellHasContent(cell));
+    });
+    scheduleAutoSave(); scheduleUndoSnapshot();
+  }
+
+  // The one place a multi-day span gets added, for both kinds: a holiday /
+  // time-off period, or a location you'll be in for several days. A small
+  // form (name, from day, to day) instead of typing "5-10" into a browser
+  // prompt. Opened from an alternative's own "⋯" menu.
+  function openRangePopover(anchorEl, panel, kind){
+    closePop();
+    var isLocation = kind === 'location';
+    var lastDay = lastDayOfCalendar(panel);
+    var pop = document.createElement('div');
+    pop.className = 'monthpop rangepop';
+    var title = document.createElement('div');
+    title.className = 'rangepop-title';
+    title.textContent = t(isLocation ? 'pillmenu_add_location' : 'pillmenu_add_holiday');
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = t(isLocation ? 'range_location_placeholder' : 'range_holiday_placeholder');
+    if(!isLocation) nameInput.value = 'Holiday - time off';
+    function daySelect(selected){
+      var sel = document.createElement('select');
+      for(var d = 1; d <= lastDay; d++){
+        var opt = document.createElement('option');
+        opt.value = String(d); opt.textContent = String(d);
+        if(d === selected) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      return sel;
+    }
+    var fromSel = daySelect(1), toSel = daySelect(Math.min(lastDay, isLocation ? 2 : 3));
+    var row = document.createElement('div');
+    row.className = 'rangepop-days';
+    var fromLabel = document.createElement('span'); fromLabel.textContent = t('range_from');
+    var toLabel = document.createElement('span'); toLabel.textContent = t('range_to');
+    row.appendChild(fromLabel); row.appendChild(fromSel); row.appendChild(toLabel); row.appendChild(toSel);
+    // Picking a start past the end drags the end along with it.
+    fromSel.addEventListener('change', function(){
+      if(parseInt(toSel.value, 10) < parseInt(fromSel.value, 10)) toSel.value = fromSel.value;
+    });
+    var applyBtn = document.createElement('button');
+    applyBtn.type = 'button'; applyBtn.className = 'addbtn'; applyBtn.textContent = t('range_add');
+    function apply(){
+      var start = parseInt(fromSel.value, 10), end = parseInt(toSel.value, 10);
+      if(end < start){ var swap = start; start = end; end = swap; }
+      var name = nameInput.value.trim();
+      if(isLocation){
+        if(!name){ nameInput.focus(); return; }
+        closePop();
+        setLocationRange(panel, name, start, end);
+      } else {
+        closePop();
+        var arr = getHolidays(panel);
+        arr.push({ start: start, end: end, label: name || 'Holiday - time off' });
+        setHolidays(panel, arr);
+        renderHoliday(panel);
+      }
+    }
+    [nameInput, fromSel, toSel, row, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); apply(); } });
+    applyBtn.addEventListener('click', function(e){ e.stopPropagation(); apply(); });
+    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(row); pop.appendChild(applyBtn);
+    positionPopover(pop, anchorEl);
+    if(isLocation) nameInput.focus();
+  }
+
   var dragState = null;
   function startDrag(e, panel, holidayIdx, which){
     e.preventDefault();
@@ -8990,9 +9092,22 @@
       if(!panel) return;
       // Open it first if it isn't — the new span appears on its calendar.
       if(!panel.classList.contains('on')) activatePillByOpt(opt);
-      addHolidayToPanel(panel);
+      openRangePopover(pill, panel, 'holiday');
     });
     pop.appendChild(holidayRow);
+    var locationRow = document.createElement('div');
+    locationRow.className = 'itemmenu-row';
+    locationRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PIN + '</span>' + t('pillmenu_add_location');
+    locationRow.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var opt = pill.getAttribute('data-opt');
+      var panel = document.getElementById('panel-' + opt);
+      if(!panel) return;
+      if(!panel.classList.contains('on')) activatePillByOpt(opt);
+      openRangePopover(pill, panel, 'location');
+    });
+    pop.appendChild(locationRow);
     var accessRow = document.createElement('div');
     accessRow.className = 'itemmenu-row';
     accessRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EYE + '</span>' + t('pillmenu_who_can_see');
@@ -9848,7 +9963,10 @@
     // lands, plus .wrap's own static 16px padding (no longer overridden
     // per-render — see its own CSS) between that edge and the header
     // itself sitting inside it.
-    document.documentElement.style.setProperty('--pills-height', (blockTop + 16) + 'px');
+    // Flush under the alternatives bar. It used to catch 16px lower (the
+    // page's own top padding), which left a strip between the bar and
+    // the weekday row where the days scrolling past showed through.
+    document.documentElement.style.setProperty('--pills-height', blockTop + 'px');
     // .pills-gapfill (see its own CSS rule) is inert now that .wrap
     // paints its own background below a real margin instead of an empty
     // padding strip nothing else painted (see its own comment) — these
