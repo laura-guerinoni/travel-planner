@@ -1837,7 +1837,7 @@
   @media screen and (min-width: 721px) {
     /* Left padding = the month tabs' column, just wide enough for the
        open month's name (the year lives on its own chip now). */
-    body { padding:32px 36px 60px 148px; }
+    body { padding:32px 36px 60px 138px; }
     /* A flex column at least as tall as the window (--pills-bottom is where
        the block starts, see syncBarLayout), with the open month's weeks
        sharing whatever height is spare — so a short month on a tall screen
@@ -1856,28 +1856,35 @@
        mix (40px "AUG" stubs, an 80px year chip, a wider open month) gave
        three unrelated widths in one column. The open month is told apart
        by its stitch and lift, not by size. */
-    .month-sidebar { width:140px; gap:10px; }
-    .month-segment, .month-segment.seg-expanded, .month-segment.current { width:134px; }
+    .month-sidebar { width:130px; gap:10px; }
+    .month-segment, .month-segment.seg-expanded, .month-segment.current { width:124px; }
     .month-segment { inset:0 0 0 6px; justify-content:flex-start; }
     .month-segment .seg-label-short { display:none; }
-    .month-segment .seg-label-full { display:inline; font-size:12.5px; letter-spacing:.03em; padding:0 28px 0 12px;
+    .month-segment .seg-label-full { display:inline; font-size:12.5px; letter-spacing:.03em; padding:0 26px 0 10px;
       overflow:hidden; text-overflow:ellipsis; }
-    /* The "+" under the months — drawn exactly like the one after the
-       alternatives (.pill.add), lined up with the month names. */
-    .month-add-slot { height:30px; }
-    .month-add { width:28px; height:28px; margin-left:12px; padding:0; border:none; background:none; cursor:pointer;
-      display:inline-flex; align-items:center; justify-content:center;
-      font:inherit; font-weight:800; font-size:20px; color:var(--ink); }
-    .month-add:hover { opacity:.6; }
+    /* The "+" under the months: an empty, dashed tab stub on the page's
+       edge — the slot the next month will go in — rather than a loose
+       glyph floating in the column with nothing to line up against. */
+    .month-add-slot { height:36px; }
+    .month-add { position:absolute; top:0; right:0; bottom:0; width:46px; padding:0; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      border:2px dashed rgba(61,53,104,.28); border-right:none; border-radius:10px 0 0 10px; background:rgba(255,255,255,.28);
+      font:inherit; font-weight:800; font-size:18px; line-height:1; color:var(--ink);
+      transition:background-color .15s ease, border-color .15s ease; }
+    .month-add:hover { background:rgba(255,255,255,.7); border-color:rgba(61,53,104,.5); }
     /* A year is a heading over its months, not another tab: plain text,
        no chip, no shadow, same column. */
     .month-segment-slot[data-year-slot] { height:26px; }
     .month-segment-slot[data-year-slot]:not(:first-child) { margin-top:10px; }
-    .month-segment[data-year-seg] { width:134px; background:none; box-shadow:none; border-radius:0; }
+    /* Right-aligned: everything in this column hangs off the page's edge
+       (that's where the tabs are attached), so the year lines up there
+       too instead of against the column's loose outer side. Its "⋯"
+       moves to the left of it. */
+    .month-segment[data-year-seg] { width:124px; background:none; box-shadow:none; border-radius:0; justify-content:flex-end; }
     .month-segment[data-year-seg] .seg-label-full { display:none; }
-    .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 0 0 12px; font-size:15px;
+    .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 12px 0 0; font-size:15px;
       letter-spacing:.08em; color:var(--muted); }
-    .month-segment[data-year-seg] .itemmenu-btn { background:none; }
+    .month-segment[data-year-seg] .itemmenu-btn { background:none; right:62px; }
   }
   /* ---- What the book lies on (desktop) ----
      Not flat white any more: a warm cream-to-lilac wash with soft glows
