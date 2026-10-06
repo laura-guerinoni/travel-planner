@@ -1876,28 +1876,44 @@
        inside the column instead of running on below the page's bottom
        edge, attached to nothing. (top is set inline by syncBarLayout.) */
     .month-sidebar { height:auto; max-height:calc(100vh - var(--pills-bottom, 60px) - 86px); }
-    /* A collapsed year: still just the heading, with a chevron saying
-       there's more inside, and clickable. */
+    /* A collapsed year: the heading plus a row of small dots, one per
+       month inside and in that month's tab color. The whole line is
+       clickable; its "⋯" is left out (open the year to get at it). */
     .month-segment[data-year-seg][data-collapsed] { cursor:pointer; }
-    .month-segment[data-year-seg][data-collapsed] .seg-label-short::after { content:'\00a0\203A'; }
+    .year-dots { display:flex; align-items:center; gap:3px; margin-right:8px; }
+    .year-dots span { width:7px; height:7px; border-radius:50%; box-shadow:0 0 0 1.5px rgba(255,255,255,.75); }
+    .month-segment[data-year-seg][data-collapsed] .itemmenu-btn { display:none; }
     .month-segment[data-year-seg][data-collapsed]:hover .seg-label-short { opacity:1; color:var(--ink); }
+    .month-segment[data-year-seg][data-collapsed]:hover .year-dots span { transform:scale(1.2); }
+    .year-dots span { transition:transform .15s ease; }
     .actionMenuYearsRow { cursor:pointer; }
     .actionMenuYearsRow input { width:16px; height:16px; margin:0; accent-color:var(--primary); cursor:pointer; }
     /* The "+" after the alternatives, redrawn to be the very same glyph:
        same size, weight, tint and hover as the one under the months. */
-    /* Pinned to the right end of the row (sticky inside the scrolling
-       row, a little in to stay clear of the menu button): with more
-       alternatives than fit, it used to scroll out of reach with them.
-       --pills-overflowing (0/1, from syncBarLayout) fades in a white disc
-       behind it only while tabs are actually passing underneath. */
-    .pill.add { position:sticky; right:16px; z-index:3; flex:none;
-      width:22px; height:22px; align-self:center; margin:6px 0 0 4px; border-radius:50%;
-      font-weight:600; font-size:15px; line-height:1; color:var(--ink);
-      opacity:calc(.7 + .3 * var(--pills-overflowing, 0));
-      background:rgba(255,255,255,calc(.96 * var(--pills-overflowing, 0)));
-      box-shadow:0 1px 4px rgba(40,25,60,calc(.22 * var(--pills-overflowing, 0)));
-      transition:background-color .15s ease, opacity .15s ease; }
-    .pill.add:hover { background:rgba(255,255,255,.9); opacity:1; }
+    /* The "+" after the alternatives: a small blank tab of its own at the
+       right end of the row — white paper, stitched like the others,
+       tucked a little lower — the next alternative's tab waiting to be
+       used. Sticky, so it stays there when there are more alternatives
+       than fit and they scroll underneath (it's opaque, so nothing shows
+       through). The two flexible spacers keep the real tabs centered in
+       what's left of the row; `order` puts the "+" after the second one.
+       The menu button moved to the top-left to free this corner. */
+    .pills { justify-content:flex-start; padding-right:16px; }
+    .pills::before, .pills::after { content:''; flex:1 1 0; min-width:0; }
+    .pills::before { order:0; }
+    .pills > .pill { order:1; }
+    .pills::after { order:2; }
+    .pills > .pill.add { order:3; position:sticky; right:0; z-index:3; flex:none; align-self:flex-end;
+      width:42px; height:34px; margin:0 0 0 8px; padding:0; border:none; border-radius:12px 12px 0 0;
+      background:var(--card); color:var(--primary); opacity:1;
+      font-weight:800; font-size:17px; line-height:1;
+      box-shadow:-6px 0 8px -4px rgba(40,25,60,.18), inset 0 -9px 7px -6px rgba(40,25,60,.14);
+      transition:height .2s cubic-bezier(.3,1.5,.5,1), color .15s ease; }
+    .pills > .pill.add::after { content:''; position:absolute; left:4px; right:4px; top:4px; bottom:0; pointer-events:none;
+      border:2px dashed color-mix(in srgb, var(--primary) 45%, #fff); border-bottom:none; border-radius:9px 9px 0 0; }
+    .pills > .pill.add:hover { height:40px; background:var(--card); opacity:1; }
+    #actionMenu { left:16px; right:auto; }
+    #actionMenuDropdown { left:0; right:auto; }
     /* A year is a heading over its months, not another tab: plain text,
        no chip, no shadow, same column. */
     .month-segment-slot[data-year-slot] { height:26px; }
@@ -9759,11 +9775,6 @@
     // non-overlapping) position/size, just no longer load-bearing.
     document.documentElement.style.setProperty('--pills-bottom', (sidebarH + pillsH) + 'px');
     document.documentElement.style.setProperty('--pills-gap', '0px');
-    // Tells the stylesheet the alternatives no longer fit and the row is
-    // scrolling, so the "+" (pinned to the row's right end, see .pill.add)
-    // gets a solid disc behind it instead of floating over the tabs
-    // passing underneath. On <html>, not .pills: no plan DOM touched.
-    document.documentElement.style.setProperty('--pills-overflowing', pillsEl.scrollWidth > pillsEl.clientWidth + 1 ? '1' : '0');
   }
   window.addEventListener('resize', syncBarLayout);
   // The very first sync of a page load can run before the Nunito web
@@ -10039,6 +10050,16 @@
       var yearMonths = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
       if(collapseOtherYears() && activeYear !== null && yr !== activeYear && yearSeg && yearMonths.length){
         yearSeg.dataset.collapsed = '1';
+        // One small dot per month inside, each in that month's own tab
+        // color — the closed year's tabs, seen end-on.
+        var dots = document.createElement('span');
+        dots.className = 'year-dots';
+        yearMonths.forEach(function(m){
+          var dot = document.createElement('span');
+          dot.style.background = colorByKey[m.key];
+          dots.appendChild(dot);
+        });
+        yearSeg.insertBefore(dots, yearSeg.firstChild);
         yearSeg.title = 'Show ' + yr + ' (' + yearMonths.length + (yearMonths.length === 1 ? ' month)' : ' months)');
         yearSeg.addEventListener('click', function(){ filterPillsByMonth(yearMonths[0].year, yearMonths[0].month); });
         return;
