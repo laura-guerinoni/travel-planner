@@ -1986,6 +1986,9 @@
     .month-sidebar { background:none; }
     body::before { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cpath transform='translate%2840 52%29 scale%281.25%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28212 34%29 scale%280.7%29' fill='%23f5a95f' fill-opacity='0.85' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28296 170%29 scale%281.05%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28118 236%29 scale%280.8%29' fill='%23ec6a9c' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%2822 198%29 scale%280.55%29' fill='%23f5a95f' fill-opacity='0.8' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
+      /* Nudged so no star of the pattern lands half under the menu button
+         in the top-left corner. */
+      background-position:60px 40px;
       animation:backdrop-twinkle 7s ease-in-out infinite alternate; }
     /* A second, sparser scatter of bigger stars, twinkling out of step
        with the first. */
@@ -2024,6 +2027,11 @@
     color-mix(in srgb, var(--primary) 16%, var(--bg)), color-mix(in srgb, var(--ink) 16%, var(--bg))); }
   @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
   @media screen and (max-width: 720px) { .page-bookmark { display:none; } }
+  /* The people who can see a plan are shown once, on its first tab; the
+     plan's other alternatives sit right beside it and share the same
+     list (see setPlanMembers), so repeating the faces on each only added
+     noise. Every tab stays its own tab. */
+  .pill[data-plan-pos="mid"] .pill-access, .pill[data-plan-pos="last"] .pill-access { display:none; }
   /* A day only offers "add an activity" now. Locations are set from the
      alternative's menu ("Add location", over as many days as you like)
      and can still be retyped on any single day; the per-day "+ Add
@@ -4407,8 +4415,8 @@
         if(wantChecked === r.initialChecked) return;
         var members = getOptionMembers(r.panel);
         var has = members.indexOf(memberKey) !== -1;
-        if(wantChecked && !has){ members.push(memberKey); setOptionMembers(r.panel, members); changed = true; }
-        else if(!wantChecked && has){ members.splice(members.indexOf(memberKey), 1); setOptionMembers(r.panel, members); changed = true; }
+        if(wantChecked && !has){ members.push(memberKey); setPlanMembers(r.panel, members); changed = true; }
+        else if(!wantChecked && has){ members.splice(members.indexOf(memberKey), 1); setPlanMembers(r.panel, members); changed = true; }
       });
       if(changed){
         // data-members isn't in MO_OPTS's attributeFilter (unlike
@@ -9069,6 +9077,12 @@
       if(bn && bn.textContent === old) bn.textContent = name;
     });
   }
+  // Who can see a plan is one list, shared by all of its alternatives —
+  // that's what lets the faces be shown once per plan instead of once
+  // per tab. Every change made through the sharing UI goes through here.
+  function setPlanMembers(panel, keys){
+    panelsOfPlan(panel).forEach(function(p){ setOptionMembers(p, keys.slice()); });
+  }
   function addAlternativeToPlan(panel){
     var d = getPanelDate(panel), id = planIdOf(panel);
     panel.setAttribute('data-plan', id);
@@ -9091,6 +9105,8 @@
     panel.setAttribute('data-plan', id);
     var named = target.getAttribute('data-plan-name');
     if(named) panel.setAttribute('data-plan-name', named); else panel.removeAttribute('data-plan-name');
+    // Joining a plan means taking on that plan's people.
+    setOptionMembers(panel, getOptionMembers(target));
     tuckPillIntoPlan(panel);
     planChanged();
   }
@@ -9576,7 +9592,7 @@
           var idx = arr.indexOf(m.key);
           if(checkbox.checked){ if(idx === -1) arr.push(m.key); }
           else if(idx !== -1){ arr.splice(idx, 1); }
-          setOptionMembers(panel, arr);
+          setPlanMembers(panel, arr);
           note.textContent = noteText();
           afterChange();
         });
