@@ -1904,36 +1904,32 @@
       font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7; box-shadow:none;
       transition:background-color .15s ease, opacity .15s ease; }
     .pill.add:hover { background:rgba(255,255,255,.9); opacity:1; }
-    /* Only once there are more alternatives than fit (data-pills-overflow,
-       set on <html> by syncBarLayout) does it behave differently: it holds
-       its place at the right end while the tabs scroll, and its box is
-       painted with the same window-fixed backdrop as the bar behind it —
-       so it still looks like the same bare "+", but the tabs dissolve
-       into the page before they reach it. --pills-fade is that dissolve:
-       an eased ramp rather than a straight one, so there's no visible
-       start or end to it. */
-    :root { --pills-fade:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.03) 12%, rgba(0,0,0,.12) 26%,
-      rgba(0,0,0,.3) 40%, rgba(0,0,0,.55) 55%, rgba(0,0,0,.8) 70%, rgba(0,0,0,.95) 86%, #000 100%);
-      --pills-fade-left:linear-gradient(270deg, transparent 0%, rgba(0,0,0,.03) 12%, rgba(0,0,0,.12) 26%,
-      rgba(0,0,0,.3) 40%, rgba(0,0,0,.55) 55%, rgba(0,0,0,.8) 70%, rgba(0,0,0,.95) 86%, #000 100%); }
-    :root[data-pills-overflow] .pill.add { align-self:stretch; width:96px; height:auto; margin:0; border-radius:0;
-      display:flex; align-items:center; justify-content:flex-end; padding:6px 2px 0 0; opacity:1;
-      color:color-mix(in srgb, var(--ink) 70%, transparent);
-      background-color:var(--backdrop-color); background-image:var(--backdrop); background-attachment:fixed;
-      -webkit-mask:var(--pills-fade) left / 72px 100% no-repeat, linear-gradient(#000, #000) right / calc(100% - 71px) 100% no-repeat;
-      mask:var(--pills-fade) left / 72px 100% no-repeat, linear-gradient(#000, #000) right / calc(100% - 71px) 100% no-repeat; }
-    :root[data-pills-overflow] .pill.add:hover { color:var(--ink);
-      background-color:var(--backdrop-color); background-image:var(--backdrop); }
-    /* The same dissolve on the left, once the row has been scrolled away
-       from its start (data-pills-scrolled, set by the row's own scroll
-       listener): a strip of backdrop pinned to the row's left end,
-       mirrored (its own reversed ramp — a transform would knock the fixed
-       backdrop out of register). Takes no room of its own. */
-    .pills::before { content:''; flex:none; position:sticky; left:-22px; z-index:3; align-self:stretch;
-      width:94px; margin-right:-94px; pointer-events:none; opacity:0; transition:opacity .2s ease;
-      background-color:var(--backdrop-color); background-image:var(--backdrop); background-attachment:fixed;
-      -webkit-mask:var(--pills-fade-left) left / 100% 100% no-repeat; mask:var(--pills-fade-left) left / 100% 100% no-repeat; }
-    :root[data-pills-scrolled] .pills::before { opacity:1; }
+    /* When there are more tabs than fit, the row is masked so they
+       dissolve at the end(s) where more are out of sight: on the right
+       while it overflows (data-pills-overflow, from syncBarLayout), on
+       the left once it's been scrolled (data-pills-scrolled, from the
+       row's own scroll listener). --fade-l / --fade-r are how far in each
+       fade reaches (0 = none); the last 34px on the right go fully clear
+       so nothing shows under the pinned "+". The two gradients are
+       intersected. */
+    .pills { --fade-l:0px; --fade-r:0px; --fade-gap:0px;
+      -webkit-mask-image:
+        linear-gradient(90deg, transparent 0, rgba(0,0,0,.1) calc(var(--fade-l) * .25), rgba(0,0,0,.5) calc(var(--fade-l) * .55), rgba(0,0,0,.88) calc(var(--fade-l) * .8), #000 var(--fade-l)),
+        linear-gradient(270deg, transparent 0, transparent var(--fade-gap), rgba(0,0,0,.1) calc(var(--fade-gap) + var(--fade-r) * .25), rgba(0,0,0,.5) calc(var(--fade-gap) + var(--fade-r) * .55), rgba(0,0,0,.88) calc(var(--fade-gap) + var(--fade-r) * .8), #000 calc(var(--fade-gap) + var(--fade-r)));
+      mask-image:
+        linear-gradient(90deg, transparent 0, rgba(0,0,0,.1) calc(var(--fade-l) * .25), rgba(0,0,0,.5) calc(var(--fade-l) * .55), rgba(0,0,0,.88) calc(var(--fade-l) * .8), #000 var(--fade-l)),
+        linear-gradient(270deg, transparent 0, transparent var(--fade-gap), rgba(0,0,0,.1) calc(var(--fade-gap) + var(--fade-r) * .25), rgba(0,0,0,.5) calc(var(--fade-gap) + var(--fade-r) * .55), rgba(0,0,0,.88) calc(var(--fade-gap) + var(--fade-r) * .8), #000 calc(var(--fade-gap) + var(--fade-r)));
+      -webkit-mask-composite:source-in; mask-composite:intersect; }
+    :root[data-pills-scrolled] .pills { --fade-l:90px; }
+    :root[data-pills-overflow] .pills { --fade-r:90px; --fade-gap:34px; }
+    /* The mask hides the real "+" too while the row overflows (it's in
+       that clear strip) — it's still there and still takes the click.
+       The glyph you see is drawn on the layer behind, in the same spot. */
+    :root[data-pills-overflow] .pill.add { width:30px; margin:6px 0 0 0; }
+    .pills-gapfill::after { content:'+'; position:absolute; right:var(--pills-right, 36px); top:8px; bottom:0; width:30px; display:none;
+      align-items:center; justify-content:center; padding-top:6px; box-sizing:border-box;
+      font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7; }
+    :root[data-pills-overflow] .pills-gapfill::after { display:flex; }
     #actionMenu { left:16px; right:auto; }
     #actionMenuDropdown { left:0; right:auto; }
     /* A year is a heading over its months, not another tab: plain text,
@@ -1979,8 +1975,15 @@
        it), so it wears the very same window-fixed wash and disappears
        into it; the month column and gap strip have nothing to hide and
        simply go see-through. */
-    .pills { background-color:var(--backdrop-color); background-image:var(--backdrop); background-attachment:fixed; }
-    .month-sidebar, .pills-gapfill { background:none; }
+    /* The strip along the top (.pills-gapfill, stretched to cover it) is
+       what hides the page as it scrolls up behind the tabs; the tab row
+       itself is see-through and is faded with a mask at whichever end
+       has more tabs out of sight (see below). Painting the backdrop on a
+       pinned box inside the scrolling row instead left a visible patch. */
+    .pills { background:none; }
+    .pills-gapfill { top:0; height:var(--pills-bottom, 60px); z-index:39;
+      background-color:var(--backdrop-color); background-image:var(--backdrop); background-attachment:fixed; }
+    .month-sidebar { background:none; }
     body::before { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cpath transform='translate%2840 52%29 scale%281.25%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28212 34%29 scale%280.7%29' fill='%23f5a95f' fill-opacity='0.85' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28296 170%29 scale%281.05%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28118 236%29 scale%280.8%29' fill='%23ec6a9c' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%2822 198%29 scale%280.55%29' fill='%23f5a95f' fill-opacity='0.8' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
       animation:backdrop-twinkle 7s ease-in-out infinite alternate; }
@@ -2068,20 +2071,18 @@
        does — it used to appear on hover only, so there was nothing to
        tell you a tab had a menu (holiday period, duplicate, share…). */
     body.owner-mode .pill.on .pill-remove { visibility:visible; }
-    /* Plans. The alternatives of one plan are drawn as a single joined
-       strip of tabs (no gap, inner corners square, a hairline between
-       them) with the plan's name above its first tab; a different plan
-       stands apart with the normal gap. data-plan-pos / -label come from
-       renderPlans(). The row gets taller only while a name is showing. */
-    .pills:has(.pill[data-plan-label]) { padding-top:24px; }
-    .pill[data-plan-pos="first"], .pill[data-plan-pos="mid"] { margin-right:-8px; border-top-right-radius:0; }
-    .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { border-top-left-radius:0; }
-    .pill[data-plan-pos="mid"]:not(.on), .pill[data-plan-pos="last"]:not(.on) {
-      box-shadow:inset 1px 0 0 rgba(255,255,255,.55), inset 0 -9px 7px -6px rgba(40,25,60,.32); }
-    .pill[data-plan-label]::before { content:attr(data-plan-label); position:absolute; left:4px; top:-23px;
-      font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; line-height:1;
-      color:var(--ink); opacity:.62; white-space:nowrap; pointer-events:none; }
-    .pill.on[data-plan-label]::before { top:-17px; }
+    /* Plans. The alternatives of one plan overlap like a fan of index
+       tabs — each one tucked under the corner of the one before it, with
+       that tab's shadow falling on it — so they read as one stack of
+       versions. A different plan stands apart with the normal gap. No
+       label: the grouping is the stacking. The open tab always comes to
+       the front. data-plan-pos comes from renderPlans(). */
+    .pill[data-plan-pos] { z-index:1; }
+    .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { margin-left:-26px; padding-left:36px; }
+    .pill[data-plan-pos="first"]:not(.on), .pill[data-plan-pos="mid"]:not(.on) { z-index:2;
+      box-shadow:6px 0 8px -5px rgba(40,25,60,.4), inset 0 -9px 7px -6px rgba(40,25,60,.32); }
+    .pill[data-plan-pos="mid"]:not(.on) { z-index:1; }
+    .pill[data-plan-pos].on { z-index:4; box-shadow:5px 0 9px -5px rgba(40,25,60,.35), -5px 0 9px -5px rgba(40,25,60,.35), 0 -3px 10px -2px rgba(40,25,60,.22); }
     /* The "+" menu: two choices, each with a line saying what it means. */
     .plan-add-menu { min-width:250px; max-width:300px; }
     .itemmenu-row.plan-row { display:block; padding:8px 10px; }
@@ -3019,7 +3020,7 @@
       manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
       invite_scope_open_hint: 'Open to everyone — can’t be removed here',
       pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
-      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Make it an alternative of…', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Make it a separate plan', pillmenu_rename_plan: 'Name this plan', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
+      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', default_alt_name: 'Alternative', default_plan_name: 'New plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Join another plan', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Split into its own plan', pillmenu_rename_plan: 'Name this plan', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
       pillmenu_no_access_yet: 'No one has access yet',
       pillmenu_everyone_sees: 'Everyone can currently see this month.',
       pillmenu_only_checked_see: 'Only checked members can see this month.',
@@ -3071,7 +3072,7 @@
       manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
       invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
       pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
-      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Rendila un’alternativa di…', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Rendila un piano separato', pillmenu_rename_plan: 'Dai un nome al piano', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
+      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', default_alt_name: 'Alternativa', default_plan_name: 'Nuovo piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Unisci a un altro piano', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Separa in un piano a sé', pillmenu_rename_plan: 'Dai un nome al piano', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
       pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
       pillmenu_everyone_sees: 'Tutti possono attualmente vedere questo mese.',
       pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
@@ -3123,7 +3124,7 @@
       manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
       invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
       pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
-      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Convertir en alternativa de…', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Convertir en plan aparte', pillmenu_rename_plan: 'Poner nombre al plan', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
+      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', default_alt_name: 'Alternativa', default_plan_name: 'Nuevo plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Unir a otro plan', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Separar en un plan propio', pillmenu_rename_plan: 'Poner nombre al plan', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
       pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
       pillmenu_everyone_sees: 'Todos pueden ver este mes actualmente.',
       pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
@@ -5686,7 +5687,7 @@
 
   // The alternatives row, when it's too long to fit. Two jobs:
   //  - flag on <html> when it's scrolled away from its start, for the
-  //    fade at its left end (see .pills::before);
+  //    fade at its left end (see .pills' mask);
   //  - bring the open alternative into view — a newly added one lands at
   //    the far end of the row, and without this it's simply off-screen
   //    and looks as if nothing was added.
@@ -9056,6 +9057,20 @@
     panelsOfPlan(panel).forEach(function(p){ if(p !== panel){ var b = pillOfPanel(p); if(b) last = b; } });
     if(pill && last && last.nextElementSibling !== pill) last.insertAdjacentElement('afterend', pill);
   }
+  // Renames an alternative everywhere its name shows (tab, tooltip, and
+  // its overview row when that still carried the same default name).
+  function setOptionName(panel, name){
+    var opt = optOf(panel), pill = pillOfPanel(panel);
+    var nameEl = pill && pill.querySelector('.pill-name');
+    if(!nameEl) return;
+    var old = nameEl.textContent;
+    nameEl.textContent = name; nameEl.title = name;
+    document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
+      if(li.getAttribute('data-opt') !== opt) return;
+      var bn = li.querySelector('.budget-name');
+      if(bn && bn.textContent === old) bn.textContent = name;
+    });
+  }
   function addAlternativeToPlan(panel){
     var d = getPanelDate(panel), id = planIdOf(panel);
     panel.setAttribute('data-plan', id);
@@ -9066,6 +9081,8 @@
     if(named) created.setAttribute('data-plan-name', named);
     // Same plan, same people.
     setOptionMembers(created, getOptionMembers(panel));
+    // Numbered within its own plan, not across the whole month.
+    setOptionName(created, t('default_alt_name') + ' ' + panelsOfPlan(created).length);
     tuckPillIntoPlan(created);
     planChanged();
     activatePillByOpt(optOf(created));
@@ -9627,7 +9644,10 @@
       choice(t('add_new_plan'), t('add_new_plan_sub').replace('{month}', whenMonth), function(){
         var d = todayOrPanelDate(activePanel);
         var created = createOption(d.year, d.month);
-        if(created) activatePillByOpt(optOf(created));
+        if(!created) return;
+        // A new plan isn't an "alternative" of anything yet.
+        setOptionName(created, t('default_plan_name'));
+        activatePillByOpt(optOf(created));
       });
       positionPopover(pop, addOptionBtn);
     }
@@ -10269,6 +10289,8 @@
     // Flags that the alternatives no longer fit and the row scrolls (see
     // .pill.add's overflow rules). On <html>, so no plan DOM is touched.
     document.documentElement.toggleAttribute('data-pills-overflow', pillsEl.scrollWidth > pillsEl.clientWidth + 1);
+    // Where the row's right end is, for the stand-in "+" drawn behind it.
+    document.documentElement.style.setProperty('--pills-right', Math.max(0, window.innerWidth - pillsEl.getBoundingClientRect().right) + 'px');
   }
   window.addEventListener('resize', syncBarLayout);
   // The very first sync of a page load can run before the Nunito web
