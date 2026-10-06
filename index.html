@@ -2070,12 +2070,15 @@
     body.owner-mode .pill.on .pill-remove { visibility:visible; }
     /* The from/to form for a holiday period or a multi-day location (see
        openRangePopover) — the month picker's popover, a little wider. */
-    .monthpop.rangepop { width:232px; padding:10px; }
+    .monthpop.rangepop { width:252px; padding:10px; }
     .rangepop-title { font-weight:800; font-size:13px; color:var(--ink); margin:0 0 8px; }
     .monthpop.rangepop input[type="text"] { width:100%; box-sizing:border-box; font:inherit; font-size:12px;
       padding:6px 8px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px; color:var(--ink); }
     .rangepop-days { display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:12px; color:var(--muted); }
-    .monthpop.rangepop .rangepop-days select { flex:1; width:auto; margin-bottom:0; }
+    .rangepop-days > span:first-child { flex:0 0 34px; }
+    .monthpop.rangepop .rangepop-days select { flex:0 0 56px; width:auto; margin-bottom:0; }
+    .monthpop.rangepop .rangepop-days select.rangepop-month { flex:1 1 auto; min-width:0; }
+    .rangepop-static { flex:1; color:var(--ink); font-weight:700; }
     /* Menus and pickers open above the ribbon (its host, #statusBar, is
        z-index 60), not underneath it. */
     .itemmenu, .monthpop, .tagpop, .linkpop { z-index:66; }
@@ -8617,12 +8620,23 @@
 
   // The one place a multi-day span gets added, for both kinds: a holiday /
   // time-off period, or a location you'll be in for several days. A small
-  // form (name, from day, to day) instead of typing "5-10" into a browser
-  // prompt. Opened from an alternative's own "⋯" menu.
+  // form (name, from day, to day + month) instead of typing "5-10" into a
+  // browser prompt. Opened from an alternative's own "⋯" menu.
+  //
+  // A span can run past the end of the month. Alternatives belong to one
+  // month each, so it's stored as one piece per month:
+  //  - the piece in THIS month goes on the alternative it was added from
+  //    (alternatives of the same month can have different time off);
+  //  - the piece in each LATER month goes on every alternative of that
+  //    month — there's no "same alternative" over there to pick, and the
+  //    time off is the same whichever one you end up choosing;
+  //  - a later month that isn't in the plan yet is created, with one
+  //    empty alternative, so the rest of the span has somewhere to live.
   function openRangePopover(anchorEl, panel, kind){
     closePop();
     var isLocation = kind === 'location';
-    var lastDay = lastDayOfCalendar(panel);
+    var here = getPanelDate(panel);
+    function daysIn(year, month){ return new Date(year, month, 0).getDate(); }
     var pop = document.createElement('div');
     pop.className = 'monthpop rangepop';
     var title = document.createElement('div');
@@ -8632,48 +8646,90 @@
     nameInput.type = 'text';
     nameInput.placeholder = t(isLocation ? 'range_location_placeholder' : 'range_holiday_placeholder');
     if(!isLocation) nameInput.value = 'Holiday - time off';
-    function daySelect(selected){
-      var sel = document.createElement('select');
-      for(var d = 1; d <= lastDay; d++){
+    function fillDays(sel, count, selected){
+      sel.innerHTML = '';
+      for(var d = 1; d <= count; d++){
         var opt = document.createElement('option');
         opt.value = String(d); opt.textContent = String(d);
-        if(d === selected) opt.selected = true;
+        if(d === Math.min(selected, count)) opt.selected = true;
         sel.appendChild(opt);
       }
-      return sel;
     }
-    var fromSel = daySelect(1), toSel = daySelect(Math.min(lastDay, isLocation ? 2 : 3));
-    var row = document.createElement('div');
-    row.className = 'rangepop-days';
-    var fromLabel = document.createElement('span'); fromLabel.textContent = t('range_from');
-    var toLabel = document.createElement('span'); toLabel.textContent = t('range_to');
-    row.appendChild(fromLabel); row.appendChild(fromSel); row.appendChild(toLabel); row.appendChild(toSel);
-    // Picking a start past the end drags the end along with it.
-    fromSel.addEventListener('change', function(){
-      if(parseInt(toSel.value, 10) < parseInt(fromSel.value, 10)) toSel.value = fromSel.value;
+    var fromSel = document.createElement('select'), toSel = document.createElement('select');
+    fillDays(fromSel, daysIn(here.year, here.month), 1);
+    fillDays(toSel, daysIn(here.year, here.month), isLocation ? 2 : 3);
+    // The end can be in this month or any of the next few.
+    var toMonthSel = document.createElement('select');
+    toMonthSel.className = 'rangepop-month';
+    for(var k = 0; k <= 5; k++){
+      var mm = here.month + k, yy = here.year + Math.floor((mm - 1) / 12);
+      mm = ((mm - 1) % 12) + 1;
+      var mo = document.createElement('option');
+      mo.value = yy + '-' + mm;
+      mo.textContent = MONTH_FULL[mm - 1] + (yy !== here.year ? ' ' + yy : '');
+      toMonthSel.appendChild(mo);
+    }
+    function endMonth(){ var parts = toMonthSel.value.split('-'); return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) }; }
+    toMonthSel.addEventListener('change', function(){
+      var em = endMonth();
+      fillDays(toSel, daysIn(em.year, em.month), parseInt(toSel.value, 10) || 1);
     });
+    // Within one month, picking a start past the end drags the end along.
+    fromSel.addEventListener('change', function(){
+      var em = endMonth();
+      if(em.year === here.year && em.month === here.month && parseInt(toSel.value, 10) < parseInt(fromSel.value, 10)) toSel.value = fromSel.value;
+    });
+    function line(labelText, controls){
+      var row = document.createElement('div');
+      row.className = 'rangepop-days';
+      var label = document.createElement('span'); label.textContent = labelText;
+      row.appendChild(label);
+      controls.forEach(function(c){ row.appendChild(c); });
+      return row;
+    }
+    var fromMonth = document.createElement('span');
+    fromMonth.className = 'rangepop-static';
+    fromMonth.textContent = MONTH_FULL[here.month - 1];
+    var fromRow = line(t('range_from'), [fromSel, fromMonth]);
+    var toRow = line(t('range_to'), [toSel, toMonthSel]);
     var applyBtn = document.createElement('button');
     applyBtn.type = 'button'; applyBtn.className = 'addbtn'; applyBtn.textContent = t('range_add');
-    function apply(){
-      var start = parseInt(fromSel.value, 10), end = parseInt(toSel.value, 10);
-      if(end < start){ var swap = start; start = end; end = swap; }
-      var name = nameInput.value.trim();
-      if(isLocation){
-        if(!name){ nameInput.focus(); return; }
-        closePop();
-        setLocationRange(panel, name, start, end);
-      } else {
-        closePop();
-        var arr = getHolidays(panel);
-        arr.push({ start: start, end: end, label: name || 'Holiday - time off' });
-        setHolidays(panel, arr);
-        renderHoliday(panel);
-      }
+    function addPiece(target, start, end, name){
+      if(isLocation){ setLocationRange(target, name, start, end); return; }
+      var arr = getHolidays(target);
+      arr.push({ start: start, end: end, label: name || 'Holiday - time off' });
+      setHolidays(target, arr);
+      renderHoliday(target);
     }
-    [nameInput, fromSel, toSel, row, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    function apply(){
+      var name = nameInput.value.trim();
+      if(isLocation && !name){ nameInput.focus(); return; }
+      var start = parseInt(fromSel.value, 10), end = parseInt(toSel.value, 10), em = endMonth();
+      var sameMonth = em.year === here.year && em.month === here.month;
+      if(sameMonth && end < start){ var swap = start; start = end; end = swap; }
+      closePop();
+      if(sameMonth){ addPiece(panel, start, end, name); return; }
+      addPiece(panel, start, daysIn(here.year, here.month), name);
+      // Creating a month opens it; come back to where the span was added.
+      var stayOn = optOf(panel);
+      var y = here.year, m = here.month;
+      do {
+        m++; if(m > 12){ m = 1; y++; }
+        var isLast = y === em.year && m === em.month;
+        var targets = [];
+        document.querySelectorAll('.panel').forEach(function(p){
+          var d = getPanelDate(p);
+          if(d.year === y && d.month === m) targets.push(p);
+        });
+        if(!targets.length){ var made = createOption(y, m); if(made) targets.push(made); }
+        targets.forEach(function(target){ addPiece(target, 1, isLast ? end : daysIn(y, m), name); });
+      } while(!(y === em.year && m === em.month));
+      if(document.getElementById('panel-' + stayOn) && !panel.classList.contains('on')) activatePillByOpt(stayOn);
+    }
+    [nameInput, fromSel, toSel, toMonthSel, fromRow, toRow, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
     nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); apply(); } });
     applyBtn.addEventListener('click', function(e){ e.stopPropagation(); apply(); });
-    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(row); pop.appendChild(applyBtn);
+    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(fromRow); pop.appendChild(toRow); pop.appendChild(applyBtn);
     positionPopover(pop, anchorEl);
     if(isLocation) nameInput.focus();
   }
