@@ -1878,18 +1878,30 @@
      scatter of small four-point stars that slowly twinkle. Fixed to the window,
      so it stays put while the page scrolls. */
   @media screen and (min-width: 721px) {
-    :root { --backdrop:
+    /* Three of the four corner glows already follow the theme (they're
+       its own primary/accent/secondary). --backdrop-base, -glow and
+       -color are the parts that don't come for free: the wash underneath,
+       the fourth glow, and the flat fallback color — set per theme. */
+    :root { --backdrop-base:linear-gradient(165deg, #fff4ee 0%, #f8eefb 48%, #eef8f4 100%);
+      --backdrop-glow:150,120,220; --backdrop-color:#f8eefb;
+      --backdrop:
       radial-gradient(900px 620px at 4% -8%, rgba(var(--primary-rgb),.32), transparent 62%),
       radial-gradient(820px 640px at 102% 4%, rgba(var(--accent-rgb),.28), transparent 60%),
       radial-gradient(980px 760px at 92% 108%, rgba(var(--secondary-rgb),.28), transparent 60%),
-      radial-gradient(860px 700px at -4% 104%, rgba(150,120,220,.32), transparent 60%),
-      linear-gradient(165deg, #fff4ee 0%, #f8eefb 48%, #eef8f4 100%); }
-    body { background-color:#f8eefb; background-image:var(--backdrop); background-attachment:fixed; }
+      radial-gradient(860px 700px at -4% 104%, rgba(var(--backdrop-glow),.32), transparent 60%),
+      var(--backdrop-base); }
+    /* Classic: sand and sea-mist instead of blush and lilac, and stars in
+       its own teal/mint/orange. */
+    :root[data-theme="classic"] { --backdrop-base:linear-gradient(165deg, #fff3e2 0%, #f6f1e4 46%, #e3f3ef 100%);
+      --backdrop-glow:236,190,120; --backdrop-color:#f6f1e4; }
+    :root[data-theme="classic"] body::before { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cpath transform='translate%2840 52%29 scale%281.25%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28212 34%29 scale%280.7%29' fill='%23ef9a5c' fill-opacity='0.9' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28296 170%29 scale%281.05%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28118 236%29 scale%280.8%29' fill='%231fa896' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%2822 198%29 scale%280.55%29' fill='%23ef9a5c' fill-opacity='0.8' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E"); }
+    :root[data-theme="classic"] body::after { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='470' height='410'%3E%3Cpath transform='translate%2890 120%29 scale%281.7%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28380 60%29 scale%280.9%29' fill='%231c6672' fill-opacity='0.45' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28250 300%29 scale%281.3%29' fill='%23ef9a5c' fill-opacity='0.75' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28430 350%29 scale%280.6%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28150 380%29 scale%280.7%29' fill='%231fa896' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E"); }
+    body { background-color:var(--backdrop-color); background-image:var(--backdrop); background-attachment:fixed; }
     /* The alternatives bar has to stay opaque (the page scrolls under
        it), so it wears the very same window-fixed wash and disappears
        into it; the month column and gap strip have nothing to hide and
        simply go see-through. */
-    .pills { background-color:#f8eefb; background-image:var(--backdrop); background-attachment:fixed; }
+    .pills { background-color:var(--backdrop-color); background-image:var(--backdrop); background-attachment:fixed; }
     .month-sidebar, .pills-gapfill { background:none; }
     body::before { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cpath transform='translate%2840 52%29 scale%281.25%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28212 34%29 scale%280.7%29' fill='%23f5a95f' fill-opacity='0.85' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28296 170%29 scale%281.05%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28118 236%29 scale%280.8%29' fill='%23ec6a9c' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%2822 198%29 scale%280.55%29' fill='%23f5a95f' fill-opacity='0.8' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
@@ -1900,11 +1912,20 @@
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='470' height='410'%3E%3Cpath transform='translate%2890 120%29 scale%281.7%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28380 60%29 scale%280.9%29' fill='%23b79cf0' fill-opacity='0.7' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28250 300%29 scale%281.3%29' fill='%23f5a95f' fill-opacity='0.75' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28430 350%29 scale%280.6%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28150 380%29 scale%280.7%29' fill='%233fbf94' fill-opacity='0.55' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
       animation:backdrop-twinkle 11s ease-in-out -4s infinite alternate-reverse; }
     @media (prefers-reduced-motion: reduce) { body::before, body::after { animation:none; } }
-    /* The quiet alternative (Menu → Background): one flat cool grey with
-       the faintest top-to-bottom shift, no glows, no stars. */
-    :root[data-backdrop="minimal"] { --backdrop:linear-gradient(180deg, #eef0f3 0%, #e4e7ec 100%); }
-    :root[data-backdrop="minimal"] body, :root[data-backdrop="minimal"] .pills { background-color:#e9ecf0; }
-    :root[data-backdrop="minimal"] body::before, :root[data-backdrop="minimal"] body::after { display:none; }
+    /* The quiet alternative (Menu → Background): no stars, no corner
+       glows — just the theme's own page color tinted with its primary at the
+       top easing into its secondary at the bottom, plus one very soft
+       light in the upper left so it doesn't sit flat. Mixed from the
+       theme's variables, so it follows whichever theme is on (a flat
+       grey here looked dead next to either palette). */
+    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"] {
+      --backdrop-color:color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg)));
+      --backdrop:
+        radial-gradient(1100px 760px at 12% -6%, rgba(255,255,255,.55), transparent 62%),
+        linear-gradient(170deg, color-mix(in srgb, var(--primary) 17%, var(--bg)) 0%,
+          color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg))) 52%,
+          color-mix(in srgb, var(--secondary) 22%, var(--bg)) 100%); }
+    :root[data-backdrop="minimal"] body::before, :root[data-backdrop="minimal"] body::after { display:none !important; }
     /* Sits on a coloured page now, so the year heading and the "+" need
        a little more weight than they did on white. */
     .month-segment[data-year-seg] .seg-label-short { color:var(--ink); opacity:.7; }
@@ -1917,8 +1938,9 @@
   .backdrop-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
   .backdrop-dot[data-backdrop-name="magical"] { background:
     radial-gradient(circle at 30% 30%, #fff 0 1.5px, transparent 2.5px), radial-gradient(circle at 68% 62%, #fff 0 1.2px, transparent 2.2px),
-    linear-gradient(135deg, #f7b6cf, #d9c6f5 55%, #b9ead9); }
-  .backdrop-dot[data-backdrop-name="minimal"] { background:#e4e7ec; }
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 50%, #fff), color-mix(in srgb, var(--accent) 38%, #fff) 55%, color-mix(in srgb, var(--secondary) 45%, #fff)); }
+  .backdrop-dot[data-backdrop-name="minimal"] { background:linear-gradient(170deg,
+    color-mix(in srgb, var(--primary) 16%, var(--bg)), color-mix(in srgb, var(--ink) 16%, var(--bg))); }
   @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
