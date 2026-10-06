@@ -1872,10 +1872,30 @@
       font:inherit; font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7;
       transition:background-color .15s ease, opacity .15s ease; }
     .month-add:hover { background:rgba(255,255,255,.9); opacity:1; }
+    /* Never taller than the page beside it: tabs that don't fit scroll
+       inside the column instead of running on below the page's bottom
+       edge, attached to nothing. (top is set inline by syncBarLayout.) */
+    .month-sidebar { height:auto; max-height:calc(100vh - var(--pills-bottom, 60px) - 86px); }
+    /* A collapsed year: still just the heading, with a chevron saying
+       there's more inside, and clickable. */
+    .month-segment[data-year-seg][data-collapsed] { cursor:pointer; }
+    .month-segment[data-year-seg][data-collapsed] .seg-label-short::after { content:'\00a0\203A'; }
+    .month-segment[data-year-seg][data-collapsed]:hover .seg-label-short { opacity:1; color:var(--ink); }
+    .actionMenuYearsRow { cursor:pointer; }
+    .actionMenuYearsRow input { width:16px; height:16px; margin:0; accent-color:var(--primary); cursor:pointer; }
     /* The "+" after the alternatives, redrawn to be the very same glyph:
        same size, weight, tint and hover as the one under the months. */
-    .pill.add { width:18px; height:18px; align-self:center; margin:6px 0 0 4px; border-radius:50%;
-      font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7; box-shadow:none;
+    /* Pinned to the right end of the row (sticky inside the scrolling
+       row, a little in to stay clear of the menu button): with more
+       alternatives than fit, it used to scroll out of reach with them.
+       --pills-overflowing (0/1, from syncBarLayout) fades in a white disc
+       behind it only while tabs are actually passing underneath. */
+    .pill.add { position:sticky; right:16px; z-index:3; flex:none;
+      width:22px; height:22px; align-self:center; margin:6px 0 0 4px; border-radius:50%;
+      font-weight:600; font-size:15px; line-height:1; color:var(--ink);
+      opacity:calc(.7 + .3 * var(--pills-overflowing, 0));
+      background:rgba(255,255,255,calc(.96 * var(--pills-overflowing, 0)));
+      box-shadow:0 1px 4px rgba(40,25,60,calc(.22 * var(--pills-overflowing, 0)));
       transition:background-color .15s ease, opacity .15s ease; }
     .pill.add:hover { background:rgba(255,255,255,.9); opacity:1; }
     /* A year is a heading over its months, not another tab: plain text,
@@ -2261,6 +2281,10 @@
         <button type="button" class="backdrop-dot" data-backdrop-name="magical" title="Starry" aria-label="Starry background"></button>
         <button type="button" class="backdrop-dot" data-backdrop-name="minimal" title="Minimal" aria-label="Minimal background"></button>
       </div>
+      <label class="actionMenuThemeRow actionMenuYearsRow">
+        <span class="actionMenuThemeLabel" data-i18n="menu_collapse_years">Collapse other years</span>
+        <input type="checkbox" id="collapseYearsToggle" />
+      </label>
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_language">Language</span>
         <!-- Each option's own label is its language's own name for itself
@@ -2901,7 +2925,7 @@
     en: {
       menu_save: 'Save', menu_download: 'Download', menu_manage: 'Participants', menu_print: 'Print',
       menu_archive: 'Archive', archive_title: 'Archived', archive_empty: 'Nothing archived yet.', archive_unarchive: 'Unarchive',
-      menu_theme: 'Theme', menu_background: 'Background', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
+      menu_theme: 'Theme', menu_background: 'Background', menu_collapse_years: 'Collapse other years', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
       manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       manage_delete_member: 'Delete member',
@@ -2953,7 +2977,7 @@
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
       menu_archive: 'Archivio', archive_title: 'Archiviati', archive_empty: 'Ancora niente di archiviato.', archive_unarchive: 'Ripristina',
-      menu_theme: 'Tema', menu_background: 'Sfondo', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
+      menu_theme: 'Tema', menu_background: 'Sfondo', menu_collapse_years: 'Comprimi gli altri anni', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
       manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       manage_delete_member: 'Elimina membro',
@@ -3005,7 +3029,7 @@
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
       menu_archive: 'Archivo', archive_title: 'Archivados', archive_empty: 'Nada archivado todavía.', archive_unarchive: 'Restaurar',
-      menu_theme: 'Tema', menu_background: 'Fondo', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
+      menu_theme: 'Tema', menu_background: 'Fondo', menu_collapse_years: 'Contraer los otros años', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
       manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       manage_delete_member: 'Eliminar miembro',
@@ -5598,6 +5622,11 @@
       last = now;
       renderPaymentOverview();
       renderPageBookmark();
+      // Moving into a different year changes which year is open in the
+      // month column (see "Collapse other years"), and the paths that
+      // switch month only re-mark the existing tabs — rebuild them.
+      if(collapseOtherYears() && now.monthNum !== null && prev.monthNum !== null &&
+         Math.floor((now.monthNum - 1) / 12) !== Math.floor((prev.monthNum - 1) / 12)) renderMonthSidebar();
       if(!prev.id || !now.id || prev.monthNum === null) return;
       // prev.panel can be gone (the open alternative was just deleted) —
       // nothing to turn away from then.
@@ -9730,6 +9759,11 @@
     // non-overlapping) position/size, just no longer load-bearing.
     document.documentElement.style.setProperty('--pills-bottom', (sidebarH + pillsH) + 'px');
     document.documentElement.style.setProperty('--pills-gap', '0px');
+    // Tells the stylesheet the alternatives no longer fit and the row is
+    // scrolling, so the "+" (pinned to the row's right end, see .pill.add)
+    // gets a solid disc behind it instead of floating over the tabs
+    // passing underneath. On <html>, not .pills: no plan DOM touched.
+    document.documentElement.style.setProperty('--pills-overflowing', pillsEl.scrollWidth > pillsEl.clientWidth + 1 ? '1' : '0');
   }
   window.addEventListener('resize', syncBarLayout);
   // The very first sync of a page load can run before the Nunito web
@@ -9851,6 +9885,10 @@
     positionPopover(pop, anchorEl);
   }
 
+  var COLLAPSE_YEARS_KEY = 'travelPlannerCollapseYears';
+  function collapseOtherYears(){
+    try { return localStorage.getItem(COLLAPSE_YEARS_KEY) !== '0'; } catch(e){ return true; }
+  }
   function renderMonthSidebar(){
     var sidebar = document.getElementById('monthSidebar');
     if(!sidebar) return;
@@ -9992,6 +10030,18 @@
 
         yearSlot.appendChild(yearSeg);
         sidebar.appendChild(yearSlot);
+      }
+      // Only the year you're in is open; every other year is just its
+      // heading (Menu -> "Collapse other years", on by default). A long
+      // plan otherwise runs the tabs past the bottom of the page, where
+      // they hang beside nothing. Clicking a collapsed year opens it on
+      // its first month.
+      var yearMonths = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
+      if(collapseOtherYears() && activeYear !== null && yr !== activeYear && yearSeg && yearMonths.length){
+        yearSeg.dataset.collapsed = '1';
+        yearSeg.title = 'Show ' + yr + ' (' + yearMonths.length + (yearMonths.length === 1 ? ' month)' : ' months)');
+        yearSeg.addEventListener('click', function(){ filterPillsByMonth(yearMonths[0].year, yearMonths[0].month); });
+        return;
       }
 
       var monthsInYear = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
@@ -10344,6 +10394,17 @@
     });
     try { localStorage.setItem(THEME_KEY, name); } catch(e){}
   }
+  // "Collapse other years" (see renderMonthSidebar's year loop).
+  (function initCollapseYears(){
+    var toggle = document.getElementById('collapseYearsToggle');
+    if(!toggle) return;
+    toggle.checked = collapseOtherYears();
+    toggle.addEventListener('click', function(e){ e.stopPropagation(); });
+    toggle.addEventListener('change', function(){
+      try { localStorage.setItem(COLLAPSE_YEARS_KEY, toggle.checked ? '1' : '0'); } catch(e){}
+      renderMonthSidebar();
+    });
+  })();
   // Backdrop (what the book lies on) — same shape as the theme switch
   // above, its own attribute and storage key so the two are independent.
   var BACKDROP_KEY = 'travelPlannerBackdrop';
