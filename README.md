@@ -1,9 +1,9 @@
 # travel-planner — original look, fixed
 
 A copy of [laura-guerinoni/travel-planner](https://github.com/laura-guerinoni/travel-planner) (`main` at `3c06968`)
-with the same colors, cards and features. The layout goes back to the earlier full-page version
-(before the "white page" pass): one lilac page edge to edge, alternatives hanging from the window's top edge,
-month tabs flush against its left edge showing their full names, and the calendar filling the remaining width.
+with the same colors, cards and features. The layout sits between the two earlier ones: still a lilac calendar
+block on a white page, but the block fills the window, the alternatives' tabs stand directly on its top edge and
+the month tabs are attached to its left edge (year on its own chip, so the tab column stays narrow).
 
 Defects fixed:
 
@@ -18,7 +18,7 @@ Defects fixed:
 - **Phone:** the month ribbon's "⋯" no longer sits under the top-right menu button.
 
 CSS changes are one block at the end of `<style>` ("Layout pass on top of the original look"); JS changes are in
-`syncBarLayout()`, `pinCurrentSegment()`/`attachSegHoverExpand()` (tabs anchored left) and next to `renderPaymentOverview()`.
+`syncBarLayout()`, `renderMonthSidebar()` (year chip always shown) and next to `renderPaymentOverview()`.
 
 Preview without sign-in and without touching the shared Firebase plan:
 
