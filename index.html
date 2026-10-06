@@ -2071,18 +2071,16 @@
        does — it used to appear on hover only, so there was nothing to
        tell you a tab had a menu (holiday period, duplicate, share…). */
     body.owner-mode .pill.on .pill-remove { visibility:visible; }
-    /* Plans. The alternatives of one plan overlap like a fan of index
-       tabs — each one tucked under the corner of the one before it, with
-       that tab's shadow falling on it — so they read as one stack of
-       versions. A different plan stands apart with the normal gap. No
-       label: the grouping is the stacking. The open tab always comes to
-       the front. data-plan-pos comes from renderPlans(). */
-    .pill[data-plan-pos] { z-index:1; }
-    .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { margin-left:-26px; padding-left:36px; }
-    .pill[data-plan-pos="first"]:not(.on), .pill[data-plan-pos="mid"]:not(.on) { z-index:2;
-      box-shadow:6px 0 8px -5px rgba(40,25,60,.4), inset 0 -9px 7px -6px rgba(40,25,60,.32); }
-    .pill[data-plan-pos="mid"]:not(.on) { z-index:1; }
-    .pill[data-plan-pos].on { z-index:4; box-shadow:5px 0 9px -5px rgba(40,25,60,.35), -5px 0 9px -5px rgba(40,25,60,.35), 0 -3px 10px -2px rgba(40,25,60,.22); }
+    /* Plans. Every alternative keeps its own complete tab — own rounded
+       corners, own shadow — so four alternatives read as four things.
+       What groups them is spacing alone: the alternatives of one plan
+       sit close together (3px apart), and a wider gap (22px) separates
+       one plan from the next. (Overlapping or joining them merged same-
+       colored tabs into one long bar.) data-plan-pos comes from
+       renderPlans(). */
+    .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { margin-left:-5px; }
+    .pill[data-plan-pos="last"] { margin-right:14px; }
+    .pill[data-plan-pos="first"]:not(:first-child) { margin-left:14px; }
     /* The "+" menu: two choices, each with a line saying what it means. */
     .plan-add-menu { min-width:250px; max-width:300px; }
     .itemmenu-row.plan-row { display:block; padding:8px 10px; }
