@@ -1971,10 +1971,13 @@
     .page-turn-book { position:absolute; overflow:hidden; border-radius:14px; }
     .page-turn-page, .page-turn-flap { position:absolute; inset:0; box-sizing:border-box; border-radius:14px;
       border:1px solid var(--line); background-color:var(--bg); }
-    .page-turn-page { padding:16px; overflow:hidden; background-image:var(--texture); text-align:left; }
-    .page-turn-content { display:flex; flex-direction:column; min-height:100%; }
+    /* Sized by its content like .wrap is (bottom:auto), not stretched to
+       the book's box — see buildPage on why the copy must match exactly. */
+    .page-turn-page { bottom:auto; padding:16px; display:flex; flex-direction:column;
+      background-image:var(--texture); text-align:left; }
+    .page-turn-content { flex:1 0 auto; display:flex; flex-direction:column; }
     .page-turn-content > .grid.week { flex:1 0 auto; }
-    .page-turn-content > .grid.heads { position:static; }
+    .page-turn-content > .grid.heads { position:relative; top:auto; z-index:1; }
     /* The paper's back: the page's own color and grain — never white —
        shifted a touch lighter or darker by --turn-tint (set per turn, see
        playPageTurn), and falling very slightly into shade toward its free
@@ -5285,13 +5288,33 @@
     book.style.left = (r.left - stageLeft) + 'px'; book.style.top = (r.top - stageTop) + 'px';
     book.style.width = W + 'px'; book.style.height = H + 'px';
     stage.appendChild(book);
+    // A copy has to sit pixel-for-pixel where the real page does, or the
+    // swap between them shows as a jump — at the start of a forward turn,
+    // and (far more visibly) at the END of a backward one, where the copy
+    // is the last thing on screen before the real page takes over. So it
+    // is laid out exactly like .wrap lays out its open panel: same
+    // minimum height, the panel growing to fill it, and the same room
+    // left underneath for whatever follows the panel (the overview).
+    var wrapMinH = parseFloat(getComputedStyle(wrapEl).minHeight) || 0;
+    var newRect = newPanel.getBoundingClientRect();
+    var belowPanel = Math.max(0, r.bottom - newRect.bottom - 17); // minus .wrap's own bottom padding + border
+    // The weekday row is sticky on the real page; once scrolled it sits
+    // lower than its natural spot by this much.
+    var realHeads = newPanel.querySelector(':scope > .grid.heads');
+    var headsShift = realHeads ? Math.max(0, realHeads.getBoundingClientRect().top - newRect.top) : 0;
     function buildPage(panel){
       var page = document.createElement('div');
       page.className = 'page-turn-page';
+      page.style.minHeight = wrapMinH + 'px';
       var copy = panel.cloneNode(true);
       copy.removeAttribute('id');
       copy.className = 'page-turn-content';
+      var heads = copy.querySelector(':scope > .grid.heads');
+      if(heads && headsShift) heads.style.transform = 'translateY(' + headsShift + 'px)';
       page.appendChild(copy);
+      var spacer = document.createElement('div');
+      spacer.style.flex = 'none'; spacer.style.height = belowPanel + 'px';
+      page.appendChild(spacer);
       return page;
     }
     // forward: the old page folds away off the real new page underneath.
