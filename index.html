@@ -1876,20 +1876,22 @@
        inside the column instead of running on below the page's bottom
        edge, attached to nothing. (top is set inline by syncBarLayout.) */
     .month-sidebar { height:auto; max-height:calc(100vh - var(--pills-bottom, 60px) - 86px); }
-    /* Years collapse the ordinary way: a small arrow in front of the year,
-       pointing right when it's closed and down when it's open (drawn from
-       two borders, turned with a rotation). Only there when there's more
-       than one year. The year you're in can't be closed, so it isn't
-       clickable. */
-    .month-segment[data-year-seg][data-toggle] .seg-label-short::before { content:''; display:inline-block;
-      width:5px; height:5px; margin-right:8px; vertical-align:2px;
+    /* Years collapse the ordinary way: a small arrow, pointing right when
+       the year is closed and down when it's open (two borders, turned
+       with a rotation). It sits on the right, just before the "⋯", so the
+       left edge stays a clean line of year and month names. Only there
+       when there's more than one year. The year you're in can't be
+       closed, so it isn't clickable. */
+    .month-segment[data-year-seg][data-toggle]::after { content:''; position:absolute; right:33px; top:50%;
+      width:5px; height:5px; margin-top:-5px; color:var(--muted);
       border-right:2px solid currentColor; border-bottom:2px solid currentColor;
-      transform:rotate(45deg); transition:transform .18s ease; }
-    .month-segment[data-year-seg][data-toggle="closed"] .seg-label-short::before { transform:rotate(-45deg); vertical-align:1px; }
+      transform:rotate(45deg); transition:transform .18s ease; pointer-events:none; }
+    .month-segment[data-year-seg][data-toggle="closed"]::after { transform:rotate(-45deg); margin-top:-4px; right:35px; }
     .month-segment[data-year-seg][data-toggle][title^="Show"], .month-segment[data-year-seg][data-toggle][title^="Hide"] { cursor:pointer; }
     .month-segment[data-year-seg][data-toggle][title^="Show"]:hover .seg-label-short,
     .month-segment[data-year-seg][data-toggle][title^="Hide"]:hover .seg-label-short { opacity:1; color:var(--ink); }
-    .month-segment[data-year-seg][data-toggle] .itemmenu-btn { right:84px; }
+    .month-segment[data-year-seg][data-toggle][title^="Show"]:hover::after,
+    .month-segment[data-year-seg][data-toggle][title^="Hide"]:hover::after { color:var(--ink); }
     .actionMenuYearsRow { cursor:pointer; }
     .actionMenuYearsRow input { width:16px; height:16px; margin:0; accent-color:var(--primary); cursor:pointer; }
     /* The "+" after the alternatives, redrawn to be the very same glyph:
@@ -1940,15 +1942,14 @@
        no chip, no shadow, same column. */
     .month-segment-slot[data-year-slot] { height:26px; }
     .month-segment-slot[data-year-slot]:not(:first-child) { margin-top:10px; }
-    /* Right-aligned: everything in this column hangs off the page's edge
-       (that's where the tabs are attached), so the year lines up there
-       too instead of against the column's loose outer side. Its "⋯"
-       moves to the left of it. */
-    .month-segment[data-year-seg] { width:124px; background:none; box-shadow:none; border-radius:0; justify-content:flex-end; }
+    /* Laid out exactly like a month tab, minus the tab: the year starts
+       where the month names start, and its "⋯" sits where a month's
+       does, at the right (always showing — there's no tab to hover). */
+    .month-segment[data-year-seg] { width:124px; background:none; box-shadow:none; border-radius:0; justify-content:flex-start; }
     .month-segment[data-year-seg] .seg-label-full { display:none; }
-    .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 12px 0 0; font-size:15px;
+    .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 0 0 10px; font-size:15px;
       letter-spacing:.08em; color:var(--muted); }
-    .month-segment[data-year-seg] .itemmenu-btn { background:none; right:62px; }
+    .month-segment[data-year-seg] .itemmenu-btn { visibility:visible; }
   }
   /* ---- What the book lies on (desktop) ----
      Not flat white any more: a warm cream-to-lilac wash with soft glows
