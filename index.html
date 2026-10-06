@@ -1836,17 +1836,40 @@
   @media screen and (min-width: 721px) {
     /* Left padding = the month tabs' column, just wide enough for the
        open month's name (the year lives on its own chip now). */
-    body { padding:32px 24px 32px 142px; }
-    .wrap { max-width:1700px; margin-left:0; margin-right:0; }
+    body { padding:32px 24px 24px 148px; }
+    /* A flex column at least as tall as the window (--pills-bottom is where
+       the block starts, see syncBarLayout), with the open month's weeks
+       sharing whatever height is spare — so a short month on a tall screen
+       fills the page instead of ending halfway down it with white below. */
+    .wrap { max-width:1700px; margin-left:0; margin-right:0; display:flex; flex-direction:column;
+      min-height:calc(100vh - var(--pills-bottom, 60px) - 24px); }
+    .panel.on { flex:1 0 auto; display:flex; flex-direction:column; }
+    .panel.on > .grid.week { flex:1 0 auto; }
     /* No bottom padding: with syncBarLayout's gap gone too, a tab's flat
        bottom edge sits right on the block. Right padding stops the "+"
        ending up under the menu button when the row is full. */
     .pills { max-width:1700px; padding:8px 60px 0 32px; }
     /* As wide as its own label needs (a fixed 140px left the "⋯" button
        sitting on top of the label), capped to the column reserved above. */
-    .month-segment.seg-expanded, .month-segment.current { width:max-content; min-width:96px; max-width:134px; }
-    .month-segment .seg-label-full { font-size:12.5px; letter-spacing:.03em; padding:0 28px 0 12px;
+    /* One width for every month tab, full name always showing — the old
+       mix (40px "AUG" stubs, an 80px year chip, a wider open month) gave
+       three unrelated widths in one column. The open month is told apart
+       by its stitch and lift, not by size. */
+    .month-sidebar { width:140px; gap:10px; }
+    .month-segment, .month-segment.seg-expanded, .month-segment.current { width:134px; }
+    .month-segment { inset:0 0 0 6px; justify-content:flex-start; }
+    .month-segment .seg-label-short { display:none; }
+    .month-segment .seg-label-full { display:inline; font-size:12.5px; letter-spacing:.03em; padding:0 28px 0 12px;
       overflow:hidden; text-overflow:ellipsis; }
+    /* A year is a heading over its months, not another tab: plain text,
+       no chip, no shadow, same column. */
+    .month-segment-slot[data-year-slot] { height:26px; }
+    .month-segment-slot[data-year-slot]:not(:first-child) { margin-top:10px; }
+    .month-segment[data-year-seg] { width:134px; background:none; box-shadow:none; border-radius:0; }
+    .month-segment[data-year-seg] .seg-label-full { display:none; }
+    .month-segment[data-year-seg] .seg-label-short { display:inline; padding:0 0 0 12px; font-size:15px;
+      letter-spacing:.08em; color:var(--muted); }
+    .month-segment[data-year-seg] .itemmenu-btn { background:none; }
   }
   /* The row may wrap, so on a narrow column the day total drops under
      the place name instead of squeezing it into mid-word breaks
