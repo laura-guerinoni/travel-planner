@@ -2068,6 +2068,25 @@
        does — it used to appear on hover only, so there was nothing to
        tell you a tab had a menu (holiday period, duplicate, share…). */
     body.owner-mode .pill.on .pill-remove { visibility:visible; }
+    /* Plans. The alternatives of one plan are drawn as a single joined
+       strip of tabs (no gap, inner corners square, a hairline between
+       them) with the plan's name above its first tab; a different plan
+       stands apart with the normal gap. data-plan-pos / -label come from
+       renderPlans(). The row gets taller only while a name is showing. */
+    .pills:has(.pill[data-plan-label]) { padding-top:24px; }
+    .pill[data-plan-pos="first"], .pill[data-plan-pos="mid"] { margin-right:-8px; border-top-right-radius:0; }
+    .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { border-top-left-radius:0; }
+    .pill[data-plan-pos="mid"]:not(.on), .pill[data-plan-pos="last"]:not(.on) {
+      box-shadow:inset 1px 0 0 rgba(255,255,255,.55), inset 0 -9px 7px -6px rgba(40,25,60,.32); }
+    .pill[data-plan-label]::before { content:attr(data-plan-label); position:absolute; left:4px; top:-23px;
+      font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; line-height:1;
+      color:var(--ink); opacity:.62; white-space:nowrap; pointer-events:none; }
+    .pill.on[data-plan-label]::before { top:-17px; }
+    /* The "+" menu: two choices, each with a line saying what it means. */
+    .plan-add-menu { min-width:250px; max-width:300px; }
+    .itemmenu-row.plan-row { display:block; padding:8px 10px; }
+    .plan-row-main { display:block; font-weight:800; color:var(--ink); }
+    .plan-row-sub { display:block; margin-top:2px; font-size:11.5px; line-height:1.3; color:var(--muted); white-space:normal; }
     /* The from/to form for a holiday period or a multi-day location (see
        openRangePopover) — the month picker's popover, a little wider. */
     .monthpop.rangepop { width:252px; padding:10px; }
@@ -3000,7 +3019,7 @@
       manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
       invite_scope_open_hint: 'Open to everyone — can’t be removed here',
       pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
-      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
+      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Make it an alternative of…', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Make it a separate plan', pillmenu_rename_plan: 'Name this plan', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
       pillmenu_no_access_yet: 'No one has access yet',
       pillmenu_everyone_sees: 'Everyone can currently see this month.',
       pillmenu_only_checked_see: 'Only checked members can see this month.',
@@ -3052,7 +3071,7 @@
       manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
       invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
       pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
-      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
+      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Rendila un’alternativa di…', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Rendila un piano separato', pillmenu_rename_plan: 'Dai un nome al piano', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
       pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
       pillmenu_everyone_sees: 'Tutti possono attualmente vedere questo mese.',
       pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
@@ -3104,7 +3123,7 @@
       manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
       invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
       pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
-      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
+      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Convertir en alternativa de…', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Convertir en plan aparte', pillmenu_rename_plan: 'Poner nombre al plan', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
       pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
       pillmenu_everyone_sees: 'Todos pueden ver este mes actualmente.',
       pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
@@ -5732,6 +5751,7 @@
       var prev = last;
       last = now;
       renderPaymentOverview();
+      renderPlans();
       renderPageBookmark();
       revealActivePill();
       // Moving into a different year changes which year is open in the
@@ -6522,6 +6542,9 @@
   // scopes.
   var ICON_HOLIDAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   var ICON_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  var ICON_MERGE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v6a6 6 0 0 0 6 6h0a6 6 0 0 0 6-6V3"/><path d="M12 15v6"/></svg>';
+  var ICON_SPLIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-6"/><path d="M12 15a6 6 0 0 1-6-6V3"/><path d="M12 15a6 6 0 0 0 6-6V3"/><path d="M3 6l3-3 3 3"/><path d="M15 6l3-3 3 3"/></svg>';
+  var ICON_EDIT_NAME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
   var ICON_PRINT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>';
   var ICON_CURRENCY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2.5 0 0 0-2.5-1.5c-1.66 0-3 1.12-3 2.5s1.34 2.5 3 2.5 3 1.12 3 2.5-1.34 2.5-3 2.5A2.5 2.5 0 0 1 9.5 15"/><path d="M12 6.5v11"/></svg>';
   // "Who can see this" — an eye, not the two-people glyph (ICON_PEOPLE),
@@ -8991,6 +9014,150 @@
   })();
   function nextOptionId(){ nextOptionN += 1; return nextOptionN; }
 
+  // ---- Plans ----
+  // A month can hold several unrelated PLANS (a group trip; a weekend for
+  // two), and a plan can have several ALTERNATIVES (versions of it, only
+  // one of which will happen). Every tab is an alternative; tabs that
+  // share a data-plan id are versions of one plan. A tab with no
+  // data-plan is simply a plan of its own, so existing data needs no
+  // migration. The plan's optional name rides on every one of its panels
+  // (data-plan-name). Saved per alternative as `pl` / `pn`.
+  function planIdOf(panel){ return panel.getAttribute('data-plan') || optOf(panel); }
+  function panelsOfPlan(panel){
+    var id = planIdOf(panel), d = getPanelDate(panel), list = [];
+    document.querySelectorAll('.panel').forEach(function(p){
+      var pd = getPanelDate(p);
+      if(pd.year === d.year && pd.month === d.month && planIdOf(p) === id) list.push(p);
+    });
+    return list;
+  }
+  function pillOfPanel(panel){
+    var found = null, opt = optOf(panel);
+    document.querySelectorAll('.pill[data-opt]').forEach(function(b){ if(b.getAttribute('data-opt') === opt) found = b; });
+    return found;
+  }
+  // What to call a plan when talking about it: its own name, or failing
+  // that the name of its first alternative.
+  function planDisplayName(panel){
+    var named = panel.getAttribute('data-plan-name');
+    if(named) return named;
+    var first = panelsOfPlan(panel)[0] || panel;
+    var pill = pillOfPanel(first), nameEl = pill && pill.querySelector('.pill-name');
+    return nameEl ? nameEl.textContent.trim() : t('plan_label');
+  }
+  function planChanged(){
+    renderMonthSidebar();
+    scheduleAutoSave(); scheduleUndoSnapshot();
+  }
+  // Puts `panel`'s tab directly after the last tab of the plan it now
+  // belongs to, so a plan's alternatives always sit together.
+  function tuckPillIntoPlan(panel){
+    var pill = pillOfPanel(panel), last = null;
+    panelsOfPlan(panel).forEach(function(p){ if(p !== panel){ var b = pillOfPanel(p); if(b) last = b; } });
+    if(pill && last && last.nextElementSibling !== pill) last.insertAdjacentElement('afterend', pill);
+  }
+  function addAlternativeToPlan(panel){
+    var d = getPanelDate(panel), id = planIdOf(panel);
+    panel.setAttribute('data-plan', id);
+    var created = createOption(d.year, d.month);
+    if(!created) return;
+    created.setAttribute('data-plan', id);
+    var named = panel.getAttribute('data-plan-name');
+    if(named) created.setAttribute('data-plan-name', named);
+    // Same plan, same people.
+    setOptionMembers(created, getOptionMembers(panel));
+    tuckPillIntoPlan(created);
+    planChanged();
+    activatePillByOpt(optOf(created));
+  }
+  function mergeIntoPlan(panel, target){
+    var id = planIdOf(target);
+    target.setAttribute('data-plan', id);
+    panel.setAttribute('data-plan', id);
+    var named = target.getAttribute('data-plan-name');
+    if(named) panel.setAttribute('data-plan-name', named); else panel.removeAttribute('data-plan-name');
+    tuckPillIntoPlan(panel);
+    planChanged();
+  }
+  function separateFromPlan(panel){
+    var siblings = panelsOfPlan(panel).filter(function(p){ return p !== panel; });
+    // If this was the panel the plan's id came from, hand the others a
+    // fresh shared id first, or they'd still match this one's own id.
+    if(planIdOf(panel) === optOf(panel) && siblings.length){
+      var newId = optOf(siblings[0]);
+      siblings.forEach(function(p){ p.setAttribute('data-plan', newId); });
+    }
+    panel.removeAttribute('data-plan');
+    panel.removeAttribute('data-plan-name');
+    // Out of the group: its tab goes after the plan's last one.
+    var pill = pillOfPanel(panel), lastPill = null;
+    siblings.forEach(function(p){ var b = pillOfPanel(p); if(b) lastPill = b; });
+    if(pill && lastPill) lastPill.insertAdjacentElement('afterend', pill);
+    planChanged();
+  }
+  function openRenamePlan(anchorEl, panel){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'monthpop rangepop';
+    var title = document.createElement('div');
+    title.className = 'rangepop-title';
+    title.textContent = t('pillmenu_rename_plan');
+    var input = document.createElement('input');
+    input.type = 'text'; input.value = panel.getAttribute('data-plan-name') || '';
+    input.placeholder = t('plan_name_placeholder');
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'addbtn'; btn.textContent = t('plan_name_save');
+    function apply(){
+      var name = input.value.trim();
+      closePop();
+      panelsOfPlan(panel).forEach(function(p){
+        if(name) p.setAttribute('data-plan-name', name); else p.removeAttribute('data-plan-name');
+      });
+      planChanged();
+    }
+    [input, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); apply(); } });
+    btn.addEventListener('click', function(e){ e.stopPropagation(); apply(); });
+    pop.appendChild(title); pop.appendChild(input); pop.appendChild(btn);
+    positionPopover(pop, anchorEl);
+    input.focus(); input.select();
+  }
+  // Marks up the visible tabs so the stylesheet can draw a plan's
+  // alternatives as one joined group with the plan's name above it:
+  // data-plan-pos (first / mid / last) on each tab of a plan that has more
+  // than one, data-plan-label on the first. Also keeps such tabs next to
+  // each other. Only ever writes what actually changed.
+  function renderPlans(){
+    var groups = {}, order = [];
+    document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      var visible = panel && !pill.classList.contains('pill-filtered-out');
+      var id = visible ? planIdOf(panel) : null;
+      if(id){
+        if(!groups[id]){ groups[id] = []; order.push(id); }
+        groups[id].push({ pill: pill, panel: panel });
+      } else {
+        if(pill.hasAttribute('data-plan-pos')) pill.removeAttribute('data-plan-pos');
+        if(pill.hasAttribute('data-plan-label')) pill.removeAttribute('data-plan-label');
+      }
+    });
+    function setAttr(el, name, value){
+      if(value == null){ if(el.hasAttribute(name)) el.removeAttribute(name); }
+      else if(el.getAttribute(name) !== value) el.setAttribute(name, value);
+    }
+    order.forEach(function(id){
+      var members = groups[id];
+      for(var i = 1; i < members.length; i++){
+        if(members[i].pill.previousElementSibling !== members[i - 1].pill) members[i - 1].pill.insertAdjacentElement('afterend', members[i].pill);
+      }
+      members.forEach(function(mem, i){
+        var grouped = members.length > 1;
+        setAttr(mem.pill, 'data-plan-pos', !grouped ? null : i === 0 ? 'first' : i === members.length - 1 ? 'last' : 'mid');
+        setAttr(mem.pill, 'data-plan-label', grouped && i === 0 ? (mem.panel.getAttribute('data-plan-name') || t('plan_label')) : null);
+      });
+    });
+  }
+
   function createOption(year, month){
     var panels = document.querySelectorAll('.panel');
     var n = nextOptionId(); // internal id, must stay globally unique across all months
@@ -9020,6 +9187,8 @@
     // template's.
     clone.removeAttribute('data-archived-by');
     clone.removeAttribute('data-creator');
+    clone.removeAttribute('data-plan');
+    clone.removeAttribute('data-plan-name');
     clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.loc, .acts, .cost').forEach(function(n){ n.remove(); });
@@ -9092,6 +9261,10 @@
     clone.querySelectorAll(':scope > .grid.banner-row').forEach(function(x){ x.remove(); });
     clone.querySelectorAll('.cellhead').forEach(function(h){ h.removeAttribute('data-drag-wired'); });
     srcPanel.insertAdjacentElement('afterend', clone);
+    // A duplicate is another version of the same plan.
+    var dupPlan = planIdOf(srcPanel);
+    srcPanel.setAttribute('data-plan', dupPlan);
+    clone.setAttribute('data-plan', dupPlan);
 
     var srcName = srcPill.querySelector('.pill-name').textContent;
     var srcPrice = srcPill.querySelector('.pill-price').textContent;
@@ -9164,6 +9337,50 @@
       openRangePopover(pill, panel, 'location');
     });
     pop.appendChild(locationRow);
+    (function planRows(){
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      if(!panel) return;
+      var mine = panelsOfPlan(panel);
+      // Other plans in the same month this one could join.
+      var d = getPanelDate(panel), seen = {}, others = [];
+      seen[planIdOf(panel)] = 1;
+      document.querySelectorAll('.pill[data-opt]').forEach(function(b){
+        var p = document.getElementById('panel-' + b.getAttribute('data-opt'));
+        if(!p || !canSeeOption(p)) return;
+        var pd = getPanelDate(p), id = planIdOf(p);
+        if(pd.year !== d.year || pd.month !== d.month || seen[id]) return;
+        seen[id] = 1; others.push(p);
+      });
+      function planRow(icon, label, fn){
+        var r = document.createElement('div');
+        r.className = 'itemmenu-row';
+        r.innerHTML = '<span class="itemmenu-icon">' + icon + '</span>';
+        r.appendChild(document.createTextNode(label));
+        r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
+        pop.appendChild(r);
+      }
+      if(others.length) planRow(ICON_MERGE, t('pillmenu_merge_plan'), function(){
+        // Second step: which plan to join.
+        var pick = document.createElement('div');
+        pick.className = 'itemmenu';
+        var head = document.createElement('div');
+        head.className = 'invite-scope-heading';
+        head.textContent = t('pillmenu_merge_pick');
+        pick.appendChild(head);
+        others.forEach(function(target){
+          var r = document.createElement('div');
+          r.className = 'itemmenu-row';
+          r.textContent = planDisplayName(target);
+          r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); mergeIntoPlan(panel, target); });
+          pick.appendChild(r);
+        });
+        positionPopover(pick, pill);
+      });
+      if(mine.length > 1){
+        planRow(ICON_SPLIT, t('pillmenu_separate_plan'), function(){ separateFromPlan(panel); });
+        planRow(ICON_EDIT_NAME, t('pillmenu_rename_plan'), function(){ openRenamePlan(pill, panel); });
+      }
+    })();
     var accessRow = document.createElement('div');
     accessRow.className = 'itemmenu-row';
     accessRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EYE + '</span>' + t('pillmenu_who_can_see');
@@ -9382,18 +9599,37 @@
   document.addEventListener('click', function(e){
     var addOptionBtn = e.target.closest('#addOptionBtn');
     if(addOptionBtn){
-      // One job, no menu: add an alternative to the open month and open
-      // it (the page turns to it and the row scrolls it into view), the
-      // same way the "+" under the months adds and opens a month.
-      // "Add holiday period" used to share a dropdown here; it's in each
-      // alternative's own "⋯" menu now (see openPillContextMenu), since
-      // a time-off span belongs to one alternative.
+      // Two different things can be added here, and the menu says which:
+      // another ALTERNATIVE of the plan you're looking at (a second
+      // version of it, same people), or a new PLAN (something separate
+      // happening in the same month, with its own people). Each row
+      // spells out what it means underneath.
       e.stopPropagation();
       closePop();
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = todayOrPanelDate(activePanel);
-      var created = createOption(d.year, d.month);
-      if(created) activatePillByOpt(optOf(created));
+      var pop = document.createElement('div');
+      pop.className = 'itemmenu plan-add-menu';
+      function choice(label, sub, fn){
+        var r = document.createElement('div');
+        r.className = 'itemmenu-row plan-row';
+        var main = document.createElement('span'); main.className = 'plan-row-main'; main.textContent = label;
+        var subEl = document.createElement('span'); subEl.className = 'plan-row-sub'; subEl.textContent = sub;
+        r.appendChild(main); r.appendChild(subEl);
+        r.addEventListener('click', function(ev){ ev.stopPropagation(); closePop(); fn(); });
+        pop.appendChild(r);
+      }
+      if(activePanel){
+        choice(t('add_new_alt'), t('add_new_alt_sub').replace('{plan}', planDisplayName(activePanel)), function(){
+          addAlternativeToPlan(activePanel);
+        });
+      }
+      var whenMonth = activePanel ? MONTH_FULL[getPanelDate(activePanel).month - 1] : '';
+      choice(t('add_new_plan'), t('add_new_plan_sub').replace('{month}', whenMonth), function(){
+        var d = todayOrPanelDate(activePanel);
+        var created = createOption(d.year, d.month);
+        if(created) activatePillByOpt(optOf(created));
+      });
+      positionPopover(pop, addOptionBtn);
     }
   });
 
@@ -10464,6 +10700,8 @@
     // The star ribbon wears the open month's color, which was only
     // just (re)painted onto the tabs above.
     if(typeof renderPageBookmark === 'function') renderPageBookmark();
+    // Before syncBarLayout: a plan's name above its tabs makes the row taller.
+    renderPlans();
     syncBarLayout();
   }
   // Recomputed fresh on demand (see archiveMenuBtn's own click handler)
@@ -11724,6 +11962,11 @@
       if(cr) o.cr = cr;
       var cur = panel.getAttribute('data-currency');
       if(cur) o.cur = cur;
+      // Which plan this alternative belongs to (absent = a plan of its own).
+      var pl = panel.getAttribute('data-plan');
+      if(pl) o.pl = pl;
+      var pn = panel.getAttribute('data-plan-name');
+      if(pn) o.pn = pn;
       var days = {}, hasDay = false;
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var dn = dayNumOfCell(cell);
@@ -11889,6 +12132,8 @@
       if(o.arc && o.arc.length) setArchivedBy(panel, o.arc);
       if(o.cr) panel.setAttribute('data-creator', o.cr);
       if(o.cur) panel.setAttribute('data-currency', o.cur);
+      if(o.pl) panel.setAttribute('data-plan', String(o.pl));
+      if(o.pn) panel.setAttribute('data-plan-name', String(o.pn));
       if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
       buildCalendarGrid(panel);
 
