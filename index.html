@@ -1872,6 +1872,12 @@
       font:inherit; font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7;
       transition:background-color .15s ease, opacity .15s ease; }
     .month-add:hover { background:rgba(255,255,255,.9); opacity:1; }
+    /* The "+" after the alternatives, redrawn to be the very same glyph:
+       same size, weight, tint and hover as the one under the months. */
+    .pill.add { width:18px; height:18px; align-self:center; margin:6px 0 0 4px; border-radius:50%;
+      font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7; box-shadow:none;
+      transition:background-color .15s ease, opacity .15s ease; }
+    .pill.add:hover { background:rgba(255,255,255,.9); opacity:1; }
     /* A year is a heading over its months, not another tab: plain text,
        no chip, no shadow, same column. */
     .month-segment-slot[data-year-slot] { height:26px; }
@@ -1962,7 +1968,7 @@
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
-     edges show underneath it, a bookmark ribbon hangs at its top corner, and the tabs that
+     edges show underneath it, a star ribbon hangs at its top corner, and the tabs that
      aren't open sit tucked behind the page's edge. Same colors, same
      cards. */
   @media screen and (min-width: 721px) {
@@ -1974,32 +1980,27 @@
         8px 8px 0 -1px var(--bg), 8px 8px 0 0 var(--line),
         12px 12px 0 -1px var(--bg), 12px 12px 0 0 var(--line),
         18px 26px 44px -14px rgba(61,53,104,.38); }
-    /* The bookmark ribbon (see initPageBookmark): hangs from the top edge
-       at the page's right-hand corner, half over the edge so it never
-       covers a day, and stays there while the page scrolls. Always in the
-       open month's own color (--bookmark-color, set from its tab), never
-       a pale ghost: long with a star when the page you're on is the
-       bookmarked one, shorter with a return arrow when the bookmark is on
-       another page, shortest with a "+" when nothing is bookmarked yet.
-       Stitched like the tabs. */
-    .page-bookmark { position:fixed; top:var(--pills-bottom, 60px); z-index:2; width:32px; height:84px; padding:9px 0 0;
+    /* The star ribbon (see initPageBookmark): hangs from the top edge at
+       the page's right-hand corner, half over the edge so it never covers
+       a day, and stays there while the page scrolls. Always in the open
+       month's own color (--bookmark-color, set from its tab). One symbol,
+       two states, like any favorite: an outlined star while this
+       alternative isn't starred, a filled one (and a longer ribbon) once
+       it is. Stitched like the tabs. */
+    .page-bookmark { position:fixed; top:var(--pills-bottom, 60px); z-index:2; width:32px; height:62px; padding:8px 0 0;
       border:none; cursor:pointer; background:var(--bookmark-color, var(--primary)); transform-origin:50% 0;
       display:flex; align-items:flex-start; justify-content:center;
-      font:inherit; font-size:13px; font-weight:800; line-height:1; color:#fff;
+      font:inherit; font-size:15px; font-weight:400; line-height:1; color:#fff;
       clip-path:polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 14px), 0 100%);
       transition:height .28s cubic-bezier(.3,1.5,.5,1), background-color .25s ease; }
     .page-bookmark::before { content:''; position:absolute; top:0; bottom:17px; left:4px; right:4px; pointer-events:none;
       border-left:2px dashed rgba(255,255,255,.85); border-right:2px dashed rgba(255,255,255,.85); }
-    .page-bookmark::after { content:'\2605'; }
-    .page-bookmark:hover { height:92px; }
-    .page-bookmark[data-state="away"] { height:62px; }
-    .page-bookmark[data-state="away"]::after { content:'\21A9'; font-size:14px; }
-    .page-bookmark[data-state="away"]:hover { height:70px; }
-    .page-bookmark[data-state="none"] { height:50px; }
-    .page-bookmark[data-state="none"]::after { content:'+'; font-size:15px; }
-    .page-bookmark[data-state="none"]:hover { height:58px; }
-    .itemmenu-row.bookmark-row { display:block; }
-    .bookmark-row-sub { display:block; font-size:11px; color:var(--muted); white-space:normal; margin-top:1px; }
+    .page-bookmark::after { content:'\2606'; }
+    .page-bookmark:hover { height:70px; }
+    .page-bookmark[data-state="on"] { height:86px; }
+    .page-bookmark[data-state="on"]::after { content:'\2605'; }
+    .page-bookmark[data-state="on"]:hover { height:92px; }
+    /* A starred alternative also carries a small star on its own tab. */
     .page-bookmark:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     /* playPageTurn()'s stage: a clipped, see-through layer over the
        calendar. .page-turn-book is the page's own box; inside it, copies
@@ -5508,88 +5509,65 @@
     ], { duration: 320, easing: 'ease-out' });
   }
 
-  // The bookmark ribbon. One bookmark, kept in this browser only
-  // (localStorage — it's a personal "where I was", not part of the
-  // shared plan), pointing at one alternative of one month.
-  //   nothing bookmarked  -> click puts the bookmark on this page
-  //   bookmark is here    -> click takes it out
-  //   bookmark elsewhere  -> click offers: go there / move it here / remove
-  // "Go there" is just activatePillByOpt, so it turns the pages like any
-  // other switch. The ribbon lives in #statusBar (already in
-  // SAVE_EXCLUDE_SEL), so it's never saved or serialized with the plan.
+  // The star ribbon: a plain favorite toggle for the alternative you're
+  // looking at. Outlined star = not starred, filled = starred; starred
+  // alternatives also get a small star on their tab, so you can see at a
+  // glance which ones you've picked out. Any number can be starred.
+  // Kept in this browser only (localStorage) — a personal mark, not part
+  // of the shared plan. The ribbon and the stylesheet that draws the tab
+  // stars both live in #statusBar (already in SAVE_EXCLUDE_SEL), so
+  // starring never touches the plan's own DOM or schedules a save.
   var renderPageBookmark = function(){};
   (function initPageBookmark(){
     var host = document.getElementById('statusBar');
     var wrapEl = document.querySelector('.wrap');
     if(!host || !wrapEl) return;
-    var KEY = 'travelPlannerBookmark';
-    function stored(){ try { return localStorage.getItem(KEY) || ''; } catch(e){ return ''; } }
-    function store(opt){ try { if(opt) localStorage.setItem(KEY, opt); else localStorage.removeItem(KEY); } catch(e){} }
-    function currentOpt(){ var p = document.querySelector('.panel.on'); return p ? optOf(p) : ''; }
-    function describe(opt){
-      var panel = document.getElementById('panel-' + opt);
-      if(!panel) return '';
-      var d = getPanelDate(panel);
-      var nameEl = document.querySelector('.pill[data-opt="' + opt + '"] .pill-name');
-      return MONTH_FULL[d.month - 1] + ' ' + d.year + (nameEl ? ' · ' + nameEl.textContent.trim() : '');
+    var KEY = 'travelPlannerStars';
+    function stars(){
+      try {
+        var list = JSON.parse(localStorage.getItem(KEY) || '[]');
+        return Array.isArray(list) ? list.filter(function(x){ return typeof x === 'string'; }) : [];
+      } catch(e){ return []; }
     }
+    function save(list){ try { localStorage.setItem(KEY, JSON.stringify(list)); } catch(e){} }
+    function currentOpt(){ var p = document.querySelector('.panel.on'); return p ? optOf(p) : ''; }
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'page-bookmark';
-    host.appendChild(btn);
+    var tabStars = document.createElement('style');
+    host.appendChild(btn); host.appendChild(tabStars);
     renderPageBookmark = function(){
-      var mark = stored(), cur = currentOpt();
-      // A bookmark whose page isn't in the DOM (not loaded yet, or since
-      // deleted) just shows as "none" — it's left stored, since on a
-      // hosted plan the pages arrive after this first runs.
-      var state = !cur ? 'none' : (mark && document.getElementById('panel-' + mark)) ? (mark === cur ? 'here' : 'away') : 'none';
-      btn.dataset.state = state;
-      btn.title = state === 'here' ? 'Bookmarked — click to remove the bookmark'
-        : state === 'away' ? 'Bookmark: ' + describe(mark)
-        : 'Bookmark this page';
+      var list = stars(), cur = currentOpt();
+      var on = !!cur && list.indexOf(cur) !== -1;
+      btn.dataset.state = on ? 'on' : 'off';
+      btn.title = on ? 'Starred — click to remove the star' : 'Star this alternative';
       btn.setAttribute('aria-label', btn.title);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.style.display = cur ? '' : 'none';
       btn.style.left = (wrapEl.getBoundingClientRect().right - 14) + 'px';
       // The open month's own color, read off its alternative's tab
-      // (renderMonthSidebar paints it there).
+      // (renderMonthSidebar paints it there). The inline value is a theme
+      // variable (e.g. var(--secondary)), so taking it as written keeps
+      // the ribbon in step with a theme switch.
       var onPill = document.querySelector('.pill.on');
-      // The inline value is a theme variable (e.g. var(--secondary)), so
-      // taking it as written keeps the ribbon in step with a theme switch.
       var tabColor = onPill ? (onPill.style.background || getComputedStyle(onPill).backgroundColor) : '';
       if(tabColor) btn.style.setProperty('--bookmark-color', tabColor);
+      // Option ids are generated ("option-12"); anything else is skipped
+      // rather than written into a selector.
+      tabStars.textContent = list.filter(function(id){ return /^[\w-]+$/.test(id); }).map(function(id){
+        return '.pill[data-opt="' + id + '"] .pill-name::before{content:"\\2605\\00a0";}';
+      }).join('');
     };
-    function drop(){
-      if(btn.animate) btn.animate([
-        { transform: 'scaleY(.2)' }, { transform: 'scaleY(1.12)', offset: .6 }, { transform: 'scaleY(1)' }
-      ], { duration: 360, easing: 'ease-out' });
-    }
     btn.addEventListener('click', function(e){
       e.stopPropagation();
-      var mark = stored(), cur = currentOpt(), state = btn.dataset.state;
+      var cur = currentOpt();
       if(!cur) return;
-      if(state === 'none'){ store(cur); renderPageBookmark(); drop(); return; }
-      if(state === 'here'){ store(''); renderPageBookmark(); return; }
-      closePop();
-      var pop = document.createElement('div');
-      pop.className = 'itemmenu';
-      function row(text, fn, danger, sub){
-        var el = document.createElement('div');
-        el.className = 'itemmenu-row' + (danger ? ' danger' : '') + (sub ? ' bookmark-row' : '');
-        el.textContent = text;
-        if(sub){
-          // Which page it is, on its own line — a long alternative name
-          // wraps here instead of being cut off at the menu's edge.
-          var subEl = document.createElement('span');
-          subEl.className = 'bookmark-row-sub';
-          subEl.textContent = sub;
-          el.appendChild(subEl);
-        }
-        el.addEventListener('click', function(ev){ ev.stopPropagation(); closePop(); fn(); });
-        pop.appendChild(el);
-      }
-      row('Go to bookmark', function(){ activatePillByOpt(mark); }, false, describe(mark));
-      row('Move bookmark here', function(){ store(cur); renderPageBookmark(); drop(); });
-      row('Remove bookmark', function(){ store(''); renderPageBookmark(); }, true);
-      positionPopover(pop, btn);
+      var list = stars(), at = list.indexOf(cur);
+      if(at === -1) list.push(cur); else list.splice(at, 1);
+      save(list);
+      renderPageBookmark();
+      if(at === -1 && btn.animate) btn.animate([
+        { transform: 'scaleY(.5)' }, { transform: 'scaleY(1.1)', offset: .6 }, { transform: 'scaleY(1)' }
+      ], { duration: 340, easing: 'ease-out' });
     });
     window.addEventListener('resize', renderPageBookmark);
     if(typeof ResizeObserver !== 'undefined') new ResizeObserver(renderPageBookmark).observe(wrapEl);
@@ -10154,7 +10132,7 @@
       pill.style.borderColor = color;
       pill.style.color = '#fff';
     });
-    // The bookmark ribbon wears the open month's color, which was only
+    // The star ribbon wears the open month's color, which was only
     // just (re)painted onto the tabs above.
     if(typeof renderPageBookmark === 'function') renderPageBookmark();
     syncBarLayout();
