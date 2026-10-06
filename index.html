@@ -21,6 +21,7 @@
   try {
     var savedTheme = localStorage.getItem('travelPlannerTheme');
     if (savedTheme === 'classic') document.documentElement.setAttribute('data-theme', 'classic');
+    if (localStorage.getItem('travelPlannerBackdrop') === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
   } catch(e){}
 })();
 </script>
@@ -1899,10 +1900,26 @@
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='470' height='410'%3E%3Cpath transform='translate%2890 120%29 scale%281.7%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28380 60%29 scale%280.9%29' fill='%23b79cf0' fill-opacity='0.7' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28250 300%29 scale%281.3%29' fill='%23f5a95f' fill-opacity='0.75' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28430 350%29 scale%280.6%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28150 380%29 scale%280.7%29' fill='%233fbf94' fill-opacity='0.55' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E");
       animation:backdrop-twinkle 11s ease-in-out -4s infinite alternate-reverse; }
     @media (prefers-reduced-motion: reduce) { body::before, body::after { animation:none; } }
+    /* The quiet alternative (Menu → Background): one flat cool grey with
+       the faintest top-to-bottom shift, no glows, no stars. */
+    :root[data-backdrop="minimal"] { --backdrop:linear-gradient(180deg, #eef0f3 0%, #e4e7ec 100%); }
+    :root[data-backdrop="minimal"] body, :root[data-backdrop="minimal"] .pills { background-color:#e9ecf0; }
+    :root[data-backdrop="minimal"] body::before, :root[data-backdrop="minimal"] body::after { display:none; }
     /* Sits on a coloured page now, so the year heading and the "+" need
        a little more weight than they did on white. */
     .month-segment[data-year-seg] .seg-label-short { color:var(--ink); opacity:.7; }
   }
+  /* Menu swatches for the two backdrops — same size/ring as the theme
+     dots beside them. Hidden on a phone, where there's no backdrop. */
+  .backdrop-dot { width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); transition:transform .15s ease, border-color .15s ease; }
+  .backdrop-dot:hover { transform:scale(1.1); }
+  .backdrop-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
+  .backdrop-dot[data-backdrop-name="magical"] { background:
+    radial-gradient(circle at 30% 30%, #fff 0 1.5px, transparent 2.5px), radial-gradient(circle at 68% 62%, #fff 0 1.2px, transparent 2.2px),
+    linear-gradient(135deg, #f7b6cf, #d9c6f5 55%, #b9ead9); }
+  .backdrop-dot[data-backdrop-name="minimal"] { background:#e4e7ec; }
+  @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
@@ -2143,6 +2160,14 @@
         <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
         <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
         <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
+      </div>
+      <!-- What the book lies on: the starry pastel wash, or a plain quiet
+           one. Separate from Theme (which recolors the plan itself), and
+           desktop-only like the backdrop it switches. -->
+      <div class="actionMenuThemeRow actionMenuBackdropRow">
+        <span class="actionMenuThemeLabel" data-i18n="menu_background">Background</span>
+        <button type="button" class="backdrop-dot" data-backdrop-name="magical" title="Starry" aria-label="Starry background"></button>
+        <button type="button" class="backdrop-dot" data-backdrop-name="minimal" title="Minimal" aria-label="Minimal background"></button>
       </div>
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_language">Language</span>
@@ -2784,7 +2809,7 @@
     en: {
       menu_save: 'Save', menu_download: 'Download', menu_manage: 'Participants', menu_print: 'Print',
       menu_archive: 'Archive', archive_title: 'Archived', archive_empty: 'Nothing archived yet.', archive_unarchive: 'Unarchive',
-      menu_theme: 'Theme', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
+      menu_theme: 'Theme', menu_background: 'Background', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
       manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       manage_delete_member: 'Delete member',
@@ -2836,7 +2861,7 @@
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
       menu_archive: 'Archivio', archive_title: 'Archiviati', archive_empty: 'Ancora niente di archiviato.', archive_unarchive: 'Ripristina',
-      menu_theme: 'Tema', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
+      menu_theme: 'Tema', menu_background: 'Sfondo', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
       manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       manage_delete_member: 'Elimina membro',
@@ -2888,7 +2913,7 @@
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
       menu_archive: 'Archivo', archive_title: 'Archivados', archive_empty: 'Nada archivado todavía.', archive_unarchive: 'Restaurar',
-      menu_theme: 'Tema', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
+      menu_theme: 'Tema', menu_background: 'Fondo', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
       manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       manage_delete_member: 'Eliminar miembro',
@@ -10055,6 +10080,25 @@
     });
     try { localStorage.setItem(THEME_KEY, name); } catch(e){}
   }
+  // Backdrop (what the book lies on) — same shape as the theme switch
+  // above, its own attribute and storage key so the two are independent.
+  var BACKDROP_KEY = 'travelPlannerBackdrop';
+  function applyBackdrop(name){
+    if(name === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
+    else { name = 'magical'; document.documentElement.removeAttribute('data-backdrop'); }
+    document.querySelectorAll('.backdrop-dot').forEach(function(d){
+      d.classList.toggle('active', d.getAttribute('data-backdrop-name') === name);
+    });
+    try { localStorage.setItem(BACKDROP_KEY, name); } catch(e){}
+  }
+  document.querySelectorAll('.backdrop-dot').forEach(function(dot){
+    dot.addEventListener('click', function(){ applyBackdrop(dot.getAttribute('data-backdrop-name')); });
+  });
+  (function initBackdrop(){
+    var saved = 'magical';
+    try { saved = localStorage.getItem(BACKDROP_KEY) || 'magical'; } catch(e){}
+    applyBackdrop(saved);
+  })();
   document.querySelectorAll('.theme-dot').forEach(function(dot){
     dot.addEventListener('click', function(){ applyTheme(dot.getAttribute('data-theme-name')); });
   });
