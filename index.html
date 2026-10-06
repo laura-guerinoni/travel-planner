@@ -1956,12 +1956,13 @@
   .backdrop-dot[data-backdrop-name="minimal"] { background:linear-gradient(170deg,
     color-mix(in srgb, var(--primary) 16%, var(--bg)), color-mix(in srgb, var(--ink) 16%, var(--bg))); }
   @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
+  @media screen and (max-width: 720px) { .page-bookmark { display:none; } }
   /* Phone: the floating "+" button already offers "add a month". */
   @media screen and (max-width: 720px) { .month-add-slot { display:none; } }
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
-     edges show underneath it, a ribbon marker hangs out of the bottom, and the tabs that
+     edges show underneath it, a bookmark ribbon hangs at its top corner, and the tabs that
      aren't open sit tucked behind the page's edge. Same colors, same
      cards. */
   @media screen and (min-width: 721px) {
@@ -1973,10 +1974,27 @@
         8px 8px 0 -1px var(--bg), 8px 8px 0 0 var(--line),
         12px 12px 0 -1px var(--bg), 12px 12px 0 0 var(--line),
         18px 26px 44px -14px rgba(61,53,104,.38); }
-    /* Ribbon marker: behind the page stack (z-index:-1 with no stacking
-       context on .wrap), so only the tail below the last sheet shows. */
-    .wrap::after { content:''; position:absolute; z-index:-1; transform-origin:50% 0; right:190px; bottom:-44px; width:22px; height:70px;
-      background:var(--accent); clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); }
+    /* The bookmark ribbon (see initPageBookmark): hangs from the top edge
+       at the page's right-hand corner, half over the edge so it never
+       covers a day, and stays there while the page scrolls. Long and
+       solid when the page you're on is the bookmarked one, shorter when
+       the bookmark is on another page (it's "tucked in over there"), a
+       pale stub when nothing is bookmarked yet. Stitched like the tabs. */
+    .page-bookmark { position:fixed; top:var(--pills-bottom, 60px); z-index:2; width:30px; height:72px; padding:0;
+      border:none; cursor:pointer; background:var(--accent); transform-origin:50% 0;
+      clip-path:polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 13px), 0 100%);
+      transition:height .28s cubic-bezier(.3,1.5,.5,1), background-color .2s ease, opacity .2s ease; }
+    .page-bookmark::before { content:''; position:absolute; top:0; bottom:16px; left:4px; right:4px; pointer-events:none;
+      border-left:2px dashed rgba(255,255,255,.85); border-right:2px dashed rgba(255,255,255,.85); }
+    .page-bookmark:hover { height:80px; }
+    .page-bookmark[data-state="away"] { height:46px; opacity:.9; }
+    .page-bookmark[data-state="away"]:hover { height:54px; opacity:1; }
+    .page-bookmark[data-state="none"] { height:36px; background:color-mix(in srgb, var(--accent) 30%, #fff); }
+    .page-bookmark[data-state="none"]::before { border-color:color-mix(in srgb, var(--accent) 70%, #fff); }
+    .page-bookmark[data-state="none"]:hover { height:46px; background:color-mix(in srgb, var(--accent) 55%, #fff); }
+    .itemmenu-row.bookmark-row { display:block; }
+    .bookmark-row-sub { display:block; font-size:11px; color:var(--muted); white-space:normal; margin-top:1px; }
+    .page-bookmark:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
     /* playPageTurn()'s stage: a clipped, see-through layer over the
        calendar. .page-turn-book is the page's own box; inside it, copies
        of the pages involved (same fill-the-page layout as the real
@@ -5484,6 +5502,87 @@
     ], { duration: 320, easing: 'ease-out' });
   }
 
+  // The bookmark ribbon. One bookmark, kept in this browser only
+  // (localStorage — it's a personal "where I was", not part of the
+  // shared plan), pointing at one alternative of one month.
+  //   nothing bookmarked  -> click puts the bookmark on this page
+  //   bookmark is here    -> click takes it out
+  //   bookmark elsewhere  -> click offers: go there / move it here / remove
+  // "Go there" is just activatePillByOpt, so it turns the pages like any
+  // other switch. The ribbon lives in #statusBar (already in
+  // SAVE_EXCLUDE_SEL), so it's never saved or serialized with the plan.
+  var renderPageBookmark = function(){};
+  (function initPageBookmark(){
+    var host = document.getElementById('statusBar');
+    var wrapEl = document.querySelector('.wrap');
+    if(!host || !wrapEl) return;
+    var KEY = 'travelPlannerBookmark';
+    function stored(){ try { return localStorage.getItem(KEY) || ''; } catch(e){ return ''; } }
+    function store(opt){ try { if(opt) localStorage.setItem(KEY, opt); else localStorage.removeItem(KEY); } catch(e){} }
+    function currentOpt(){ var p = document.querySelector('.panel.on'); return p ? optOf(p) : ''; }
+    function describe(opt){
+      var panel = document.getElementById('panel-' + opt);
+      if(!panel) return '';
+      var d = getPanelDate(panel);
+      var nameEl = document.querySelector('.pill[data-opt="' + opt + '"] .pill-name');
+      return MONTH_FULL[d.month - 1] + ' ' + d.year + (nameEl ? ' · ' + nameEl.textContent.trim() : '');
+    }
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'page-bookmark';
+    host.appendChild(btn);
+    renderPageBookmark = function(){
+      var mark = stored(), cur = currentOpt();
+      // A bookmark whose page isn't in the DOM (not loaded yet, or since
+      // deleted) just shows as "none" — it's left stored, since on a
+      // hosted plan the pages arrive after this first runs.
+      var state = !cur ? 'none' : (mark && document.getElementById('panel-' + mark)) ? (mark === cur ? 'here' : 'away') : 'none';
+      btn.dataset.state = state;
+      btn.title = state === 'here' ? 'Bookmarked — click to remove the bookmark'
+        : state === 'away' ? 'Bookmark: ' + describe(mark)
+        : 'Bookmark this page';
+      btn.setAttribute('aria-label', btn.title);
+      btn.style.display = cur ? '' : 'none';
+      btn.style.left = (wrapEl.getBoundingClientRect().right - 14) + 'px';
+    };
+    function drop(){
+      if(btn.animate) btn.animate([
+        { transform: 'scaleY(.2)' }, { transform: 'scaleY(1.12)', offset: .6 }, { transform: 'scaleY(1)' }
+      ], { duration: 360, easing: 'ease-out' });
+    }
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var mark = stored(), cur = currentOpt(), state = btn.dataset.state;
+      if(!cur) return;
+      if(state === 'none'){ store(cur); renderPageBookmark(); drop(); return; }
+      if(state === 'here'){ store(''); renderPageBookmark(); return; }
+      closePop();
+      var pop = document.createElement('div');
+      pop.className = 'itemmenu';
+      function row(text, fn, danger, sub){
+        var el = document.createElement('div');
+        el.className = 'itemmenu-row' + (danger ? ' danger' : '') + (sub ? ' bookmark-row' : '');
+        el.textContent = text;
+        if(sub){
+          // Which page it is, on its own line — a long alternative name
+          // wraps here instead of being cut off at the menu's edge.
+          var subEl = document.createElement('span');
+          subEl.className = 'bookmark-row-sub';
+          subEl.textContent = sub;
+          el.appendChild(subEl);
+        }
+        el.addEventListener('click', function(ev){ ev.stopPropagation(); closePop(); fn(); });
+        pop.appendChild(el);
+      }
+      row('Go to bookmark', function(){ activatePillByOpt(mark); }, false, describe(mark));
+      row('Move bookmark here', function(){ store(cur); renderPageBookmark(); drop(); });
+      row('Remove bookmark', function(){ store(''); renderPageBookmark(); }, true);
+      positionPopover(pop, btn);
+    });
+    window.addEventListener('resize', renderPageBookmark);
+    if(typeof ResizeObserver !== 'undefined') new ResizeObserver(renderPageBookmark).observe(wrapEl);
+    renderPageBookmark();
+  })();
+
   // Follows whichever alternative is actually showing. Several paths
   // switch the active panel by toggling .on directly (a month tab click,
   // adding a month or an alternative, removing the open one) without
@@ -5507,6 +5606,7 @@
       var prev = last;
       last = now;
       renderPaymentOverview();
+      renderPageBookmark();
       if(!prev.id || !now.id || prev.monthNum === null) return;
       // prev.panel can be gone (the open alternative was just deleted) —
       // nothing to turn away from then.
