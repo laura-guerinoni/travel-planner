@@ -2095,27 +2095,27 @@
     .pill[data-plan-pos="mid"], .pill[data-plan-pos="last"] { margin-left:-5px; }
     .pill[data-plan-pos="last"] { margin-right:14px; }
     .pill[data-plan-pos="first"]:not(:first-child) { margin-left:14px; }
-    /* A plan with several alternatives stands on a pale tray, and the
-       people who can see the plan sit once at the START of the tray —
-       before the first tab, outside every tab — so they plainly belong
-       to the plan, not to one alternative. At the start, not the end:
-       the end of a plan with a few alternatives is often scrolled out of
-       the row or under its fade, and then there were no faces to be seen
-       at all. The tray is each tab's own outer shadow (5px spread;
-       neighbours' overlap across the 3px gap), so no tab changes shape;
-       its lead-in is the first tab's ::before, as wide as the faces
-       (--faces-w, measured by sizePlanFaces). */
+    /* A plan with several alternatives stands on a white tray, and the
+       people who can see the plan sit once at the tray's END — after the
+       last tab, outside every tab — so they plainly belong to the plan,
+       not to one alternative. The tray is each tab's own outer shadow
+       (6px spread, solid; neighbours' overlap across the 3px gap), so no
+       tab changes shape. Its end piece is the last tab's ::before, as
+       wide as the faces (--faces-w, measured by sizePlanFaces); it
+       starts 16px back, behind the tab (z-index:-1), so it runs out
+       from under the tab's rounded corner with no notch between them. */
     /* (.pills in front: these have to outrank the tucked/open tab shadows
        declared further down, which they extend.) */
-    .pills .pill[data-plan-pos]:not(.on) { box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32), 0 0 0 5px rgba(255,255,255,.74); }
-    .pills .pill[data-plan-pos].on { box-shadow:0 0 0 5px rgba(255,255,255,.74); }
-    .pill[data-plan-pos="mid"] .pill-access, .pill[data-plan-pos="last"] .pill-access { display:none; }
-    .pills .pill[data-plan-pos="first"][data-plan-faces] { margin-left:calc(var(--faces-w, 40px) + 22px); }
-    .pills .pill[data-plan-pos="first"][data-plan-faces]:not(:first-child) { margin-left:calc(var(--faces-w, 40px) + 36px); }
-    .pill[data-plan-pos="first"][data-plan-faces]::before { content:''; position:absolute; right:100%; top:-5px; bottom:0;
-      width:calc(var(--faces-w, 40px) + 20px); background:rgba(255,255,255,.74); border-radius:14px 0 0 0; pointer-events:none; }
-    .pill[data-plan-pos="first"] .pill-access { position:absolute; right:calc(100% + 8px); top:50%; transform:translateY(-50%); margin:0; }
-    .pill[data-plan-pos="first"]:not(.on) .pill-access { top:calc(50% - 3px); }
+    .pills .pill[data-plan-pos]:not(.on) { box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32), 0 0 0 6px rgba(255,255,255,.96); }
+    .pills .pill[data-plan-pos].on { box-shadow:0 0 0 6px rgba(255,255,255,.96); }
+    .pill[data-plan-pos="first"] .pill-access, .pill[data-plan-pos="mid"] .pill-access { display:none; }
+    .pills .pill[data-plan-pos="last"][data-plan-faces] { margin-right:calc(var(--faces-w, 40px) + 36px); }
+    .pill[data-plan-pos="last"][data-plan-faces]::before { content:''; position:absolute; z-index:-1;
+      left:calc(100% - 16px); top:-6px; bottom:0; width:calc(var(--faces-w, 40px) + 38px);
+      background:rgba(255,255,255,.96); border-radius:0 15px 0 0; pointer-events:none; }
+    .pill[data-plan-pos="last"]:not(.on)[data-plan-faces]::before { top:-6px; }
+    .pill[data-plan-pos="last"] .pill-access { position:absolute; left:calc(100% + 11px); top:50%; transform:translateY(-50%); margin:0; }
+    .pill[data-plan-pos="last"] .pill-access .pill-access-face { border-color:#fff; }
     /* The "+" menu: two choices, each with a line saying what it means. */
     .plan-add-menu { min-width:250px; max-width:300px; }
     .itemmenu-row.plan-row { display:block; padding:8px 10px; }
@@ -5647,7 +5647,10 @@
     }
     // The tab that was picked gives a small hop.
     var tab = isMonth ? document.querySelector('.month-segment.current') : document.querySelector('.pill.on');
-    if(tab) tab.animate(isMonth ? [
+    // (Not on a tab that's part of a plan's tray: a transform makes the tab
+    // its own stacking context, which would bring the tray's end piece —
+    // tucked behind the tab — in front of it for the length of the hop.)
+    if(tab && (isMonth || !tab.hasAttribute('data-plan-pos'))) tab.animate(isMonth ? [
       { transform: 'translateX(0)' }, { transform: 'translateX(-5px)', offset: .4 }, { transform: 'translateX(0)' }
     ] : [
       { transform: 'translateY(0)' }, { transform: 'translateY(-4px)', offset: .4 }, { transform: 'translateY(0)' }
@@ -9184,13 +9187,13 @@
     positionPopover(pop, anchorEl);
     input.focus(); input.select();
   }
-  // The tray a multi-alternative plan stands on starts with the plan's
-  // faces (see the stylesheet); this tells each such plan's first tab how
+  // The tray a multi-alternative plan stands on ends with the plan's
+  // faces (see the stylesheet); this tells each such plan's last tab how
   // wide those faces are. Run after the tabs are grouped and again after
   // the faces themselves are (re)drawn, since they arrive later.
   function sizePlanFaces(){
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
-      var faces = pill.getAttribute('data-plan-pos') === 'first' ? pill.querySelector('.pill-access') : null;
+      var faces = pill.getAttribute('data-plan-pos') === 'last' ? pill.querySelector('.pill-access') : null;
       var width = faces ? Math.round(faces.getBoundingClientRect().width) : 0;
       if(width){
         if(pill.getAttribute('data-plan-faces') !== '1') pill.setAttribute('data-plan-faces', '1');
@@ -12087,7 +12090,21 @@
     // (unlike everything else this function reads) — included regardless
     // of which root got passed in, since it's always "the current true
     // notes," not something a print/export subset extraction should omit.
-    if(Object.keys(MONTH_NOTES).length) model.notes = MONTH_NOTES;
+    // Plan links are written twice: on each option (pl / pn, above) and
+    // mirrored here under notes.__plans. Why: any session still running a
+    // version from before plans existed re-saves the whole plan a moment
+    // after every update it receives, rebuilding each option from the
+    // fields IT knows — which silently drops pl / pn, and un-grouped
+    // everyone's alternatives a split second after they were grouped.
+    // The notes object is the one thing those versions pass through
+    // untouched, so the mirror comes back intact and applyContentModel
+    // restores the links from it.
+    var planMirror = {};
+    model.options.forEach(function(o){ if(o.pl) planMirror[o.id] = [o.pl, o.pn || '']; });
+    var notesOut = {};
+    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans') notesOut[k] = MONTH_NOTES[k]; });
+    if(Object.keys(planMirror).length) notesOut.__plans = planMirror;
+    if(Object.keys(notesOut).length) model.notes = notesOut;
     return model;
   }
 
@@ -12190,7 +12207,11 @@
     // sync, undo/redo) passes through — same reasoning as TAGS being
     // reloaded wherever a snapshot gets applied, just inline here instead
     // of threaded as its own separate field (see MONTH_NOTES's comment).
-    MONTH_NOTES = model.notes || {};
+    // notes.__plans is the plan-link mirror (see extractContentModel), not
+    // a month's notes — keep it out of MONTH_NOTES.
+    var planMirror = (model.notes && model.notes.__plans && typeof model.notes.__plans === 'object') ? model.notes.__plans : {};
+    MONTH_NOTES = {};
+    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans') MONTH_NOTES[k] = model.notes[k]; });
     var wrap = document.querySelector('.wrap');
     var pillsWrap = document.querySelector('.pills');
     var budgetList = document.querySelector('.budget ul');
@@ -12220,8 +12241,13 @@
       if(o.arc && o.arc.length) setArchivedBy(panel, o.arc);
       if(o.cr) panel.setAttribute('data-creator', o.cr);
       if(o.cur) panel.setAttribute('data-currency', o.cur);
-      if(o.pl) panel.setAttribute('data-plan', String(o.pl));
-      if(o.pn) panel.setAttribute('data-plan-name', String(o.pn));
+      // The option's own link, or the mirrored one when an older session
+      // stripped it on the way through.
+      var planLink = o.pl ? [o.pl, o.pn] : planMirror[o.id];
+      if(planLink && planLink[0]){
+        panel.setAttribute('data-plan', String(planLink[0]));
+        if(planLink[1]) panel.setAttribute('data-plan-name', String(planLink[1]));
+      }
       if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
       buildCalendarGrid(panel);
 
