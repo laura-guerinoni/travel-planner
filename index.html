@@ -1973,7 +1973,11 @@
       border:1px solid var(--line); background-color:var(--bg); }
     /* Sized by its content like .wrap is (bottom:auto), not stretched to
        the book's box — see buildPage on why the copy must match exactly. */
-    .page-turn-page { bottom:auto; padding:16px; display:flex; flex-direction:column;
+    /* isolation: the copied weekday row carries a z-index (it's sticky on
+       the real page); without its own stacking context here, that row
+       floated above the turning sheet and its shading instead of being
+       covered by them. */
+    .page-turn-page { bottom:auto; padding:16px; display:flex; flex-direction:column; isolation:isolate;
       background-image:var(--texture); text-align:left; }
     .page-turn-content { flex:1 0 auto; display:flex; flex-direction:column; }
     .page-turn-content > .grid.week { flex:1 0 auto; }
