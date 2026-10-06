@@ -1862,6 +1862,13 @@
     .month-segment .seg-label-short { display:none; }
     .month-segment .seg-label-full { display:inline; font-size:12.5px; letter-spacing:.03em; padding:0 28px 0 12px;
       overflow:hidden; text-overflow:ellipsis; }
+    /* The "+" under the months — drawn exactly like the one after the
+       alternatives (.pill.add), lined up with the month names. */
+    .month-add-slot { height:30px; }
+    .month-add { width:28px; height:28px; margin-left:12px; padding:0; border:none; background:none; cursor:pointer;
+      display:inline-flex; align-items:center; justify-content:center;
+      font:inherit; font-weight:800; font-size:20px; color:var(--ink); }
+    .month-add:hover { opacity:.6; }
     /* A year is a heading over its months, not another tab: plain text,
        no chip, no shadow, same column. */
     .month-segment-slot[data-year-slot] { height:26px; }
@@ -1942,6 +1949,8 @@
   .backdrop-dot[data-backdrop-name="minimal"] { background:linear-gradient(170deg,
     color-mix(in srgb, var(--primary) 16%, var(--bg)), color-mix(in srgb, var(--ink) 16%, var(--bg))); }
   @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
+  /* Phone: the floating "+" button already offers "add a month". */
+  @media screen and (max-width: 720px) { .month-add-slot { display:none; } }
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
@@ -9652,6 +9661,19 @@
   // every alternative under this month, which is what archive/share/
   // remove all actually need to act on (a month is a grouping of
   // options, not an entity of its own in the data).
+  // The month/year picker in "Add" mode — shared by a month tab's own
+  // "Add another month" row and the "+" under the month tabs (see
+  // renderMonthSidebar). Picking a year that isn't there yet is how a new
+  // year gets added: its heading appears with its first month.
+  function openAddMonthPicker(anchorEl, year, month){
+    openMonthPickerPopover(anchorEl, year, month, 'Add', function(newYear, newMonth){
+      var newPanel = createOption(newYear, newMonth);
+      document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
+      document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
+      newPanel.classList.add('on');
+    });
+  }
   function openMonthSegmentMenu(anchorEl, s){
     closePop();
     var pop = document.createElement('div');
@@ -9668,13 +9690,7 @@
     function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
 
     row(icon('+') + 'Add another month', function(){
-      openMonthPickerPopover(anchorEl, s.year, s.month, 'Add', function(newYear, newMonth){
-        var newPanel = createOption(newYear, newMonth);
-        document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
-        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
-        document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
-        newPanel.classList.add('on');
-      });
+      openAddMonthPicker(anchorEl, s.year, s.month);
     });
     row(icon('📝') + (MONTH_NOTES[s.key] ? 'Edit notes' : 'Add notes'), function(){
       openMonthNotes(s.year, s.month);
@@ -9978,6 +9994,28 @@
         attachSegHoverExpand(seg);
       });
     });
+    // A "+" under the last month, the counterpart of the "+" after the
+    // last alternative: same glyph, same job one level up. It opens the
+    // month/year picker preset to the month after the latest one, so the
+    // common case is one click — and December rolls into January of the
+    // next year, which is also how a new year gets started.
+    if(allMonths.length){
+      var addSlot = document.createElement('div');
+      addSlot.className = 'month-segment-slot month-add-slot';
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button'; addBtn.className = 'month-add jsctl'; addBtn.textContent = '+';
+      addBtn.title = 'Add a month (any year)';
+      addBtn.setAttribute('aria-label', addBtn.title);
+      addBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var last = allMonths[allMonths.length - 1];
+        var nextMonth = last.month === 12 ? 1 : last.month + 1;
+        var nextYear = last.month === 12 ? last.year + 1 : last.year;
+        openAddMonthPicker(addBtn, nextYear, nextMonth);
+      });
+      addSlot.appendChild(addBtn);
+      sidebar.appendChild(addSlot);
+    }
     pinCurrentSegment();
 
     // Every option pill gets the exact same fill as its own month's
