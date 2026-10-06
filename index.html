@@ -1988,10 +1988,6 @@
         linear-gradient(var(--turn-tint, transparent), var(--turn-tint, transparent)), var(--texture); }
     .page-turn-flap-up { background-image:linear-gradient(0deg, rgba(40,25,60,.07), rgba(40,25,60,0) 120px),
         linear-gradient(var(--turn-tint, transparent), var(--turn-tint, transparent)), var(--texture); }
-    /* A roll's back has no far edge to shade — it curves away under
-       itself; the band below does its lighting. */
-    .page-turn-flap-roll { background-image:linear-gradient(var(--turn-tint, transparent), var(--turn-tint, transparent)), var(--texture); }
-    .page-turn-flap-roll .page-turn-through { opacity:.14; }
     /* On the fold, as a bent sheet takes the light: the paper darkens a
        little as it starts to curve, catches a soft highlight along the
        crest (soft — paper isn't glossy), and drops a narrow shadow onto
@@ -1999,13 +1995,6 @@
     .page-turn-band { position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform;
       background:linear-gradient(90deg, rgba(40,25,60,0) 0%, rgba(40,25,60,.07) 30%, rgba(40,25,60,.02) 40%,
         rgba(255,255,255,.42) 47%, rgba(255,255,255,.1) 50%, rgba(40,25,60,.16) 50%, rgba(40,25,60,.05) 72%, rgba(40,25,60,0) 100%); }
-    /* The same strip for an unrolling sheet, stretched over the roll: a
-       thin shadow just beyond the roll's far edge, the roll itself going
-       dark rim -> lit crest -> darker again where it meets the paper it's
-       laying down, then its shadow on the page still to be covered. */
-    .page-turn-band-roll { background:linear-gradient(90deg, rgba(40,25,60,0) 0%, rgba(40,25,60,.1) 13%,
-        rgba(40,25,60,.16) 13.2%, rgba(40,25,60,.03) 24%, rgba(255,255,255,.5) 34%, rgba(255,255,255,.12) 43%,
-        rgba(40,25,60,.12) 50%, rgba(40,25,60,.22) 50%, rgba(40,25,60,.06) 68%, rgba(40,25,60,0) 100%); }
     .page-turn-through { opacity:.24; background:none; border-color:transparent; }
     .page-turn-star { position:absolute; pointer-events:none; opacity:0;
       clip-path:polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
@@ -5262,7 +5251,7 @@
   // tabs are; an ALTERNATIVE folds from the bottom up over the top, where
   // its own tabs are, and quicker. Going back a month plays the same fold
   // in reverse, laying the earlier page down over the current one; going
-  // back an alternative unrolls the earlier sheet from the top down.
+  // back an alternative does the same from the top down, held at the top.
   // The day cards of the uncovered page fade up as the fold passes them
   // and the tab that was picked gives a small hop; nothing else moves.
   // Everything animated here is either inside a throwaway stage parked in
@@ -5283,19 +5272,20 @@
     var stageTop = Math.max(0, Math.min(barBottom, window.innerHeight));
     if(r.bottom - stageTop < 40) return;
     var isMonth = kind === 'month';
-    // Going back always plays in reverse — the earlier page is brought
-    // back over and laid down on the current one (what iOS calls
-    // "uncurl"). For a month that's the same fold run backwards. For an
-    // alternative, a plain reversed fold put the whole remaining sheet
-    // flat over the part already laid, sliding down and shrinking to
-    // nothing at the bottom; instead it unrolls like a real curl does,
-    // around a cylinder: only a narrow band of the sheet's back shows,
-    // riding on the fold as a roll that travels top to bottom, leaving
-    // the earlier alternative flat behind it and running out of paper
-    // exactly as it reaches the bottom.
+    // Going back plays the very same fold in reverse: same tilt, same
+    // paper, same light, run backwards — the earlier page is brought back
+    // over and laid down on the current one. For a month that's all.
+    // For an alternative there's one catch: a plain reversal opens with
+    // the whole sheet flipped over and flat, covering the page it's being
+    // laid onto, so nothing reads as attached at the top — it looked like
+    // a loose sheet dropping. So while the fold is still near the top,
+    // the turned-over part is kept short (`held`): the sheet is visibly
+    // fixed along the top edge with its face showing, and only its
+    // leading stretch curls over as it comes down. From about halfway
+    // the limit no longer bites and the rest IS the forward move in
+    // reverse, frame for frame, down to the last corner settling.
     var lifting = forward;
-    var rolled = !isMonth && !forward;
-    var ROLL_W = 112;
+    var held = !isMonth && !forward;
     // Nothing below the window's bottom edge is ever seen.
     var W = r.width, H = Math.min(r.height, window.innerHeight - r.top + 2);
     var visibleTop = Math.max(0, stageTop - r.top);
@@ -5348,12 +5338,12 @@
     if(!lifting) book.appendChild(buildPage(oldPanel));
     var flat = buildPage(lifting ? oldPanel : newPanel);
     var flap = document.createElement('div');
-    flap.className = 'page-turn-flap' + (isMonth ? '' : rolled ? ' page-turn-flap-roll' : ' page-turn-flap-up');
+    flap.className = 'page-turn-flap' + (isMonth ? '' : ' page-turn-flap-up');
     // The back of the sheet is the same paper as its face. Lifting away
     // (lifting) it tips up toward the light and reads a touch lighter;
     // coming down (back) its underside is turned from the light and
     // reads a touch darker.
-    flap.style.setProperty('--turn-tint', (lifting || rolled) ? 'rgba(255,255,255,.07)' : 'rgba(40,25,60,.045)');
+    flap.style.setProperty('--turn-tint', (lifting || held) ? 'rgba(255,255,255,.07)' : 'rgba(40,25,60,.045)');
     // Paper this thin shows its other side through: a faint copy of the
     // page's own cards on the back (mirrored for free — the flap's
     // transform is the mirror), so the turned part still reads as this
@@ -5362,10 +5352,8 @@
     through.classList.add('page-turn-through');
     flap.appendChild(through);
     var band = document.createElement('div');
-    band.className = 'page-turn-band' + (rolled ? ' page-turn-band-roll' : '');
-    // The roll's band is wider: its flap-side half has to span the roll
-    // itself plus the thin shadow just beyond its far edge.
-    var BAND_W = rolled ? 2 * (ROLL_W + 40) : 120, BAND_L = 2 * Math.max(W, H) + 400;
+    band.className = 'page-turn-band';
+    var BAND_W = 120, BAND_L = 2 * Math.max(W, H) + 400;
     band.style.width = BAND_W + 'px'; band.style.height = BAND_L + 'px';
     book.appendChild(flat); book.appendChild(flap); book.appendChild(band);
 
@@ -5378,7 +5366,7 @@
     var uDir = isMonth ? [1, 0] : [0, 1];
     function pt(p){ return p[0].toFixed(2) + 'px ' + p[1].toFixed(2) + 'px'; }
     var duration = isMonth ? 600 : 460;
-    var maxTilt = isMonth ? .24 : rolled ? .07 : .13;
+    var maxTilt = isMonth ? .24 : .13;
     var SAMPLES = 32, flatFrames = [], flapFrames = [], bandFrames = [], foldAt = [], foldEnds = [];
     for(var i = 0; i <= SAMPLES; i++){
       var tt = i / SAMPLES;
@@ -5389,7 +5377,9 @@
       // would leave the page through its free edge rather than its side.
       var tilt = Math.max(0, Math.min(maxTilt * Math.sin(Math.PI * tt), 2 * (uMax - c) / vLen * .98));
       var u0 = c + vLen / 2 * tilt, u1 = c - vLen / 2 * tilt;
-      var roll = rolled ? Math.min(ROLL_W, uMax - c) : Infinity;
+      // How much of the sheet past the fold is turned over and showing:
+      // all of it, except while `held` near the top (see above).
+      var roll = held ? Math.min(uMax - c, Math.max(24, .55 * (c - uMin))) : Infinity;
       foldAt.push(c); foldEnds.push([u0, u1]);
       var p1 = xy(u0, 0), p2 = xy(u1, vLen);
       flatFrames.push({ clipPath: 'polygon(' + [xy(-60, 0), p1, p2, xy(-60, vLen)].map(pt).join(', ') + ')' });
@@ -5400,8 +5390,6 @@
       var ex = p1[0] - (a * p1[0] + b * p1[1]), ey = p1[1] - (b * p1[0] + d * p1[1]);
       flapFrames.push({
         transform: 'matrix(' + [a, b, b, d, ex, ey].map(function(n){ return n.toFixed(5); }).join(',') + ')',
-        // Normally everything past the fold; for a roll, only as much as
-        // wraps the cylinder — and less than that once the paper runs out.
         clipPath: 'polygon(' + [p1, xy(Math.min(uMax, u0 + roll), 0), xy(Math.min(uMax, u1 + roll), vLen), p2].map(pt).join(', ') + ')'
       });
       // The band's own left half lies on the flap, its right half on the
