@@ -1825,6 +1825,38 @@
   .fabadd-time-row .fabadd-select { margin-bottom:14px; }
   .fabadd-time-sep { color:var(--muted); font-weight:700; }
   .fabadd-confirm-btn { width:100%; }
+
+  /* ---- Fixes on top of the original look (nothing above was restyled) ---- */
+  /* Lets width animate to/from max-content where supported (the month
+     tab's hover-expand below); elsewhere the tab simply opens at once. */
+  :root { interpolate-size:allow-keywords; }
+  @media screen and (min-width: 721px) {
+    /* Room for an expanded month tab to the LEFT of the calendar. With
+       the old 56px, the open month's tab (and a year tab) ran off the
+       left edge of any window narrower than about 1400px — "AUGUST 2026"
+       showing as just "202". */
+    body { padding-left:188px; }
+    /* As wide as its own label needs, instead of a fixed 140px that the
+       longer names ("SEPTEMBER 2026") never fit in; capped so it always
+       stays inside the room reserved above. */
+    .month-segment.seg-expanded, .month-segment.current { width:max-content; min-width:140px; max-width:178px; }
+    /* Right padding keeps the label clear of the tab's own "⋯" button,
+       which used to sit on top of the last digit of the year. */
+    .month-segment .seg-label-full { padding:0 30px 0 14px; overflow:hidden; text-overflow:ellipsis; }
+  }
+  /* The row may wrap, so on a narrow column the day total drops under
+     the place name instead of squeezing it into mid-word breaks
+     ("Zakopa" / "ne"). Words still break as a last resort. */
+  .loc { flex-wrap:wrap; row-gap:4px; }
+  .loc-text { flex:1 1 auto; overflow-wrap:break-word; word-break:normal; hyphens:manual; }
+  /* Never split a day's number or weekday one character per line. */
+  .daynum, .wd { white-space:nowrap; overflow-wrap:normal; }
+  .daynum { flex:none; }
+  @media screen and (max-width: 720px) {
+    /* Keeps the last month ribbon (and its "⋯") out from under the menu
+       button pinned in the top-right corner. */
+    .month-sidebar { padding-right:56px; }
+  }
 </style>
 </head>
 <body>
@@ -5026,6 +5058,23 @@
   }
 
   // ---- links (multiple per activity) ----
+  // Keeps the overview on whichever alternative is actually showing.
+  // Several paths switch the active panel by toggling .on directly (a
+  // month tab click, adding a month or an alternative, removing the open
+  // one) without going through activatePillByOpt, so the overview kept
+  // the previous alternative's totals until something else re-rendered it.
+  (function watchActivePanelForOverview(){
+    var wrapEl = document.querySelector('.wrap');
+    if(!wrapEl || typeof MutationObserver === 'undefined') return;
+    var lastId = (document.querySelector('.panel.on') || {}).id || '';
+    new MutationObserver(function(){
+      var id = (document.querySelector('.panel.on') || {}).id || '';
+      if(id === lastId) return;
+      lastId = id;
+      renderPaymentOverview();
+    }).observe(wrapEl, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  })();
+
   function getLinks(li){
     try{ var v = JSON.parse(li.getAttribute('data-links') || '[]'); return Array.isArray(v) ? v : []; }
     catch(e){ return []; }
@@ -8984,7 +9033,14 @@
     if(!pillsEl || !wrapEl) return;
     var isMobile = window.matchMedia('(max-width:720px)').matches;
     var sidebarH = (isMobile && sidebarEl) ? sidebarEl.getBoundingClientRect().height : 0;
-    var wrapTop = wrapEl.getBoundingClientRect().top + window.scrollY;
+    // Minus .wrap's own current margin-top: that margin is this function's
+    // own output from the previous call (see the bottom of the desktop
+    // branch), so leaving it inside the measurement made every second call
+    // compute "block is already low enough" and collapse the margin back
+    // to 0 — the pills bar and the sticky weekday header then sat on top
+    // of the first week until the next call flipped it back again.
+    var wrapTop = wrapEl.getBoundingClientRect().top + window.scrollY
+      - (parseFloat(getComputedStyle(wrapEl).marginTop) || 0);
     var GAP = 14;
 
     if(isMobile){
