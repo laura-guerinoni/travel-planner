@@ -2039,6 +2039,22 @@
   @media screen and (max-width: 720px) {
     .pill[data-plan-pos="mid"] .pill-access, .pill[data-plan-pos="last"] .pill-access { display:none; }
   }
+  /* ---- Plans that cross a month boundary (DRAFT; see spanOf) ----
+     Days past the end of the home month keep a running number in the
+     markup (32, 33…); data-show carries the real day of the month and is
+     what's displayed. They sit on a faintly tinted background, and the
+     first day of each month on the page wears a small month label, so
+     the join between the two months is easy to find. The plan's tab
+     shows its dates across both months. */
+  .daynum[data-show] { font-size:0; }
+  .daynum[data-show]::after { content:attr(data-show); font-size:15px; }
+  .cell.cell-next-month { background:color-mix(in srgb, var(--secondary) 9%, var(--card)); }
+  .cell[data-month-label]::before { content:attr(data-month-label); align-self:flex-start; margin:-2px 0 5px -2px;
+    padding:2px 8px; border-radius:999px; background:var(--primary); color:#fff;
+    font-size:9.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; line-height:1.3; }
+  .cell.cell-next-month[data-month-label]::before { background:var(--secondary); }
+  .pill .pill-dates[data-span]::after { content:attr(data-span); font-size:11px; font-weight:700; white-space:nowrap; }
+  .pill .pill-dates[data-span] { margin:0 2px; opacity:.9; }
   /* A day only offers "add an activity" now. Locations are set from the
      alternative's menu ("Add location", over as many days as you like)
      and can still be retyped on any single day; the per-day "+ Add
@@ -4729,6 +4745,54 @@
   // exact DOM nodes (moved, not recreated) at the same day-of-month number
   // in the new grid — so swapping August for September keeps "day 10"'s
   // plan on day 10, regardless of which weekday it falls on in either month.
+  // ---- Plans that cross a month boundary (DRAFT) ----
+  // A plan still belongs to one "home" month (data-year / data-month), but
+  // its calendar can run on past the end of that month: data-span-end is
+  // the last day shown, counted from the 1st of the home month (so 4
+  // September on an August plan is day 35), and data-span-start is the
+  // day the trip starts (the calendar begins on that week). Counting
+  // straight on past the 31st means every day keeps one plain number —
+  // locations, activities, holiday periods and the saved model all work
+  // on these days exactly as they do on ordinary ones — and JavaScript's
+  // own date overflow (new Date(2026, 7, 35) is 4 September) turns a
+  // number back into a real date wherever one is needed. Saved per
+  // alternative as `ss` / `se`.
+  function spanOf(panel){
+    var end = parseInt(panel.getAttribute('data-span-end') || '', 10);
+    if(!end) return null;
+    var d = getPanelDate(panel), inMonth = daysInMonth(d.year, d.month);
+    if(end <= inMonth) return null;
+    var start = parseInt(panel.getAttribute('data-span-start') || '1', 10) || 1;
+    return { start: Math.max(1, Math.min(start, inMonth)), end: end };
+  }
+  function realDate(panel, dayNum){
+    var d = getPanelDate(panel), dt = new Date(d.year, d.month - 1, dayNum);
+    return { year: dt.getFullYear(), month: dt.getMonth() + 1, day: dt.getDate() };
+  }
+  // Every month a plan's calendar touches, home month first.
+  function panelMonths(panel){
+    var d = getPanelDate(panel), list = [{ year: d.year, month: d.month }], sp = spanOf(panel);
+    if(sp){
+      var last = realDate(panel, sp.end), y = d.year, m = d.month;
+      while(!(y === last.year && m === last.month)){
+        m++; if(m > 12){ m = 1; y++; }
+        list.push({ year: y, month: m });
+      }
+    }
+    return list;
+  }
+  function panelCoversMonth(panel, year, month){
+    return panelMonths(panel).some(function(pm){ return pm.year === year && pm.month === month; });
+  }
+  // "12–25" inside one month; "28 Aug – 4 Sep" once it runs past it.
+  function dayRangeLabel(panel, start, end){
+    var d = getPanelDate(panel);
+    if(end <= daysInMonth(d.year, d.month)) return start + '–' + end;
+    var a = realDate(panel, start), b = realDate(panel, end);
+    return a.day + ' ' + MONTH_SHORT[a.month - 1] + ' – ' + b.day + ' ' + MONTH_SHORT[b.month - 1];
+  }
+  var viewedMonth = null;
+
   function buildCalendarGrid(panel){
     var d = getPanelDate(panel);
     var preserved = {};
@@ -4759,9 +4823,18 @@
 
     var total = daysInMonth(d.year, d.month);
     var startCol = firstWeekdayMon0(d.year, d.month);
+    // A plan that crosses into the next month shows the weeks it covers:
+    // from the Monday of the week it starts in (never earlier than the
+    // 1st) straight through to its last day.
+    var span = spanOf(panel), firstDay = 1, lastDay = total;
+    if(span){
+      lastDay = span.end;
+      firstDay = Math.max(1, span.start - ((startCol + span.start - 1) % 7));
+      if(firstDay > 1) startCol = 0;
+    }
     var queue = [];
     for(var i = 0; i < startCol; i++) queue.push(null);
-    for(var dn2 = 1; dn2 <= total; dn2++) queue.push(dn2);
+    for(var dn2 = firstDay; dn2 <= lastDay; dn2++) queue.push(dn2);
     while(queue.length % 7 !== 0) queue.push(null);
 
     for(var w = 0; w < queue.length / 7; w++){
@@ -4780,6 +4853,18 @@
           var wdEl = document.createElement('span'); wdEl.className = 'wd'; wdEl.textContent = WD_ABBR[c];
           cellhead.appendChild(daynumEl); cellhead.appendChild(wdEl);
           cell.appendChild(cellhead);
+          if(span){
+            // The stored number stays the running count (see spanOf); what
+            // you read is the real day of the month (CSS swaps it in from
+            // data-show). The first day shown, and each 1st after it, says
+            // which month starts there.
+            var real = realDate(panel, dayNum);
+            if(dayNum > total){
+              daynumEl.dataset.show = String(real.day);
+              cell.classList.add('cell-next-month');
+            }
+            if(dayNum === firstDay || real.day === 1) cell.dataset.monthLabel = MONTH_FULL[real.month - 1];
+          }
           var pres = preserved[dayNum];
           if(pres){
             if(pres.active) cell.classList.add('active');
@@ -5025,7 +5110,12 @@
     document.querySelectorAll('.pill[data-opt]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-opt') === id); });
     document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'panel-' + id); });
     var newPanel = document.getElementById('panel-' + id);
-    if(newPanel){ var nd = getPanelDate(newPanel); filterPillsByMonth(nd.year, nd.month); }
+    if(newPanel){
+      // Stay in the month you were browsing if this plan reaches into it
+      // (a plan that crosses months is listed under both).
+      var nd = (viewedMonth && panelCoversMonth(newPanel, viewedMonth.year, viewedMonth.month)) ? viewedMonth : getPanelDate(newPanel);
+      filterPillsByMonth(nd.year, nd.month);
+    }
     renderPaymentOverview();
     updateMyPresenceOpt();
   }
@@ -8907,7 +8997,7 @@
         bannerRow.dataset.holidayIdx = String(holidayIdx);
         banner.appendChild(labelSpan);
         var pd = getPanelDate(panel);
-        banner.appendChild(document.createTextNode(' · ' + MONTH_SHORT[pd.month - 1] + ' ' + h.start + '–' + h.end + ' '));
+        banner.appendChild(document.createTextNode(' · ' + (h.end > daysInMonth(pd.year, pd.month) ? dayRangeLabel(panel, h.start, h.end) : MONTH_SHORT[pd.month - 1] + ' ' + h.start + '–' + h.end) + ' '));
 
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button'; removeBtn.className = 'banner-remove jsctl';
@@ -9236,6 +9326,10 @@
       members.forEach(function(mem, i){
         var grouped = members.length > 1;
         setAttr(mem.pill, 'data-plan-pos', !grouped ? null : i === 0 ? 'first' : i === members.length - 1 ? 'last' : 'mid');
+        // A plan that crosses months says so on its tab, with its dates
+        // ("24 Aug – 4 Sep") where a one-month plan shows its day range.
+        var crossing = spanOf(mem.panel), datesEl = mem.pill.querySelector('.pill-dates');
+        if(datesEl) setAttr(datesEl, 'data-span', crossing ? dayRangeLabel(mem.panel, crossing.start, crossing.end) : null);
         setAttr(mem.pill, 'data-plan-label', grouped && i === 0 ? (mem.panel.getAttribute('data-plan-name') || t('plan_label')) : null);
       });
     });
@@ -9273,6 +9367,8 @@
     clone.removeAttribute('data-creator');
     clone.removeAttribute('data-plan');
     clone.removeAttribute('data-plan-name');
+    clone.removeAttribute('data-span-start');
+    clone.removeAttribute('data-span-end');
     clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.loc, .acts, .cost').forEach(function(n){ n.remove(); });
@@ -9994,7 +10090,8 @@
       // viewer isn't a participant of (see getOptionMembers) is filtered
       // out here exactly the same way a wrong-month option already was,
       // rather than needing a second, parallel hidden state.
-      var matches = d.year === year && d.month === month && canSeeOption(panel);
+      // (A plan that crosses months is listed under each month it touches.)
+      var matches = panelCoversMonth(panel, year, month) && canSeeOption(panel);
       pill.classList.toggle('pill-filtered-out', !matches);
       if(matches && !firstMatch) firstMatch = pill;
     });
@@ -10006,7 +10103,7 @@
       var panel = document.getElementById('panel-' + li.getAttribute('data-opt'));
       if(!panel) return; // same stale-reference guard as the pill loop above
       var d = getPanelDate(panel);
-      li.classList.toggle('budget-filtered-out', !(d.year === year && d.month === month && canSeeOption(panel)));
+      li.classList.toggle('budget-filtered-out', !(panelCoversMonth(panel, year, month) && canSeeOption(panel)));
     });
     var activePill = document.querySelector('.pill[data-opt].on');
     var activeMatches = activePill && !activePill.classList.contains('pill-filtered-out');
@@ -10017,6 +10114,11 @@
       document.getElementById('panel-' + firstMatch.getAttribute('data-opt')).classList.add('on');
     }
     var curKey = monthKey(year, month);
+    viewedMonth = { year: year, month: month };
+    // On a plan that crosses months, every month it touches is "open".
+    var openPanel = document.querySelector('.panel.on');
+    var openKeys = openPanel ? panelMonths(openPanel).map(function(pm){ return monthKey(pm.year, pm.month); }) : [];
+    if(openKeys.indexOf(curKey) === -1) openKeys = [];
     document.querySelectorAll('.month-segment').forEach(function(seg){
       // Year segments (see renderMonthSidebar's own year loop) share this
       // same class for all its visual/hover machinery, but never get
@@ -10030,7 +10132,7 @@
       // month tab got clicked.
       if(seg.dataset.yearSeg) return;
       var wasCurrent = seg.classList.contains('current');
-      var isCurrent = seg.dataset.monthKey === curKey;
+      var isCurrent = seg.dataset.monthKey === curKey || openKeys.indexOf(seg.dataset.monthKey) !== -1;
       seg.classList.toggle('current', isCurrent);
       // A segment LOSING current (switching away from it) has to give up
       // whatever top/left/height/transition pinCurrentSegment last froze
@@ -10079,7 +10181,10 @@
   function syncPillFilter(){
     var activePanel = document.querySelector('.panel.on');
     if(!activePanel) return;
-    var d = getPanelDate(activePanel);
+    // A plan that crosses months can be reached from either month's tab;
+    // keep whichever of them was being browsed rather than snapping back
+    // to the plan's home month.
+    var d = (viewedMonth && panelCoversMonth(activePanel, viewedMonth.year, viewedMonth.month)) ? viewedMonth : getPanelDate(activePanel);
     filterPillsByMonth(d.year, d.month);
   }
 
@@ -10501,6 +10606,13 @@
       var key = monthKey(d.year, d.month);
       if(!monthsByKey[key]){ monthsByKey[key] = { key: key, year: d.year, month: d.month, panels: [] }; order.push(key); }
       monthsByKey[key].panels.push(panel);
+      // A plan that crosses months also appears under the later ones —
+      // which creates their tabs if nothing else lives there yet.
+      panelMonths(panel).slice(1).forEach(function(pm){
+        var k2 = monthKey(pm.year, pm.month);
+        if(!monthsByKey[k2]){ monthsByKey[k2] = { key: k2, year: pm.year, month: pm.month, panels: [] }; order.push(k2); }
+        monthsByKey[k2].panels.push(panel);
+      });
     });
     var allMonths = order.map(function(key){
       var m = monthsByKey[key];
@@ -10531,6 +10643,9 @@
     var activePanel = document.querySelector('.panel.on');
     var activeYear = activePanel ? getPanelDate(activePanel).year : null;
     var activeKey = activePanel ? monthKey(getPanelDate(activePanel).year, getPanelDate(activePanel).month) : null;
+    // Every month the open plan reaches into counts as open (a plan that
+    // crosses months is one page under several tabs).
+    var activeSpanKeys = activePanel ? panelMonths(activePanel).map(function(pm){ return monthKey(pm.year, pm.month); }) : [];
 
     var years = [];
     allMonths.forEach(function(s){ if(years.indexOf(s.year) === -1) years.push(s.year); });
@@ -10668,11 +10783,23 @@
         slot.className = 'month-segment-slot';
 
         var seg = document.createElement('div');
-        seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
+        seg.className = 'month-segment' + ((s.key === activeKey || activeSpanKeys.indexOf(s.key) !== -1) ? ' current' : '');
         seg.dataset.monthKey = s.key;
         seg.style.background = colorByKey[s.key];
         seg.title = 'Click to show only this month\'s alternatives — double-click to change the month';
-        seg.addEventListener('click', function(){ filterPillsByMonth(s.year, s.month); });
+        seg.addEventListener('click', function(){
+          filterPillsByMonth(s.year, s.month);
+          // Same page, other month: bring that month's first day into view.
+          var open = document.querySelector('.panel.on');
+          if(open && spanOf(open)){
+            var target = null;
+            open.querySelectorAll(':scope > .grid.week > .cell[data-month-label]').forEach(function(c){
+              var r = realDate(open, dayNumOfCell(c));
+              if(r.year === s.year && r.month === s.month) target = c;
+            });
+            if(target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
         seg.addEventListener('dblclick', function(e){
           e.stopPropagation();
           openMonthPickerPopover(seg, s.year, s.month, 'Apply', function(newYear, newMonth){
@@ -12054,6 +12181,9 @@
       if(cr) o.cr = cr;
       var cur = panel.getAttribute('data-currency');
       if(cur) o.cur = cur;
+      // A calendar that runs on past its home month (see spanOf).
+      var spanEnd = panel.getAttribute('data-span-end');
+      if(spanEnd){ o.se = parseInt(spanEnd, 10); var spanStart = panel.getAttribute('data-span-start'); if(spanStart) o.ss = parseInt(spanStart, 10); }
       // Which plan this alternative belongs to (absent = a plan of its own).
       var pl = panel.getAttribute('data-plan');
       if(pl) o.pl = pl;
@@ -12249,6 +12379,11 @@
         panel.setAttribute('data-plan', String(planLink[0]));
         if(planLink[1]) panel.setAttribute('data-plan-name', String(planLink[1]));
       }
+      // Before the grid is built: it decides how far the calendar runs.
+      if(o.se){
+        panel.setAttribute('data-span-end', String(parseInt(o.se, 10)));
+        if(o.ss) panel.setAttribute('data-span-start', String(parseInt(o.ss, 10)));
+      }
       if(h2) wrap.insertBefore(panel, h2); else wrap.appendChild(panel);
       buildCalendarGrid(panel);
 
@@ -12294,7 +12429,7 @@
       pill.innerHTML = '<span class="pill-name"></span><span class="pill-dates"></span> <span class="pill-price">' + formatMoney(0) + '</span>' +
         '<span class="pill-remove" title="Remove alternative">&times;</span>';
       pill.querySelector('.pill-name').textContent = o.nm || '';
-      pill.querySelector('.pill-dates').textContent = holidayRangeShort(o.h);
+      pill.querySelector('.pill-dates').textContent = spanOf(panel) ? '' : holidayRangeShort(o.h);
       if(addOptBtn) pillsWrap.insertBefore(pill, addOptBtn); else pillsWrap.appendChild(pill);
 
       var li = document.createElement('li');
@@ -12811,6 +12946,43 @@
       renderPresenceHighlights(val);
     });
   }
+
+  // DRAFT ONLY — an example of a plan that crosses a month boundary, so
+  // the draft opens with one to look at. Local (file / preview) mode
+  // only, never against the shared plan, and only if there isn't one
+  // already. Built as a saved-model option and loaded through
+  // applyContentModel, i.e. the same path real data takes. Remove this
+  // block before the feature ships.
+  if(!IS_HOSTED) (function seedCrossMonthExample(){
+    if(document.querySelector('.panel[data-span-end]')) return;
+    var model = extractContentModel();
+    if(!model || !model.options) return;
+    function act(icon, name, title, time, price){
+      var a = { i: icon, n: name, t: title, p: price };
+      if(time) a.l = ['🕒 ' + time];
+      return a;
+    }
+    model.options.push({
+      id: 'option-' + nextOptionId(), nm: 'Baltic coast (example)', y: 2026, m: 8,
+      ss: 24, se: 35, // 24 August – 4 September
+      h: [{ start: 24, end: 35, label: 'Holiday - time off' }],
+      d: {
+        24: { loc: 'Gdańsk', a: [act('🚆', 'Train', 'Kraków → Gdańsk', '08:40 → 14:40', '€25'), act('🏨', 'Stay', 'Old town flat (4 nights)', '', '€220')] },
+        25: { loc: 'Gdańsk', a: [act('🏛️', 'City', 'Old town & amber street', 'All day', '€20')] },
+        26: { loc: 'Gdańsk' },
+        27: { loc: 'Gdańsk', a: [act('⛴️', 'Boat', 'Ferry to Westerplatte', '10:00 → 13:00', '€18')] },
+        28: { loc: 'Sopot', a: [act('🚆', 'Train', 'SKM to Sopot', '25 min', '€3'), act('🏨', 'Stay', 'Guesthouse by the pier (4 nights)', '', '€260')] },
+        29: { loc: 'Sopot', a: [act('🏖️', 'Beach', 'Pier and beach day', 'All day', '€10')] },
+        30: { loc: 'Sopot' },
+        31: { loc: 'Sopot', a: [act('🏖️', 'Beach', 'Orłowo cliff walk', 'Afternoon', '€0')] },
+        32: { loc: 'Hel peninsula', a: [act('⛴️', 'Boat', 'Water tram Sopot → Hel', '09:30 → 11:00', '€12'), act('🏨', 'Stay', 'Cabin in Jastarnia (3 nights)', '', '€180')] },
+        33: { loc: 'Hel peninsula', a: [act('🏖️', 'Beach', 'Bike the peninsula', 'All day', '€15')] },
+        34: { loc: 'Hel peninsula' },
+        35: { loc: 'Gdańsk', a: [act('✈️', 'Flight', 'Gdańsk → Milan', '16:10 → 18:25', '€70')] }
+      }
+    });
+    applyContentModel(model);
+  })();
 
   if(!IS_HOSTED){
     (async function initHandle(){
