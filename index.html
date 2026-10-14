@@ -8118,6 +8118,12 @@
   // open rather than kept in sync, since which fields are missing can
   // only have changed via direct editing on the card since the last
   // time this was open anyway.
+  function afterFieldRemoved(li){
+    var cell = li.closest('.cell');
+    if(cell) recomputeCell(cell);
+    var panel = li.closest('.panel');
+    if(panel) recomputePanel(panel);
+  }
   function openItemMenu(li, anchorEl){
     closePop();
     var pop = document.createElement('div');
@@ -8161,7 +8167,11 @@
       row(icon('+') + 'Add notes', function(){ addMissingField(li, 'notes'); });
       hasMissing = true;
     }
-    if(hasMissing) divider();
+    // The other way round: drop the time or the cost an activity doesn't need.
+    var timeEl = findTimeLine(li);
+    if(timeEl) row(icon('✕') + 'Remove time', function(){ timeEl.remove(); afterFieldRemoved(li); });
+    if(priceEl) row(icon('✕') + 'Remove cost', function(){ priceEl.remove(); afterFieldRemoved(li); });
+    if(hasMissing || timeEl || priceEl) divider();
 
     // Same SVGs as .ticketicon/.photoicon already render on the card
     // once a ticket/photo is attached — reusing them here (instead of an
@@ -8358,8 +8368,10 @@
     title.className = 'title';
     title.textContent = 'New activity';
 
-    // Time and amount start out as empty (not missing) fields, ready to
-    // fill in right away — notes stays out entirely, reachable via the
+    // A new activity starts at 12:00 and €0 — a real time and amount, so
+    // they stay (the "..." menu has "Remove time" / "Remove cost" for an
+    // activity that needs neither). Before, they started out as empty
+    // (not missing) fields, ready to fill in right away — notes stays out entirely, reachable via the
     // "..." menu's "Add notes" only if actually wanted. If either time
     // or amount is left untouched, the focusout pruning listener (see
     // its own comment) drops it back out once focus leaves this
@@ -8367,7 +8379,7 @@
     // menu offers to add it back at that point (see openItemMenu).
     var line = document.createElement('span');
     line.className = 'line';
-    line.textContent = '🕒 ';
+    line.textContent = '🕒 12:00';
 
     var price = document.createElement('span');
     price.className = 'price';
@@ -8379,7 +8391,7 @@
     // (called right after insertion) runs makeEditable on this same
     // element, which re-stamps it correctly via ensurePriceValPrefix
     // once li's real panel actually exists to resolve against.
-    priceVal.textContent = currencySymbol() + ' ';
+    priceVal.textContent = currencySymbol() + ' 0';
     price.appendChild(priceVal);
 
     li.appendChild(tagrow); li.appendChild(title); li.appendChild(line); li.appendChild(price);
