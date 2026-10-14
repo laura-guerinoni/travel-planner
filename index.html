@@ -2106,6 +2106,11 @@
      just look hovered (white circle). */
   .month-add:focus, .pill.add:focus, .page-share:focus { outline:none; }
   .month-add:focus-visible, .pill.add:focus-visible, .page-share:focus-visible { background:rgba(255,255,255,.9); opacity:1; }
+  #fieldRemove { position:absolute; z-index:35; width:16px; height:16px; padding:0; border:none; border-radius:50%;
+    background:var(--card); color:var(--muted); box-shadow:0 1px 3px rgba(40,25,60,.25); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font:inherit; font-size:12px; font-weight:700; line-height:1; }
+  #fieldRemove[hidden] { display:none; }
+  #fieldRemove:hover { color:#fff; background:var(--accent, #e0563f); }
   /* The new plan / new alternative form: name, then when. */
   .monthpop.rangepop.whenpop { width:284px; padding:12px; }
   .whenpop-label { display:block; font-size:12px; font-weight:700; color:var(--muted); margin:2px 0 4px; }
@@ -8124,6 +8129,54 @@
     var panel = li.closest('.panel');
     if(panel) recomputePanel(panel);
   }
+  // A small "×" that appears when you hover an activity's time or cost,
+  // to drop it in one click (the same as "Remove time" / "Remove cost" in
+  // the activity's menu). One floating button for the whole page, outside
+  // the plan's own markup, so showing it never counts as an edit.
+  (function initFieldRemove(){
+    if(window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.id = 'fieldRemove'; btn.textContent = '×'; btn.hidden = true;
+    document.body.appendChild(btn);
+    var target = null, hideTimer = null;
+    function fieldOf(el){
+      var f = el && el.closest ? el.closest('.acts > li:not(.act-span-ghost) > .line, .acts > li:not(.act-span-ghost) > .price') : null;
+      if(!f) return null;
+      if(f.classList.contains('line') && findTimeLine(f.parentElement) !== f) return null;
+      return f;
+    }
+    function show(f){
+      clearTimeout(hideTimer);
+      target = f;
+      var range = document.createRange(); range.selectNodeContents(f);
+      var rr = range.getBoundingClientRect(), fr = f.getBoundingClientRect();
+      var right = rr.width ? rr.right : fr.right;
+      btn.style.left = (right + window.scrollX + 4) + 'px';
+      btn.style.top = (fr.top + window.scrollY + fr.height / 2 - 8) + 'px';
+      btn.title = f.classList.contains('price') ? 'Remove cost' : 'Remove time';
+      btn.setAttribute('aria-label', btn.title);
+      btn.hidden = false;
+    }
+    function hideSoon(){
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(function(){ btn.hidden = true; target = null; }, 180);
+    }
+    document.addEventListener('mouseover', function(e){
+      if(e.target === btn){ clearTimeout(hideTimer); return; }
+      var f = fieldOf(e.target);
+      if(f) show(f); else if(!btn.hidden) hideSoon();
+    });
+    window.addEventListener('scroll', function(){ btn.hidden = true; }, true);
+    btn.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var f = target, li = f && f.parentElement;
+      btn.hidden = true; target = null;
+      if(!f || !f.isConnected) return;
+      f.remove();
+      afterFieldRemoved(li);
+    });
+  })();
   function openItemMenu(li, anchorEl){
     closePop();
     var pop = document.createElement('div');
@@ -11464,7 +11517,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
