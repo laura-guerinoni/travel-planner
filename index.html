@@ -1837,7 +1837,7 @@
   @media screen and (min-width: 721px) {
     /* Left padding = the month tabs' column, just wide enough for the
        open month's name (the year lives on its own chip now). */
-    body { padding:32px 36px 60px 138px; }
+    body { padding:32px 34px 60px 138px; }
     /* A flex column at least as tall as the window (--pills-bottom is where
        the block starts, see syncBarLayout), with the open month's weeks
        sharing whatever height is spare — so a short month on a tall screen
@@ -1904,7 +1904,7 @@
     /* right:36px = body's own right padding, so the row ends exactly where
        the page does; no right padding of its own, or scrolled tabs would
        show again in that strip, to the right of the pinned "+". */
-    .pills { justify-content:flex-start; padding-left:22px; padding-right:0; right:36px; }
+    .pills { justify-content:flex-start; padding-left:22px; padding-right:0; right:34px; }
     .pill.add { position:sticky; right:0; z-index:3; flex:none; align-self:center;
       width:18px; height:18px; margin:6px 0 0 6px; padding:0; border-radius:50%;
       font-weight:600; font-size:15px; line-height:1; color:var(--ink); opacity:.7; box-shadow:none;
@@ -2055,6 +2055,53 @@
   .cell.cell-next-month[data-month-label]::before { background:var(--secondary); }
   .pill .pill-dates[data-span]::after { content:attr(data-span); font-size:11px; font-weight:700; white-space:nowrap; }
   .pill .pill-dates[data-span] { margin:0 2px; opacity:.9; }
+  /* ---- Year → Plan → Alternatives (DRAFT) ----
+     An alternative's tab carries its own dates ("12 – 25 Oct") between its
+     name and its price. The people it's shared with and the share button
+     sit on the page, top right, beside the ribbon (not on the tabs), so
+     the page starts a little lower to leave them a row of their own. */
+  .pill-dates:not(:empty) { font-size:12px; margin:0 2px 0 4px; opacity:.85; font-weight:600; }
+  @media screen and (min-width: 721px) {
+    .pill .pill-access { display:none; }
+    .wrap { padding-top:56px; }
+    div.page-turn-page { padding-top:56px; } /* the page-turn copies are laid out like .wrap */
+    #pageHead { position:absolute; z-index:3; display:flex; align-items:center; gap:8px; height:28px; transform:translateX(-100%); }
+    .page-head-faces { display:flex; align-items:center; }
+    .page-head-faces .pill-access-face { position:relative; display:block; width:28px; height:28px; border-radius:50%; overflow:hidden;
+      margin-left:-7px; border:2px solid var(--bg); background:var(--card); box-sizing:border-box; }
+    .page-head-faces .pill-access-face:first-child { margin-left:0; }
+    .page-head-faces .pill-access-face svg { display:block; width:100%; height:100%; }
+    .page-share { width:28px; height:28px; padding:0; border:none; border-radius:50%; background:none; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; color:var(--ink); opacity:.7;
+      transition:background-color .15s ease, opacity .15s ease; }
+    .page-share svg { width:15px; height:15px; }
+    .page-share:hover { background:rgba(255,255,255,.9); opacity:1; }
+  }
+  @media screen and (max-width: 720px) { #pageHead { display:none !important; } }
+  /* The open plan's tab starts 16px from the window's edge, the others
+     24px (the ribbon on the right ends 16px from the other edge). */
+  @media screen and (min-width: 721px) {
+    .month-segment:not([data-year-seg]) { inset:0 0 0 16px; width:114px; }
+    .month-segment.current:not([data-year-seg]), .month-segment.seg-expanded:not([data-year-seg]) { width:122px; }
+  }
+  /* No browser focus ring on the round buttons: with keyboard focus they
+     just look hovered (white circle). */
+  .month-add:focus, .pill.add:focus, .page-share:focus { outline:none; }
+  .month-add:focus-visible, .pill.add:focus-visible, .page-share:focus-visible { background:rgba(255,255,255,.9); opacity:1; }
+  /* The new plan / new alternative form: name, then when. */
+  .monthpop.rangepop.whenpop { width:284px; padding:12px; }
+  .whenpop-label { display:block; font-size:12px; font-weight:700; color:var(--muted); margin:2px 0 4px; }
+  .whenpop-hint { font-weight:500; }
+  .whenpop-row { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .whenpop-row > select, .whenpop-row > input { flex:1 1 0; min-width:0; margin:0 !important; }
+  .whenpop-to { flex:none; font-size:12px; font-weight:700; color:var(--muted); }
+  .whenpop-row[hidden] { display:none; }
+  .whenpop input[type="date"] { box-sizing:border-box; font:inherit; font-size:12px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; color:var(--ink); }
+  .whenpop-check { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink); margin:0 0 8px; cursor:pointer; }
+  .whenpop-check input { margin:0; accent-color:var(--primary); }
+  /* Own chevron instead of the browser's: thin, rounded, muted. */
+  .whenpop select { -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:24px; color:var(--ink);
+    background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 7px center / 12px 12px; }
   /* A day only offers "add an activity" now. Locations are set from the
      alternative's menu ("Add location", over as many days as you like)
      and can still be retyped on any single day; the per-day "+ Add
@@ -4118,6 +4165,7 @@
     // only got worse the more alternatives/faces a month had.
     sizePlanFaces();
     syncBarLayout();
+    renderPageHead();
   }
   // Own /members + /avatars read for callers that don't already have a
   // fresh copy on hand (initial load, remote syncs, right after this
@@ -4793,6 +4841,187 @@
   }
   var viewedMonth = null;
 
+  // ---- Year → Plan → Alternatives (DRAFT) ----
+  // The column on the left lists PLANS, grouped by year, instead of
+  // months; the tabs along the top are the open plan's ALTERNATIVES, and
+  // each alternative has its own dates: its month (or a run of months,
+  // see spanOf) and, when known, the exact days (its holiday period).
+  var planColorByKey = {};
+  function altDates(panel){
+    var d = getPanelDate(panel), sp = spanOf(panel), hs = getHolidays(panel);
+    if(hs.length){
+      var s = Math.min.apply(null, hs.map(function(h){ return h.start; }));
+      var e = Math.max.apply(null, hs.map(function(h){ return h.end; }));
+      return { from: realDate(panel, s), to: realDate(panel, e), exact: true };
+    }
+    return { from: { year: d.year, month: d.month, day: 1 }, to: realDate(panel, sp ? sp.end : daysInMonth(d.year, d.month)), exact: false };
+  }
+  function altSortKey(panel){ var f = altDates(panel).from; return f.year * 10000 + f.month * 100 + f.day; }
+  // "12 – 25 Oct", "27 Aug – 5 Sep"; just "Nov" or "Nov – Dec" when only
+  // the month is known. No year: that's on the left.
+  function altDatesLabel(panel){
+    var r = altDates(panel), a = r.from, b = r.to, sameM = a.year === b.year && a.month === b.month;
+    if(!r.exact) return sameM ? MONTH_SHORT[a.month - 1] : MONTH_SHORT[a.month - 1] + ' – ' + MONTH_SHORT[b.month - 1];
+    if(sameM) return (a.day === b.day ? a.day : a.day + ' – ' + b.day) + ' ' + MONTH_SHORT[b.month - 1];
+    return a.day + ' ' + MONTH_SHORT[a.month - 1] + ' – ' + b.day + ' ' + MONTH_SHORT[b.month - 1];
+  }
+  function altDatesLabelWithYear(panel){ return altDatesLabel(panel) + ' ' + altDates(panel).to.year; }
+  // The plan's one name (what its tab on the left says): the plan's own
+  // name, or failing that its first alternative's name without the "1."
+  function planLabel(panel){
+    var named = null;
+    panelsOfPlan(panel).forEach(function(p){ if(!named && p.getAttribute('data-plan-name')) named = p.getAttribute('data-plan-name'); });
+    if(named) return named;
+    var pill = pillOfPanel(panel), nameEl = pill && pill.querySelector('.pill-name');
+    var txt = nameEl ? nameEl.textContent.trim().replace(/^\d+\.\s*/, '') : '';
+    return txt || t('plan_label');
+  }
+  function openPlan(id){
+    var cur = document.querySelector('.panel.on');
+    if(cur && planIdOf(cur) === id) return;
+    var target = null;
+    document.querySelectorAll('.pill[data-opt]').forEach(function(b){
+      var p = document.getElementById('panel-' + b.getAttribute('data-opt'));
+      if(!target && p && planIdOf(p) === id && canSeeOption(p)) target = b;
+    });
+    if(target) activatePillByOpt(target.getAttribute('data-opt'));
+  }
+  // Puts an alternative on the dates picked in the form: its home month is
+  // the first one; a later end makes its calendar run on (spanOf); exact
+  // dates become its holiday period.
+  function applyAltDates(panel, w){
+    setPanelDate(panel, w.from.year, w.from.month);
+    var endN = Math.round((new Date(w.to.year, w.to.month - 1, w.to.day) - new Date(w.from.year, w.from.month - 1, 1)) / 864e5) + 1;
+    if(endN > daysInMonth(w.from.year, w.from.month)){
+      panel.setAttribute('data-span-end', String(endN));
+      panel.setAttribute('data-span-start', String(w.exact ? w.from.day : 1));
+    } else {
+      panel.removeAttribute('data-span-end'); panel.removeAttribute('data-span-start');
+    }
+    if(w.exact) setHolidays(panel, [{ start: w.from.day, end: endN, label: 'Holiday - time off' }]);
+    buildCalendarGrid(panel);
+  }
+  // One small form for both "+"s: a name, and when — a month or a run of
+  // months by default, exact dates only if you already know them.
+  function openWhenForm(anchorEl, o, done){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'monthpop rangepop whenpop';
+    var nowY = new Date().getFullYear();
+    function monthOpts(selY, selM){
+      var h = '';
+      for(var y = nowY - 1; y <= nowY + 3; y++) for(var m = 1; m <= 12; m++)
+        h += '<option value="' + y + '-' + m + '"' + (y === selY && m === selM ? ' selected' : '') + '>' + MONTH_SHORT[m - 1] + ' ' + y + '</option>';
+      return h;
+    }
+    function iso(p){ return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'); }
+    pop.innerHTML = '<div class="rangepop-title"></div>' +
+      '<label class="whenpop-label"></label><input type="text" class="whenpop-name">' +
+      '<label class="whenpop-label">When</label>' +
+      '<div class="whenpop-row"><select class="whenpop-m1">' + monthOpts(o.from.year, o.from.month) + '</select><span class="whenpop-to">to</span><select class="whenpop-m2">' + monthOpts(o.to.year, o.to.month) + '</select></div>' +
+      '<label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label>' +
+      '<div class="whenpop-row whenpop-dates"><input type="date" class="whenpop-from"><span class="whenpop-to">to</span><input type="date" class="whenpop-until"></div>' +
+      '<button type="button" class="addbtn"></button>';
+    pop.querySelector('.rangepop-title').textContent = o.title;
+    pop.querySelectorAll('.whenpop-label')[0].innerHTML = o.nameLabel;
+    var nameIn = pop.querySelector('.whenpop-name'); nameIn.value = o.name; nameIn.maxLength = o.maxlength;
+    var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
+    var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
+    fromIn.value = iso(o.from); toIn.value = iso(o.to);
+    exact.checked = !!o.exact; dates.hidden = !o.exact;
+    var btn = pop.querySelector('.addbtn'); btn.textContent = o.button;
+    // The end month can't be before the start month.
+    m1.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m2.selectedIndex = m1.selectedIndex; });
+    m2.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m1.selectedIndex = m2.selectedIndex; });
+    exact.addEventListener('change', function(){ dates.hidden = !exact.checked; });
+    pop.addEventListener('click', function(e){ e.stopPropagation(); });
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var w;
+      if(exact.checked){
+        if(!fromIn.value || !toIn.value || toIn.value < fromIn.value) return;
+        var a = fromIn.value.split('-').map(Number), b = toIn.value.split('-').map(Number);
+        w = { from: { year: a[0], month: a[1], day: a[2] }, to: { year: b[0], month: b[1], day: b[2] }, exact: true };
+      } else {
+        var a1 = m1.value.split('-').map(Number), a2 = m2.value.split('-').map(Number);
+        w = { from: { year: a1[0], month: a1[1], day: 1 }, to: { year: a2[0], month: a2[1], day: daysInMonth(a2[0], a2[1]) }, exact: false };
+      }
+      var name = nameIn.value.trim();
+      closePop();
+      done(name, w);
+    });
+    nameIn.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); btn.click(); } });
+    positionPopover(pop, anchorEl);
+    nameIn.focus(); nameIn.select();
+  }
+  function openNewPlanForm(anchorEl){
+    var d = todayOrPanelDate(document.querySelector('.panel.on'));
+    openWhenForm(anchorEl, { title: t('add_new_plan'), nameLabel: 'Name <span class="whenpop-hint">· on the tab, up to 12 letters</span>',
+      name: '', maxlength: 12, from: { year: d.year, month: d.month, day: 1 }, to: { year: d.year, month: d.month, day: daysInMonth(d.year, d.month) },
+      exact: false, button: 'Add plan' }, function(name, w){
+      var created = createOption(w.from.year, w.from.month);
+      if(!created) return;
+      applyAltDates(created, w);
+      created.setAttribute('data-plan', optOf(created));
+      created.setAttribute('data-plan-name', (name || t('default_plan_name')).toUpperCase());
+      setOptionName(created, t('default_alt_name') + ' 1');
+      planChanged();
+      activatePillByOpt(optOf(created));
+    });
+  }
+  function openNewAltForm(anchorEl, panel){
+    var r = altDates(panel);
+    openWhenForm(anchorEl, { title: t('add_new_alt'), nameLabel: 'Name', name: t('default_alt_name') + ' ' + (panelsOfPlan(panel).length + 1),
+      maxlength: 40, from: r.from, to: r.to, exact: r.exact, button: 'Add alternative' }, function(name, w){
+      var id = planIdOf(panel);
+      panel.setAttribute('data-plan', id);
+      var created = createOption(w.from.year, w.from.month);
+      if(!created) return;
+      applyAltDates(created, w);
+      created.setAttribute('data-plan', id);
+      var named = panel.getAttribute('data-plan-name');
+      if(named) created.setAttribute('data-plan-name', named);
+      setOptionMembers(created, getOptionMembers(panel));
+      setOptionName(created, name || (t('default_alt_name') + ' ' + panelsOfPlan(created).length));
+      tuckPillIntoPlan(created);
+      planChanged();
+      activatePillByOpt(optOf(created));
+    });
+  }
+  function removePlan(panels, label){
+    if(currentUserRole !== 'owner') return;
+    var opts = panels.map(optOf);
+    if(opts.length >= document.querySelectorAll('.pill[data-opt]').length){
+      window.alert(t('deletemonth_only_left'));
+      return;
+    }
+    function doRemove(){
+      opts.forEach(function(opt){
+        var pill = document.querySelector('.pill[data-opt="' + opt + '"]');
+        var panel = document.getElementById('panel-' + opt);
+        var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
+        if(pill) pill.remove();
+        if(panel) cleanupMediaForSubtree(panel);
+        if(panel) panel.remove();
+        if(budgetLi) budgetLi.remove();
+      });
+      var firstPill = document.querySelector('.pill[data-opt]');
+      if(firstPill && !document.querySelector('.pill[data-opt].on')){
+        firstPill.classList.add('on');
+        document.getElementById('panel-' + firstPill.getAttribute('data-opt')).classList.add('on');
+      }
+      renderMonthSidebar();
+      syncPillFilter();
+    }
+    if(panels.every(panelIsEmpty)){ doRemove(); return; }
+    openTypeConfirmModal({
+      title: 'Remove plan',
+      message: t('deletemonth_msg_pre') + label + t('deletemonth_msg_mid') + opts.length + t('deletemonth_msg_post'),
+      confirmLabel: t('deletemonth_confirm'),
+      onConfirm: doRemove
+    });
+  }
+
   function buildCalendarGrid(panel){
     var d = getPanelDate(panel);
     var preserved = {};
@@ -4863,7 +5092,7 @@
               daynumEl.dataset.show = String(real.day);
               cell.classList.add('cell-next-month');
             }
-            if(dayNum === firstDay || real.day === 1) cell.dataset.monthLabel = MONTH_FULL[real.month - 1];
+            if(dayNum > total && real.day === 1) cell.dataset.monthLabel = MONTH_FULL[real.month - 1];
           }
           var pres = preserved[dayNum];
           if(pres){
@@ -5813,6 +6042,42 @@
     renderPageBookmark();
   })();
 
+  // DRAFT — who the open plan is shared with, and a share button, at the
+  // top right of the page beside the star ribbon (instead of faces on the
+  // tabs). Outside .wrap and excluded from saving, like the ribbon.
+  var SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>';
+  function renderPageHead(){
+    if(!SHARE_ICON) return;
+    var wrapEl = document.querySelector('.wrap');
+    if(!wrapEl) return;
+    var head = document.getElementById('pageHead');
+    if(!head){
+      head = document.createElement('div'); head.id = 'pageHead';
+      head.innerHTML = '<span class="page-head-faces"></span><button type="button" class="page-share" title="Share this plan" aria-label="Share this plan">' + SHARE_ICON + '</button>';
+      head.querySelector('.page-share').addEventListener('click', function(e){
+        e.stopPropagation();
+        var p = document.querySelector('.panel.on');
+        if(p) openOptionMembersPicker(p, e.currentTarget);
+      });
+      document.body.appendChild(head);
+    }
+    var p = document.querySelector('.panel.on');
+    head.style.display = p ? '' : 'none';
+    var facesEl = head.querySelector('.page-head-faces'), html = '';
+    var pill = p ? pillOfPanel(p) : null;
+    if(pill) pill.querySelectorAll('.pill-access-face').forEach(function(f){ html += f.outerHTML; });
+    if(facesEl.innerHTML !== html) facesEl.innerHTML = html;
+    var r = wrapEl.getBoundingClientRect();
+    // 22px clear of the ribbon (which hangs from right - 14).
+    head.style.top = (r.top + window.scrollY + 16) + 'px';
+    head.style.left = (r.right + window.scrollX - 14 - 22) + 'px';
+  }
+  (function(){
+    var orig = renderPageBookmark;
+    renderPageBookmark = function(){ orig(); renderPageHead(); };
+    renderPageHead();
+  })();
+
   // The alternatives row, when it's too long to fit. Two jobs:
   //  - flag on <html> when it's scrolled away from its start, for the
   //    fade at its left end (see .pills' mask);
@@ -5869,9 +6134,11 @@
     function snapshot(){
       var p = document.querySelector('.panel.on');
       if(!p) return { id: '', monthNum: null, pillIdx: -1, panel: null };
-      var d = getPanelDate(p), idx = -1;
+      var idx = -1;
       document.querySelectorAll('.pill[data-opt]').forEach(function(b, i){ if(b.classList.contains('on')) idx = i; });
-      return { id: p.id, monthNum: d.year * 12 + d.month, pillIdx: idx, panel: p };
+      // DRAFT — a plan switch turns the page the way a month switch did.
+      var first = Math.min.apply(null, panelsOfPlan(p).map(altSortKey));
+      return { id: p.id, plan: planIdOf(p), planSort: first, year: Math.floor(first / 10000), monthNum: first, pillIdx: idx, panel: p };
     }
     var last = snapshot();
     new MutationObserver(function(){
@@ -5886,8 +6153,7 @@
       // Moving into a different year changes which year is open in the
       // month column (see "Collapse other years"), and the paths that
       // switch month only re-mark the existing tabs — rebuild them.
-      if(now.monthNum !== null && prev.monthNum !== null &&
-         Math.floor((now.monthNum - 1) / 12) !== Math.floor((prev.monthNum - 1) / 12)){
+      if(now.monthNum !== null && prev.monthNum !== null && now.year !== prev.year){
         yearOpenOverride = {};
         renderMonthSidebar();
       }
@@ -5895,7 +6161,7 @@
       // prev.panel can be gone (the open alternative was just deleted) —
       // nothing to turn away from then.
       if(!prev.panel || !prev.panel.isConnected) return;
-      if(now.monthNum !== prev.monthNum) playPageTurn('month', now.monthNum > prev.monthNum, prev.panel, now.panel);
+      if(now.plan !== prev.plan) playPageTurn('month', now.planSort > prev.planSort, prev.panel, now.panel);
       else playPageTurn('alt', now.pillIdx >= prev.pillIdx, prev.panel, now.panel);
     }).observe(wrapEl, { subtree: true, attributes: true, attributeFilter: ['class'] });
   })();
@@ -8704,6 +8970,7 @@
   }
   function setHolidays(panel, arr){
     panel.dataset.holidays = JSON.stringify(arr);
+    if(typeof renderPlans === 'function') setTimeout(renderPlans, 0);
   }
 
   function refreshHoliCell(cell){
@@ -9156,10 +9423,10 @@
   // (data-plan-name). Saved per alternative as `pl` / `pn`.
   function planIdOf(panel){ return panel.getAttribute('data-plan') || optOf(panel); }
   function panelsOfPlan(panel){
-    var id = planIdOf(panel), d = getPanelDate(panel), list = [];
+    // Any month: a plan's alternatives can each have their own dates.
+    var id = planIdOf(panel), list = [];
     document.querySelectorAll('.panel').forEach(function(p){
-      var pd = getPanelDate(p);
-      if(pd.year === d.year && pd.month === d.month && planIdOf(p) === id) list.push(p);
+      if(planIdOf(p) === id) list.push(p);
     });
     return list;
   }
@@ -9324,12 +9591,22 @@
         if(members[i].pill.previousElementSibling !== members[i - 1].pill) members[i - 1].pill.insertAdjacentElement('afterend', members[i].pill);
       }
       members.forEach(function(mem, i){
-        var grouped = members.length > 1;
+        // Only the open plan's alternatives are showing, so they're not
+        // drawn as a group with the plan's name above them any more.
+        var grouped = false;
         setAttr(mem.pill, 'data-plan-pos', !grouped ? null : i === 0 ? 'first' : i === members.length - 1 ? 'last' : 'mid');
         // A plan that crosses months says so on its tab, with its dates
         // ("24 Aug – 4 Sep") where a one-month plan shows its day range.
-        var crossing = spanOf(mem.panel), datesEl = mem.pill.querySelector('.pill-dates');
-        if(datesEl) setAttr(datesEl, 'data-span', crossing ? dayRangeLabel(mem.panel, crossing.start, crossing.end) : null);
+        // Each alternative's own dates, with the month: "12 – 25 Oct".
+        var datesEl = mem.pill.querySelector('.pill-dates');
+        if(!datesEl){
+          datesEl = document.createElement('span'); datesEl.className = 'pill-dates';
+          var nm = mem.pill.querySelector('.pill-name');
+          if(nm) nm.insertAdjacentElement('afterend', datesEl);
+        }
+        setAttr(datesEl, 'data-span', null);
+        var dl = altDatesLabel(mem.panel);
+        if(datesEl.textContent !== dl) datesEl.textContent = dl;
         setAttr(mem.pill, 'data-plan-label', grouped && i === 0 ? (mem.panel.getAttribute('data-plan-name') || t('plan_label')) : null);
       });
     });
@@ -9779,40 +10056,12 @@
   document.addEventListener('click', function(e){
     var addOptionBtn = e.target.closest('#addOptionBtn');
     if(addOptionBtn){
-      // Two different things can be added here, and the menu says which:
-      // another ALTERNATIVE of the plan you're looking at (a second
-      // version of it, same people), or a new PLAN (something separate
-      // happening in the same month, with its own people). Each row
-      // spells out what it means underneath.
+      // DRAFT — the "+" after the alternatives adds another alternative of
+      // the open plan (new plans come from the "+" in the column on the left).
       e.stopPropagation();
       closePop();
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var pop = document.createElement('div');
-      pop.className = 'itemmenu plan-add-menu';
-      function choice(label, sub, fn){
-        var r = document.createElement('div');
-        r.className = 'itemmenu-row plan-row';
-        var main = document.createElement('span'); main.className = 'plan-row-main'; main.textContent = label;
-        var subEl = document.createElement('span'); subEl.className = 'plan-row-sub'; subEl.textContent = sub;
-        r.appendChild(main); r.appendChild(subEl);
-        r.addEventListener('click', function(ev){ ev.stopPropagation(); closePop(); fn(); });
-        pop.appendChild(r);
-      }
-      if(activePanel){
-        choice(t('add_new_alt'), t('add_new_alt_sub').replace('{plan}', planDisplayName(activePanel)), function(){
-          addAlternativeToPlan(activePanel);
-        });
-      }
-      var whenMonth = activePanel ? MONTH_FULL[getPanelDate(activePanel).month - 1] : '';
-      choice(t('add_new_plan'), t('add_new_plan_sub').replace('{month}', whenMonth), function(){
-        var d = todayOrPanelDate(activePanel);
-        var created = createOption(d.year, d.month);
-        if(!created) return;
-        // A new plan isn't an "alternative" of anything yet.
-        setOptionName(created, t('default_plan_name'));
-        activatePillByOpt(optOf(created));
-      });
-      positionPopover(pop, addOptionBtn);
+      if(activePanel) openNewAltForm(addOptionBtn, activePanel);
     }
   });
 
@@ -10075,35 +10324,32 @@
   // Clicking a sidebar segment shows only the options that belong to its
   // month (others stay in the DOM, just hidden) and switches to one of
   // them, so you're never looking at options from the wrong month.
+  // DRAFT — the tabs along the top are the open plan's alternatives.
+  // Kept under its old name (and arguments) for every existing caller:
+  // the open plan decides; with none open, the first plan in that month.
   function filterPillsByMonth(year, month){
+    var open = document.querySelector('.panel.on');
+    var id = open && canSeeOption(open) ? planIdOf(open) : null;
+    if(!id){
+      document.querySelectorAll('.panel').forEach(function(p){
+        if(!id && canSeeOption(p) && panelCoversMonth(p, year, month)) id = planIdOf(p);
+      });
+    }
+    if(id) filterPillsByPlan(id);
+  }
+  function filterPillsByPlan(id){
     var firstMatch = null;
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
       var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
-      // A pill whose panel doesn't actually exist any more (stale
-      // reference — e.g. a leftover row a caller forgot to clear
-      // alongside its panel) used to crash getPanelDate(null) outright;
-      // skip it instead, same "just don't match" treatment as any
-      // other option that isn't this month's.
       if(!panel) return;
-      var d = getPanelDate(panel);
-      // canSeeOption folded straight into "matches" — a month/option this
-      // viewer isn't a participant of (see getOptionMembers) is filtered
-      // out here exactly the same way a wrong-month option already was,
-      // rather than needing a second, parallel hidden state.
-      // (A plan that crosses months is listed under each month it touches.)
-      var matches = panelCoversMonth(panel, year, month) && canSeeOption(panel);
+      var matches = planIdOf(panel) === id && canSeeOption(panel);
       pill.classList.toggle('pill-filtered-out', !matches);
       if(matches && !firstMatch) firstMatch = pill;
     });
-    // The budget overview list is a second, independent view of the same
-    // options — it needs the exact same per-month filter as the pill bar,
-    // not just whichever is currently active, so it was silently showing
-    // every month's totals in one list regardless of the pill filter above.
     document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
       var panel = document.getElementById('panel-' + li.getAttribute('data-opt'));
-      if(!panel) return; // same stale-reference guard as the pill loop above
-      var d = getPanelDate(panel);
-      li.classList.toggle('budget-filtered-out', !(panelCoversMonth(panel, year, month) && canSeeOption(panel)));
+      if(!panel) return;
+      li.classList.toggle('budget-filtered-out', !(planIdOf(panel) === id && canSeeOption(panel)));
     });
     var activePill = document.querySelector('.pill[data-opt].on');
     var activeMatches = activePill && !activePill.classList.contains('pill-filtered-out');
@@ -10113,12 +10359,7 @@
       firstMatch.classList.add('on');
       document.getElementById('panel-' + firstMatch.getAttribute('data-opt')).classList.add('on');
     }
-    var curKey = monthKey(year, month);
-    viewedMonth = { year: year, month: month };
-    // On a plan that crosses months, every month it touches is "open".
-    var openPanel = document.querySelector('.panel.on');
-    var openKeys = openPanel ? panelMonths(openPanel).map(function(pm){ return monthKey(pm.year, pm.month); }) : [];
-    if(openKeys.indexOf(curKey) === -1) openKeys = [];
+    var curKey = 'plan:' + id;
     document.querySelectorAll('.month-segment').forEach(function(seg){
       // Year segments (see renderMonthSidebar's own year loop) share this
       // same class for all its visual/hover machinery, but never get
@@ -10132,7 +10373,7 @@
       // month tab got clicked.
       if(seg.dataset.yearSeg) return;
       var wasCurrent = seg.classList.contains('current');
-      var isCurrent = seg.dataset.monthKey === curKey || openKeys.indexOf(seg.dataset.monthKey) !== -1;
+      var isCurrent = seg.dataset.monthKey === curKey;
       seg.classList.toggle('current', isCurrent);
       // A segment LOSING current (switching away from it) has to give up
       // whatever top/left/height/transition pinCurrentSegment last froze
@@ -10181,11 +10422,7 @@
   function syncPillFilter(){
     var activePanel = document.querySelector('.panel.on');
     if(!activePanel) return;
-    // A plan that crosses months can be reached from either month's tab;
-    // keep whichever of them was being browsed rather than snapping back
-    // to the plan's home month.
-    var d = (viewedMonth && panelCoversMonth(activePanel, viewedMonth.year, viewedMonth.month)) ? viewedMonth : getPanelDate(activePanel);
-    filterPillsByMonth(d.year, d.month);
+    filterPillsByPlan(planIdOf(activePanel));
   }
 
   // True once every day in the panel has neither a location nor a real
@@ -10520,10 +10757,13 @@
     function divider(){ var d = document.createElement('div'); d.className = 'itemmenu-divider'; pop.appendChild(d); }
     function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
 
-    row(icon('+') + 'Add another month', function(){
-      openAddMonthPicker(anchorEl, s.year, s.month);
+    row(icon('+') + t('add_new_alt'), function(){
+      openNewAltForm(anchorEl, s.panels[0]);
     });
-    row(icon('📝') + (MONTH_NOTES[s.key] ? 'Edit notes' : 'Add notes'), function(){
+    row(icon('✎') + t('pillmenu_rename_plan'), function(){
+      openRenamePlan(anchorEl, s.panels[0]);
+    });
+    row(icon('📝') + (MONTH_NOTES[monthKey(s.year, s.month)] ? 'Edit notes' : 'Add notes'), function(){
       openMonthNotes(s.year, s.month);
     });
     row(icon(ICON_ARCHIVE) + 'Archive', function(){
@@ -10542,7 +10782,7 @@
     if(currentUserRole === 'owner'){
       row(icon('🔗') + 'Share link', function(){ openMonthShare(s.year, s.month); });
       divider();
-      row(icon('✕') + 'Remove month', function(){ removeMonth(s.year, s.month); }, true);
+      row(icon('✕') + 'Remove plan', function(){ removePlan(s.panels, s.label); }, true);
     }
 
     pop._anchorEl = anchorEl;
@@ -10594,127 +10834,58 @@
     var sidebar = document.getElementById('monthSidebar');
     if(!sidebar) return;
     sidebar.innerHTML = '';
-    var monthsByKey = {};
+    // DRAFT — Year → Plan → Alternatives: the column lists plans (grouped
+    // by year) instead of months. A plan sits under the year it starts in
+    // (its earliest alternative), and plans are in date order.
+    var plansById = {};
     var order = [];
     document.querySelectorAll('.panel').forEach(function(panel){
-      // A month where every option is invisible to this viewer (see
-      // canSeeOption) doesn't get a sidebar entry at all — fully hidden,
-      // not just its options filtered out further down, so someone not
-      // invited to it never learns it exists in the first place.
       if(!canSeeOption(panel)) return;
-      var d = getPanelDate(panel);
-      var key = monthKey(d.year, d.month);
-      if(!monthsByKey[key]){ monthsByKey[key] = { key: key, year: d.year, month: d.month, panels: [] }; order.push(key); }
-      monthsByKey[key].panels.push(panel);
-      // A plan that crosses months also appears under the later ones —
-      // which creates their tabs if nothing else lives there yet.
-      panelMonths(panel).slice(1).forEach(function(pm){
-        var k2 = monthKey(pm.year, pm.month);
-        if(!monthsByKey[k2]){ monthsByKey[k2] = { key: k2, year: pm.year, month: pm.month, panels: [] }; order.push(k2); }
-        monthsByKey[k2].panels.push(panel);
-      });
+      var id = planIdOf(panel);
+      if(!plansById[id]){ plansById[id] = { key: 'plan:' + id, id: id, panels: [] }; order.push(id); }
+      plansById[id].panels.push(panel);
     });
-    var allMonths = order.map(function(key){
-      var m = monthsByKey[key];
-      // "Archived" only once EVERY option is (see setArchivedForMe's own
-      // comment for why this is deliberately separate from
-      // canSeeOption/data-members above). Ownership is tracked per
-      // alternative now (see getOptionCreator/data-creator), not rolled
-      // up to a whole-month "mine" flag — a month can hold alternatives
-      // created by different people, so there's no single honest answer
-      // for the month as a whole any more.
-      m.archived = m.panels.every(isArchivedForMe);
-      return m;
+    var allPlans = order.map(function(id){
+      var s = plansById[id];
+      s.panels.sort(function(a, b){ return altSortKey(a) - altSortKey(b); });
+      var first = altDates(s.panels[0]).from;
+      s.year = first.year; s.month = first.month; s.sortKey = altSortKey(s.panels[0]);
+      s.label = planLabel(s.panels[0]);
+      s.archived = s.panels.every(isArchivedForMe);
+      return s;
     });
-    // Chronological, not insertion order — a new month is always appended
-    // to the end of the panel list regardless of which existing month's
-    // "+" created it, so without this a month added "out of order" (e.g.
-    // September when August and December already exist) would render
-    // after December instead of between them, which reads as the new tab
-    // landing in the wrong place / vanishing from where it was expected.
-    allMonths.sort(function(a, b){ return a.year - b.year || a.month - b.month; });
-    // Stable per month regardless of which year is selected or what's
-    // archived — assigned once, up front, across every month that
-    // exists — so a month's own color never shifts just because a
-    // different one got archived or another year got picked.
+    allPlans.sort(function(a, b){ return a.sortKey - b.sortKey; });
+    // Each plan keeps its own color (assigned in date order across all
+    // plans, archived ones included, so it doesn't shift).
     var colorByKey = {};
-    allMonths.forEach(function(s, idx){ colorByKey[s.key] = SEG_COLORS[idx % SEG_COLORS.length]; });
+    allPlans.forEach(function(s, idx){ colorByKey[s.key] = SEG_COLORS[idx % SEG_COLORS.length]; });
+    planColorByKey = colorByKey;
 
     var activePanel = document.querySelector('.panel.on');
-    var activeYear = activePanel ? getPanelDate(activePanel).year : null;
-    var activeKey = activePanel ? monthKey(getPanelDate(activePanel).year, getPanelDate(activePanel).month) : null;
-    // Every month the open plan reaches into counts as open (a plan that
-    // crosses months is one page under several tabs).
-    var activeSpanKeys = activePanel ? panelMonths(activePanel).map(function(pm){ return monthKey(pm.year, pm.month); }) : [];
+    var activePlan = activePanel ? plansById[planIdOf(activePanel)] : null;
+    var activeYear = activePlan ? activePlan.year : null;
+    var activeKey = activePlan ? activePlan.key : null;
 
     var years = [];
-    allMonths.forEach(function(s){ if(years.indexOf(s.year) === -1) years.push(s.year); });
+    allPlans.forEach(function(s){ if(years.indexOf(s.year) === -1) years.push(s.year); });
     years.sort(function(a, b){ return a - b; });
-    // Drop a year whose every month is archived — the same "doesn't get
-    // a tab of its own any more" treatment an individually-archived
-    // month already gets (see monthsInYear below). Still reachable (and
-    // un-archivable) from the flat "Archived" list either way, exactly
-    // like any single archived month — archiving a whole year (see
-    // setYearArchivedForMe/openYearSegmentMenu) is just archiving every
-    // month in it one by one under the hood, nothing year-specific about
-    // how it's tracked or how it comes back.
     years = years.filter(function(yr){
-      return allMonths.some(function(s){ return s.year === yr && !s.archived; });
+      return allPlans.some(function(s){ return s.year === yr && !s.archived; });
     });
 
-
-    // Every year's own months sit directly beneath it now, not behind a
-    // separate "pick a year to see its months" step — the whole sidebar
-    // is just one flat, chronological list, grouped visually into
-    // year-then-its-months runs. A full calendar year (12 months) is
-    // already close to what comfortably fits without scrolling on its
-    // own — not worth showing any year header at all for the common
-    // case of everything fitting in one year already; with more than
-    // one, each year gets its own segment, sharing the collapsed/hover-
-    // expand language a month tab uses (see .month-segment's own CSS and
-    // attachSegHoverExpand) — but never the PINNED-permanently-open half
-    // of it. A year never gets .current at all: which year the active
-    // month belongs to is already conveyed by the grouping itself — it's
-    // nested directly under that year's own header, nothing else it
-    // could be under — so pinning the year open too said the same thing
-    // twice, at the cost of a second permanently-expanded chip sitting
-    // right above the one that actually matters. Its own "⋯" (see
-    // openYearSegmentMenu) is how an entire year gets archived in one
-    // action; a plain click does nothing — there's nothing left for it
-    // to switch.
-    // Always, not only once a second year exists: with the year on its own
-    // chip, a month tab only ever has to fit the month's name, which is
-    // what keeps the tab column beside the calendar narrow.
     var showYearHeaders = years.length >= 1;
     years.forEach(function(yr){
       if(showYearHeaders){
         var yearSlot = document.createElement('div');
         yearSlot.className = 'month-segment-slot';
-        yearSlot.dataset.yearSlot = '1'; // shorter than a month's own slot — see [data-year-slot]'s own CSS
+        yearSlot.dataset.yearSlot = '1';
 
         var yearSeg = document.createElement('div');
-        yearSeg.className = 'month-segment'; // never .current — see this block's own comment above
-        // A distinct key space ("year-2026") from any real month's own
-        // "YYYY-M" key ("2026-8") — never collides on its own, but
-        // data-year-seg (right below) is the actual marker everything
-        // else checks for, so a month's key format changing later can't
-        // quietly reopen that door.
+        yearSeg.className = 'month-segment';
         yearSeg.dataset.monthKey = 'year-' + yr;
         yearSeg.dataset.yearSeg = '1';
-        // Background/text color, border, and stripe are all handled by
-        // [data-year-seg]'s own CSS now — nothing inline needed here any
-        // more, since (unlike a month, whose fill varies per month via
-        // colorByKey) every year looks identical to every other one.
         yearSeg.title = yr;
 
-        // Short and full hold the same text here — unlike a month name, a
-        // year number is already maximally compact, nothing to abbreviate
-        // down to. Still needs both spans regardless: mobile always shows
-        // .seg-label-full and hides .seg-label-short (see their own
-        // mobile rules), desktop the other way around by default — this
-        // is the one label a year segment ever shows, on either, since it
-        // never grows into an "expanded" state that would swap to the
-        // other span the way a month tab's hover/current state does.
         var yrLabelShort = document.createElement('span');
         yrLabelShort.className = 'seg-label seg-label-short';
         yrLabelShort.textContent = yr;
@@ -10732,30 +10903,21 @@
           openYearSegmentMenu(yearMenuBtn, yr);
         });
         yearSeg.appendChild(yearMenuBtn);
-        // Still hover-to-open, even though the segment itself no longer
-        // grows on hover (see [data-year-seg]'s own CSS) — the "…"
-        // trigger's own visibility is separately hover-gated by
-        // .month-segment:hover .itemmenu-btn, unrelated to width, so
-        // this still works exactly the same as it always did.
         attachSegMenuHover(yearMenuBtn, yr, openYearSegmentMenu);
 
         yearSlot.appendChild(yearSeg);
         sidebar.appendChild(yearSlot);
       }
-      // Years open and close like any collapsible list: a small arrow in
-      // front of the year (right = closed, down = open), and clicking the
-      // year toggles it in place without leaving the page you're on. The
-      // year you're in is always open. By default the others start closed
-      // (Menu -> "Collapse other years"); whatever you open or close by
-      // hand holds until you move to a different year.
-      var yearMonths = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
-      if(yearSeg && years.length > 1 && yearMonths.length){
+      // Years open and close exactly as before (arrow on the right, the
+      // year you're in always open, "Collapse other years" in the menu).
+      var yearPlans = allPlans.filter(function(s){ return s.year === yr && !s.archived; });
+      if(yearSeg && years.length > 1 && yearPlans.length){
         var isActiveYear = activeYear === null || yr === activeYear;
         var open = isActiveYear || (yearOpenOverride.hasOwnProperty(yr) ? yearOpenOverride[yr] : !collapseOtherYears());
         yearSeg.dataset.toggle = open ? 'open' : 'closed';
         yearSeg.setAttribute('aria-expanded', open ? 'true' : 'false');
         if(!isActiveYear){
-          yearSeg.title = (open ? 'Hide ' : 'Show ') + yr + ' (' + yearMonths.length + (yearMonths.length === 1 ? ' month)' : ' months)');
+          yearSeg.title = (open ? 'Hide ' : 'Show ') + yr + ' (' + yearPlans.length + (yearPlans.length === 1 ? ' plan)' : ' plans)');
           (function(year, wasOpen){
             yearSeg.addEventListener('click', function(){
               yearOpenOverride[year] = !wasOpen;
@@ -10766,89 +10928,30 @@
         if(!open) return;
       }
 
-      var monthsInYear = allMonths.filter(function(s){ return s.year === yr && !s.archived; });
-      monthsInYear.forEach(function(s){
-        // A fixed-size flex slot that stays in the column's normal flow no
-        // matter what — the actual .month-segment inside it is what
-        // switches to position:fixed on hover (see attachSegHoverExpand),
-        // pulling itself out of flow to grow past the sidebar's own
-        // 46px width without being clipped by its overflow-y:auto (a
-        // mismatched overflow-x:visible next to overflow-y:auto computes
-        // right back to auto/clipped, so growing the segment's own box —
-        // not relying on visible overflow — is the only way this
-        // actually escapes the rail). Keeping the slot in flow, sized
-        // exactly like every .month-segment used to be sized directly,
-        // means every OTHER tab never shifts position when one expands.
+      yearPlans.forEach(function(s){
         var slot = document.createElement('div');
         slot.className = 'month-segment-slot';
 
         var seg = document.createElement('div');
-        seg.className = 'month-segment' + ((s.key === activeKey || activeSpanKeys.indexOf(s.key) !== -1) ? ' current' : '');
+        seg.className = 'month-segment' + (s.key === activeKey ? ' current' : '');
         seg.dataset.monthKey = s.key;
+        seg.dataset.planKey = s.id;
         seg.style.background = colorByKey[s.key];
-        seg.title = 'Click to show only this month\'s alternatives — double-click to change the month';
-        seg.addEventListener('click', function(){
-          filterPillsByMonth(s.year, s.month);
-          // Same page, other month: bring that month's first day into view.
-          var open = document.querySelector('.panel.on');
-          if(open && spanOf(open)){
-            var target = null;
-            open.querySelectorAll(':scope > .grid.week > .cell[data-month-label]').forEach(function(c){
-              var r = realDate(open, dayNumOfCell(c));
-              if(r.year === s.year && r.month === s.month) target = c;
-            });
-            if(target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        });
-        seg.addEventListener('dblclick', function(e){
-          e.stopPropagation();
-          openMonthPickerPopover(seg, s.year, s.month, 'Apply', function(newYear, newMonth){
-            document.querySelectorAll('.panel').forEach(function(panel){
-              var d2 = getPanelDate(panel);
-              if(d2.year === s.year && d2.month === s.month){
-                setPanelDate(panel, newYear, newMonth);
-                buildCalendarGrid(panel);
-              }
-            });
-            renderMonthSidebar();
-            filterPillsByMonth(newYear, newMonth);
-          });
-        });
+        seg.title = s.panels.map(altDatesLabelWithYear).filter(function(v, i, arr){ return arr.indexOf(v) === i; }).join(' or ');
+        seg.addEventListener('click', function(){ openPlan(s.id); });
 
-        // Two labels, not one text swapped by JS — short (a real, locale-
-        // correct 3-letter abbreviation, e.g. MONTH_SHORT's own "Ago"/
-        // "Aug"/"Sep", not a CSS ellipsis mid-word) is what a collapsed
-        // 46px-wide tab can actually fit horizontally; full only ever
-        // shows once the tab has grown to fit it (desktop hover — see
-        // .seg-expanded; always-on on mobile instead, where there's no
-        // hover at all but the tab is already wide enough). Only drop the
-        // year from the full label when a year header is actually
-        // showing above it (showYearHeaders, same gate the headers
-        // themselves use) — with just one year, there are no headers at
-        // all, so this is the only place it would ever appear.
         var labelShort = document.createElement('span');
         labelShort.className = 'seg-label seg-label-short';
-        labelShort.textContent = MONTH_SHORT[s.month - 1];
+        labelShort.textContent = s.label;
         var labelFull = document.createElement('span');
         labelFull.className = 'seg-label seg-label-full';
-        labelFull.textContent = MONTH_FULL[s.month - 1] + (showYearHeaders ? '' : ' ' + s.year);
+        labelFull.textContent = s.label;
         seg.appendChild(labelShort);
         seg.appendChild(labelFull);
 
-        // Add/notes/archive/share/remove all live behind this one trigger
-        // now (see openMonthSegmentMenu) — same "⋯" language as every other
-        // menu in the app, instead of an ever-growing pile of tiny buttons
-        // fighting for room in a 46px-wide strip. Positioned top/right of
-        // .month-segment itself (see its own CSS) so it automatically ends
-        // up past whichever label is actually showing, short or full,
-        // rather than needing separate coordinates for each.
         var menuBtn = document.createElement('button');
         menuBtn.type = 'button'; menuBtn.className = 'itemmenu-btn jsctl'; menuBtn.textContent = '⋯';
-        menuBtn.title = 'More options for ' + labelFull.textContent;
-        // Click still works (belt and suspenders, and the only option at
-        // all on touch — see attachSegMenuHover's own mobile guard), but
-        // desktop opens it straight from a hover on the trigger itself,
-        // same "no click needed" language as the tab's own expand.
+        menuBtn.title = 'More options for ' + s.label;
         menuBtn.addEventListener('click', function(e){
           e.stopPropagation();
           openMonthSegmentMenu(menuBtn, s);
@@ -10858,68 +10961,36 @@
 
         slot.appendChild(seg);
         sidebar.appendChild(slot);
-
-        // The active month is pinned into the exact same "permanently
-        // expanded" state a hover only ever gives any other tab
-        // TEMPORARILY — see pinCurrentSegment, also re-run from
-        // syncBarLayout so this never goes stale after a later layout
-        // shift. Attached unconditionally, even to the currently-active
-        // segment: expand()/scheduleCollapse() already bail out on their
-        // own whenever the segment they're attached to is .current (see
-        // their own guards), so this correctly stays inert while active
-        // and correctly springs back to life the moment a *different*
-        // month becomes active — skipping the attach here for whichever
-        // segment happened to be active at render time used to leave that
-        // one segment permanently without hover-expand for the rest of its
-        // life, the instant something else (filterPillsByMonth, on a real
-        // tab click) made it non-current without a full re-render.
         attachSegHoverExpand(seg);
       });
     });
-    // A "+" under the last month, the counterpart of the "+" after the
-    // last alternative: same glyph, same job one level up. It opens the
-    // month/year picker preset to the month after the latest one, so the
-    // common case is one click — and December rolls into January of the
-    // next year, which is also how a new year gets started.
-    if(allMonths.length){
+    // The "+" under the plans: a new plan (name + when).
+    if(allPlans.length){
       var addSlot = document.createElement('div');
       addSlot.className = 'month-segment-slot month-add-slot';
       var addBtn = document.createElement('button');
       addBtn.type = 'button'; addBtn.className = 'month-add jsctl'; addBtn.textContent = '+';
-      addBtn.title = 'Add a month (any year)';
+      addBtn.title = t('add_new_plan');
       addBtn.setAttribute('aria-label', addBtn.title);
       addBtn.addEventListener('click', function(e){
         e.stopPropagation();
-        var last = allMonths[allMonths.length - 1];
-        var nextMonth = last.month === 12 ? 1 : last.month + 1;
-        var nextYear = last.month === 12 ? last.year + 1 : last.year;
-        openAddMonthPicker(addBtn, nextYear, nextMonth);
+        openNewPlanForm(addBtn);
       });
       addSlot.appendChild(addBtn);
       sidebar.appendChild(addSlot);
     }
     pinCurrentSegment();
 
-    // Every option pill gets the exact same fill as its own month's
-    // sidebar tab (not just the active one) — the pill's own selected
-    // state is conveyed by the stitch border alone, same as the sidebar.
-    // Uses colorByKey, which (unlike the per-year monthsInYear filter
-    // above) covers every month regardless of archive state, so a pill
-    // under an archived month still gets its real color rather than
-    // falling back to SEG_COLORS[0].
+    // Every alternative's tab wears its plan's color.
     document.querySelectorAll('.pill[data-opt]').forEach(function(pill){
       var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
       if(!panel) return;
-      var d = getPanelDate(panel);
-      var color = colorByKey[monthKey(d.year, d.month)] || SEG_COLORS[0];
+      var color = colorByKey['plan:' + planIdOf(panel)] || SEG_COLORS[0];
       pill.style.background = color;
       pill.style.borderColor = color;
       pill.style.color = '#fff';
     });
-    // The star ribbon wears the open month's color, which was only
-    // just (re)painted onto the tabs above.
     if(typeof renderPageBookmark === 'function') renderPageBookmark();
-    // Before syncBarLayout: a plan's name above its tabs makes the row taller.
     renderPlans();
     syncBarLayout();
   }
@@ -11005,7 +11076,12 @@
       var budgetLi = document.querySelector('.budget li[data-opt="' + opt + '"]');
       if(budgetLi) budgetLi.remove();
       if(wasOn){
-        var firstPill = document.querySelector('.pill[data-opt]');
+        var firstPill = null;
+        document.querySelectorAll('.pill[data-opt]').forEach(function(b){
+          var p = document.getElementById('panel-' + b.getAttribute('data-opt'));
+          if(!firstPill && p && panel && planIdOf(p) === planIdOf(panel)) firstPill = b;
+        });
+        firstPill = firstPill || document.querySelector('.pill[data-opt]');
         if(firstPill){
           firstPill.classList.add('on');
           var firstPanel = document.getElementById('panel-' + firstPill.getAttribute('data-opt'));
@@ -11268,7 +11344,7 @@
   // getMigrationSeedPayload below) — no longer written to.
   var LS_KEY = 'travelPlanHtml_v1';
 
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -12979,6 +13055,26 @@
         33: { loc: 'Hel peninsula', a: [act('🏖️', 'Beach', 'Bike the peninsula', 'All day', '€15')] },
         34: { loc: 'Hel peninsula' },
         35: { loc: 'Gdańsk', a: [act('✈️', 'Flight', 'Gdańsk → Milan', '16:10 → 18:25', '€70')] }
+      }
+    });
+    // DRAFT — one plan, two alternatives on different dates: the same
+    // Vienna weekend in November or for the Christmas markets in December.
+    var vie = 'option-' + nextOptionId();
+    model.options.push({
+      id: vie, nm: 'In November', y: 2026, m: 11, pl: vie, pn: 'VIENNA',
+      h: [{ start: 13, end: 15, label: 'Holiday - time off' }],
+      d: {
+        13: { loc: 'Vienna', a: [act('🚆', 'Train', 'Night train Milan → Vienna', '', '€70')] },
+        14: { loc: 'Vienna', a: [act('🏛️', 'City', 'Belvedere and Naschmarkt', 'All day', '€25')] },
+        15: { loc: 'Vienna' }
+      }
+    });
+    model.options.push({
+      id: 'option-' + nextOptionId(), nm: 'Christmas markets', y: 2026, m: 12, pl: vie, pn: 'VIENNA',
+      h: [{ start: 4, end: 7, label: 'Holiday - time off' }],
+      d: {
+        4: { loc: 'Vienna', a: [act('✈️', 'Flight', 'Milan → Vienna', '', '€60'), act('🏨', 'Stay', 'Hotel by Rathausplatz (3 nights)', '', '€240')] },
+        5: { loc: 'Vienna', a: [act('🍽️', 'Food', 'Christmas market crawl', 'Evening', '€30')] }
       }
     });
     applyContentModel(model);
