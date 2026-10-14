@@ -13041,62 +13041,6 @@
     });
   }
 
-  // DRAFT ONLY — an example of a plan that crosses a month boundary, so
-  // the draft opens with one to look at. Local (file / preview) mode
-  // only, never against the shared plan, and only if there isn't one
-  // already. Built as a saved-model option and loaded through
-  // applyContentModel, i.e. the same path real data takes. Remove this
-  // block before the feature ships.
-  if(!IS_HOSTED) (function seedCrossMonthExample(){
-    if(document.querySelector('.panel[data-span-end]')) return;
-    var model = extractContentModel();
-    if(!model || !model.options) return;
-    function act(icon, name, title, time, price){
-      var a = { i: icon, n: name, t: title, p: price };
-      if(time) a.l = ['🕒 ' + time];
-      return a;
-    }
-    model.options.push({
-      id: 'option-' + nextOptionId(), nm: 'Baltic coast (example)', y: 2026, m: 8,
-      ss: 24, se: 35, // 24 August – 4 September
-      h: [{ start: 24, end: 35, label: 'Holiday - time off' }],
-      d: {
-        24: { loc: 'Gdańsk', a: [act('🚆', 'Train', 'Kraków → Gdańsk', '08:40 → 14:40', '€25'), act('🏨', 'Stay', 'Old town flat (4 nights)', '', '€220')] },
-        25: { loc: 'Gdańsk', a: [act('🏛️', 'City', 'Old town & amber street', 'All day', '€20')] },
-        26: { loc: 'Gdańsk' },
-        27: { loc: 'Gdańsk', a: [act('⛴️', 'Boat', 'Ferry to Westerplatte', '10:00 → 13:00', '€18')] },
-        28: { loc: 'Sopot', a: [act('🚆', 'Train', 'SKM to Sopot', '25 min', '€3'), act('🏨', 'Stay', 'Guesthouse by the pier (4 nights)', '', '€260')] },
-        29: { loc: 'Sopot', a: [act('🏖️', 'Beach', 'Pier and beach day', 'All day', '€10')] },
-        30: { loc: 'Sopot' },
-        31: { loc: 'Sopot', a: [act('🏖️', 'Beach', 'Orłowo cliff walk', 'Afternoon', '€0')] },
-        32: { loc: 'Hel peninsula', a: [act('⛴️', 'Boat', 'Water tram Sopot → Hel', '09:30 → 11:00', '€12'), act('🏨', 'Stay', 'Cabin in Jastarnia (3 nights)', '', '€180')] },
-        33: { loc: 'Hel peninsula', a: [act('🏖️', 'Beach', 'Bike the peninsula', 'All day', '€15')] },
-        34: { loc: 'Hel peninsula' },
-        35: { loc: 'Gdańsk', a: [act('✈️', 'Flight', 'Gdańsk → Milan', '16:10 → 18:25', '€70')] }
-      }
-    });
-    // DRAFT — one plan, two alternatives on different dates: the same
-    // Vienna weekend in November or for the Christmas markets in December.
-    var vie = 'option-' + nextOptionId();
-    model.options.push({
-      id: vie, nm: 'In November', y: 2026, m: 11, pl: vie, pn: 'VIENNA',
-      h: [{ start: 13, end: 15, label: 'Holiday - time off' }],
-      d: {
-        13: { loc: 'Vienna', a: [act('🚆', 'Train', 'Night train Milan → Vienna', '', '€70')] },
-        14: { loc: 'Vienna', a: [act('🏛️', 'City', 'Belvedere and Naschmarkt', 'All day', '€25')] },
-        15: { loc: 'Vienna' }
-      }
-    });
-    model.options.push({
-      id: 'option-' + nextOptionId(), nm: 'Christmas markets', y: 2026, m: 12, pl: vie, pn: 'VIENNA',
-      h: [{ start: 4, end: 7, label: 'Holiday - time off' }],
-      d: {
-        4: { loc: 'Vienna', a: [act('✈️', 'Flight', 'Milan → Vienna', '', '€60'), act('🏨', 'Stay', 'Hotel by Rathausplatz (3 nights)', '', '€240')] },
-        5: { loc: 'Vienna', a: [act('🍽️', 'Food', 'Christmas market crawl', 'Evening', '€30')] }
-      }
-    });
-    applyContentModel(model);
-  })();
 
   if(!IS_HOSTED){
     (async function initHandle(){
