@@ -2078,6 +2078,15 @@
     .page-share:hover { background:rgba(255,255,255,.9); opacity:1; }
   }
   @media screen and (max-width: 720px) { #pageHead { display:none !important; } }
+  /* "More": the plans of a year that don't fit in the column (see
+     fitPlansInColumn). A plain, light tab, not one of the plans' colors. */
+  .month-segment.plan-more { background:rgba(255,255,255,.72); cursor:pointer; }
+  .month-segment.plan-more .seg-label { color:var(--ink); }
+  .month-segment.plan-more:hover { background:rgba(255,255,255,.95); }
+  .plan-more-menu .itemmenu-row { gap:8px; }
+  .plan-more-dot { flex:none; width:10px; height:10px; border-radius:50%; }
+  .plan-more-name { font-weight:800; text-transform:uppercase; letter-spacing:.03em; }
+  .plan-more-when { margin-left:auto; padding-left:12px; color:var(--muted); font-size:12px; white-space:nowrap; }
   /* The open plan's tab starts 16px from the window's edge, the others
      24px (the ribbon on the right ends 16px from the other edge). */
   @media screen and (min-width: 721px) {
@@ -4891,6 +4900,66 @@
     var first = txt.split(/[\s·,;:()\/–—-]+/).filter(Boolean)[0] || txt;
     return first.slice(0, PLAN_NAME_MAX);
   }
+  // When a year's plans don't all fit in the column, the column never
+  // scrolls or runs over itself: the last plans that don't fit are
+  // folded into one "More" tab at the end of their year (the open plan is
+  // always kept showing). Clicking "More" lists them; picking one opens it.
+  function fitPlansInColumn(sidebar, slotsByYear, colorByKey){
+    if(window.matchMedia('(max-width:720px)').matches) return;
+    var guard = 0;
+    while(sidebar.scrollHeight > sidebar.clientHeight + 1 && guard++ < 300){
+      var best = null;
+      Object.keys(slotsByYear).forEach(function(yr){
+        var g = slotsByYear[yr];
+        var shown = g.slots.filter(function(x){ return !x.hidden && !x.current; });
+        if(shown.length && (!best || shown.length > best.shown.length)) best = { g: g, shown: shown };
+      });
+      if(!best) break;
+      var victim = best.shown[best.shown.length - 1];
+      victim.hidden = true;
+      victim.slot.style.display = 'none';
+      best.g.hidden.push(victim.s);
+      if(!best.g.more) best.g.more = addMoreTab(best.g, colorByKey);
+      best.g.more.querySelector('.seg-label-full').textContent = 'More · ' + best.g.hidden.length;
+    }
+  }
+  function addMoreTab(g, colorByKey){
+    var slot = document.createElement('div');
+    slot.className = 'month-segment-slot plan-more-slot';
+    var seg = document.createElement('div');
+    seg.className = 'month-segment plan-more';
+    seg.dataset.monthKey = 'more-' + g.year;
+    seg.title = 'More plans in ' + g.year;
+    var label = document.createElement('span');
+    label.className = 'seg-label seg-label-full';
+    seg.appendChild(label);
+    seg.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var pop = document.createElement('div');
+      pop.className = 'itemmenu plan-more-menu';
+      g.hidden.slice().sort(function(a, b){ return a.sortKey - b.sortKey; }).forEach(function(s){
+        var row = document.createElement('div');
+        row.className = 'itemmenu-row';
+        var dot = document.createElement('span'); dot.className = 'plan-more-dot'; dot.style.background = colorByKey[s.key];
+        var name = document.createElement('span'); name.className = 'plan-more-name'; name.textContent = s.label;
+        var when = document.createElement('span'); when.className = 'plan-more-when'; when.textContent = altDatesLabel(s.panels[0]);
+        row.appendChild(dot); row.appendChild(name); row.appendChild(when);
+        row.addEventListener('click', function(ev){ ev.stopPropagation(); closePop(); openPlan(s.id); });
+        pop.appendChild(row);
+      });
+      positionPopover(pop, seg);
+    });
+    slot.appendChild(seg);
+    var last = g.slots[g.slots.length - 1].slot;
+    last.insertAdjacentElement('afterend', slot);
+    return slot;
+  }
+  var refitTimer = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(refitTimer);
+    refitTimer = setTimeout(function(){ if(document.getElementById('monthSidebar')) renderMonthSidebar(); }, 150);
+  });
   function openPlan(id){
     var cur = document.querySelector('.panel.on');
     if(cur && planIdOf(cur) === id) return;
@@ -10892,6 +10961,7 @@
     });
 
     var showYearHeaders = years.length >= 1;
+    var slotsByYear = {};
     years.forEach(function(yr){
       if(showYearHeaders){
         var yearSlot = document.createElement('div');
@@ -10980,6 +11050,7 @@
         slot.appendChild(seg);
         sidebar.appendChild(slot);
         attachSegHoverExpand(seg);
+        (slotsByYear[yr] = slotsByYear[yr] || { year: yr, slots: [], hidden: [], more: null }).slots.push({ s: s, slot: slot, current: s.key === activeKey });
       });
     });
     // The "+" under the plans: a new plan (name + when).
@@ -10997,6 +11068,7 @@
       addSlot.appendChild(addBtn);
       sidebar.appendChild(addSlot);
     }
+    fitPlansInColumn(sidebar, slotsByYear, colorByKey);
     pinCurrentSegment();
 
     // Every alternative's tab wears its plan's color.
