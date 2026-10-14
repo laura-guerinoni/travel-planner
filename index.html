@@ -2081,8 +2081,13 @@
   /* The open plan's tab starts 16px from the window's edge, the others
      24px (the ribbon on the right ends 16px from the other edge). */
   @media screen and (min-width: 721px) {
-    .month-segment:not([data-year-seg]) { inset:0 0 0 16px; width:114px; }
-    .month-segment.current:not([data-year-seg]), .month-segment.seg-expanded:not([data-year-seg]) { width:122px; }
+    /* 14px wider than the month column was, so a 9-letter name fits
+       whole next to the "⋯". */
+    body { padding-left:152px; }
+    .month-sidebar { width:144px; }
+    .month-segment[data-year-seg] { width:138px; }
+    .month-segment:not([data-year-seg]) { inset:0 0 0 16px; width:128px; }
+    .month-segment.current:not([data-year-seg]), .month-segment.seg-expanded:not([data-year-seg]) { width:136px; }
   }
   /* No browser focus ring on the round buttons: with keyboard focus they
      just look hovered (white circle). */
@@ -4871,10 +4876,20 @@
   function planLabel(panel){
     var named = null;
     panelsOfPlan(panel).forEach(function(p){ if(!named && p.getAttribute('data-plan-name')) named = p.getAttribute('data-plan-name'); });
-    if(named) return named;
+    if(named) return shortPlanName(named);
     var pill = pillOfPanel(panel), nameEl = pill && pill.querySelector('.pill-name');
     var txt = nameEl ? nameEl.textContent.trim().replace(/^\d+\.\s*/, '') : '';
-    return txt || t('plan_label');
+    return shortPlanName(txt || t('plan_label'));
+  }
+  // A plan's tab fits up to 9 letters, whole, never cut with "…". A
+  // longer name (from before names were capped) shows its first word, up
+  // to 9 letters.
+  var PLAN_NAME_MAX = 9;
+  function shortPlanName(txt){
+    txt = String(txt).trim();
+    if(txt.length <= PLAN_NAME_MAX) return txt;
+    var first = txt.split(/[\s·,;:()\/–—-]+/).filter(Boolean)[0] || txt;
+    return first.slice(0, PLAN_NAME_MAX);
   }
   function openPlan(id){
     var cur = document.querySelector('.panel.on');
@@ -4956,8 +4971,8 @@
   }
   function openNewPlanForm(anchorEl){
     var d = todayOrPanelDate(document.querySelector('.panel.on'));
-    openWhenForm(anchorEl, { title: t('add_new_plan'), nameLabel: 'Name <span class="whenpop-hint">· on the tab, up to 12 letters</span>',
-      name: '', maxlength: 12, from: { year: d.year, month: d.month, day: 1 }, to: { year: d.year, month: d.month, day: daysInMonth(d.year, d.month) },
+    openWhenForm(anchorEl, { title: t('add_new_plan'), nameLabel: 'Name <span class="whenpop-hint">· on the tab, up to 9 letters</span>',
+      name: '', maxlength: PLAN_NAME_MAX, from: { year: d.year, month: d.month, day: 1 }, to: { year: d.year, month: d.month, day: daysInMonth(d.year, d.month) },
       exact: false, button: 'Add plan' }, function(name, w){
       var created = createOption(w.from.year, w.from.month);
       if(!created) return;
@@ -9528,6 +9543,9 @@
     var input = document.createElement('input');
     input.type = 'text'; input.value = panel.getAttribute('data-plan-name') || '';
     input.placeholder = t('plan_name_placeholder');
+    // The name is what the plan's tab says: up to 9 letters (see shortPlanName).
+    input.maxLength = PLAN_NAME_MAX;
+    input.placeholder = 'e.g. Vienna';
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'addbtn'; btn.textContent = t('plan_name_save');
     function apply(){
