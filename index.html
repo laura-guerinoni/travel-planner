@@ -2067,8 +2067,9 @@
     div.page-turn-page { padding-top:56px; } /* the page-turn copies are laid out like .wrap */
     #pageHead { position:absolute; z-index:3; display:flex; align-items:center; gap:8px; height:28px; transform:translateX(-100%); }
     .page-head-faces { display:flex; align-items:center; }
+    /* Same size as the menu button's own face (28px, whole avatar). */
     .page-head-faces .pill-access-face { position:relative; display:block; width:28px; height:28px; border-radius:50%; overflow:hidden;
-      margin-left:-7px; border:2px solid var(--bg); background:var(--card); box-sizing:border-box; }
+      margin-left:-6px; border:none; box-shadow:0 0 0 2px var(--bg); background:none; box-sizing:border-box; }
     .page-head-faces .pill-access-face:first-child { margin-left:0; }
     .page-head-faces .pill-access-face svg { display:block; width:100%; height:100%; }
     .page-share { width:28px; height:28px; padding:0; border:none; border-radius:50%; background:none; cursor:pointer;
@@ -4164,6 +4165,9 @@
         // not a resize) makes the face itself fill almost the whole 16px
         // circle instead of a small blob adrift in a pale one.
         var svg = avatarSvgFor(email, override);
+        // The page's own row of faces (see renderPageHead) shows the
+        // whole avatar, exactly like the menu button does.
+        FULL_AVATAR_SVG[key] = svg;
         svg = svg.replace(/<circle cx="32" cy="32" r="30"[^>]*\/>/, '');
         svg = svg.replace('viewBox="0 0 64 64"', 'viewBox="10 11 44 44"');
         face.innerHTML = svg;
@@ -6129,6 +6133,7 @@
   // DRAFT — who the open plan is shared with, and a share button, at the
   // top right of the page beside the star ribbon (instead of faces on the
   // tabs). Outside .wrap and excluded from saving, like the ribbon.
+  var FULL_AVATAR_SVG = {};
   var SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>';
   function renderPageHead(){
     if(!SHARE_ICON) return;
@@ -6149,7 +6154,11 @@
     head.style.display = p ? '' : 'none';
     var facesEl = head.querySelector('.page-head-faces'), html = '';
     var pill = p ? pillOfPanel(p) : null;
-    if(pill) pill.querySelectorAll('.pill-access-face').forEach(function(f){ html += f.outerHTML; });
+    if(pill) pill.querySelectorAll('.pill-access-face').forEach(function(f){
+      var key = f.getAttribute('data-key') || '';
+      var full = FULL_AVATAR_SVG[key];
+      html += full ? '<span class="pill-access-face" data-key="' + key.replace(/"/g, '') + '" title="' + (f.title || '').replace(/"/g, '&quot;') + '">' + full + '</span>' : f.outerHTML;
+    });
     if(facesEl.innerHTML !== html) facesEl.innerHTML = html;
     var r = wrapEl.getBoundingClientRect();
     // 22px clear of the ribbon (which hangs from right - 14).
@@ -11434,7 +11443,9 @@
   // getMigrationSeedPayload below) — no longer written to.
   var LS_KEY = 'travelPlanHtml_v1';
 
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, .tagpop, .linkpop, .monthpop, #tagData';
+  // .pill-dates is worked out from the alternative's own dates, never typed:
+  // rewriting it isn't an edit and mustn't trigger a save.
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -12595,7 +12606,9 @@
       pill.innerHTML = '<span class="pill-name"></span><span class="pill-dates"></span> <span class="pill-price">' + formatMoney(0) + '</span>' +
         '<span class="pill-remove" title="Remove alternative">&times;</span>';
       pill.querySelector('.pill-name').textContent = o.nm || '';
-      pill.querySelector('.pill-dates').textContent = spanOf(panel) ? '' : holidayRangeShort(o.h);
+      // The same text renderPlans would write, so nothing changes after the
+      // load (a change there used to count as an edit and save again).
+      pill.querySelector('.pill-dates').textContent = altDatesLabel(panel);
       if(addOptBtn) pillsWrap.insertBefore(pill, addOptBtn); else pillsWrap.appendChild(pill);
 
       var li = document.createElement('li');
@@ -12830,6 +12843,14 @@
   // indefinitely until some unrelated UI event happens to fire.
   setInterval(tryApplyPendingRemoteUpdate, 500);
 
+  var remoteAppliedOnce = false;
+  function contentWithoutActive(json){
+    try {
+      var m = JSON.parse(json);
+      (m.options || []).forEach(function(o){ delete o.on; });
+      return JSON.stringify(m);
+    } catch(e){ return json; }
+  }
   function applyRemoteSnapshot(val){
     var model = null;
     if(val.contentJson){
@@ -12844,6 +12865,16 @@
       legacyWrap = parsed.querySelector('.wrap');
     }
     if(!model && !legacyWrap) return;
+    // A save that differs from what's on screen only in which alternative
+    // its sender has open changes nothing here — skip it. (Every plan
+    // switch saves; without this, two open copies kept answering each
+    // other's saves.)
+    if(remoteAppliedOnce && model && (!val.tagDataJson || val.tagDataJson === TAGDATA_EL.textContent) &&
+       contentWithoutActive(val.contentJson) === contentWithoutActive(JSON.stringify(extractContentModel()))) return;
+    // Someone else's save carries the alternative THEY have open; applying
+    // it used to switch you to their plan. Keep whatever you had open.
+    var keepPanel = remoteAppliedOnce ? document.querySelector('.panel.on') : null;
+    var keepOpt = keepPanel ? optOf(keepPanel) : null;
     withHistoryRestoreGuard(function(){
       // Tags first: chip colors are looked up from this list while the
       // content is being rendered.
@@ -12853,8 +12884,19 @@
       }
       if(model) applyContentModel(model);
       else { document.querySelector('.wrap').replaceWith(legacyWrap); reattachAll(); }
+      var kp = keepOpt ? document.getElementById('panel-' + keepOpt) : null;
+      if(kp && canSeeOption(kp) && !kp.classList.contains('on')){
+        document.querySelectorAll('.panel.on').forEach(function(p){ p.classList.remove('on'); });
+        document.querySelectorAll('.pill[data-opt].on').forEach(function(b){ b.classList.remove('on'); });
+        kp.classList.add('on');
+        var kpill = pillOfPanel(kp);
+        if(kpill) kpill.classList.add('on');
+        renderMonthSidebar();
+        syncPillFilter();
+      }
       lastSnapshot = captureUndoSnapshot();
     });
+    remoteAppliedOnce = true;
     setStatus('Synced ✓', true);
     // Covers both the very first load (pills exist here for the first
     // time all session) and every later remote sync — someone else's
