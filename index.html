@@ -2065,7 +2065,7 @@
     .pill .pill-access { display:none; }
     .wrap { padding-top:56px; }
     div.page-turn-page { padding-top:56px; } /* the page-turn copies are laid out like .wrap */
-    #pageHead { position:absolute; z-index:3; display:flex; align-items:center; gap:8px; height:28px; transform:translateX(-100%); }
+    #pageHead { position:absolute; z-index:31; display:flex; align-items:center; gap:8px; height:28px; transform:translateX(-100%); }
     .page-head-faces { display:flex; align-items:center; }
     /* Same size as the menu button's own face (28px, whole avatar). */
     .page-head-faces .pill-access-face { position:relative; display:block; width:28px; height:28px; border-radius:50%; overflow:hidden;
@@ -2076,6 +2076,9 @@
       display:flex; align-items:center; justify-content:center; color:var(--ink); opacity:.7;
       transition:background-color .15s ease, opacity .15s ease; }
     .page-share svg { width:15px; height:15px; }
+    .page-head-tip { position:absolute; top:calc(100% + 6px); transform:translateX(-50%); z-index:5; white-space:nowrap; pointer-events:none;
+      background:var(--ink); color:#fff; font-size:12px; font-weight:700; padding:4px 9px; border-radius:7px; box-shadow:0 4px 12px rgba(40,25,60,.2); }
+    .page-head-tip[hidden] { display:none; }
     .page-share:hover { background:rgba(255,255,255,.9); opacity:1; }
   }
   @media screen and (max-width: 720px) { #pageHead { display:none !important; } }
@@ -2114,6 +2117,11 @@
   .whenpop input[type="date"] { box-sizing:border-box; font:inherit; font-size:12px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; color:var(--ink); }
   .whenpop-check { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink); margin:0 0 8px; cursor:pointer; }
   .whenpop-check input { margin:0; accent-color:var(--primary); }
+  /* Every dropdown in the app gets the same chevron as the new plan form:
+     thin, rounded, muted (instead of the browser's own). */
+  select:not([multiple]) { -webkit-appearance:none !important; appearance:none !important; padding-right:24px !important; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat:no-repeat !important; background-position:right 7px center !important; background-size:12px 12px !important; }
   /* Own chevron instead of the browser's: thin, rounded, muted. */
   .whenpop select { -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:24px; color:var(--ink);
     background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 7px center / 12px 12px; }
@@ -6142,12 +6150,22 @@
     var head = document.getElementById('pageHead');
     if(!head){
       head = document.createElement('div'); head.id = 'pageHead';
-      head.innerHTML = '<span class="page-head-faces"></span><button type="button" class="page-share" title="Share this plan" aria-label="Share this plan">' + SHARE_ICON + '</button>';
+      head.innerHTML = '<span class="page-head-tip" hidden></span><span class="page-head-faces"></span><button type="button" class="page-share" title="Share this plan" aria-label="Share this plan">' + SHARE_ICON + '</button>';
       head.querySelector('.page-share').addEventListener('click', function(e){
         e.stopPropagation();
         var p = document.querySelector('.panel.on');
         if(p) openOptionMembersPicker(p, e.currentTarget);
       });
+      var tip = head.querySelector('.page-head-tip');
+      head.addEventListener('mouseover', function(e){
+        var face = e.target.closest('.page-head-faces .pill-access-face');
+        if(!face){ tip.hidden = true; return; }
+        tip.textContent = face.getAttribute('data-name') || '';
+        tip.hidden = !tip.textContent;
+        var hr = head.getBoundingClientRect(), fr = face.getBoundingClientRect();
+        tip.style.left = (fr.left + fr.width / 2 - hr.left) + 'px';
+      });
+      head.addEventListener('mouseleave', function(){ tip.hidden = true; });
       document.body.appendChild(head);
     }
     var p = document.querySelector('.panel.on');
@@ -6157,7 +6175,11 @@
     if(pill) pill.querySelectorAll('.pill-access-face').forEach(function(f){
       var key = f.getAttribute('data-key') || '';
       var full = FULL_AVATAR_SVG[key];
-      html += full ? '<span class="pill-access-face" data-key="' + key.replace(/"/g, '') + '" title="' + (f.title || '').replace(/"/g, '&quot;') + '">' + full + '</span>' : f.outerHTML;
+      // The person's name (or, with none set, the part of the email before
+      // the @), shown straight away by the page's own tooltip below rather
+      // than the browser's slow one.
+      var nm = (f.title || '').split('@')[0].replace(/"/g, '&quot;');
+      html += '<span class="pill-access-face" data-key="' + key.replace(/"/g, '') + '" data-name="' + nm + '">' + (full || f.innerHTML) + '</span>';
     });
     if(facesEl.innerHTML !== html) facesEl.innerHTML = html;
     var r = wrapEl.getBoundingClientRect();
@@ -9912,23 +9934,8 @@
         r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); fn(); });
         pop.appendChild(r);
       }
-      if(others.length) planRow(ICON_MERGE, t('pillmenu_merge_plan'), function(){
-        // Second step: which plan to join.
-        var pick = document.createElement('div');
-        pick.className = 'itemmenu';
-        var head = document.createElement('div');
-        head.className = 'invite-scope-heading';
-        head.textContent = t('pillmenu_merge_pick');
-        pick.appendChild(head);
-        others.forEach(function(target){
-          var r = document.createElement('div');
-          r.className = 'itemmenu-row';
-          r.textContent = planDisplayName(target);
-          r.addEventListener('click', function(e){ e.stopPropagation(); closePop(); mergeIntoPlan(panel, target); });
-          pick.appendChild(r);
-        });
-        positionPopover(pick, pill);
-      });
+      // ("Join another plan" was removed: alternatives are added to a plan
+      // from its own "+".)
       if(mine.length > 1){
         planRow(ICON_SPLIT, t('pillmenu_separate_plan'), function(){ separateFromPlan(panel); });
         planRow(ICON_EDIT_NAME, t('pillmenu_rename_plan'), function(){ openRenamePlan(pill, panel); });
@@ -9936,7 +9943,7 @@
     })();
     var accessRow = document.createElement('div');
     accessRow.className = 'itemmenu-row';
-    accessRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EYE + '</span>' + t('pillmenu_who_can_see');
+    accessRow.innerHTML = '<span class="itemmenu-icon">' + SHARE_ICON + '</span>' + t('pillmenu_who_can_see');
     accessRow.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
