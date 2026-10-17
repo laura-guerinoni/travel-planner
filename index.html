@@ -2521,6 +2521,20 @@
     .whenpop-label { font-size:12px !important; letter-spacing:.06em; text-transform:uppercase; margin:8px 0 6px !important; }
     .whenpop-check { font-size:14px !important; margin:6px 0 14px !important; }
   }
+
+  @media screen and (min-width: 721px) {
+    /* Hovering a ⋯ (tickets, plan tabs, years): the same rounded-square
+       highlight as the column button — white, dots turning ink. */
+    .pill[data-opt] .pill-remove, .month-sidebar .month-segment .itemmenu-btn { border-radius:8px !important; transition:background-color .12s; }
+    .pill[data-opt] .pill-remove:hover, .month-sidebar .month-segment .itemmenu-btn:hover, .month-sidebar .month-segment .itemmenu-btn.open {
+      background-color:#fff !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233d3568' stroke='%233d3568' stroke-width='2'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") !important; box-shadow:0 1px 3px rgba(40,25,60,.12); }
+  }
+
+  @media screen and (min-width: 721px) {
+    .page-bookmark::before { display:none !important; }
+    #ribbonStitch { position:fixed; z-index:61; pointer-events:none; overflow:visible; }
+    #ribbonStitch path { fill:none; stroke:rgba(255,255,255,.88); stroke-width:2; stroke-dasharray:5 4; stroke-linecap:round; stroke-linejoin:round; }
+  }
 </style>
 </head>
 <body>
@@ -6584,7 +6598,21 @@
     var b = add.getBoundingClientRect(), mid = Math.round(b.top + b.height / 2) + 'px';
     if(document.documentElement.style.getPropertyValue('--tab-mid') !== mid) document.documentElement.style.setProperty('--tab-mid', mid);
   }
-  (function loop(){ renderTicketStitch(); renderPlanStitch(); alignTopButtons(); requestAnimationFrame(loop); })();
+  // The star ribbon: once starred, stitched all the way round its sides and
+  // down into the V at the bottom; not starred, no stitch at all.
+  function renderRibbonStitch(){
+    var svg = document.getElementById('ribbonStitch');
+    if(!svg){ svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.id = 'ribbonStitch'; document.body.appendChild(svg); }
+    var rb = document.querySelector('.page-bookmark');
+    if(!rb || rb.dataset.state !== 'on' || rb.style.display === 'none' || !window.matchMedia('(min-width:721px)').matches){ svg.style.display = 'none'; return; }
+    var b = rb.getBoundingClientRect(), W = b.width, H = b.height, i = 4;
+    if(!W || !H){ svg.style.display = 'none'; return; }
+    svg.style.display = ''; svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px';
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    var path = 'M ' + i + ' -1 L ' + i + ' ' + (H - 6) + ' L ' + (W / 2) + ' ' + (H - 19) + ' L ' + (W - i) + ' ' + (H - 6) + ' L ' + (W - i) + ' -1';
+    if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
+  }
+  (function loop(){ renderTicketStitch(); renderPlanStitch(); renderRibbonStitch(); alignTopButtons(); requestAnimationFrame(loop); })();
   // A little magic when something gets starred: a quick rising run of
   // bell-like notes (high, soft, with a shimmer of overtones), then a
   // twinkle on top. Made with Web Audio, quiet.
@@ -12091,7 +12119,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #ticketStitch, #planStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
