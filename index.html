@@ -2055,6 +2055,24 @@
   .cell.cell-next-month[data-month-label]::before { background:var(--secondary); }
   .pill .pill-dates[data-span]::after { content:attr(data-span); font-size:11px; font-weight:700; white-space:nowrap; }
   .pill .pill-dates[data-span] { margin:0 2px; opacity:.9; }
+  /* ---- A bit bigger on desktop ----
+     Same layout, same look — just easier to read and to hit: bigger day
+     numbers, place names, activity text and tags, roomier day cards, and
+     larger "+" / "⋯" buttons in each day. */
+  @media screen and (min-width: 721px) {
+    .cell { padding:10px; min-height:120px; }
+    .daynum { font-size:18px; }
+    .wd { font-size:12px; }
+    .wdhead { font-size:13px; }
+    .loc-text { font-size:14px; }
+    .daytotal-badge { font-size:12px; padding:2px 9px; }
+    .acts li { font-size:13px; padding:7px; }
+    .title { font-size:14px; }
+    .chip { font-size:11.5px; padding:3px 9px 3px 6px; }
+    .dayaddbtn, .daymenu-btn { flex-basis:26px; width:26px; height:26px; border-radius:8px; }
+    .dayaddbtn svg, .daymenu-btn svg { width:15px; height:15px; }
+    .dayaddbtn:hover, .daymenu-btn:hover { background:var(--bg); }
+  }
   /* ---- Year → Plan → Alternatives (DRAFT) ----
      An alternative's tab carries its own dates ("12 – 25 Oct") between its
      name and its price. The people it's shared with and the share button
@@ -2686,6 +2704,8 @@
         <h2 data-i18n="fabadd_title">Add activity</h2>
         <button type="button" id="fabAddCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
       </div>
+      <label for="fabAddTitleInput" class="fabadd-label">What</label>
+      <input type="text" id="fabAddTitleInput" class="fabadd-select" placeholder="e.g. Train to Budapest" />
       <label for="fabAddDaySelect" class="fabadd-label" data-i18n="fabadd_day_label">Day</label>
       <select id="fabAddDaySelect" class="fabadd-select"></select>
       <label for="fabAddTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
@@ -12168,6 +12188,9 @@
   var fabAddTimeInput = document.getElementById('fabAddTimeInput');
   var fabAddTimeEndInput = document.getElementById('fabAddTimeEndInput');
   var fabAddAmountInput = document.getElementById('fabAddAmountInput');
+  // The activity's name, first in the form (it used to be added as "New
+  // activity" and renamed afterwards).
+  var fabAddTitleInput = document.getElementById('fabAddTitleInput');
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
@@ -12202,6 +12225,7 @@
     if(fabAddTimeInput) fabAddTimeInput.value = '12:00';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
     if(fabAddAmountInput) fabAddAmountInput.value = '0';
+    if(fabAddTitleInput) fabAddTitleInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
   // The FAB itself now opens a small menu (activity/alternative/holiday
@@ -12231,26 +12255,17 @@
       pop.appendChild(r);
     }
     menuRow('+ Activity', openFabAdd);
+    // Same as on desktop: a new alternative of the open plan, a holiday
+    // period on it, or a new plan — each in its own form.
     menuRow('+ Alternative', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = todayOrPanelDate(activePanel);
-      createOption(d.year, d.month);
+      if(activePanel) openNewAltForm(mobileAddFab, activePanel);
     });
     menuRow('+ Holiday period', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      if(activePanel) addHolidayToPanel(activePanel);
+      if(activePanel) openRangePopover(mobileAddFab, activePanel, 'holiday');
     });
-    menuRow('+ Month', function(){
-      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = todayOrPanelDate(activePanel);
-      openMonthPickerPopover(mobileAddFab, d.year, d.month, 'Add', function(newYear, newMonth){
-        var newPanel = createOption(newYear, newMonth);
-        document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
-        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
-        document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
-        newPanel.classList.add('on');
-      });
-    });
+    menuRow('+ Plan', function(){ openNewPlanForm(mobileAddFab); });
     positionPopover(pop, mobileAddFab);
   });
   if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
@@ -12261,6 +12276,7 @@
     var timeVal = fabAddTimeInput ? fabAddTimeInput.value : '';
     var timeEndVal = fabAddTimeEndInput ? fabAddTimeEndInput.value : '';
     var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
+    var titleVal = fabAddTitleInput ? fabAddTitleInput.value.trim() : '';
     closeFabAdd();
     if(!panel || !day) return;
     var cells = panel.querySelectorAll('.cell:not(.empty)');
@@ -12282,6 +12298,7 @@
     addBtn.click();
     var acts = cell.querySelector(':scope > .acts');
     var newLi = acts ? acts.lastElementChild : null;
+    if(newLi && titleVal){ var titleEl = newLi.querySelector(':scope > .title'); if(titleEl) titleEl.textContent = titleVal; }
     if(newLi){
       if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
         var tg = TAGS[tagIdx];
