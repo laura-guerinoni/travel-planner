@@ -2110,6 +2110,18 @@
     #sideSearch input:focus::placeholder { color:var(--muted); }
     #sideSearch input::-webkit-search-cancel-button { display:none; }
     #sideProfile, #sidePanel { display:none !important; }
+    /* Like Notion: the column's buttons (a year's ⋯ and arrow, a plan's ⋯,
+       the + for a new plan) only show while you hover that row / the
+       column; a year row gets a soft highlight on hover. */
+    .month-sidebar .itemmenu-btn { visibility:hidden !important; opacity:0; transition:opacity .12s; }
+    .month-sidebar .month-segment:hover .itemmenu-btn, .month-sidebar .itemmenu-btn.open { visibility:visible !important; opacity:1; }
+    .month-segment[data-year-seg][data-toggle]::after { opacity:0; transition:opacity .12s; }
+    .month-segment[data-year-seg]:hover::after { opacity:1; }
+    .month-segment[data-year-seg] { border-radius:9px !important; transition:background-color .12s; }
+    .month-segment[data-year-seg]:hover { background:rgba(255,255,255,.55) !important; }
+    .month-add { opacity:0 !important; transition:opacity .15s; }
+    .month-sidebar:hover .month-add, .month-add:focus-visible { opacity:.7 !important; }
+    .month-sidebar:hover .month-add:hover { opacity:1 !important; }
     #sideSearchResults { position:absolute; left:0; top:calc(100% + 6px); width:300px; max-height:60vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
       border-radius:12px; box-shadow:0 10px 28px rgba(0,0,0,.18); padding:6px; display:none; }
     #sideSearchResults.show { display:block; }
