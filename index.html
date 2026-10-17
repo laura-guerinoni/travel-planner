@@ -2543,8 +2543,10 @@
 
   #payFloat { display:none; }
   @media screen and (min-width: 721px) {
-    #paymentOverview, #paymentOverviewTitle { display:none !important; }
-    #payFloat { display:block; position:fixed; right:28px; bottom:22px; z-index:59; width:270px; background:rgba(255,255,255,.94); backdrop-filter:blur(8px);
+    /* Column open: the Payment overview is back at the bottom of the page.
+       Focus mode: a pill in the page's header row, left of the faces. */
+    :root.side-closed #paymentOverview, :root.side-closed #paymentOverviewTitle { display:none !important; }
+    #payFloat.x { display:block; position:fixed; right:28px; bottom:22px; z-index:59; width:270px; background:rgba(255,255,255,.94); backdrop-filter:blur(8px);
       border-radius:16px; box-shadow:0 14px 34px -10px rgba(40,25,60,.35); overflow:hidden; border-top:4px solid var(--pf-color, var(--primary)); }
     #payFloat .pf-head { display:flex; align-items:center; gap:8px; width:100%; padding:12px 14px; border:none; background:none; cursor:pointer; font:inherit; text-align:left; color:var(--ink); }
     #payFloat .pf-title { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); flex:1; }
@@ -2592,6 +2594,37 @@
     #sideToggle { transform:rotate(-5deg); }
     #actionMenuBtn:hover, #sideSearch .ss-btn:hover, #sideToggle:hover { transform:rotate(0) translateY(-2px) scale(1.08);
       box-shadow:0 0 0 1px rgba(61,53,104,.12), 2px 8px 14px -3px rgba(40,25,60,.36) !important; }
+  }
+
+  .fabadd-amount-row { display:flex; gap:8px; }
+  .fabadd-amount-row #fabAddAmountInput { flex:1; min-width:0; }
+  .fabadd-amount-row #fabAddCurrencySelect { flex:0 0 112px; }
+  .fabadd-split { margin:2px 0 14px; padding:10px 12px; border-radius:12px; background:var(--bg); }
+  .fabadd-split[hidden] { display:none; }
+  .fs-head { display:flex; align-items:center; margin-bottom:6px; }
+  .fs-head .fabadd-label { margin:0; flex:1; }
+  .fs-equal { border:none; background:#fff; color:var(--ink); font:inherit; font-size:12px; font-weight:800; border-radius:999px; padding:4px 10px; cursor:pointer; }
+  .fs-equal:hover { background:var(--primary); color:#fff; }
+  .fs-row { display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; }
+  .fs-row.off .fs-name, .fs-row.off .fs-face { opacity:.4; }
+  .fs-row .fs-in { width:16px; height:16px; margin:0; accent-color:var(--primary); }
+  .fs-face { width:24px; height:24px; border-radius:50%; overflow:hidden; flex:none; }
+  .fs-face svg { width:100%; height:100%; display:block; }
+  .fs-name { flex:1; min-width:0; font-weight:700; font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fs-amt { width:96px; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 8px; font:inherit; font-size:14px; color:var(--ink); background:#fff; }
+  .fs-amt:disabled { opacity:.4; }
+  .fs-left { font-size:12.5px; font-weight:800; color:var(--muted); margin-top:4px; text-align:right; }
+  .fs-left.over { color:#d6455d; }
+
+  #payPill { display:none; }
+  @media screen and (min-width: 721px) {
+    :root.side-closed #payPill { display:inline-flex; align-items:center; gap:10px; height:30px; padding:0 12px 0 6px; margin-right:10px; border-radius:999px;
+      background:#fff; box-shadow:0 1px 4px rgba(40,25,60,.12); font-size:13px; font-weight:800; color:var(--ink); white-space:nowrap; }
+    #payPill .pp-item { display:inline-flex; align-items:center; gap:5px; }
+    #payPill .pp-face { width:20px; height:20px; border-radius:50%; overflow:hidden; display:inline-block; }
+    #payPill .pp-face svg { width:100%; height:100%; display:block; }
+    #payPill .pp-un { color:var(--muted); }
+    #payPill .pp-sep { width:1px; height:14px; background:var(--line); }
   }
 </style>
 </head>
@@ -2875,7 +2908,12 @@
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" title="End time (optional)" />
       </div>
       <label for="fabAddAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
-      <input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" />
+      <div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div>
+      <div id="fabAddSplit" class="fabadd-split" hidden>
+        <div class="fs-head"><span class="fabadd-label">Who pays</span><button type="button" class="fs-equal">Split equally</button></div>
+        <div class="fs-list"></div>
+        <div class="fs-left"></div>
+      </div>
       <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
     </div>
   </div>
@@ -6233,8 +6271,25 @@
       e.stopPropagation(); card.classList.toggle('folded');
       try { localStorage.setItem('travelPlannerPayFolded', card.classList.contains('folded') ? '1' : '0'); } catch(e2){}
     });
+    function syncPill(src){
+      var head = document.getElementById('pageHead'), pill = document.getElementById('payPill');
+      if(!head) return;
+      if(!pill){ pill = document.createElement('span'); pill.id = 'payPill'; head.insertBefore(pill, head.querySelector('.page-head-faces')); }
+      var html = '';
+      if(src) src.querySelectorAll(':scope > li').forEach(function(li){
+        var face = li.querySelector('.participant-avatar'), amt = li.querySelector('.payov-amt-native');
+        if(!amt) return;
+        if(li.classList.contains('payov-unassigned')) html += '<span class="pp-item pp-un" title="Unassigned">? ' + amt.textContent + '</span>';
+        else html += '<span class="pp-item" title="' + ((li.querySelector('.payov-person span:last-child') || {}).textContent || '').replace(/"/g, '') + '"><span class="pp-face">' + (face ? face.innerHTML : '') + '</span>' + amt.textContent + '</span>';
+      });
+      var tot = document.querySelector('.pill[data-opt].on .pill-price');
+      if(html) html += '<span class="pp-sep"></span><span class="pp-tot">' + (tot ? tot.textContent.trim() : '') + '</span>';
+      if(pill.dataset.h !== html){ pill.innerHTML = html; pill.dataset.h = html; }
+      pill.style.display = html ? '' : 'none';
+    }
     function sync(){
       var src = document.querySelector('#paymentOverview ul'), list = card.querySelector('.pf-list');
+      syncPill(src);
       if(!src){ card.style.display = 'none'; return; }
       var rows = src.querySelectorAll(':scope > li');
       card.style.display = rows.length ? '' : 'none';
@@ -12581,6 +12636,78 @@
     openFabAdd();
     setTimeout(function(){ var t = document.getElementById('fabAddTitleInput'); if(t) t.focus(); }, 30);
   }, true);
+  // The amount in "Add activity": its currency (the alternative's by
+  // default) and who pays how much — the same data the wallet and
+  // currency icons on an activity edit (data-pay, data-pay-excluded,
+  // data-currency), set right away when adding.
+  var addSplitPeople = [];
+  function fillAddPayment(panel){
+    var cur = document.getElementById('fabAddCurrencySelect');
+    if(cur){
+      var def = resolveCurrencyCode(panel);
+      cur.innerHTML = Object.keys(CURRENCIES).map(function(c){ return '<option value="' + c + '"' + (c === def ? ' selected' : '') + '>' + c + ' ' + CURRENCIES[c] + '</option>'; }).join('');
+      cur.dataset.def = def;
+    }
+    var box = document.getElementById('fabAddSplit'); if(!box) return;
+    box.hidden = true; addSplitPeople = [];
+    loadMemberAvatarData().then(function(data){
+      var people = membersEligibleForOption(panel, data.members || []);
+      addSplitPeople = people;
+      if(!people.length){ box.hidden = true; return; }
+      var list = box.querySelector('.fs-list');
+      list.innerHTML = people.map(function(m, i){
+        return '<label class="fs-row"><input type="checkbox" class="fs-in" data-i="' + i + '" checked><span class="fs-face">' + avatarSvgFor(m.email, (data.avatars || {})[m.key]) + '</span>' +
+          '<span class="fs-name"></span><input type="number" class="fs-amt" data-i="' + i + '" min="0" step="0.01" inputmode="decimal" placeholder="0"></label>';
+      }).join('');
+      list.querySelectorAll('.fs-name').forEach(function(n, i){ n.textContent = displayNameFor(people[i].email, (data.avatars || {})[people[i].key]).split('@')[0]; });
+      box.hidden = false;
+      updateLeft();
+    });
+  }
+  function addSplitTotal(){ var a = document.getElementById('fabAddAmountInput'); return parseFloat(a && a.value) || 0; }
+  function updateLeft(){
+    var box = document.getElementById('fabAddSplit'); if(!box || box.hidden) return;
+    var sum = 0; box.querySelectorAll('.fs-row').forEach(function(row){
+      var on = row.querySelector('.fs-in').checked, amt = row.querySelector('.fs-amt');
+      amt.disabled = !on; row.classList.toggle('off', !on);
+      if(on) sum += parseFloat(amt.value) || 0; });
+    var left = Math.round((addSplitTotal() - sum) * 100) / 100, code = (document.getElementById('fabAddCurrencySelect') || {}).value;
+    var el = box.querySelector('.fs-left');
+    el.textContent = left === 0 ? 'All assigned' : (left > 0 ? 'Unassigned ' : 'Over by ') + (CURRENCIES[code] || '') + ' ' + Math.abs(left);
+    el.classList.toggle('over', left < 0);
+  }
+  document.addEventListener('input', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
+  document.addEventListener('change', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('#fabAddSplit .fs-equal'); if(!b) return;
+    e.preventDefault();
+    var rows = [].slice.call(document.querySelectorAll('#fabAddSplit .fs-row')).filter(function(r){ return r.querySelector('.fs-in').checked; });
+    if(!rows.length) return;
+    var total = addSplitTotal(), each = Math.floor(total / rows.length * 100) / 100, rest = Math.round((total - each * rows.length) * 100) / 100;
+    rows.forEach(function(r, i){ r.querySelector('.fs-amt').value = String(Math.round((each + (i === 0 ? rest : 0)) * 100) / 100); });
+    updateLeft();
+  });
+  // Applied to the new activity once it exists (see the confirm handler).
+  function applyAddPayment(li){
+    var cur = document.getElementById('fabAddCurrencySelect');
+    if(cur && cur.value && cur.value !== cur.dataset.def){
+      li.setAttribute('data-currency', cur.value);
+      var pv = li.querySelector(':scope > .price > .price-val'); if(pv) ensurePriceValPrefix(pv);
+      renderActivityCurrencyIcon(li);
+    }
+    var box = document.getElementById('fabAddSplit');
+    if(box && !box.hidden && addSplitPeople.length){
+      var splits = [], excluded = [];
+      box.querySelectorAll('.fs-row').forEach(function(row){
+        var m = addSplitPeople[+row.querySelector('.fs-in').dataset.i];
+        if(!row.querySelector('.fs-in').checked){ excluded.push(m.key); return; }
+        var v = row.querySelector('.fs-amt').value;
+        if(v !== '') splits.push({ k: m.key, a: parseFloat(v) || 0 });
+      });
+      if(excluded.length) setPaySplitExcluded(li, excluded);
+      if(splits.length) setPaySplits(li, splits);
+    }
+  }
   function openFabAdd(){
     var panel = document.querySelector('.panel.on');
     if(!panel || !fabAddDaySelect) return;
@@ -12611,6 +12738,7 @@
     if(fabAddTimeInput) fabAddTimeInput.value = '12:00';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
     if(fabAddAmountInput) fabAddAmountInput.value = '0';
+    fillAddPayment(panel);
     if(fabAddTitleInput) fabAddTitleInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
@@ -12731,6 +12859,7 @@
         priceVal.textContent = currencySymbol(priceValCurrencyCtx(newLi)) + ' ' + amountVal;
         if(priceValIsNew) makeEditable(priceVal);
       }
+      applyAddPayment(newLi);
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
