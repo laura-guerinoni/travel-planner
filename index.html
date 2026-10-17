@@ -2649,6 +2649,8 @@
       background:var(--ink); color:#fff; font-size:12px; font-weight:700; padding:5px 10px; border-radius:8px; white-space:nowrap; pointer-events:none;
       box-shadow:0 4px 12px rgba(40,25,60,.2); }
   }
+
+  #payPill .pp-lab { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding-left:6px; }
 </style>
 </head>
 <body>
@@ -6316,9 +6318,14 @@
         var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
         if(li.classList.contains('payov-unassigned')) html += '<span class="pp-item pp-un" data-tip="' + esc('Not assigned to anyone yet: ' + amt.textContent) + '">? ' + amt.textContent + '</span>';
         else { var who = ((li.querySelector('.payov-person span:last-child') || {}).textContent || '').split('@')[0];
-          html += '<span class="pp-item" data-tip="' + esc(who + ' pays ' + amt.textContent) + '"><span class="pp-face">' + (face ? face.innerHTML : '') + '</span>' + amt.textContent + '</span>'; }
+          // How many of this alternative's activities this person has a
+          // share in — the amount is their part of the costs, not a debt.
+          var k = li.getAttribute('data-key'), n = 0;
+          document.querySelectorAll('.panel.on .acts > li[data-pay]').forEach(function(a){ try { if(JSON.parse(a.getAttribute('data-pay')).some(function(x){ return x.k === k && x.a > 0; })) n++; } catch(e){} });
+          html += '<span class="pp-item" data-tip="' + esc(who + '\'s share of the costs: ' + amt.textContent + (n ? ' · ' + n + (n === 1 ? ' activity' : ' activities') : '')) + '"><span class="pp-face">' + (face ? face.innerHTML : '') + '</span>' + amt.textContent + '</span>'; }
       });
       var tot = document.querySelector('.pill[data-opt].on .pill-price');
+      if(html) html = '<span class="pp-lab" data-tip="What each person\'s part of the costs adds up to (not what they owe)">Shares</span>' + html;
       if(html) html += '<span class="pp-sep"></span><span class="pp-tot" data-tip="Total of this alternative">' + (tot ? tot.textContent.trim() : '') + '</span>';
       if(pill.dataset.h !== html){ pill.innerHTML = html; pill.dataset.h = html; }
       pill.style.display = html ? '' : 'none';
@@ -6390,6 +6397,7 @@
         var member = data.members.filter(function(m){ return m.key === key; })[0];
         var email = member ? member.email : key.replace(/,/g, '.');
         var li = document.createElement('li');
+        li.setAttribute('data-key', key);
         var left = document.createElement('span');
         left.className = 'payov-person';
         var face = document.createElement('span');
