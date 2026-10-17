@@ -6592,8 +6592,8 @@
       bell(3951, .32, .5, .18); bell(4698.6, .38, .45, .12);
     } catch(e){}
   }
-  // Adding something (an activity, a place, a holiday period, an
-  // alternative or a plan): a soft, round "plip" — two quick warm notes
+  // Adding something to a day (an activity, a place, a holiday period —
+  // not a new plan or alternative, those have the page turn): a soft, round "plip" — two quick warm notes
   // going up, like a drop. Short and quiet so it never gets tiring.
   var addSoundAt = 0;
   function playAddSound(){
@@ -10329,7 +10329,6 @@
   }
 
   function createOption(year, month){
-    playAddSound();
     var panels = document.querySelectorAll('.panel');
     var n = nextOptionId(); // internal id, must stay globally unique across all months
     var displayNum = 1; // the "1.", "2." shown to the user — counts only within this month
