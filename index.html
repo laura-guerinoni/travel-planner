@@ -2081,7 +2081,7 @@
     .page-head-tip[hidden] { display:none; }
     .page-share:hover { background:rgba(255,255,255,.9); opacity:1; }
   }
-  @media screen and (max-width: 720px) { #pageHead { display:none !important; } }
+  @media screen and (max-width: 720px) { #pageHead, #sideSearch, #sideProfile { display:none !important; } }
   /* The plans column can be closed (like Notion's sidebar): the page then
      takes the full width. The button sits next to the menu button. */
   #sideToggle { display:none; }
@@ -2093,6 +2093,39 @@
     :root.side-closed .month-sidebar { display:none !important; }
     :root.side-closed body { padding-left:34px !important; }
     :root.side-closed .pills { padding-left:66px !important; }
+    /* Like Notion: a search box at the top of the column, and your profile
+       at the bottom (opens the menu: save, access, print, theme…). */
+    #sideSearch, #sideProfile { position:fixed; left:16px; width:136px; z-index:46; }
+    :root.side-closed #sideSearch, :root.side-closed #sideProfile { display:none; }
+    #sideSearch { top:calc(var(--pills-bottom, 50px) + 6px); }
+    #sideSearch input { width:100%; height:32px; box-sizing:border-box; border:1px solid var(--line); border-radius:9px; padding:0 10px 0 28px; font:inherit; font-size:13px;
+      color:var(--ink); background:rgba(255,255,255,.75) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a8fbf' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat 9px center / 13px 13px; }
+    #sideSearch input:focus { outline:none; border-color:var(--primary); background-color:#fff; }
+    #sideSearchResults { position:absolute; left:0; top:calc(100% + 6px); width:300px; max-height:60vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
+      border-radius:12px; box-shadow:0 10px 28px rgba(0,0,0,.18); padding:6px; display:none; }
+    #sideSearchResults.show { display:block; }
+    .ssr { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--ink); }
+    .ssr:hover, .ssr.sel { background:var(--bg); }
+    .ssr .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+    .ssr .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+    .ssr .wh { font-size:11.5px; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .ssr-empty { padding:10px; color:var(--muted); font-size:13px; }
+    #sideProfile { bottom:14px; display:flex; align-items:center; gap:8px; height:40px; padding:0 8px; border:none; border-radius:10px; background:none; cursor:pointer;
+      font:inherit; font-weight:800; font-size:13.5px; color:var(--ink); text-align:left; }
+    #sideProfile:hover { background:rgba(255,255,255,.75); }
+    #sideProfile .av { width:28px; height:28px; border-radius:50%; overflow:hidden; flex:none; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.15);
+      display:flex; align-items:center; justify-content:center; font-size:12px; }
+    #sideProfile .av svg { width:100%; height:100%; display:block; }
+    #sideProfile .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #sideProfile .chev { width:12px; height:12px; color:var(--muted); flex:none; }
+    /* While the column is open, the menu lives at the bottom (the profile):
+       its round button at the top left steps aside and the menu opens upward
+       from the profile. */
+    :root:not(.side-closed) #actionMenu { top:auto; bottom:14px; left:16px; }
+    :root:not(.side-closed) #actionMenuBtn { opacity:0; pointer-events:none; }
+    :root:not(.side-closed) #actionMenuDropdown { top:auto; bottom:calc(100% + 8px); }
+    :root:not(.side-closed) #sideToggle { left:16px; }
+    :root:not(.side-closed) .month-sidebar { max-height:calc(100vh - var(--pills-bottom, 60px) - 150px) !important; }
   }
   /* "More": the plans of a year that don't fit in the column (see
      fitPlansInColumn). A plain, light tab, not one of the plans' colors. */
@@ -5054,6 +5087,86 @@
     });
     document.body.appendChild(btn);
     apply(closed);
+  })();
+  // Search (top of the plans column): plans, alternatives, places and
+  // activities; picking one opens it (and scrolls to the day).
+  (function initSideSearch(){
+    var box = document.createElement('div'); box.id = 'sideSearch';
+    box.innerHTML = '<input type="search" placeholder="Search" aria-label="Search plans and activities"><div id="sideSearchResults"></div>';
+    document.body.appendChild(box);
+    var input = box.querySelector('input'), list = box.querySelector('#sideSearchResults'), hits = [], sel = 0;
+    function esc(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    function find(q){
+      q = q.trim().toLowerCase(); var out = [], seen = {};
+      if(!q) return out;
+      document.querySelectorAll('.panel').forEach(function(p){
+        if(!canSeeOption(p)) return;
+        var pill = pillOfPanel(p), color = pill ? pill.style.background : '';
+        var altName = pill && pill.querySelector('.pill-name') ? pill.querySelector('.pill-name').textContent.trim() : '';
+        var plan = planLabel(p);
+        if(plan.toLowerCase().indexOf(q) > -1 && !seen['p' + planIdOf(p)]){ seen['p' + planIdOf(p)] = 1; out.push({ kind:'Plan', text:plan, where:altDatesLabel(p), panel:p, color:color }); }
+        if(altName.toLowerCase().indexOf(q) > -1) out.push({ kind:'Alternative', text:altName, where:plan, panel:p, color:color });
+        p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
+          var dn = dayNumOfCell(cell), when = dn != null ? (function(){ var r = realDate(p, dn); return r.day + ' ' + MONTH_SHORT[r.month - 1]; })() : '';
+          var loc = cell.querySelector(':scope > .loc .loc-text');
+          if(loc && loc.textContent.toLowerCase().indexOf(q) > -1 && !seen['l' + p.id + loc.textContent]){ seen['l' + p.id + loc.textContent] = 1; out.push({ kind:'Place', text:loc.textContent.trim(), where:plan + ' · ' + when, panel:p, cell:cell, color:color }); }
+          cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost) > .title').forEach(function(t){
+            if(t.textContent.toLowerCase().indexOf(q) > -1) out.push({ kind:'Activity', text:t.textContent.trim(), where:plan + ' · ' + when, panel:p, cell:cell, color:color });
+          });
+        });
+      });
+      return out.slice(0, 30);
+    }
+    function show(){
+      hits = find(input.value); sel = 0;
+      if(!input.value.trim()){ list.classList.remove('show'); return; }
+      list.innerHTML = hits.length ? hits.map(function(h, i){
+        return '<div class="ssr' + (i === sel ? ' sel' : '') + '" data-i="' + i + '"><span class="dot" style="background:' + (h.color || 'var(--primary)') + '"></span><span class="tx">' + esc(h.text) + '</span><span class="wh">' + esc(h.kind === 'Plan' ? h.where : h.where) + '</span></div>';
+      }).join('') : '<div class="ssr-empty">Nothing found</div>';
+      list.classList.add('show');
+    }
+    function go(h){
+      if(!h) return;
+      list.classList.remove('show'); input.value = ''; input.blur();
+      activatePillByOpt(optOf(h.panel));
+      if(h.cell) setTimeout(function(){
+        h.cell.scrollIntoView({ behavior:'smooth', block:'center' });
+        h.cell.animate([{ boxShadow:'0 0 0 0 rgba(236,106,156,0)' }, { boxShadow:'0 0 0 4px rgba(236,106,156,.55)' }, { boxShadow:'0 0 0 0 rgba(236,106,156,0)' }], { duration:1400 });
+      }, 650);
+    }
+    input.addEventListener('input', show);
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); sel = Math.max(0, Math.min(hits.length - 1, sel + (e.key === 'ArrowDown' ? 1 : -1)));
+        list.querySelectorAll('.ssr').forEach(function(x, i){ x.classList.toggle('sel', i === sel); }); }
+      else if(e.key === 'Enter'){ e.preventDefault(); go(hits[sel]); }
+      else if(e.key === 'Escape'){ input.value = ''; list.classList.remove('show'); input.blur(); }
+    });
+    list.addEventListener('mousedown', function(e){ var x = e.target.closest('.ssr'); if(x){ e.preventDefault(); go(hits[+x.dataset.i]); } });
+    input.addEventListener('blur', function(){ setTimeout(function(){ list.classList.remove('show'); }, 150); });
+    // ⌘K / Ctrl+K focuses it, like Notion.
+    document.addEventListener('keydown', function(e){
+      if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){
+        if(document.documentElement.classList.contains('side-closed')) document.getElementById('sideToggle').click();
+        e.preventDefault(); input.focus(); input.select();
+      }
+    });
+  })();
+  // Profile (bottom of the plans column): your face and name; opens the menu.
+  var renderSideProfile = function(){};
+  (function initSideProfile(){
+    var btn = document.createElement('button'); btn.type = 'button'; btn.id = 'sideProfile'; btn.title = 'Settings and more';
+    document.body.appendChild(btn);
+    renderSideProfile = function(){
+      var mb = document.getElementById('actionMenuBtn');
+      var face = mb && mb.classList.contains('profile-btn') ? mb.innerHTML : '<span>🙂</span>';
+      var name = currentUserEmail ? displayNameFor(currentUserEmail, null).split('@')[0] : 'Me';
+      var h = '<span class="av">' + face + '</span><span class="nm"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+      if(btn.dataset.face !== face){ btn.innerHTML = h; btn.dataset.face = face; }
+      btn.querySelector('.nm').textContent = name;
+    };
+    btn.addEventListener('click', function(e){ e.stopPropagation(); var mb = document.getElementById('actionMenuBtn'); if(mb) mb.click(); });
+    renderSideProfile();
+    setInterval(renderSideProfile, 2000);
   })();
   function openPlan(id){
     var cur = document.querySelector('.panel.on');
@@ -10960,7 +11073,9 @@
     // the common single-year case) — every month/year segment shares
     // the exact same sidebar-relative slot positions regardless.
     if(sidebarEl){
-      sidebarEl.style.top = Math.max(0, blockTop + 14) + 'px';
+      // Room above the plans for the search box (only while the column is open).
+      var searchRoom = document.documentElement.classList.contains('side-closed') ? 0 : 46;
+      sidebarEl.style.top = Math.max(0, blockTop + 14 + searchRoom) + 'px';
     }
     // The sidebar's own top just moved (or could still have shifted for
     // some other reason this function runs for) — re-freeze the
@@ -11667,7 +11782,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #sideToggle, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #sideToggle, #sideSearch, #sideProfile, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
