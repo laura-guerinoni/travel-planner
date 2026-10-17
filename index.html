@@ -5360,6 +5360,18 @@
       activatePillByOpt(optOf(created));
     });
   }
+  // The same name + when form, filled in, for an alternative that exists.
+  // Its days keep what's on them (they're kept by day number).
+  function openEditAltForm(anchorEl, panel){
+    var r = altDates(panel), pill = pillOfPanel(panel), nameEl = pill && pill.querySelector('.pill-name');
+    openWhenForm(anchorEl, { title: 'Edit alternative', nameLabel: 'Name', name: nameEl ? nameEl.textContent.trim() : '',
+      maxlength: 40, from: r.from, to: r.to, exact: r.exact, button: 'Save' }, function(name, w){
+      if(name) setOptionName(panel, name);
+      applyAltDates(panel, w);
+      planChanged();
+      if(typeof renderPlans === 'function') renderPlans();
+    });
+  }
   function removePlan(panels, label){
     if(currentUserRole !== 'owner') return;
     var opts = panels.map(optOf);
@@ -10323,6 +10335,16 @@
     closePop();
     var pop = document.createElement('div');
     pop.className = 'itemmenu';
+    var editRow = document.createElement('div');
+    editRow.className = 'itemmenu-row';
+    editRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EDIT_NAME + '</span>Edit name and dates';
+    editRow.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      if(panel) openEditAltForm(pill, panel);
+    });
+    pop.appendChild(editRow);
     var row = document.createElement('div');
     row.className = 'itemmenu-row';
     row.innerHTML = '<span class="itemmenu-icon">' + ICON_DUPLICATE + '</span>' + t('pillmenu_duplicate');
@@ -10442,7 +10464,10 @@
     // CSS, but a right-click reaches this menu directly regardless of
     // that, so the same check needs repeating here rather than trusting
     // the trigger's own visibility as the real gate.
-    if(currentUserRole === 'owner'){
+    // Deleting: the plan's owner, whoever created this alternative, or
+    // anyone in the local (no sign-in) copy.
+    var pillPanel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+    if(currentUserRole === 'owner' || !IS_HOSTED || (pillPanel && currentUserKey && getOptionCreator(pillPanel) === currentUserKey)){
       var delRow = document.createElement('div');
       delRow.className = 'itemmenu-row danger';
       delRow.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>' + t('pillmenu_delete');
