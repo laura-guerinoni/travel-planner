@@ -5873,8 +5873,8 @@
   var pageTurnCleanup = null;
   // The page-turn sound: Mixkit's "Single book paging" recording (free
   // to use under the Mixkit License, no credit needed), which holds two
-  // page turns — cut in two: the first plays when you go forward, the
-  // second when you go back. Small mono mp3s, inlined so there's no file
+  // page turns — cut in two: the second plays when you go forward, the
+  // first when you go back (that way round sounds right). Small mono mp3s, inlined so there's no file
   // to fetch. Each play varies its speed a hair and pans the way the page
   // travels.
   var TURN_SOUNDS = {
@@ -5910,7 +5910,7 @@
       var ctx = turnAudio;
       if(ctx.state === 'suspended') ctx.resume();
       loadTurnSounds(ctx).then(function(){
-        var list = turnBuffers[forward === false ? 'back' : 'forward'];
+        var list = turnBuffers[forward === false ? 'forward' : 'back'];
         if(!list.length) return;
         var buf = list[Math.floor(Math.random() * list.length)];
         var now = ctx.currentTime;
