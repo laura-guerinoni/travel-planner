@@ -6405,7 +6405,7 @@
         face.innerHTML = avatarSvgFor(email, data.avatars[key]);
         left.appendChild(face);
         var label = document.createElement('span');
-        label.textContent = email;
+        label.textContent = displayNameFor(email, data.avatars[key]);
         left.appendChild(label);
         li.appendChild(left);
         appendAmount(li, fresh.totals[key]);
