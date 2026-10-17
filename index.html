@@ -5871,6 +5871,44 @@
   // schedule a save or end up serialized. The copies deliberately aren't
   // .panel elements, so nothing that looks up ".panel.on" can find them.
   var pageTurnCleanup = null;
+  // A soft paper sound with every page turn: a short rustle of filtered
+  // noise that brightens as the sheet lifts, then a faint low settle as it
+  // lands. Made on the spot with Web Audio (no file to load), quiet, and a
+  // touch shorter for an alternative than for a plan, like the turns.
+  var turnAudio = null;
+  function playPageTurnSound(isPlan){
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      turnAudio = turnAudio || new AC();
+      var ctx = turnAudio;
+      if(ctx.state === 'suspended') ctx.resume();
+      var dur = isPlan ? .42 : .32, now = ctx.currentTime;
+      var len = Math.floor(ctx.sampleRate * (dur + .12)), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+      // Paper isn't smooth noise: a little grain of tiny crackles on top.
+      for(var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (Math.random() < .03 ? 1 : .45);
+      var src = ctx.createBufferSource(); src.buffer = buf;
+      var band = ctx.createBiquadFilter(); band.type = 'bandpass'; band.Q.value = .7;
+      band.frequency.setValueAtTime(1200, now);
+      band.frequency.exponentialRampToValueAtTime(4200, now + dur * .55);
+      band.frequency.exponentialRampToValueAtTime(1800, now + dur);
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(.09, now + .03);
+      g.gain.exponentialRampToValueAtTime(.05, now + dur * .5);
+      g.gain.exponentialRampToValueAtTime(.075, now + dur * .8);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      src.connect(band); band.connect(g); g.connect(ctx.destination);
+      // The sheet settling: a short, soft, low puff at the end.
+      var low = ctx.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = 380;
+      var g2 = ctx.createGain();
+      g2.gain.setValueAtTime(0.0001, now + dur * .82);
+      g2.gain.exponentialRampToValueAtTime(.12, now + dur * .9);
+      g2.gain.exponentialRampToValueAtTime(0.0001, now + dur + .1);
+      src.connect(low); low.connect(g2); g2.connect(ctx.destination);
+      src.start(now); src.stop(now + dur + .12);
+    } catch(e){}
+  }
   function playPageTurn(kind, forward, oldPanel, newPanel){
     if(!window.matchMedia('(min-width:721px)').matches) return;
     if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -5883,6 +5921,7 @@
     var stageTop = Math.max(0, Math.min(barBottom, window.innerHeight));
     if(r.bottom - stageTop < 40) return;
     var isMonth = kind === 'month';
+    playPageTurnSound(isMonth);
     // Going back plays the very same fold in reverse: same tilt, same
     // paper, same light, run backwards — the earlier page is brought back
     // over and laid down on the current one. For a month that's all.
@@ -8148,13 +8187,11 @@
     function show(f){
       clearTimeout(hideTimer);
       target = f;
-      var range = document.createRange(); range.selectNodeContents(f);
-      var rr = range.getBoundingClientRect(), fr = f.getBoundingClientRect();
-      var right = rr.width ? rr.right : fr.right;
-      btn.style.left = (right + window.scrollX + 4) + 'px';
+      // At the right-hand edge of the activity, level with the line.
+      var fr = f.getBoundingClientRect(), lr = f.parentElement.getBoundingClientRect();
+      btn.style.left = (lr.right + window.scrollX - 16) + 'px';
       btn.style.top = (fr.top + window.scrollY + fr.height / 2 - 8) + 'px';
-      btn.title = f.classList.contains('price') ? 'Remove cost' : 'Remove time';
-      btn.setAttribute('aria-label', btn.title);
+      btn.setAttribute('aria-label', f.classList.contains('price') ? 'Remove cost' : 'Remove time');
       btn.hidden = false;
     }
     function hideSoon(){
@@ -10326,7 +10363,7 @@
       // (were it still carrying some earlier inline value) would win
       // over right in that fight regardless of which one this function
       // actually means to control right now.
-      seg.style.right = (window.innerWidth - (r.left + r.width)) + 'px';
+      seg.style.right = (document.documentElement.clientWidth - (r.left + r.width)) + 'px';
       seg.style.left = 'auto';
       seg.style.height = r.height + 'px';
     });
@@ -10393,7 +10430,7 @@
       // can't fight right for control of the position once both width
       // and both edges would otherwise be specified at once — see
       // pinCurrentSegment's own identical reasoning.
-      seg.style.right = (window.innerWidth - (r.left + r.width)) + 'px';
+      seg.style.right = (document.documentElement.clientWidth - (r.left + r.width)) + 'px';
       seg.style.left = 'auto';
       seg.style.height = r.height + 'px';
       seg.style.width = r.width + 'px'; // freeze at the collapsed width first
