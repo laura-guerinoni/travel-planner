@@ -2103,6 +2103,34 @@
       border-right:1px solid rgba(255,255,255,.7); box-shadow:inset -1px 0 0 var(--line); }
     #sidePanel::after { content:''; position:absolute; left:12px; right:12px; bottom:64px; border-top:1px solid var(--line); }
     :root.side-closed #sidePanel { display:none; }
+    /* DRAFT — sidebar styles to choose from (picker at the bottom right).
+       All of them keep the background showing. */
+    /* A · Clear: no panel at all; search and profile are frosted pills. */
+    :root[data-side-style="a"] #sidePanel { display:none; }
+    :root[data-side-style="a"] #sideSearch input { background-color:rgba(255,255,255,.55); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.8); box-shadow:none; }
+    :root[data-side-style="a"] #sideProfile { background:rgba(255,255,255,.5); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.8); border-radius:999px; }
+    /* B · Outline: a fine rounded frame around the column, nothing filled. */
+    :root[data-side-style="b"] #sidePanel { background:none; backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none; border:1.5px solid rgba(255,255,255,.85);
+      border-radius:18px; left:6px; top:6px; bottom:6px; width:calc(var(--side-w, 152px) - 6px); border-right:none; border-radius:18px 0 0 18px; }
+    :root[data-side-style="b"] #sidePanel::after { border-top-color:rgba(255,255,255,.85); }
+    /* C · Stitched: a dashed stitch runs down the column like a book's spine,
+       search and profile sit on it; no panel. */
+    :root[data-side-style="c"] #sidePanel { background:none; backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none; border:none; }
+    :root[data-side-style="c"] #sidePanel::before { content:''; position:absolute; top:14px; bottom:14px; right:4px; border-right:2px dashed rgba(255,255,255,.9); }
+    :root[data-side-style="c"] #sidePanel::after { border-top:2px dashed rgba(255,255,255,.9); right:10px; }
+    :root[data-side-style="c"] #sideSearch input { background-color:rgba(255,255,255,.7); box-shadow:none; }
+    /* D · Whisper: the same panel but barely there — a light veil, no blur,
+       so the glows and stars show through. */
+    :root[data-side-style="d"] #sidePanel { background:rgba(255,255,255,.22); backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none; border-right:1px solid rgba(255,255,255,.6); }
+    /* E · Floating card: search, plans and profile on a frosted rounded card
+       that floats on the background with margins all round. */
+    :root[data-side-style="e"] #sidePanel { left:8px; top:52px; bottom:8px; width:calc(var(--side-w, 152px) - 8px); border-radius:18px 0 0 18px; border:none;
+      background:rgba(255,255,255,.35); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); box-shadow:0 10px 30px -14px rgba(61,53,104,.35); }
+    :root[data-side-style="e"] #sidePanel::after { bottom:56px; }
+    #sideStylePick { position:fixed; right:16px; bottom:44px; z-index:90; display:flex; gap:4px; align-items:center; padding:5px 6px 5px 10px; border-radius:999px;
+      background:#fff; box-shadow:0 4px 14px rgba(40,25,60,.18); font-size:12px; font-weight:800; color:var(--muted); }
+    #sideStylePick button { border:none; width:26px; height:26px; border-radius:50%; font:inherit; font-weight:800; cursor:pointer; background:var(--bg); color:var(--ink); }
+    #sideStylePick button.on { background:var(--primary); color:#fff; }
     #sideSearch, #sideProfile { position:fixed; left:12px; width:calc(var(--side-w, 152px) - 24px); z-index:46; }
     :root.side-closed #sideSearch, :root.side-closed #sideProfile { display:none; }
     #sideSearch { top:calc(var(--pills-bottom, 50px) + 6px); }
@@ -5178,6 +5206,13 @@
     // The panel ends exactly where the page begins.
     function fit(){ var w = document.querySelector('.wrap'); if(w) document.documentElement.style.setProperty('--side-w', Math.round(w.getBoundingClientRect().left) + 'px'); }
     window.addEventListener('resize', fit); setInterval(fit, 1500); fit();
+    // DRAFT — the style picker.
+    var pick = document.createElement('div'); pick.id = 'sideStylePick';
+    var cur = 'a'; try { cur = localStorage.getItem('travelPlannerSideStyle') || 'a'; } catch(e){}
+    pick.innerHTML = 'Sidebar ' + ['a','b','c','d','e'].map(function(k){ return '<button type="button" data-k="' + k + '">' + k.toUpperCase() + '</button>'; }).join('');
+    function setStyle(k){ document.documentElement.dataset.sideStyle = k; pick.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.k === k); }); try { localStorage.setItem('travelPlannerSideStyle', k); } catch(e){} }
+    pick.addEventListener('click', function(e){ var b = e.target.closest('button'); if(b){ e.stopPropagation(); setStyle(b.dataset.k); } });
+    document.body.appendChild(pick); setStyle(cur);
     renderSideProfile();
     setInterval(renderSideProfile, 2000);
   })();
@@ -11795,7 +11830,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
