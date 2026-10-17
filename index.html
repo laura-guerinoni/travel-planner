@@ -2100,6 +2100,13 @@
     .page-share:hover { background:rgba(255,255,255,.9); opacity:1; }
   }
   @media screen and (max-width: 720px) { #pageHead, #sideSearch, #sideProfile, #sidePanel { display:none !important; } }
+  /* Neighbouring months' days around the month (desktop): faded, dashed,
+     just the date. */
+  .cell.empty .out-num { display:none; }
+  @media screen and (min-width: 721px) {
+    .cell.empty.out-day { border:1.5px dashed var(--line); background:none; border-radius:12px; padding:10px; min-height:120px; }
+    .cell.empty.out-day .out-num { display:block; font-weight:700; font-size:18px; color:var(--muted); opacity:.75; }
+  }
   /* The plans column can be closed (like Notion's sidebar): the page then
      takes the full width. The button sits next to the menu button. */
   #sideToggle { display:none; }
@@ -5458,6 +5465,15 @@
         var cell = document.createElement('div');
         if(dayNum === null){
           cell.className = 'cell empty';
+          // The days of the month before / after that fill out the first
+          // and last week: shown faded with their date, like a wall
+          // calendar, but not part of the plan (nothing can go on them).
+          var k = w * 7 + c, before = k < startCol;
+          var offset = before ? firstDay - (startCol - k) : lastDay + (k - (startCol + lastDay - firstDay + 1)) + 1;
+          var od = new Date(d.year, d.month - 1, offset);
+          var on = document.createElement('span'); on.className = 'out-num'; on.textContent = String(od.getDate());
+          cell.appendChild(on);
+          cell.classList.add('out-day');
         } else {
           cell.className = 'cell';
           var cellhead = document.createElement('div');
