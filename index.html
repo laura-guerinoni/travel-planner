@@ -2091,7 +2091,9 @@
     #sideToggle:hover, #sideToggle:focus-visible { background:rgba(255,255,255,.9); opacity:1; outline:none; }
     #sideToggle svg { width:18px; height:18px; }
     :root.side-closed .month-sidebar { display:none !important; }
-    :root.side-closed body { padding-left:34px !important; }
+    /* Same visible margin on both sides: the page's stacked sheets stick
+       out 8px on the right, so the left gap is 8px less. */
+    :root.side-closed body { padding-left:26px !important; }
     /* Focus mode (column closed): only the button to bring the column back
        stays at the top left — no menu / profile picture. */
     :root.side-closed #actionMenu { display:none !important; }
