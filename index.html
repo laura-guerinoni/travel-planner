@@ -2127,6 +2127,50 @@
     :root[data-side-style="e"] #sidePanel { left:8px; top:52px; bottom:8px; width:calc(var(--side-w, 152px) - 8px); border-radius:18px 0 0 18px; border:none;
       background:rgba(255,255,255,.35); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); box-shadow:0 10px 30px -14px rgba(61,53,104,.35); }
     :root[data-side-style="e"] #sidePanel::after { bottom:56px; }
+    /* F · Tabs: search and profile are white tabs, the same shape as the
+       plan tabs, tucked into the page's edge — nothing floats. */
+    :root[data-side-style="f"] #sidePanel { display:none; }
+    :root[data-side-style="f"] #sideSearch { left:24px; width:calc(var(--side-w, 152px) - 24px); }
+    :root[data-side-style="f"] #sideSearch input { height:40px; border:none; border-radius:11px 0 0 11px; background-color:#fff; background-position:12px center;
+      padding-left:32px; box-shadow:inset -10px 0 8px -6px rgba(40,25,60,.14); }
+    :root[data-side-style="f"] #sideProfile { left:24px; width:calc(var(--side-w, 152px) - 24px); height:44px; border-radius:11px 0 0 11px; background:#fff;
+      box-shadow:inset -10px 0 8px -6px rgba(40,25,60,.14); padding-left:8px; }
+    /* G · On the page: the search is a quiet field on the page itself (top
+       left of the paper); the column only holds the plans; your face is the
+       menu button at the top left. */
+    :root[data-side-style="g"] #sidePanel, :root[data-side-style="g"] #sideProfile { display:none; }
+    :root[data-side-style="g"] #actionMenu { top:14px !important; bottom:auto !important; left:16px !important; }
+    :root[data-side-style="g"] #actionMenuBtn { opacity:1 !important; pointer-events:auto !important; }
+    :root[data-side-style="g"] #actionMenuDropdown { top:calc(100% + 8px) !important; bottom:auto !important; }
+    :root[data-side-style="g"] #sideToggle { left:58px !important; }
+    :root[data-side-style="g"] #sideSearch { left:calc(var(--side-w, 152px) + 24px); top:calc(var(--pills-bottom, 50px) + 18px); width:240px; }
+    :root[data-side-style="g"] #sideSearch input { background-color:rgba(255,255,255,.6); border:1px solid var(--line); box-shadow:none; height:34px; border-radius:999px; }
+    /* H · Icons: a magnifier next to the toggle that opens into a search
+       field; your face, round, at the bottom; nothing else added. */
+    :root[data-side-style="h"] #sidePanel { display:none; }
+    :root[data-side-style="h"] #sideSearch { top:14px; left:46px; width:auto; }
+    :root[data-side-style="h"] #sideSearch input { width:28px; height:28px; padding:0; border:none; box-shadow:none; color:transparent; cursor:pointer;
+      background-color:transparent; background-position:center; transition:width .2s ease, background-color .2s; }
+    :root[data-side-style="h"] #sideSearch input::placeholder { color:transparent; }
+    :root[data-side-style="h"] #sideSearch input:hover { background-color:rgba(255,255,255,.9); }
+    :root[data-side-style="h"] #sideSearch input:focus { width:240px; padding-left:30px; background-position:9px center; color:var(--ink); background-color:#fff; cursor:text; box-shadow:0 6px 18px rgba(40,25,60,.18); }
+    :root[data-side-style="h"] #sideSearch input:focus::placeholder { color:var(--muted); }
+    :root[data-side-style="h"] #sideProfile { width:auto; padding:0; height:auto; background:none !important; }
+    :root[data-side-style="h"] #sideProfile .nm, :root[data-side-style="h"] #sideProfile .chev { display:none; }
+    :root[data-side-style="h"] #sideProfile .av { width:34px; height:34px; }
+    /* J · Top row: toggle, search and your face side by side at the top,
+       like an app's toolbar; the bottom stays empty. */
+    :root[data-side-style="j"] #sidePanel { display:none; }
+    :root[data-side-style="j"] #sideToggle { left:10px !important; }
+    :root[data-side-style="j"] #sideSearch { top:13px; left:42px; width:calc(var(--side-w, 152px) - 88px); }
+    :root[data-side-style="j"] #sideSearch input { height:30px; border-radius:999px; box-shadow:none; border:1px solid rgba(255,255,255,.9); background-color:rgba(255,255,255,.7); }
+    :root[data-side-style="j"] #sideSearch input::placeholder { color:transparent; }
+    :root[data-side-style="j"] #sideSearch input:focus { width:240px; box-shadow:0 6px 18px rgba(40,25,60,.18); background-color:#fff; }
+    :root[data-side-style="j"] #sideSearch input:focus::placeholder { color:var(--muted); }
+    :root[data-side-style="j"] #sideProfile { top:12px; bottom:auto; left:calc(var(--side-w, 152px) - 42px); width:auto; padding:0; height:auto; background:none !important; }
+    :root[data-side-style="j"] #sideProfile .nm, :root[data-side-style="j"] #sideProfile .chev { display:none; }
+    :root[data-side-style="j"] #actionMenu { top:46px !important; bottom:auto !important; left:calc(var(--side-w, 152px) - 42px) !important; }
+    :root[data-side-style="j"] #actionMenuDropdown { top:4px !important; bottom:auto !important; }
     #sideStylePick { position:fixed; right:16px; bottom:44px; z-index:90; display:flex; gap:4px; align-items:center; padding:5px 6px 5px 10px; border-radius:999px;
       background:#fff; box-shadow:0 4px 14px rgba(40,25,60,.18); font-size:12px; font-weight:800; color:var(--muted); }
     #sideStylePick button { border:none; width:26px; height:26px; border-radius:50%; font:inherit; font-weight:800; cursor:pointer; background:var(--bg); color:var(--ink); }
@@ -5209,8 +5253,8 @@
     // DRAFT — the style picker.
     var pick = document.createElement('div'); pick.id = 'sideStylePick';
     var cur = 'a'; try { cur = localStorage.getItem('travelPlannerSideStyle') || 'a'; } catch(e){}
-    pick.innerHTML = 'Sidebar ' + ['a','b','c','d','e'].map(function(k){ return '<button type="button" data-k="' + k + '">' + k.toUpperCase() + '</button>'; }).join('');
-    function setStyle(k){ document.documentElement.dataset.sideStyle = k; pick.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.k === k); }); try { localStorage.setItem('travelPlannerSideStyle', k); } catch(e){} }
+    pick.innerHTML = 'Sidebar ' + ['a','b','c','d','e','f','g','h','j'].map(function(k){ return '<button type="button" data-k="' + k + '">' + k.toUpperCase() + '</button>'; }).join('');
+    function setStyle(k){ document.documentElement.dataset.sideStyle = k; setTimeout(function(){ if(typeof syncBarLayout === 'function') syncBarLayout(); if(typeof pinCurrentSegment === 'function') pinCurrentSegment(); }, 0); pick.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.k === k); }); try { localStorage.setItem('travelPlannerSideStyle', k); } catch(e){} }
     pick.addEventListener('click', function(e){ var b = e.target.closest('button'); if(b){ e.stopPropagation(); setStyle(b.dataset.k); } });
     document.body.appendChild(pick); setStyle(cur);
     renderSideProfile();
@@ -11122,7 +11166,7 @@
     // the exact same sidebar-relative slot positions regardless.
     if(sidebarEl){
       // Room above the plans for the search box (only while the column is open).
-      var searchRoom = document.documentElement.classList.contains('side-closed') ? 0 : 46;
+      var searchRoom = (document.documentElement.classList.contains('side-closed') || /^[ghj]$/.test(document.documentElement.dataset.sideStyle || '')) ? 0 : 46;
       sidebarEl.style.top = Math.max(0, blockTop + 14 + searchRoom) + 'px';
     }
     // The sidebar's own top just moved (or could still have shifted for
