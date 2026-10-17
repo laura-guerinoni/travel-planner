@@ -4553,7 +4553,18 @@
   // exact same shape for its own row list, so it calls
   // renderPillAccessFacesFromData directly with what it just read
   // instead of going through this and doubling that read.
+  if(!IS_HOSTED){ var lastMockOpen = null; setInterval(function(){ var p = document.querySelector('.panel.on'); if(p && p.id !== lastMockOpen){ lastMockOpen = p.id; renderPillAccessFaces(); } }, 700); }
   function renderPillAccessFaces(){
+    if(!IS_HOSTED){
+      var mm = {}; MOCK_PEOPLE.members.forEach(function(m){ mm[m.key] = m.role; });
+      // Example shares on the open alternative's first priced activities.
+      var lis = [].slice.call(document.querySelectorAll('.panel.on .acts > li:not(.act-span-ghost)')).filter(function(li){ var pv = li.querySelector('.price-val'); return pv && parseMoney(pv.textContent) > 0 && !li.hasAttribute('data-pay'); }).slice(0, 2);
+      lis.forEach(function(li, i){ var tot = parseMoney(li.querySelector('.price-val').textContent);
+        li.setAttribute('data-pay', JSON.stringify(i === 0 ? [{ k:'laura,example,com', a:Math.round(tot / 2) }, { k:'seba,example,com', a:tot - Math.round(tot / 2) }] : [{ k:'marta,example,com', a:tot }])); });
+      renderPillAccessFacesFromData(mm, MOCK_PEOPLE.avatars);
+      renderPaymentOverview();
+      return;
+    }
     Promise.all([
       firebase.database().ref('members').once('value'),
       firebase.database().ref('avatars').once('value').catch(function(){ return null; })
@@ -6765,11 +6776,15 @@
     if(!W || !H){ svg.style.display = 'none'; return; }
     svg.style.display = ''; svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px';
     if(svg.getAttribute('width') != W) svg.setAttribute('width', W); if(svg.getAttribute('height') != H) svg.setAttribute('height', H);
-    // The V's stitch runs exactly parallel to the cut, i px inside it; each
-    // half is drawn from the V's point outwards so the dashes mirror.
-    var notch = 14, ex = W / 2, ey = -notch, L = Math.sqrt(ex * ex + ey * ey), nx = -ey / L, ny = -ex / L;
-    var px = i * nx, py = H + i * ny;
-    var yAt = function(x){ return py + (x - px) / ex * ey; };
+    // The V's stitch runs parallel to the (rounded) cut, i px inside its
+    // visible edge — the cut's centre line goes from (1.5, H-2.5) to the
+    // point (W/2, H-13.8) of the ribbon's mask and its edge is 1.5px below
+    // that — and the two halves are drawn from the point outwards so the
+    // dashes mirror. The sides run i px in from the edges.
+    var ax = 1.5 * W / 32, ay = H - 2.5, bx = W / 2, by = H - 13.8, dxv = bx - ax, dyv = by - ay, L = Math.sqrt(dxv * dxv + dyv * dyv);
+    var nx = -dyv / L, ny = dxv / L; if(ny > 0){ nx = -nx; ny = -ny; }
+    var off = i - 1.5;
+    var yAt = function(x){ return ay + off * ny + (x - (ax + off * nx)) * dyv / dxv; };
     var apexY = yAt(W / 2), cornerY = yAt(i);
     var half = function(sign){ var x = W / 2 + sign * (W / 2 - i); return 'M ' + (W / 2) + ' ' + apexY.toFixed(2) + ' L ' + x + ' ' + cornerY.toFixed(2) + ' L ' + x + ' -1'; };
     var path = half(-1) + ' ' + half(1);
@@ -7340,7 +7355,15 @@
   // the picker, which needs to reflect an invite/promote/remove that
   // might have just happened in "Manage access" moments earlier.
   var memberAvatarDataPromise = null;
+  // LOCAL PREVIEW ONLY (no sign-in, no Firebase): three example people so
+  // faces, sharing and payments can be seen. Never used in the live app.
+  var MOCK_PEOPLE = { members: [
+      { key:'laura,example,com', email:'laura@example.com', role:'owner' },
+      { key:'seba,example,com', email:'seba@example.com', role:'member' },
+      { key:'marta,example,com', email:'marta@example.com', role:'member' } ],
+    avatars: { 'laura,example,com':{ name:'Laura', hair:'#7a4a2a', skin:'#f3c9a4' }, 'seba,example,com':{ name:'Seba', hair:'#2f2f3a', skin:'#e8b892', glasses:'glasses' }, 'marta,example,com':{ name:'Marta', hair:'#c9772f', skin:'#f6d3b6' } } };
   function loadMemberAvatarData(forceRefresh){
+    if(!IS_HOSTED) return Promise.resolve(MOCK_PEOPLE);
     if(!memberAvatarDataPromise || forceRefresh){
       // firebase.database() itself can throw synchronously (not just
       // reject) if no app was ever initialized — same gotcha fixed in
