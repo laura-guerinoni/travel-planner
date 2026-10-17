@@ -2137,7 +2137,42 @@
      is never shown. */
   .cell .addloc, .cell:hover .addloc { display:none !important; }
   /* Phone: the floating "+" button already offers "add a month". */
-  @media screen and (max-width: 720px) { .month-add-slot { display:none; } }
+  /* On a phone the plans bar ends with its own "+" (a new plan), the
+     same job as the "+" under the plans on desktop. */
+  @media screen and (max-width: 720px) {
+    .month-add-slot { display:flex; flex:0 0 auto; align-items:center; padding:0 4px; }
+    .month-add { width:30px; height:30px; padding:0; border:none; border-radius:50%; background:rgba(255,255,255,.85);
+      font:inherit; font-size:18px; font-weight:600; line-height:1; color:var(--ink); cursor:pointer;
+      display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+    /* The bar stops short of the round menu button in the top right
+       instead of running underneath it. */
+    .month-sidebar { right:56px !important; }
+    /* A plan's whole name (up to 9 letters) fits beside its "⋯". */
+    .month-segment:not([data-year-seg]) { flex:0 0 auto; padding-right:34px; }
+    /* Forms (new plan, new alternative, add location, holiday period…)
+       open as a phone-style card in the middle of the screen over a dim
+       backdrop, like "Add activity", with bigger fields to tap. */
+    .monthpop.rangepop { position:fixed !important; left:16px !important; right:16px !important; top:50% !important;
+      transform:translateY(-50%); width:auto !important; max-width:none; padding:22px 20px; border-radius:22px; z-index:200;
+      font-size:15px; box-shadow:0 0 0 100vmax rgba(30,22,50,.38), 0 18px 40px rgba(0,0,0,.25); }
+    .monthpop.rangepop .rangepop-title { font-size:19px; font-weight:800; color:var(--ink); margin:0 0 14px; }
+    .monthpop.rangepop input[type="text"] { display:block; width:100%; box-sizing:border-box; border:1px solid var(--line);
+      color:var(--ink); background:var(--card); margin-bottom:10px; font:inherit; }
+    .monthpop.rangepop input:focus, .monthpop.rangepop select:focus { outline:none; border-color:var(--primary); }
+    .whenpop-hint { text-transform:none; letter-spacing:0; }
+    .monthpop.rangepop input[type="text"], .monthpop.rangepop select, .monthpop.rangepop input[type="date"] {
+      font-size:16px !important; padding:11px 12px; border-radius:12px; min-height:46px; }
+    .monthpop.rangepop select { padding-right:30px !important; background-position:right 12px center !important; }
+    .monthpop.rangepop .addbtn { padding:13px; font-size:16px; border-radius:12px; }
+    .whenpop-label { font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:6px 0 6px; }
+    .whenpop-check { font-size:15px; margin:4px 0 14px; }
+    .whenpop-check input { width:20px; height:20px; }
+    .rangepop-days { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:15px; color:var(--muted); }
+    .rangepop-days > span:first-child { flex:0 0 46px; }
+    .monthpop.rangepop .rangepop-days select { flex:0 0 84px; width:auto; margin:0; }
+    .monthpop.rangepop .rangepop-days select.rangepop-month { flex:1 1 auto; min-width:0; }
+    .rangepop-static { flex:1; color:var(--ink); font-weight:700; }
+  }
   @keyframes backdrop-twinkle { from { opacity:.3; } to { opacity:1; } }
   /* ---- Book feel (desktop) ----
      The lilac block is the open page of a thick planner: a few more page
@@ -10796,6 +10831,11 @@
       // reverted to" issue .style.left/.style.top just above exist to
       // avoid.
       wrapEl.style.marginTop = '';
+      // Same for the plans bar: the desktop branch gives it an inline
+      // top/left beside the page, which kept it hanging over the first
+      // day after the window got narrow. On a phone it sits at the top.
+      if(sidebarEl){ sidebarEl.style.top = ''; sidebarEl.style.left = ''; }
+      sidebarH = sidebarEl ? sidebarEl.getBoundingClientRect().height : 0;
       var target = sidebarH + GAP;
       wrapEl.style.paddingTop = Math.max(0, target - wrapTop) + 'px';
       document.documentElement.style.setProperty('--pills-height', target + 'px');
@@ -11883,7 +11923,8 @@
       if(!daynum) return;
       var opt = document.createElement('option');
       opt.value = daynum.textContent;
-      opt.textContent = daynum.textContent + (wd ? ' · ' + wd.textContent : '');
+      // A day past the end of the home month shows its real date (see spanOf).
+      opt.textContent = (daynum.dataset.show || daynum.textContent) + (wd ? ' · ' + wd.textContent : '');
       if(daynum.textContent === defaultDay) opt.selected = true;
       fabAddDaySelect.appendChild(opt);
     });
@@ -11896,9 +11937,9 @@
         fabAddTagSelect.appendChild(opt);
       });
     }
-    if(fabAddTimeInput) fabAddTimeInput.value = '';
+    if(fabAddTimeInput) fabAddTimeInput.value = '12:00';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
-    if(fabAddAmountInput) fabAddAmountInput.value = '';
+    if(fabAddAmountInput) fabAddAmountInput.value = '0';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
   // The FAB itself now opens a small menu (activity/alternative/holiday
