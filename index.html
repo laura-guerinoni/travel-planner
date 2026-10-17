@@ -2141,8 +2141,10 @@
       border-left:2px dashed rgba(255,255,255,.55); }
     .pill[data-opt] .pill-remove { grid-area:r; align-self:center; }
     .pill[data-opt] .pill-access { grid-area:r; }
-    #ticketStitch { position:fixed; z-index:41; pointer-events:none; overflow:visible; }
-    #ticketStitch path { fill:none; stroke:rgba(255,255,255,.88); stroke-width:2; stroke-dasharray:5 4; stroke-linecap:round; }
+    #ticketStitch, #planStitch { position:fixed; z-index:41; pointer-events:none; overflow:visible; }
+    #planStitch { z-index:36; }
+    #ticketStitch path, #planStitch path { fill:none; stroke:rgba(255,255,255,.88); stroke-width:2; stroke-dasharray:5 4; stroke-linecap:round; }
+    .month-segment.current:not([data-year-seg])::before { display:none !important; }
     /* Like Notion: the column's buttons (a year's ⋯ and arrow, a plan's ⋯,
        the + for a new plan) only show while you hover that row / the
        column; a year row gets a soft highlight on hover. */
@@ -6432,7 +6434,22 @@
   // Every frame (it only touches the stitch when something changed), so it
   // moves with the tab — on switching, the tab's little bounce, scrolling —
   // instead of catching up a moment later.
-  (function loop(){ renderTicketStitch(); requestAnimationFrame(loop); })();
+  // The open plan's tab gets the very same stitch (same SVG dashes), so
+  // the plan tab and the alternative ticket are stitched alike: in 5px,
+  // round the left corners, open on the right where it meets the page.
+  function renderPlanStitch(){
+    var svg = document.getElementById('planStitch');
+    if(!svg){ svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.id = 'planStitch'; svg.classList.add('stitch-svg'); document.body.appendChild(svg); }
+    var seg = document.querySelector('.month-segment.current:not([data-year-seg])');
+    if(!seg || !window.matchMedia('(min-width:721px)').matches || !seg.offsetWidth || document.documentElement.classList.contains('side-closed')){ svg.style.display = 'none'; return; }
+    var b = seg.getBoundingClientRect(), W = b.width, H = b.height, i = 5, rr = 6;
+    svg.style.display = ''; svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px';
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    var path = 'M ' + (W + 1) + ' ' + i + ' L ' + (i + rr) + ' ' + i + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + i + ' ' + (i + rr) +
+      ' L ' + i + ' ' + (H - i - rr) + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + (i + rr) + ' ' + (H - i) + ' L ' + (W + 1) + ' ' + (H - i);
+    if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
+  }
+  (function loop(){ renderTicketStitch(); renderPlanStitch(); requestAnimationFrame(loop); })();
   var renderPageBookmark = function(){};
   (function initPageBookmark(){
     var host = document.getElementById('statusBar');
@@ -11869,7 +11886,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #ticketStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #ticketStitch, #planStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
