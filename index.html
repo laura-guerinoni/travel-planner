@@ -2092,7 +2092,11 @@
     #sideToggle svg { width:18px; height:18px; }
     :root.side-closed .month-sidebar { display:none !important; }
     :root.side-closed body { padding-left:34px !important; }
-    :root.side-closed .pills { padding-left:66px !important; }
+    /* Focus mode (column closed): only the button to bring the column back
+       stays at the top left — no menu / profile picture. */
+    :root.side-closed #actionMenu { display:none !important; }
+    :root.side-closed #sideToggle { left:16px; }
+    :root.side-closed .pills { padding-left:34px !important; }
     :root.side-closed #sideSearch { display:none; }
     /* Like Notion: a search box at the top of the column, and your profile
        at the bottom (opens the menu: save, access, print, theme…). */
@@ -6399,9 +6403,12 @@
       ' L ' + i + ' ' + (i + rr) + ' A ' + rr + ' ' + rr + ' 0 0 1 ' + (i + rr) + ' ' + i + ' L ' + (W - i - rr) + ' ' + i +
       ' A ' + rr + ' ' + rr + ' 0 0 1 ' + (W - i) + ' ' + (i + rr) + ' L ' + (W - i) + ' ' + (cy - d) +
       ' A ' + R + ' ' + R + ' 0 0 0 ' + (W - i) + ' ' + (cy + d) + ' L ' + (W - i) + ' ' + (H + 1);
-    svg.innerHTML = '<path d="' + path + '"/>';
+    if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
   }
-  setInterval(renderTicketStitch, 400);
+  // Every frame (it only touches the stitch when something changed), so it
+  // moves with the tab — on switching, the tab's little bounce, scrolling —
+  // instead of catching up a moment later.
+  (function loop(){ renderTicketStitch(); requestAnimationFrame(loop); })();
   var renderPageBookmark = function(){};
   (function initPageBookmark(){
     var host = document.getElementById('statusBar');
