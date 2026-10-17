@@ -2499,7 +2499,9 @@
     /* Top row of the open column: menu, search, and the button that hides
        the column last, at the column's right edge (like Notion). */
     :root:not(.side-closed) #sideSearch { left:56px !important; }
-    :root:not(.side-closed) #sideToggle { left:calc(var(--side-w, 152px) - 40px) !important; }
+    /* A fixed spot (the open column is always 152px wide), so it's in place
+       the moment the column opens instead of catching up a moment later. */
+    :root:not(.side-closed) #sideToggle { left:112px !important; }
   }
 
   /* Focused forms on desktop — add activity, new alternative, new plan,
@@ -2526,8 +2528,11 @@
     /* Hovering a ⋯ (tickets, plan tabs, years): the same rounded-square
        highlight as the column button — white, dots turning ink. */
     .pill[data-opt] .pill-remove, .month-sidebar .month-segment .itemmenu-btn { border-radius:8px !important; transition:background-color .12s; }
-    .pill[data-opt] .pill-remove:hover, .month-sidebar .month-segment .itemmenu-btn:hover, .month-sidebar .month-segment .itemmenu-btn.open {
-      background-color:#fff !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233d3568' stroke='%233d3568' stroke-width='2'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") !important; box-shadow:0 1px 3px rgba(40,25,60,.12); }
+    /* Lighter, like Notion: a soft see-through square, dots unchanged. */
+    .pill[data-opt] .pill-remove:hover, .month-sidebar .month-segment:not([data-year-seg]) .itemmenu-btn:hover, .month-sidebar .month-segment:not([data-year-seg]) .itemmenu-btn.open {
+      background-color:rgba(255,255,255,.24) !important; }
+    .month-sidebar .month-segment[data-year-seg] .itemmenu-btn:hover, .month-sidebar .month-segment[data-year-seg] .itemmenu-btn.open {
+      background-color:rgba(61,53,104,.08) !important; }
   }
 
   @media screen and (min-width: 721px) {
