@@ -2055,6 +2055,24 @@
   .cell.cell-next-month[data-month-label]::before { background:var(--secondary); }
   .pill .pill-dates[data-span]::after { content:attr(data-span); font-size:11px; font-weight:700; white-space:nowrap; }
   .pill .pill-dates[data-span] { margin:0 2px; opacity:.9; }
+  /* ---- A bit bigger on desktop ----
+     Same layout, same look — just easier to read and to hit: bigger day
+     numbers, place names, activity text and tags, roomier day cards, and
+     larger "+" / "⋯" buttons in each day. */
+  @media screen and (min-width: 721px) {
+    .cell { padding:10px; min-height:120px; }
+    .daynum { font-size:18px; }
+    .wd { font-size:12px; }
+    .wdhead { font-size:13px; }
+    .loc-text { font-size:14px; }
+    .daytotal-badge { font-size:12px; padding:2px 9px; }
+    .acts li { font-size:13px; padding:7px; }
+    .title { font-size:14px; }
+    .chip { font-size:11.5px; padding:3px 9px 3px 6px; }
+    .dayaddbtn, .daymenu-btn { flex-basis:26px; width:26px; height:26px; border-radius:8px; }
+    .dayaddbtn svg, .daymenu-btn svg { width:15px; height:15px; }
+    .dayaddbtn:hover, .daymenu-btn:hover { background:var(--bg); }
+  }
   /* ---- Year → Plan → Alternatives (DRAFT) ----
      An alternative's tab carries its own dates ("12 – 25 Oct") between its
      name and its price. The people it's shared with and the share button
@@ -2081,7 +2099,102 @@
     .page-head-tip[hidden] { display:none; }
     .page-share:hover { background:rgba(255,255,255,.9); opacity:1; }
   }
-  @media screen and (max-width: 720px) { #pageHead { display:none !important; } }
+  @media screen and (max-width: 720px) { #pageHead, #sideSearch, #sideProfile, #sidePanel { display:none !important; } }
+  /* Neighbouring months' days around the month (desktop): faded, dashed,
+     just the date. */
+  .cell.empty .out-num { display:none; }
+  @media screen and (min-width: 721px) {
+    .cell.empty.out-day { border:1.5px dashed var(--line); background:none; border-radius:12px; padding:10px; min-height:120px; }
+    .cell.empty.out-day .out-num { display:block; font-weight:700; font-size:18px; color:var(--muted); opacity:.75; }
+  }
+  /* The plans column can be closed (like Notion's sidebar): the page then
+     takes the full width. The button sits next to the menu button. */
+  #sideToggle { display:none; }
+  @media screen and (min-width: 721px) {
+    #sideToggle { display:flex; position:fixed; left:58px; top:14px; z-index:70; width:28px; height:28px; border:none; border-radius:8px; padding:0;
+      align-items:center; justify-content:center; background:none; color:var(--ink); opacity:.6; cursor:pointer; transition:background-color .15s, opacity .15s; }
+    #sideToggle:hover, #sideToggle:focus-visible { background:rgba(255,255,255,.9); opacity:1; outline:none; }
+    #sideToggle svg { width:18px; height:18px; }
+    :root.side-closed .month-sidebar { display:none !important; }
+    /* Same visible margin on both sides: the page's stacked sheets stick
+       out 8px on the right, so the left gap is 8px less. */
+    :root.side-closed body { padding-left:26px !important; }
+    /* Focus mode (column closed): only the button to bring the column back
+       stays at the top left — no menu / profile picture. */
+    :root.side-closed #actionMenu { display:none !important; }
+    :root.side-closed #sideToggle { left:16px; }
+    :root.side-closed .pills { padding-left:34px !important; }
+    :root.side-closed #sideSearch { display:none; }
+    /* Like Notion: a search box at the top of the column, and your profile
+       at the bottom (opens the menu: save, access, print, theme…). */
+    /* The search (desktop): a small magnifier in the column's top row;
+       click it (or ⌘K) and it opens into a field. The menu
+       stays your face at the top left; the plans column holds only plans. */
+    /* In the top row of the column, after the menu and the column button. */
+    #sideSearch { position:fixed; z-index:71; left:90px; top:11px; }
+    #sideSearch .ss-btn { width:30px; height:30px; border:none; border-radius:8px; padding:0; cursor:pointer; opacity:.75;
+      background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat center / 16px 16px; }
+    #sideSearch .ss-btn:hover { background-color:rgba(255,255,255,.9); opacity:1; }
+    #searchPalette { position:fixed; inset:0; z-index:300; background:rgba(30,22,50,.28); display:flex; justify-content:center; align-items:flex-start; padding-top:14vh;
+      animation:sp-fade .12s ease-out; }
+    #searchPalette[hidden] { display:none; }
+    @keyframes sp-fade { from { opacity:0; } to { opacity:1; } }
+    .sp-card { width:min(600px, calc(100vw - 48px)); background:var(--card); border-radius:16px; box-shadow:0 24px 60px rgba(30,22,50,.35); overflow:hidden; animation:sp-pop .14s ease-out; }
+    @keyframes sp-pop { from { transform:translateY(-6px) scale(.98); opacity:0; } to { transform:none; opacity:1; } }
+    .sp-field { display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid var(--line);
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a8fbf' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat 18px center / 18px 18px; }
+    .sp-field input { flex:1; height:56px; border:none; outline:none; background:none; font:inherit; font-size:17px; font-weight:600; color:var(--ink); padding-left:30px; }
+    .sp-field input::-webkit-search-cancel-button { display:none; }
+    .sp-field kbd { font:inherit; font-size:11px; font-weight:800; color:var(--muted); background:var(--bg); border-radius:6px; padding:3px 7px; }
+    #searchPalette #sideSearchResults { position:static; display:block; width:auto; max-height:52vh; overflow-y:auto; border:none; border-radius:0; box-shadow:none; padding:8px; }
+    .ssr-group { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:10px 10px 4px; }
+    #searchPalette .ssr { padding:10px 12px; font-size:14px; }
+    #sideProfile, #sidePanel { display:none !important; }
+    /* Alternatives as tickets: two lines (name; dates ┊ total), a notch on
+       each side, in the plan's colour as before. The open one is taller and
+       its stitch (drawn by renderTicketStitch) follows the ticket's outline:
+       round the top corners and into both notches, open at the bottom. */
+    .pill[data-opt]:not(.pill-filtered-out) { display:grid !important; grid-template-columns:auto auto auto; grid-template-areas:"n n r" "d p r";
+      align-items:center; column-gap:12px; row-gap:2px; padding:10px 14px 10px 22px !important; border:none !important; border-radius:12px 12px 0 0 !important;
+      -webkit-mask:radial-gradient(circle 7px at 0 58%, transparent 6.5px, #000 7px) left/51% 100% no-repeat, radial-gradient(circle 7px at 100% 58%, transparent 6.5px, #000 7px) right/51% 100% no-repeat;
+              mask:radial-gradient(circle 7px at 0 58%, transparent 6.5px, #000 7px) left/51% 100% no-repeat, radial-gradient(circle 7px at 100% 58%, transparent 6.5px, #000 7px) right/51% 100% no-repeat; }
+    .pill[data-opt].on { padding-bottom:14px !important; }
+    .pill[data-opt].on::after { display:none !important; }
+    /* The whole name shows (only very long ones — past 360px — are cut);
+       dates and total sit at the start of the second line. */
+    .pill[data-opt] .pill-name { grid-area:n; font-size:15px; font-weight:800; opacity:1 !important; max-width:360px; }
+    .pill[data-opt]:not(.pill-filtered-out) { grid-template-columns:max-content max-content 1fr auto !important; grid-template-areas:"n n n r" "d p . r" !important; }
+    .pill[data-opt] .pill-dates { grid-area:d; margin:0 !important; font-size:12.5px; opacity:.85 !important; }
+    .pill[data-opt] .pill-price { grid-area:p; background:none !important; border-radius:0; padding:0 0 0 12px; font-size:12.5px; font-weight:800;
+      border-left:2px dashed rgba(255,255,255,.55); }
+    .pill[data-opt] .pill-remove { grid-area:r; align-self:center; }
+    .pill[data-opt] .pill-access { grid-area:r; }
+    #ticketStitch, #planStitch { position:fixed; z-index:41; pointer-events:none; overflow:visible; }
+    #planStitch { z-index:36; }
+    #ticketStitch path, #planStitch path { fill:none; stroke:rgba(255,255,255,.88); stroke-width:2; stroke-dasharray:5 4; stroke-linecap:round; }
+    .month-segment.current:not([data-year-seg])::before { display:none !important; }
+    /* Like Notion: the column's buttons (a year's ⋯ and arrow, a plan's ⋯,
+       the + for a new plan) only show while you hover that row / the
+       column; a year row gets a soft highlight on hover. */
+    .month-sidebar .itemmenu-btn { visibility:hidden !important; opacity:0; transition:opacity .12s; }
+    .month-sidebar .month-segment:hover .itemmenu-btn, .month-sidebar .itemmenu-btn.open { visibility:visible !important; opacity:1; }
+    .month-segment[data-year-seg][data-toggle]::after { opacity:0; transition:opacity .12s; }
+    .month-segment[data-year-seg]:hover::after { opacity:1; }
+    .month-segment[data-year-seg] { border-radius:9px !important; transition:background-color .12s; }
+    .month-segment[data-year-seg]:hover { background:rgba(255,255,255,.55) !important; }
+    .month-add { opacity:0 !important; transition:opacity .15s; }
+    .month-sidebar:hover .month-add, .month-add:focus-visible { opacity:.7 !important; }
+    .month-sidebar:hover .month-add:hover { opacity:1 !important; }
+    #sideSearchResults { position:absolute; left:0; top:calc(100% + 6px); width:300px; max-height:60vh; overflow-y:auto; background:var(--card); border:1px solid var(--line);
+      border-radius:12px; box-shadow:0 10px 28px rgba(0,0,0,.18); padding:6px; display:none; }
+    #sideSearchResults.show { display:block; }
+    .ssr { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--ink); }
+    .ssr:hover, .ssr.sel { background:var(--bg); }
+    .ssr .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+    .ssr .tx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+    .ssr .wh { font-size:11.5px; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .ssr-empty { padding:10px; color:var(--muted); font-size:13px; }
+  }
   /* "More": the plans of a year that don't fit in the column (see
      fitPlansInColumn). A plain, light tab, not one of the plans' colors. */
   .month-segment.plan-more { background:rgba(255,255,255,.72); cursor:pointer; }
@@ -2331,6 +2444,80 @@
     /* Keeps the last month ribbon (and its "⋯") out from under the menu
        button pinned in the top-right corner. */
     .month-sidebar { padding-right:56px; }
+  }
+
+  /* Every icon in the frame is 16 x 16 px: column button, search, share,
+     the + buttons, the ⋯ on plan and ticket tabs, the ribbon's star. */
+  @media screen and (min-width: 721px) {
+    #sideToggle { width:32px !important; height:32px !important; }
+    #sideToggle svg { width:16px !important; height:16px !important; }
+    #sideSearch .ss-btn { width:32px !important; height:32px !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") !important; background-size:16px 16px !important; }
+    .page-share { width:32px !important; height:32px !important; }
+    .page-share svg { width:16px !important; height:16px !important; }
+    /* The + after the tickets sits level with the middle of the open one. */
+    .pill.add { align-self:center !important; margin:0 0 0 8px !important; }
+    .pill.add, .month-add { width:32px !important; height:32px !important; font-size:0 !important; color:transparent !important;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E") !important; background-repeat:no-repeat !important; background-position:center !important; background-size:16px 16px !important; }
+    .pill[data-opt] .pill-remove, .month-sidebar .month-segment:not([data-year-seg]) .itemmenu-btn { width:24px !important; height:24px !important; font-size:0 !important; color:transparent !important; padding:0 !important;
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") no-repeat center / 16px 16px !important; }
+    .month-sidebar .month-segment[data-year-seg] .itemmenu-btn { width:24px !important; height:24px !important; font-size:0 !important; color:transparent !important; padding:0 !important;
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233d3568' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") no-repeat center / 16px 16px !important; }
+    .page-bookmark { padding-top:6px !important; }
+    .page-bookmark::after { content:'' !important; width:16px; height:16px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z'/%3E%3C/svg%3E") no-repeat center / 16px 16px; }
+    .page-bookmark[data-state="on"]::after { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z'/%3E%3C/svg%3E"); }
+  }
+
+  @media screen and (min-width: 721px) {
+    #sideToggle { top:calc(var(--tab-mid, 30px) - 16px) !important; }
+    #sideSearch { top:calc(var(--tab-mid, 30px) - 16px) !important; }
+    #actionMenu { top:calc(var(--tab-mid, 30px) - 14px) !important; }
+  }
+
+  @media screen and (min-width: 721px) {
+    /* The ⋯ on tickets and plan tabs: smaller dots, in the middle of the tab. */
+    .pill[data-opt] .pill-remove { align-self:center !important; margin:0 !important; position:static !important; transform:none !important; }
+    .pill[data-opt] .pill-remove, .month-sidebar .month-segment .itemmenu-btn { background-size:12px 12px !important; }
+  }
+
+  @media screen and (min-width: 721px) {
+    /* The ribbon's stitch drawn like the tabs' and tickets' (2px, 7px dash
+       with round ends, 2px gap) instead of the browser's dashed border. */
+    .page-bookmark::before { border:none !important; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='9'%3E%3Crect x='0' y='0' width='2' height='7' rx='1' fill='white' fill-opacity='.88'/%3E%3C/svg%3E") left top / 2px 9px repeat-y, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='9'%3E%3Crect x='0' y='0' width='2' height='7' rx='1' fill='white' fill-opacity='.88'/%3E%3C/svg%3E") right top / 2px 9px repeat-y !important; }
+  }
+
+  @media screen and (min-width: 721px) {
+    /* Room for the bigger + under the plans, so the column never needs a
+       scrollbar (which also pushed the open tab against the window's edge). */
+    .month-add-slot { height:36px !important; }
+    .month-sidebar { scrollbar-width:none; }
+    .month-sidebar::-webkit-scrollbar { display:none; }
+  }
+
+  @media screen and (min-width: 721px) {
+    /* Top row of the open column: menu, search, and the button that hides
+       the column last, at the column's right edge (like Notion). */
+    :root:not(.side-closed) #sideSearch { left:56px !important; }
+    :root:not(.side-closed) #sideToggle { left:calc(var(--side-w, 152px) - 40px) !important; }
+  }
+
+  /* Focused forms on desktop — add activity, new alternative, new plan,
+     location, holiday: centred card over the dimmed page, like search. */
+  @media screen and (min-width: 721px) {
+    .modal-overlay { background:rgba(30,22,50,.28) !important; animation:sp-fade .12s ease-out; }
+    #fabAddPanel .map-inner { width:min(460px, calc(100vw - 48px)); padding:24px 24px 20px; border-radius:16px; box-shadow:0 24px 60px rgba(30,22,50,.35); animation:sp-pop .14s ease-out; }
+    #fabAddPanel h2 { font-size:20px; }
+    #fabAddPanel .fabadd-select { height:44px; font-size:15px; border-radius:10px; }
+    #fabAddPanel .fabadd-label { font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-top:4px; }
+    #fabAddPanel .modal-primary-btn { width:100%; height:46px; border-radius:12px; font-size:15px; font-weight:800; margin-top:6px; }
+    .monthpop.rangepop { position:fixed !important; left:50% !important; top:16vh !important; transform:translateX(-50%); width:min(460px, calc(100vw - 48px)) !important;
+      padding:24px !important; border-radius:16px !important; z-index:300 !important; font-size:14px;
+      box-shadow:0 0 0 100vmax rgba(30,22,50,.28), 0 24px 60px rgba(30,22,50,.35) !important; animation:rp-pop .14s ease-out; }
+    @keyframes rp-pop { from { transform:translateX(-50%) translateY(-6px) scale(.98); opacity:0; } to { transform:translateX(-50%); opacity:1; } }
+    .monthpop.rangepop .rangepop-title { font-size:20px; margin-bottom:14px; }
+    .monthpop.rangepop input[type="text"], .monthpop.rangepop select, .monthpop.rangepop input[type="date"] { height:44px; font-size:15px !important; border-radius:10px !important; }
+    .monthpop.rangepop .addbtn { height:46px; border-radius:12px; font-size:15px; font-weight:800; margin-top:6px; }
+    .whenpop-label { font-size:12px !important; letter-spacing:.06em; text-transform:uppercase; margin:8px 0 6px !important; }
+    .whenpop-check { font-size:14px !important; margin:6px 0 14px !important; }
   }
 </style>
 </head>
@@ -2601,6 +2788,8 @@
         <h2 data-i18n="fabadd_title">Add activity</h2>
         <button type="button" id="fabAddCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
       </div>
+      <label for="fabAddTitleInput" class="fabadd-label">What</label>
+      <input type="text" id="fabAddTitleInput" class="fabadd-select" placeholder="e.g. Train to Budapest" />
       <label for="fabAddDaySelect" class="fabadd-label" data-i18n="fabadd_day_label">Day</label>
       <select id="fabAddDaySelect" class="fabadd-select"></select>
       <label for="fabAddTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
@@ -5012,6 +5201,137 @@
     clearTimeout(refitTimer);
     refitTimer = setTimeout(function(){ if(document.getElementById('monthSidebar')) renderMonthSidebar(); }, 150);
   });
+  // Open / close the plans column; remembered in this browser.
+  (function initSideToggle(){
+    var KEY = 'travelPlannerSideClosed';
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.id = 'sideToggle';
+    function icon(closed){
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="3" y="4" width="18" height="16" rx="3"/><line x1="9" y1="4" x2="9" y2="20"/>' +
+        (closed ? '<polyline points="13 10 15 12 13 14"/>' : '<polyline points="16 10 14 12 16 14"/>') + '</svg>';
+    }
+    function apply(closed){
+      document.documentElement.classList.toggle('side-closed', closed);
+      btn.innerHTML = icon(closed);
+      btn.title = closed ? 'Show the plans' : 'Hide the plans (full width)';
+      btn.setAttribute('aria-label', btn.title);
+      btn.setAttribute('aria-pressed', closed ? 'true' : 'false');
+      if(typeof syncBarLayout === 'function') syncBarLayout();
+      if(typeof renderPageBookmark === 'function') renderPageBookmark();
+      if(!closed && typeof pinCurrentSegment === 'function') pinCurrentSegment();
+    }
+    var closed = false;
+    try { closed = localStorage.getItem(KEY) === '1'; } catch(e){}
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      closed = !document.documentElement.classList.contains('side-closed');
+      try { localStorage.setItem(KEY, closed ? '1' : '0'); } catch(e2){}
+      apply(closed);
+    });
+    document.body.appendChild(btn);
+    apply(closed);
+  })();
+  // Search (top of the plans column): plans, alternatives, places and
+  // activities; picking one opens it (and scrolls to the day).
+  (function initSideSearch(){
+    // Like Notion / Linear / Spotlight: the magnifier in the column (or
+    // ⌘K) opens a search palette in the middle of the screen over a dimmed
+    // page, instead of a field spilling over the tabs.
+    var box = document.createElement('div'); box.id = 'sideSearch';
+    box.innerHTML = '<button type="button" class="ss-btn" title="Search (⌘K)" aria-label="Search (⌘K)"></button>';
+    document.body.appendChild(box);
+    var pal = document.createElement('div'); pal.id = 'searchPalette'; pal.hidden = true;
+    pal.innerHTML = '<div class="sp-card" role="dialog" aria-label="Search"><div class="sp-field"><input type="search" placeholder="Search plans, places and activities" aria-label="Search"><kbd>esc</kbd></div>' +
+      '<div id="sideSearchResults"><div class="ssr-empty">Type to search across all your plans.</div></div></div>';
+    document.body.appendChild(pal);
+    var input = pal.querySelector('input'), list = pal.querySelector('#sideSearchResults'), hits = [], sel = 0;
+    function openPal(){ pal.hidden = false; input.value = ''; show(); setTimeout(function(){ input.focus(); }, 0); }
+    function closePal(){ pal.hidden = true; input.blur(); }
+    box.querySelector('.ss-btn').addEventListener('click', function(e){ e.stopPropagation(); openPal(); });
+    pal.addEventListener('mousedown', function(e){ if(e.target === pal) closePal(); });
+    function esc(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    function find(q){
+      q = q.trim().toLowerCase(); var out = [], seen = {};
+      if(!q) return out;
+      document.querySelectorAll('.panel').forEach(function(p){
+        if(!canSeeOption(p)) return;
+        var pill = pillOfPanel(p), color = pill ? pill.style.background : '';
+        var altName = pill && pill.querySelector('.pill-name') ? pill.querySelector('.pill-name').textContent.trim() : '';
+        var plan = planLabel(p);
+        if(plan.toLowerCase().indexOf(q) > -1 && !seen['p' + planIdOf(p)]){ seen['p' + planIdOf(p)] = 1; out.push({ kind:'Plan', text:plan, where:altDatesLabel(p), panel:p, color:color }); }
+        if(altName.toLowerCase().indexOf(q) > -1) out.push({ kind:'Alternative', text:altName, where:plan, panel:p, color:color });
+        p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
+          var dn = dayNumOfCell(cell), when = dn != null ? (function(){ var r = realDate(p, dn); return r.day + ' ' + MONTH_SHORT[r.month - 1]; })() : '';
+          var loc = cell.querySelector(':scope > .loc .loc-text');
+          if(loc && loc.textContent.toLowerCase().indexOf(q) > -1 && !seen['l' + p.id + loc.textContent]){ seen['l' + p.id + loc.textContent] = 1; out.push({ kind:'Place', text:loc.textContent.trim(), where:plan + ' · ' + when, panel:p, cell:cell, color:color }); }
+          cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost) > .title').forEach(function(t){
+            if(t.textContent.toLowerCase().indexOf(q) > -1) out.push({ kind:'Activity', text:t.textContent.trim(), where:plan + ' · ' + when, panel:p, cell:cell, color:color });
+          });
+        });
+      });
+      var order = { Plan:0, Alternative:1, Place:2, Activity:3 };
+      out.sort(function(a, b){ return order[a.kind] - order[b.kind]; });
+      return out.slice(0, 40);
+    }
+    function show(){
+      hits = find(input.value); sel = 0;
+      if(!input.value.trim()){ list.innerHTML = '<div class="ssr-empty">Type to search across all your plans.</div>'; return; }
+      var lastKind = null;
+      list.innerHTML = hits.length ? hits.map(function(h, i){
+        var head = h.kind !== lastKind ? '<div class="ssr-group">' + { Plan:'Plans', Alternative:'Alternatives', Place:'Places', Activity:'Activities' }[h.kind] + '</div>' : '';
+        lastKind = h.kind;
+        return head + '<div class="ssr' + (i === sel ? ' sel' : '') + '" data-i="' + i + '"><span class="dot" style="background:' + (h.color || 'var(--primary)') + '"></span><span class="tx">' + esc(h.text) + '</span><span class="wh">' + esc(h.where) + '</span></div>';
+      }).join('') : '<div class="ssr-empty">Nothing found</div>';
+    }
+    function go(h){
+      if(!h) return;
+      closePal();
+      activatePillByOpt(optOf(h.panel));
+      if(h.cell) setTimeout(function(){
+        h.cell.scrollIntoView({ behavior:'smooth', block:'center' });
+        h.cell.animate([{ boxShadow:'0 0 0 0 rgba(236,106,156,0)' }, { boxShadow:'0 0 0 4px rgba(236,106,156,.55)' }, { boxShadow:'0 0 0 0 rgba(236,106,156,0)' }], { duration:1400 });
+      }, 650);
+    }
+    input.addEventListener('input', show);
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); sel = Math.max(0, Math.min(hits.length - 1, sel + (e.key === 'ArrowDown' ? 1 : -1)));
+        list.querySelectorAll('.ssr').forEach(function(x, i){ x.classList.toggle('sel', i === sel); }); }
+      else if(e.key === 'Enter'){ e.preventDefault(); go(hits[sel]); }
+      else if(e.key === 'Escape'){ e.preventDefault(); closePal(); }
+    });
+    list.addEventListener('mousedown', function(e){ var x = e.target.closest('.ssr'); if(x){ e.preventDefault(); go(hits[+x.dataset.i]); } });
+
+    // ⌘K / Ctrl+K focuses it, like Notion.
+    document.addEventListener('keydown', function(e){
+      if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){
+        e.preventDefault(); if(pal.hidden) openPal(); else closePal();
+      }
+    });
+  })();
+  // Profile (bottom of the plans column): your face and name; opens the menu.
+  var renderSideProfile = function(){};
+  (function initSideProfile(){
+    var btn = document.createElement('button'); btn.type = 'button'; btn.id = 'sideProfile'; btn.title = 'Settings and more';
+    document.body.appendChild(btn);
+    renderSideProfile = function(){
+      var mb = document.getElementById('actionMenuBtn');
+      var face = mb && mb.classList.contains('profile-btn') ? mb.innerHTML : '<span>🙂</span>';
+      var name = currentUserEmail ? displayNameFor(currentUserEmail, null).split('@')[0] : 'Me';
+      var h = '<span class="av">' + face + '</span><span class="nm"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+      if(btn.dataset.face !== face){ btn.innerHTML = h; btn.dataset.face = face; }
+      btn.querySelector('.nm').textContent = name;
+    };
+    btn.addEventListener('click', function(e){ e.stopPropagation(); var mb = document.getElementById('actionMenuBtn'); if(mb) mb.click(); });
+    var panel = document.createElement('div'); panel.id = 'sidePanel'; panel.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(panel, document.body.firstChild);
+    // The panel ends exactly where the page begins.
+    function fit(){ var w = document.querySelector('.wrap'); if(w) document.documentElement.style.setProperty('--side-w', Math.round(w.getBoundingClientRect().left) + 'px'); }
+    window.addEventListener('resize', fit); setInterval(fit, 1500); fit();
+
+    renderSideProfile();
+    setInterval(renderSideProfile, 2000);
+  })();
   function openPlan(id){
     var cur = document.querySelector('.panel.on');
     if(cur && planIdOf(cur) === id) return;
@@ -5124,6 +5444,18 @@
       activatePillByOpt(optOf(created));
     });
   }
+  // The same name + when form, filled in, for an alternative that exists.
+  // Its days keep what's on them (they're kept by day number).
+  function openEditAltForm(anchorEl, panel){
+    var r = altDates(panel), pill = pillOfPanel(panel), nameEl = pill && pill.querySelector('.pill-name');
+    openWhenForm(anchorEl, { title: 'Edit alternative', nameLabel: 'Name', name: nameEl ? nameEl.textContent.trim() : '',
+      maxlength: 40, from: r.from, to: r.to, exact: r.exact, button: 'Save' }, function(name, w){
+      if(name) setOptionName(panel, name);
+      applyAltDates(panel, w);
+      planChanged();
+      if(typeof renderPlans === 'function') renderPlans();
+    });
+  }
   function removePlan(panels, label){
     if(currentUserRole !== 'owner') return;
     var opts = panels.map(optOf);
@@ -5210,6 +5542,15 @@
         var cell = document.createElement('div');
         if(dayNum === null){
           cell.className = 'cell empty';
+          // The days of the month before / after that fill out the first
+          // and last week: shown faded with their date, like a wall
+          // calendar, but not part of the plan (nothing can go on them).
+          var k = w * 7 + c, before = k < startCol;
+          var offset = before ? firstDay - (startCol - k) : lastDay + (k - (startCol + lastDay - firstDay + 1)) + 1;
+          var od = new Date(d.year, d.month - 1, offset);
+          var on = document.createElement('span'); on.className = 'out-num'; on.textContent = String(od.getDate());
+          cell.appendChild(on);
+          cell.classList.add('out-day');
         } else {
           cell.className = 'cell';
           var cellhead = document.createElement('div');
@@ -6190,6 +6531,110 @@
   // of the shared plan. The ribbon and the stylesheet that draws the tab
   // stars both live in #statusBar (already in SAVE_EXCLUDE_SEL), so
   // starring never touches the plan's own DOM or schedules a save.
+  // The open ticket's stitch (see the ticket tabs' CSS): one SVG laid over
+  // the open tab, outside the plan's markup, redrawn whenever things move.
+  function renderTicketStitch(){
+    var svg = document.getElementById('ticketStitch');
+    if(!svg){
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.id = 'ticketStitch';
+      document.body.appendChild(svg);
+      var p = document.querySelector('.pills'); if(p) p.addEventListener('scroll', renderTicketStitch, { passive:true });
+      window.addEventListener('resize', renderTicketStitch);
+    }
+    var pill = document.querySelector('.pill[data-opt].on');
+    if(!pill || !window.matchMedia('(min-width:721px)').matches || !pill.offsetWidth){ svg.style.display = 'none'; return; }
+    var b = pill.getBoundingClientRect(), pr = pill.parentElement.getBoundingClientRect();
+    // Clipped to the visible part of the row (it scrolls sideways).
+    if(b.right < pr.left || b.left > pr.right){ svg.style.display = 'none'; return; }
+    svg.style.display = '';
+    var W = b.width, H = b.height, i = 5, n = 7, cy = H * .58, R = n + i, d = Math.sqrt(R * R - i * i), rr = 7;
+    svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px'; svg.setAttribute('width', W); svg.setAttribute('height', H);
+    svg.style.clipPath = 'inset(0 ' + Math.max(0, b.right - pr.right) + 'px 0 ' + Math.max(0, pr.left - b.left) + 'px)';
+    var path = 'M ' + i + ' ' + (H + 1) + ' L ' + i + ' ' + (cy + d) + ' A ' + R + ' ' + R + ' 0 0 0 ' + i + ' ' + (cy - d) +
+      ' L ' + i + ' ' + (i + rr) + ' A ' + rr + ' ' + rr + ' 0 0 1 ' + (i + rr) + ' ' + i + ' L ' + (W - i - rr) + ' ' + i +
+      ' A ' + rr + ' ' + rr + ' 0 0 1 ' + (W - i) + ' ' + (i + rr) + ' L ' + (W - i) + ' ' + (cy - d) +
+      ' A ' + R + ' ' + R + ' 0 0 0 ' + (W - i) + ' ' + (cy + d) + ' L ' + (W - i) + ' ' + (H + 1);
+    if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
+  }
+  // Every frame (it only touches the stitch when something changed), so it
+  // moves with the tab — on switching, the tab's little bounce, scrolling —
+  // instead of catching up a moment later.
+  // The open plan's tab gets the very same stitch (same SVG dashes), so
+  // the plan tab and the alternative ticket are stitched alike: in 5px,
+  // round the left corners, open on the right where it meets the page.
+  function renderPlanStitch(){
+    var svg = document.getElementById('planStitch');
+    if(!svg){ svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.id = 'planStitch'; svg.classList.add('stitch-svg'); document.body.appendChild(svg); }
+    var seg = document.querySelector('.month-segment.current:not([data-year-seg])');
+    if(!seg || !window.matchMedia('(min-width:721px)').matches || !seg.offsetWidth || document.documentElement.classList.contains('side-closed')){ svg.style.display = 'none'; return; }
+    var b = seg.getBoundingClientRect(), W = b.width, H = b.height, i = 5, rr = 6;
+    svg.style.display = ''; svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px';
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    var path = 'M ' + (W + 1) + ' ' + i + ' L ' + (i + rr) + ' ' + i + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + i + ' ' + (i + rr) +
+      ' L ' + i + ' ' + (H - i - rr) + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + (i + rr) + ' ' + (H - i) + ' L ' + (W + 1) + ' ' + (H - i);
+    if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
+  }
+  // The top-left buttons (menu, column, search) sit on the same line as the
+  // + after the tickets, i.e. level with the middle of the open ticket.
+  function alignTopButtons(){
+    var add = document.getElementById('addOptionBtn');
+    if(!add || !add.offsetWidth) return;
+    var b = add.getBoundingClientRect(), mid = Math.round(b.top + b.height / 2) + 'px';
+    if(document.documentElement.style.getPropertyValue('--tab-mid') !== mid) document.documentElement.style.setProperty('--tab-mid', mid);
+  }
+  (function loop(){ renderTicketStitch(); renderPlanStitch(); alignTopButtons(); requestAnimationFrame(loop); })();
+  // A little magic when something gets starred: a quick rising run of
+  // bell-like notes (high, soft, with a shimmer of overtones), then a
+  // twinkle on top. Made with Web Audio, quiet.
+  var starAudio = null;
+  function playStarSound(){
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      var ctx = starAudio = starAudio || new AC();
+      if(ctx.state === 'suspended') ctx.resume();
+      var now = ctx.currentTime, out = ctx.createGain(); out.gain.value = .22;
+      // A touch of echo, for space.
+      var dl = ctx.createDelay(); dl.delayTime.value = .11; var fb = ctx.createGain(); fb.gain.value = .28;
+      out.connect(ctx.destination); out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(ctx.destination);
+      function bell(freq, t, len, vol){
+        [1, 2.01, 3.02, 4.2].forEach(function(h, k){
+          var o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = freq * h;
+          var v = vol * [1, .38, .16, .07][k];
+          g.gain.setValueAtTime(0.0001, now + t);
+          g.gain.exponentialRampToValueAtTime(v, now + t + .008);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + t + len * (1 - k * .18));
+          o.connect(g); g.connect(out); o.start(now + t); o.stop(now + t + len + .05);
+        });
+      }
+      // E6 G6 B6 D7 E7: a bright pentatonic run, then a high twinkle.
+      [1318.5, 1568, 1975.5, 2349.3, 2637].forEach(function(fq, i){ bell(fq, i * .055, .7, .5 - i * .04); });
+      bell(3951, .32, .5, .18); bell(4698.6, .38, .45, .12);
+    } catch(e){}
+  }
+  // Adding something to a day (an activity, a place, a holiday period —
+  // not a new plan or alternative, those have the page turn): a soft, round "plip" — two quick warm notes
+  // going up, like a drop. Short and quiet so it never gets tiring.
+  var addSoundAt = 0;
+  function playAddSound(){
+    try {
+      if(Date.now() - addSoundAt < 120) return; addSoundAt = Date.now();
+      var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      var ctx = starAudio = starAudio || new AC();
+      if(ctx.state === 'suspended') ctx.resume();
+      var now = ctx.currentTime;
+      [[659.3, 0], [987.8, .06]].forEach(function(n){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(n[0] * .92, now + n[1]);
+        o.frequency.exponentialRampToValueAtTime(n[0], now + n[1] + .04);
+        g.gain.setValueAtTime(0.0001, now + n[1]);
+        g.gain.exponentialRampToValueAtTime(.16, now + n[1] + .01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + n[1] + .22);
+        o.connect(g); g.connect(ctx.destination); o.start(now + n[1]); o.stop(now + n[1] + .25);
+      });
+    } catch(e){}
+  }
   var renderPageBookmark = function(){};
   (function initPageBookmark(){
     var host = document.getElementById('statusBar');
@@ -6238,6 +6683,7 @@
       if(at === -1) list.push(cur); else list.splice(at, 1);
       save(list);
       renderPageBookmark();
+      if(at === -1) playStarSound();
       if(at === -1 && btn.animate) btn.animate([
         { transform: 'scaleY(.5)' }, { transform: 'scaleY(1.1)', offset: .6 }, { transform: 'scaleY(1)' }
       ], { duration: 340, easing: 'ease-out' });
@@ -9087,6 +9533,7 @@
       ensureLoc();
       var acts = ensureActs();
       var li = newActivityLi();
+      playAddSound();
       acts.appendChild(li);
       // Exactly two people with access to this alternative (its
       // creator, plus one invited member) is the common small-trip
@@ -9285,6 +9732,7 @@
     if(!range) return;
     var arr = getHolidays(panel);
     arr.push({ start: range.start, end: range.end, label: 'Holiday - time off' });
+    playAddSound();
     setHolidays(panel, arr);
     renderHoliday(panel);
   }
@@ -9303,6 +9751,7 @@
   // everything that reads or edits a day's location keeps working, and
   // any day can still be retyped on its own afterwards.
   function setLocationRange(panel, name, start, end){
+    playAddSound();
     panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
       var day = dayNumOfCell(cell);
       if(day == null || day < start || day > end) return;
@@ -9402,6 +9851,7 @@
       if(isLocation){ setLocationRange(target, name, start, end); return; }
       var arr = getHolidays(target);
       arr.push({ start: start, end: end, label: name || 'Holiday - time off' });
+      playAddSound();
       setHolidays(target, arr);
       renderHoliday(target);
     }
@@ -10043,6 +10493,16 @@
     closePop();
     var pop = document.createElement('div');
     pop.className = 'itemmenu';
+    var editRow = document.createElement('div');
+    editRow.className = 'itemmenu-row';
+    editRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EDIT_NAME + '</span>Edit name and dates';
+    editRow.addEventListener('click', function(e){
+      e.stopPropagation();
+      closePop();
+      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+      if(panel) openEditAltForm(pill, panel);
+    });
+    pop.appendChild(editRow);
     var row = document.createElement('div');
     row.className = 'itemmenu-row';
     row.innerHTML = '<span class="itemmenu-icon">' + ICON_DUPLICATE + '</span>' + t('pillmenu_duplicate');
@@ -10162,7 +10622,10 @@
     // CSS, but a right-click reaches this menu directly regardless of
     // that, so the same check needs repeating here rather than trusting
     // the trigger's own visibility as the real gate.
-    if(currentUserRole === 'owner'){
+    // Deleting: the plan's owner, whoever created this alternative, or
+    // anyone in the local (no sign-in) copy.
+    var pillPanel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
+    if(currentUserRole === 'owner' || !IS_HOSTED || (pillPanel && currentUserKey && getOptionCreator(pillPanel) === currentUserKey)){
       var delRow = document.createElement('div');
       delRow.className = 'itemmenu-row danger';
       delRow.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>' + t('pillmenu_delete');
@@ -10917,7 +11380,9 @@
     // the common single-year case) — every month/year segment shares
     // the exact same sidebar-relative slot positions regardless.
     if(sidebarEl){
-      sidebarEl.style.top = Math.max(0, blockTop + 14) + 'px';
+      // Room above the plans for the search box (only while the column is open).
+      var searchRoom = 0;
+      sidebarEl.style.top = Math.max(0, blockTop + 14 + searchRoom) + 'px';
     }
     // The sidebar's own top just moved (or could still have shifted for
     // some other reason this function runs for) — re-freeze the
@@ -11624,7 +12089,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #ticketStitch, #planStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -11906,15 +12371,32 @@
   var fabAddTimeInput = document.getElementById('fabAddTimeInput');
   var fabAddTimeEndInput = document.getElementById('fabAddTimeEndInput');
   var fabAddAmountInput = document.getElementById('fabAddAmountInput');
+  // The activity's name, first in the form (it used to be added as "New
+  // activity" and renamed afterwards).
+  var fabAddTitleInput = document.getElementById('fabAddTitleInput');
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
     if(fabAddPanel) fabAddPanel.classList.remove('show');
   }
+  // Desktop: a day's own "+" opens this same focused form (centred, page
+  // dimmed, like the search) for that day, instead of a blank activity
+  // appearing in the day to edit in place.
+  var fabAddForcedCell = null;
+  document.addEventListener('click', function(e){
+    if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches) return;
+    var btn = e.target.closest('.dayaddbtn');
+    if(!btn) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    fabAddForcedCell = btn.closest('.cell');
+    openFabAdd();
+    setTimeout(function(){ var t = document.getElementById('fabAddTitleInput'); if(t) t.focus(); }, 30);
+  }, true);
   function openFabAdd(){
     var panel = document.querySelector('.panel.on');
     if(!panel || !fabAddDaySelect) return;
-    var defaultCell = findCurrentMobileCell();
+    var defaultCell = fabAddForcedCell || findCurrentMobileCell();
+    fabAddForcedCell = null;
     var defaultDay = defaultCell ? defaultCell.querySelector(':scope > .cellhead > .daynum').textContent : null;
     fabAddDaySelect.innerHTML = '';
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(cell){
@@ -11940,6 +12422,7 @@
     if(fabAddTimeInput) fabAddTimeInput.value = '12:00';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
     if(fabAddAmountInput) fabAddAmountInput.value = '0';
+    if(fabAddTitleInput) fabAddTitleInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
   }
   // The FAB itself now opens a small menu (activity/alternative/holiday
@@ -11969,26 +12452,17 @@
       pop.appendChild(r);
     }
     menuRow('+ Activity', openFabAdd);
+    // Same as on desktop: a new alternative of the open plan, a holiday
+    // period on it, or a new plan — each in its own form.
     menuRow('+ Alternative', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = todayOrPanelDate(activePanel);
-      createOption(d.year, d.month);
+      if(activePanel) openNewAltForm(mobileAddFab, activePanel);
     });
     menuRow('+ Holiday period', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      if(activePanel) addHolidayToPanel(activePanel);
+      if(activePanel) openRangePopover(mobileAddFab, activePanel, 'holiday');
     });
-    menuRow('+ Month', function(){
-      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      var d = todayOrPanelDate(activePanel);
-      openMonthPickerPopover(mobileAddFab, d.year, d.month, 'Add', function(newYear, newMonth){
-        var newPanel = createOption(newYear, newMonth);
-        document.querySelectorAll('.pill[data-opt]').forEach(function(b){ b.classList.remove('on'); });
-        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
-        document.querySelector('.pill[data-opt="' + optOf(newPanel) + '"]').classList.add('on');
-        newPanel.classList.add('on');
-      });
-    });
+    menuRow('+ Plan', function(){ openNewPlanForm(mobileAddFab); });
     positionPopover(pop, mobileAddFab);
   });
   if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
@@ -11999,6 +12473,7 @@
     var timeVal = fabAddTimeInput ? fabAddTimeInput.value : '';
     var timeEndVal = fabAddTimeEndInput ? fabAddTimeEndInput.value : '';
     var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
+    var titleVal = fabAddTitleInput ? fabAddTitleInput.value.trim() : '';
     closeFabAdd();
     if(!panel || !day) return;
     var cells = panel.querySelectorAll('.cell:not(.empty)');
@@ -12020,6 +12495,7 @@
     addBtn.click();
     var acts = cell.querySelector(':scope > .acts');
     var newLi = acts ? acts.lastElementChild : null;
+    if(newLi && titleVal){ var titleEl = newLi.querySelector(':scope > .title'); if(titleEl) titleEl.textContent = titleVal; }
     if(newLi){
       if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
         var tg = TAGS[tagIdx];
