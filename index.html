@@ -2578,15 +2578,20 @@
        thick white edge and a soft lifted shadow, each stuck on at a slight
        angle; they straighten and lift a touch on hover. */
     #actionMenuBtn, #sideSearch .ss-btn, #sideToggle {
-      width:32px !important; height:32px !important; border-radius:50% !important; opacity:1 !important;
-      background-color:#fff !important; border:2px solid #fff !important;
-      box-shadow:0 0 0 1px rgba(61,53,104,.08), 0 3px 6px -1px rgba(40,25,60,.22) !important;
-      transition:transform .15s ease, box-shadow .15s ease !important; }
-    #actionMenuBtn { transform:rotate(-6deg); }
-    #sideSearch .ss-btn { transform:rotate(5deg); background-position:center !important; }
-    #sideToggle { transform:rotate(-3deg); }
-    #actionMenuBtn:hover, #sideSearch .ss-btn:hover, #sideToggle:hover { transform:rotate(0) translateY(-1px) scale(1.06);
-      box-shadow:0 0 0 1px rgba(61,53,104,.08), 0 6px 12px -2px rgba(40,25,60,.28) !important; }
+      width:34px !important; height:34px !important; border-radius:50% !important; opacity:1 !important;
+      background-color:#fff !important; border:3px solid #fff !important;
+      /* a thick white die-cut edge, a hairline where it was cut, and a
+         slightly offset shadow as if it's stuck on and lifting a little */
+      box-shadow:0 0 0 1px rgba(61,53,104,.12), 1px 3px 0 -1px rgba(61,53,104,.14), 2px 6px 10px -3px rgba(40,25,60,.32) !important;
+      background-image:linear-gradient(135deg, rgba(255,255,255,0) 60%, rgba(61,53,104,.06) 100%) !important;
+      transition:transform .18s cubic-bezier(.3,1.5,.5,1), box-shadow .18s ease !important; }
+    #sideSearch .ss-btn { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") !important;
+      background-repeat:no-repeat !important; background-position:center !important; background-size:16px 16px !important; }
+    #actionMenuBtn { transform:rotate(-9deg); }
+    #sideSearch .ss-btn { transform:rotate(7deg); }
+    #sideToggle { transform:rotate(-5deg); }
+    #actionMenuBtn:hover, #sideSearch .ss-btn:hover, #sideToggle:hover { transform:rotate(0) translateY(-2px) scale(1.08);
+      box-shadow:0 0 0 1px rgba(61,53,104,.12), 2px 8px 14px -3px rgba(40,25,60,.36) !important; }
   }
 </style>
 </head>
@@ -6647,7 +6652,7 @@
     if(b.right < pr.left || b.left > pr.right){ svg.style.display = 'none'; return; }
     svg.style.display = '';
     var W = b.width, H = b.height, i = 5, n = 7, cy = H * .58, R = n + i, d = Math.sqrt(R * R - i * i), rr = 7;
-    svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px'; svg.setAttribute('width', W); svg.setAttribute('height', H);
+    svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px'; if(svg.getAttribute('width') != W) svg.setAttribute('width', W); if(svg.getAttribute('height') != H) svg.setAttribute('height', H);
     svg.style.clipPath = 'inset(0 ' + Math.max(0, b.right - pr.right) + 'px 0 ' + Math.max(0, pr.left - b.left) + 'px)';
     var path = 'M ' + i + ' ' + (H + 1) + ' L ' + i + ' ' + (cy + d) + ' A ' + R + ' ' + R + ' 0 0 0 ' + i + ' ' + (cy - d) +
       ' L ' + i + ' ' + (i + rr) + ' A ' + rr + ' ' + rr + ' 0 0 1 ' + (i + rr) + ' ' + i + ' L ' + (W - i - rr) + ' ' + i +
@@ -6668,7 +6673,7 @@
     if(!seg || !window.matchMedia('(min-width:721px)').matches || !seg.offsetWidth || document.documentElement.classList.contains('side-closed')){ svg.style.display = 'none'; return; }
     var b = seg.getBoundingClientRect(), W = b.width, H = b.height, i = 5, rr = 6;
     svg.style.display = ''; svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px';
-    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    if(svg.getAttribute('width') != W) svg.setAttribute('width', W); if(svg.getAttribute('height') != H) svg.setAttribute('height', H);
     var path = 'M ' + (W + 1) + ' ' + i + ' L ' + (i + rr) + ' ' + i + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + i + ' ' + (i + rr) +
       ' L ' + i + ' ' + (H - i - rr) + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + (i + rr) + ' ' + (H - i) + ' L ' + (W + 1) + ' ' + (H - i);
     if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
@@ -6691,7 +6696,7 @@
     var b = rb.getBoundingClientRect(), W = b.width, H = b.height, i = 4;
     if(!W || !H){ svg.style.display = 'none'; return; }
     svg.style.display = ''; svg.style.left = b.left + 'px'; svg.style.top = b.top + 'px';
-    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    if(svg.getAttribute('width') != W) svg.setAttribute('width', W); if(svg.getAttribute('height') != H) svg.setAttribute('height', H);
     // The V's stitch runs exactly parallel to the cut, i px inside it; each
     // half is drawn from the V's point outwards so the dashes mirror.
     var notch = 14, ex = W / 2, ey = -notch, L = Math.sqrt(ex * ex + ey * ey), nx = -ey / L, ny = -ex / L;
@@ -12209,7 +12214,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #payFloat, #dayGhost, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -12536,24 +12541,34 @@
     var cr = cell.getBoundingClientRect(), W = card.offsetWidth || 420, H = card.offsetHeight || 560, gap = 10;
     var left = cr.right + gap; if(left + W > window.innerWidth - 12) left = cr.left - gap - W; if(left < 12) left = Math.max(12, (window.innerWidth - W) / 2);
     var top = Math.min(Math.max(12, cr.top), window.innerHeight - H - 12);
-    card.style.left = left + 'px'; card.style.top = top + 'px';
+    if(card.style.left !== left + 'px') card.style.left = left + 'px';
+    if(card.style.top !== top + 'px') card.style.top = top + 'px';
     var ghost = document.getElementById('dayGhost');
     if(!ghost){ ghost = document.createElement('div'); ghost.id = 'dayGhost'; document.body.appendChild(ghost); }
     var head = cell.querySelector(':scope > .cellhead'), hr = head ? head.getBoundingClientRect() : cr;
-    ghost.style.left = (cr.left + 8) + 'px'; ghost.style.top = (hr.bottom + 6) + 'px'; ghost.style.width = (cr.width - 16) + 'px';
-    var t = document.getElementById('fabAddTitleInput'); ghost.textContent = (t && t.value.trim()) || 'New activity';
-    ghost.style.display = 'block';
+    var gl = (cr.left + 8) + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.width - 16) + 'px';
+    if(ghost.style.left !== gl) ghost.style.left = gl;
+    if(ghost.style.top !== gt) ghost.style.top = gt;
+    if(ghost.style.width !== gw) ghost.style.width = gw;
+    var t = document.getElementById('fabAddTitleInput'), txt = (t && t.value.trim()) || 'New activity';
+    if(ghost.textContent !== txt) ghost.textContent = txt;
+    if(ghost.style.display !== 'block') ghost.style.display = 'block';
   }
   (function(){
     var panel = document.getElementById('fabAddPanel');
     if(!panel) return;
     new MutationObserver(function(){
-      if(!panel.classList.contains('show')){
+      // Only touch what's actually set: removing an absent class still
+      // counts as a change and used to re-trigger this forever (freeze).
+      if(!panel.classList.contains('show') && panel.classList.contains('anchored')){
         panel.classList.remove('anchored');
         var card = panel.querySelector('.map-inner'); card.style.left = ''; card.style.top = '';
         var g = document.getElementById('dayGhost'); if(g) g.style.display = 'none';
       }
     }).observe(panel, { attributes:true, attributeFilter:['class'] });
+    // Quick add: a click anywhere outside the card, or Esc, closes it.
+    panel.addEventListener('mousedown', function(e){ if(e.target === panel && panel.classList.contains('anchored')) closeFabAdd(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && panel.classList.contains('show')) closeFabAdd(); });
     var t = document.getElementById('fabAddTitleInput');
     if(t) t.addEventListener('input', function(){ var g = document.getElementById('dayGhost'); if(g && g.style.display !== 'none') g.textContent = t.value.trim() || 'New activity'; });
   })();
