@@ -2446,25 +2446,37 @@
     .month-sidebar { padding-right:56px; }
   }
 
-  /* Every icon in the frame is 24 x 24 px: column button, search, share,
+  /* Every icon in the frame is 16 x 16 px: column button, search, share,
      the + buttons, the ⋯ on plan and ticket tabs, the ribbon's star. */
   @media screen and (min-width: 721px) {
     #sideToggle { width:32px !important; height:32px !important; }
-    #sideToggle svg { width:24px !important; height:24px !important; }
-    #sideSearch .ss-btn { width:32px !important; height:32px !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") !important; background-size:24px 24px !important; }
+    #sideToggle svg { width:16px !important; height:16px !important; }
+    #sideSearch .ss-btn { width:32px !important; height:32px !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") !important; background-size:16px 16px !important; }
     .page-share { width:32px !important; height:32px !important; }
-    .page-share svg { width:24px !important; height:24px !important; }
+    .page-share svg { width:16px !important; height:16px !important; }
     /* The + after the tickets sits level with the middle of the open one. */
     .pill.add { align-self:center !important; margin:0 0 0 8px !important; }
     .pill.add, .month-add { width:32px !important; height:32px !important; font-size:0 !important; color:transparent !important;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E") !important; background-repeat:no-repeat !important; background-position:center !important; background-size:24px 24px !important; }
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E") !important; background-repeat:no-repeat !important; background-position:center !important; background-size:16px 16px !important; }
     .pill[data-opt] .pill-remove, .month-sidebar .month-segment:not([data-year-seg]) .itemmenu-btn { width:24px !important; height:24px !important; font-size:0 !important; color:transparent !important; padding:0 !important;
-      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") no-repeat center / 24px 24px !important; }
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") no-repeat center / 16px 16px !important; }
     .month-sidebar .month-segment[data-year-seg] .itemmenu-btn { width:24px !important; height:24px !important; font-size:0 !important; color:transparent !important; padding:0 !important;
-      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233d3568' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") no-repeat center / 24px 24px !important; }
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233d3568' stroke='%233d3568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='12' r='1.6'/%3E%3Ccircle cx='12' cy='12' r='1.6'/%3E%3Ccircle cx='19' cy='12' r='1.6'/%3E%3C/svg%3E") no-repeat center / 16px 16px !important; }
     .page-bookmark { padding-top:6px !important; }
-    .page-bookmark::after { content:'' !important; width:24px; height:24px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z'/%3E%3C/svg%3E") no-repeat center / 24px 24px; }
+    .page-bookmark::after { content:'' !important; width:16px; height:16px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z'/%3E%3C/svg%3E") no-repeat center / 16px 16px; }
     .page-bookmark[data-state="on"]::after { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z'/%3E%3C/svg%3E"); }
+  }
+
+  @media screen and (min-width: 721px) {
+    #sideToggle { top:calc(var(--tab-mid, 30px) - 16px) !important; }
+    #sideSearch { top:calc(var(--tab-mid, 30px) - 16px) !important; }
+    #actionMenu { top:calc(var(--tab-mid, 30px) - 14px) !important; }
+  }
+
+  @media screen and (min-width: 721px) {
+    /* The ⋯ on tickets and plan tabs: smaller dots, in the middle of the tab. */
+    .pill[data-opt] .pill-remove { align-self:center !important; margin:0 !important; position:static !important; transform:none !important; }
+    .pill[data-opt] .pill-remove, .month-sidebar .month-segment .itemmenu-btn { background-size:12px 12px !important; }
   }
 </style>
 </head>
@@ -6521,7 +6533,15 @@
       ' L ' + i + ' ' + (H - i - rr) + ' A ' + rr + ' ' + rr + ' 0 0 0 ' + (i + rr) + ' ' + (H - i) + ' L ' + (W + 1) + ' ' + (H - i);
     if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + path + '"/>'; svg.dataset.d = path; }
   }
-  (function loop(){ renderTicketStitch(); renderPlanStitch(); requestAnimationFrame(loop); })();
+  // The top-left buttons (menu, column, search) sit on the same line as the
+  // + after the tickets, i.e. level with the middle of the open ticket.
+  function alignTopButtons(){
+    var add = document.getElementById('addOptionBtn');
+    if(!add || !add.offsetWidth) return;
+    var b = add.getBoundingClientRect(), mid = Math.round(b.top + b.height / 2) + 'px';
+    if(document.documentElement.style.getPropertyValue('--tab-mid') !== mid) document.documentElement.style.setProperty('--tab-mid', mid);
+  }
+  (function loop(){ renderTicketStitch(); renderPlanStitch(); alignTopButtons(); requestAnimationFrame(loop); })();
   var renderPageBookmark = function(){};
   (function initPageBookmark(){
     var host = document.getElementById('statusBar');
