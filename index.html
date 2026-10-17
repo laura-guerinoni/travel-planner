@@ -2107,16 +2107,23 @@
        stays your face at the top left; the plans column holds only plans. */
     /* In the top row of the column, after the menu and the column button. */
     #sideSearch { position:fixed; z-index:71; left:90px; top:11px; }
-    #sideSearch input { width:30px; height:30px;  box-sizing:border-box; padding:0; border:1px solid transparent; border-radius:999px; cursor:pointer;
-      font:inherit; font-size:13px; color:transparent; box-shadow:none;
-      background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a8fbf' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat center / 15px 15px;
-      transition:width .2s ease, background-color .15s ease, box-shadow .15s ease; }
-    #sideSearch input::placeholder { color:transparent; }
-    #sideSearch input:hover { background-color:rgba(255,255,255,.9); }
-    #sideSearch input:focus { outline:none; width:240px; padding:0 12px 0 32px; cursor:text; color:var(--ink); background-color:#fff; background-position:11px center;
-      border-color:var(--line); box-shadow:0 6px 18px rgba(40,25,60,.14); }
-    #sideSearch input:focus::placeholder { color:var(--muted); }
-    #sideSearch input::-webkit-search-cancel-button { display:none; }
+    #sideSearch .ss-btn { width:30px; height:30px; border:none; border-radius:8px; padding:0; cursor:pointer; opacity:.75;
+      background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d3568' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat center / 16px 16px; }
+    #sideSearch .ss-btn:hover { background-color:rgba(255,255,255,.9); opacity:1; }
+    #searchPalette { position:fixed; inset:0; z-index:300; background:rgba(30,22,50,.28); display:flex; justify-content:center; align-items:flex-start; padding-top:14vh;
+      animation:sp-fade .12s ease-out; }
+    #searchPalette[hidden] { display:none; }
+    @keyframes sp-fade { from { opacity:0; } to { opacity:1; } }
+    .sp-card { width:min(600px, calc(100vw - 48px)); background:var(--card); border-radius:16px; box-shadow:0 24px 60px rgba(30,22,50,.35); overflow:hidden; animation:sp-pop .14s ease-out; }
+    @keyframes sp-pop { from { transform:translateY(-6px) scale(.98); opacity:0; } to { transform:none; opacity:1; } }
+    .sp-field { display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid var(--line);
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a8fbf' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") no-repeat 18px center / 18px 18px; }
+    .sp-field input { flex:1; height:56px; border:none; outline:none; background:none; font:inherit; font-size:17px; font-weight:600; color:var(--ink); padding-left:30px; }
+    .sp-field input::-webkit-search-cancel-button { display:none; }
+    .sp-field kbd { font:inherit; font-size:11px; font-weight:800; color:var(--muted); background:var(--bg); border-radius:6px; padding:3px 7px; }
+    #searchPalette #sideSearchResults { position:static; display:block; width:auto; max-height:52vh; overflow-y:auto; border:none; border-radius:0; box-shadow:none; padding:8px; }
+    .ssr-group { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:10px 10px 4px; }
+    #searchPalette .ssr { padding:10px 12px; font-size:14px; }
     #sideProfile, #sidePanel { display:none !important; }
     /* Alternatives as tickets: two lines (name; dates ┊ total), a notch on
        each side, in the plan's colour as before. The open one is taller and
@@ -5122,10 +5129,21 @@
   // Search (top of the plans column): plans, alternatives, places and
   // activities; picking one opens it (and scrolls to the day).
   (function initSideSearch(){
+    // Like Notion / Linear / Spotlight: the magnifier in the column (or
+    // ⌘K) opens a search palette in the middle of the screen over a dimmed
+    // page, instead of a field spilling over the tabs.
     var box = document.createElement('div'); box.id = 'sideSearch';
-    box.innerHTML = '<input type="search" placeholder="Search" aria-label="Search plans and activities"><div id="sideSearchResults"></div>';
+    box.innerHTML = '<button type="button" class="ss-btn" title="Search (⌘K)" aria-label="Search (⌘K)"></button>';
     document.body.appendChild(box);
-    var input = box.querySelector('input'), list = box.querySelector('#sideSearchResults'), hits = [], sel = 0;
+    var pal = document.createElement('div'); pal.id = 'searchPalette'; pal.hidden = true;
+    pal.innerHTML = '<div class="sp-card" role="dialog" aria-label="Search"><div class="sp-field"><input type="search" placeholder="Search plans, places and activities" aria-label="Search"><kbd>esc</kbd></div>' +
+      '<div id="sideSearchResults"><div class="ssr-empty">Type to search across all your plans.</div></div></div>';
+    document.body.appendChild(pal);
+    var input = pal.querySelector('input'), list = pal.querySelector('#sideSearchResults'), hits = [], sel = 0;
+    function openPal(){ pal.hidden = false; input.value = ''; show(); setTimeout(function(){ input.focus(); }, 0); }
+    function closePal(){ pal.hidden = true; input.blur(); }
+    box.querySelector('.ss-btn').addEventListener('click', function(e){ e.stopPropagation(); openPal(); });
+    pal.addEventListener('mousedown', function(e){ if(e.target === pal) closePal(); });
     function esc(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
     function find(q){
       q = q.trim().toLowerCase(); var out = [], seen = {};
@@ -5146,19 +5164,23 @@
           });
         });
       });
-      return out.slice(0, 30);
+      var order = { Plan:0, Alternative:1, Place:2, Activity:3 };
+      out.sort(function(a, b){ return order[a.kind] - order[b.kind]; });
+      return out.slice(0, 40);
     }
     function show(){
       hits = find(input.value); sel = 0;
-      if(!input.value.trim()){ list.classList.remove('show'); return; }
+      if(!input.value.trim()){ list.innerHTML = '<div class="ssr-empty">Type to search across all your plans.</div>'; return; }
+      var lastKind = null;
       list.innerHTML = hits.length ? hits.map(function(h, i){
-        return '<div class="ssr' + (i === sel ? ' sel' : '') + '" data-i="' + i + '"><span class="dot" style="background:' + (h.color || 'var(--primary)') + '"></span><span class="tx">' + esc(h.text) + '</span><span class="wh">' + esc(h.kind === 'Plan' ? h.where : h.where) + '</span></div>';
+        var head = h.kind !== lastKind ? '<div class="ssr-group">' + { Plan:'Plans', Alternative:'Alternatives', Place:'Places', Activity:'Activities' }[h.kind] + '</div>' : '';
+        lastKind = h.kind;
+        return head + '<div class="ssr' + (i === sel ? ' sel' : '') + '" data-i="' + i + '"><span class="dot" style="background:' + (h.color || 'var(--primary)') + '"></span><span class="tx">' + esc(h.text) + '</span><span class="wh">' + esc(h.where) + '</span></div>';
       }).join('') : '<div class="ssr-empty">Nothing found</div>';
-      list.classList.add('show');
     }
     function go(h){
       if(!h) return;
-      list.classList.remove('show'); input.value = ''; input.blur();
+      closePal();
       activatePillByOpt(optOf(h.panel));
       if(h.cell) setTimeout(function(){
         h.cell.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -5170,14 +5192,14 @@
       if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); sel = Math.max(0, Math.min(hits.length - 1, sel + (e.key === 'ArrowDown' ? 1 : -1)));
         list.querySelectorAll('.ssr').forEach(function(x, i){ x.classList.toggle('sel', i === sel); }); }
       else if(e.key === 'Enter'){ e.preventDefault(); go(hits[sel]); }
-      else if(e.key === 'Escape'){ input.value = ''; list.classList.remove('show'); input.blur(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); closePal(); }
     });
     list.addEventListener('mousedown', function(e){ var x = e.target.closest('.ssr'); if(x){ e.preventDefault(); go(hits[+x.dataset.i]); } });
-    input.addEventListener('blur', function(){ setTimeout(function(){ list.classList.remove('show'); }, 150); });
+
     // ⌘K / Ctrl+K focuses it, like Notion.
     document.addEventListener('keydown', function(e){
       if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){
-        e.preventDefault(); input.focus(); input.select();
+        e.preventDefault(); if(pal.hidden) openPal(); else closePal();
       }
     });
   })();
