@@ -2499,6 +2499,26 @@
     :root:not(.side-closed) #sideSearch { left:56px !important; }
     :root:not(.side-closed) #sideToggle { left:calc(var(--side-w, 152px) - 40px) !important; }
   }
+
+  /* Focused forms on desktop — add activity, new alternative, new plan,
+     location, holiday: centred card over the dimmed page, like search. */
+  @media screen and (min-width: 721px) {
+    .modal-overlay { background:rgba(30,22,50,.28) !important; animation:sp-fade .12s ease-out; }
+    #fabAddPanel .map-inner { width:min(460px, calc(100vw - 48px)); padding:24px 24px 20px; border-radius:16px; box-shadow:0 24px 60px rgba(30,22,50,.35); animation:sp-pop .14s ease-out; }
+    #fabAddPanel h2 { font-size:20px; }
+    #fabAddPanel .fabadd-select { height:44px; font-size:15px; border-radius:10px; }
+    #fabAddPanel .fabadd-label { font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-top:4px; }
+    #fabAddPanel .modal-primary-btn { width:100%; height:46px; border-radius:12px; font-size:15px; font-weight:800; margin-top:6px; }
+    .monthpop.rangepop { position:fixed !important; left:50% !important; top:16vh !important; transform:translateX(-50%); width:min(460px, calc(100vw - 48px)) !important;
+      padding:24px !important; border-radius:16px !important; z-index:300 !important; font-size:14px;
+      box-shadow:0 0 0 100vmax rgba(30,22,50,.28), 0 24px 60px rgba(30,22,50,.35) !important; animation:rp-pop .14s ease-out; }
+    @keyframes rp-pop { from { transform:translateX(-50%) translateY(-6px) scale(.98); opacity:0; } to { transform:translateX(-50%); opacity:1; } }
+    .monthpop.rangepop .rangepop-title { font-size:20px; margin-bottom:14px; }
+    .monthpop.rangepop input[type="text"], .monthpop.rangepop select, .monthpop.rangepop input[type="date"] { height:44px; font-size:15px !important; border-radius:10px !important; }
+    .monthpop.rangepop .addbtn { height:46px; border-radius:12px; font-size:15px; font-weight:800; margin-top:6px; }
+    .whenpop-label { font-size:12px !important; letter-spacing:.06em; text-transform:uppercase; margin:8px 0 6px !important; }
+    .whenpop-check { font-size:14px !important; margin:6px 0 14px !important; }
+  }
 </style>
 </head>
 <body>
@@ -12359,10 +12379,24 @@
   function closeFabAdd(){
     if(fabAddPanel) fabAddPanel.classList.remove('show');
   }
+  // Desktop: a day's own "+" opens this same focused form (centred, page
+  // dimmed, like the search) for that day, instead of a blank activity
+  // appearing in the day to edit in place.
+  var fabAddForcedCell = null;
+  document.addEventListener('click', function(e){
+    if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches) return;
+    var btn = e.target.closest('.dayaddbtn');
+    if(!btn) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    fabAddForcedCell = btn.closest('.cell');
+    openFabAdd();
+    setTimeout(function(){ var t = document.getElementById('fabAddTitleInput'); if(t) t.focus(); }, 30);
+  }, true);
   function openFabAdd(){
     var panel = document.querySelector('.panel.on');
     if(!panel || !fabAddDaySelect) return;
-    var defaultCell = findCurrentMobileCell();
+    var defaultCell = fabAddForcedCell || findCurrentMobileCell();
+    fabAddForcedCell = null;
     var defaultDay = defaultCell ? defaultCell.querySelector(':scope > .cellhead > .daynum').textContent : null;
     fabAddDaySelect.innerHTML = '';
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(cell){
