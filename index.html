@@ -2607,7 +2607,9 @@
   .fs-equal:hover { background:var(--primary); color:#fff; }
   .fs-row { display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; }
   .fs-row.off .fs-name, .fs-row.off .fs-face { opacity:.4; }
-  .fs-row .fs-in { width:16px; height:16px; margin:0; accent-color:var(--primary); }
+  /* Own checkbox: the plan colour with a white tick. */
+  .fs-row .fs-in { -webkit-appearance:none; appearance:none; width:18px; height:18px; margin:0; flex:none; border-radius:5px; border:2px solid var(--line); background:#fff; cursor:pointer; }
+  .fs-row .fs-in:checked { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px 16px no-repeat; }
   .fs-face { width:24px; height:24px; border-radius:50%; overflow:hidden; flex:none; }
   .fs-face svg { width:100%; height:100%; display:block; }
   .fs-name { flex:1; min-width:0; font-weight:700; font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
