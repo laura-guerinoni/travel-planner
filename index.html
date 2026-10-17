@@ -12518,9 +12518,19 @@
     var panel = document.getElementById('fabAddPanel');
     panel.classList.add('anchored');
     openFabAdd();
+    anchoredCell = cell;
     placeAnchored(cell);
     setTimeout(function(){ var t = document.getElementById('fabAddTitleInput'); if(t) t.focus(); }, 30);
   }, true);
+  // The placeholder chip and the card stay attached to their day while the
+  // page scrolls (re-placed every frame while the quick add is open).
+  var anchoredCell = null;
+  (function follow(){
+    var p = document.getElementById('fabAddPanel');
+    if(anchoredCell && p && p.classList.contains('show') && p.classList.contains('anchored') && anchoredCell.isConnected) placeAnchored(anchoredCell);
+    else anchoredCell = null;
+    requestAnimationFrame(follow);
+  })();
   function placeAnchored(cell){
     var panel = document.getElementById('fabAddPanel'), card = panel.querySelector('.map-inner');
     var cr = cell.getBoundingClientRect(), W = card.offsetWidth || 420, H = card.offsetHeight || 560, gap = 10;
