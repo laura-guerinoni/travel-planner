@@ -2726,6 +2726,16 @@
 
   #fabAddPanel .fabadd-split { position:relative; }
   #fabAddPanel .fabadd-split::before { content:''; position:absolute; left:-32px; top:10px; width:20px; height:20px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239b8fc0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='10' cy='7' r='4'/%3E%3Cpath d='M21 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E") no-repeat center / 20px 20px; }
+
+  #fabAddPanel .gc-newtag { display:flex; align-items:center; gap:6px; margin:-2px 0 8px 32px; }
+  #fabAddPanel .gc-newtag[hidden] { display:none; }
+  #fabAddPanel .gc-newtag .fabadd-select { height:34px !important; margin:0 !important; font-size:13.5px !important; }
+  #fabAddPanel .gc-newtag .nt-icon { width:48px; flex:none; text-align:center; }
+  #fabAddPanel .gc-newtag .nt-name { flex:1; min-width:0; }
+  #fabAddPanel .gc-newtag .nt-color { width:34px; height:34px; flex:none; border:1px solid var(--line); border-radius:8px; padding:2px; background:#fff; cursor:pointer; }
+  #fabAddPanel .gc-newtag .nt-add { flex:none; height:34px; border:none; border-radius:8px; padding:0 12px; background:var(--primary); color:#fff; font:inherit; font-weight:800; font-size:13px; cursor:pointer; }
+
+  #fabAddPanel .fabadd-split.no-price { display:none; }
 </style>
 </head>
 <body>
@@ -3000,6 +3010,12 @@
       <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name, e.g. Train to Budapest" aria-label="What" />
       <div class="gc-row" title="Day"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select></div>
       <div class="gc-row" title="Type"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
+      <div id="fabAddNewTag" class="gc-newtag" hidden>
+        <input type="text" class="fabadd-select nt-icon" maxlength="4" placeholder="🎟️" aria-label="Emoji">
+        <input type="text" class="fabadd-select nt-name" placeholder="Name, e.g. Concert" aria-label="Type name">
+        <input type="color" class="nt-color" value="#d9663f" aria-label="Colour">
+        <button type="button" class="nt-add">Add</button>
+      </div>
       <div class="gc-row" title="Time"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div class="fabadd-time-row">
         <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
@@ -12945,7 +12961,10 @@
   }
   function addSplitTotal(){ var a = document.getElementById('fabAddAmountInput'); return parseFloat(a && a.value) || 0; }
   function updateLeft(){
-    var box = document.getElementById('fabAddSplit'); if(!box || box.hidden) return;
+    var box = document.getElementById('fabAddSplit'); if(!box) return;
+    // Who's in / paid only matters once the activity has a price.
+    box.classList.toggle('no-price', !(addSplitTotal() > 0));
+    if(box.hidden) return;
     var sum = 0, n = 0; box.querySelectorAll('.fs-row').forEach(function(row){
       var on = row.querySelector('.fs-in').checked; row.classList.toggle('off', !on); if(on) n++;
       sum += parseFloat(row.querySelector('.fs-amt').value) || 0; });
@@ -12996,6 +13015,29 @@
       if(paid.length) setPaid(li, paid);
     }
   }
+  // "＋ New type…" at the end of the Type list: a small row to make one
+  // (emoji, name, colour), added to the shared list like the tag picker's
+  // own "+ New tag", and picked straight away.
+  document.addEventListener('change', function(e){
+    if(e.target.id !== 'fabAddTagSelect') return;
+    var sel = e.target, row = document.getElementById('fabAddNewTag');
+    if(sel.value === 'new'){ row.hidden = false; sel.value = sel.dataset.prev || '0'; setTimeout(function(){ row.querySelector('.nt-name').focus(); }, 0); }
+    else { sel.dataset.prev = sel.value; row.hidden = true; }
+  });
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('#fabAddNewTag .nt-add'); if(!b) return;
+    e.preventDefault();
+    var row = document.getElementById('fabAddNewTag'), name = row.querySelector('.nt-name').value.trim();
+    if(!name){ row.querySelector('.nt-name').focus(); return; }
+    var bg = row.querySelector('.nt-color').value, t = { icon: row.querySelector('.nt-icon').value.trim() || '🏷️', name: name, bg: bg, fg: fgFor(bg) };
+    addTagIfNew(t);
+    var idx = -1; TAGS.forEach(function(x, i){ if(tagKey(x) === tagKey(t)) idx = i; });
+    var sel = document.getElementById('fabAddTagSelect'), opt = document.createElement('option');
+    opt.value = String(idx); opt.textContent = t.icon + ' ' + t.name;
+    sel.insertBefore(opt, sel.querySelector('option[value="new"]'));
+    sel.value = String(idx); sel.dataset.prev = sel.value;
+    row.hidden = true; row.querySelector('.nt-name').value = ''; row.querySelector('.nt-icon').value = '';
+  });
   function openFabAdd(){
     var panel = document.querySelector('.panel.on');
     if(!panel || !fabAddDaySelect) return;
@@ -13022,6 +13064,10 @@
         opt.textContent = tg.icon + ' ' + tg.name;
         fabAddTagSelect.appendChild(opt);
       });
+      var newOpt = document.createElement('option'); newOpt.value = 'new'; newOpt.textContent = '＋ New type…';
+      fabAddTagSelect.appendChild(newOpt);
+      fabAddTagSelect.dataset.prev = fabAddTagSelect.value;
+      var nt = document.getElementById('fabAddNewTag'); if(nt) nt.hidden = true;
     }
     if(fabAddTimeInput) fabAddTimeInput.value = '12:00';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
