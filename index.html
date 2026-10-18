@@ -2841,9 +2841,9 @@
   /* the dashed line on the left, with the city's dot where its pill is */
   .acts > li[data-city]::after { content:''; position:absolute; left:-17.5px; width:14px; top:-8px; bottom:0; pointer-events:none;
     background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
-  /* all-day activities (a Stay): first in the day, apart from the timed
-     ones and their route — a soft filled block */
-  .acts > li[data-allday] { order:-1; background:var(--bg); border-radius:10px; }
+  /* all-day activities (a Stay): a soft filled block, first in the day —
+     or first in its city, on a day with more than one */
+  .acts > li[data-allday] { background:var(--bg); border-radius:10px; }
   /* the placeholder slot between two cities keeps the line going */
   .acts:has(> li[data-city]) > .day-ghost-slot { position:relative; margin-left:24px; }
   .acts:has(> li[data-city]) > .day-ghost-slot::after { content:''; position:absolute; left:-17.5px; width:14px; top:-16px; bottom:0; pointer-events:none;
@@ -13224,24 +13224,38 @@
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
   // A day with more than one city: a small city heading over each run of
   // its activities. data-sec is display only (not saved, not watched).
+  // Display order (CSS order via data-ord — never saved, never watched):
+  // one city → all-day ones (a Stay) first, then the rest; more than one
+  // city → a section per city in the day's order, each starting with its
+  // all-day ones. data-ord steps by 2 so the add placeholder can sit in
+  // between (see placeAnchored).
+  (function(){ var css = ''; for(var k = 0; k <= 160; k++) css += '.acts > [data-ord="' + k + '"]{order:' + k + '}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); })();
   function renderPlaceSections(cell){
-    var all = dayActs(cell);
-    // all-day ones (a Stay) sit apart at the top (CSS order), outside the route
-    all.forEach(function(li){ var ad = isAllDay(li);
-      if(ad){ if(!li.hasAttribute('data-allday')) li.setAttribute('data-allday', ''); ['data-sec', 'data-city', 'data-sec-first', 'data-city-last'].forEach(function(a){ if(li.hasAttribute(a)) li.removeAttribute(a); }); }
-      else if(li.hasAttribute('data-allday')) li.removeAttribute('data-allday'); });
-    var lis = all.filter(function(li){ return !isAllDay(li); }), places = lis.map(liPlace);
-    var many = places.filter(function(p, i){ return p && places.indexOf(p) === i; }).length > 1;
-    var order = [];
+    var all = dayActs(cell), places = all.map(liPlace);
+    var uniq = places.filter(function(p, i){ return p && places.indexOf(p) === i; }), many = uniq.length > 1;
+    var cities = citiesOf(placeOfCell(cell)).filter(function(c){ return uniq.indexOf(c) !== -1; });
+    uniq.forEach(function(c){ if(cities.indexOf(c) === -1) cities.push(c); });
+    var seq = [];
+    if(many){
+      cities.forEach(function(c){
+        all.forEach(function(li, i){ if(places[i] === c && isAllDay(li)) seq.push(li); });
+        all.forEach(function(li, i){ if(places[i] === c && !isAllDay(li)) seq.push(li); });
+      });
+      all.forEach(function(li){ if(seq.indexOf(li) === -1) seq.push(li); });
+    } else {
+      all.forEach(function(li){ if(isAllDay(li)) seq.push(li); });
+      all.forEach(function(li){ if(!isAllDay(li)) seq.push(li); });
+    }
     function flag(li, a, on, v){ if(on){ if(li.getAttribute(a) !== v) li.setAttribute(a, v); } else if(li.hasAttribute(a)) li.removeAttribute(a); }
-    lis.forEach(function(li, i){
-      var want = many && places[i] && (i === 0 || places[i] !== places[i - 1]) ? places[i] : null;
-      flag(li, 'data-sec', !!want, want);
-      // which colour its city gets (1st pink, 2nd green, 3rd orange…)
-      if(places[i] && order.indexOf(places[i]) === -1) order.push(places[i]);
-      flag(li, 'data-city', many, String(Math.max(0, order.indexOf(places[i])) % 3));
+    seq.forEach(function(li, i){
+      var pl = liPlace(li), prevPl = i ? liPlace(seq[i - 1]) : null;
+      flag(li, 'data-ord', true, String(2 * i));
+      flag(li, 'data-allday', isAllDay(li), '');
+      flag(li, 'data-sec', many && !!pl && pl !== prevPl, pl);
+      flag(li, 'data-city', many, String(Math.max(0, cities.indexOf(pl)) % 3));
       flag(li, 'data-sec-first', many && i === 0, '');
-      flag(li, 'data-city-last', many && i === lis.length - 1, '');
+      flag(li, 'data-city-last', many && i === seq.length - 1, '');
     });
   }
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
@@ -13390,8 +13404,11 @@
     // right there, in the city of the activity above it.
     var gapAfter = null;
     if(e.target.matches('.acts')){
-      [].forEach.call(e.target.querySelectorAll(':scope > li:not(.act-span-ghost)'), function(li){ if(li.getBoundingClientRect().bottom <= e.clientY) gapAfter = li; });
-      if(gapAfter && !gapAfter.nextElementSibling) gapAfter = null;
+      // the activity just above the click, and only if there's one below it
+      var best = -Infinity, below = false;
+      [].forEach.call(e.target.querySelectorAll(':scope > li:not(.act-span-ghost)'), function(li){ var r = li.getBoundingClientRect();
+        if(r.bottom <= e.clientY && r.bottom > best){ best = r.bottom; gapAfter = li; } if(r.top >= e.clientY) below = true; });
+      if(!below) gapAfter = null;
     }
     else if(e.target.closest('.acts, .loc, button, a, input, select, [contenteditable="true"], .itemmenu-btn, .dayaddbtn, .daymenu-btn, .banner, .grid.banner-row')) return;
     fabAddInsertAfter = gapAfter;
@@ -13444,6 +13461,7 @@
       else { var after = cell.querySelector(':scope > .acts') || cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead');
         cell.insertBefore(slot, after ? after.nextSibling : null); }
     }
+    if(slot && fabAddInsertAfter && slot.parentNode === fabAddInsertAfter.parentNode){ var so = String((parseInt(fabAddInsertAfter.getAttribute('data-ord'), 10) || 0) + 1); if(slot.getAttribute('data-ord') !== so) slot.setAttribute('data-ord', so); }
     var head = cell.querySelector(':scope > .cellhead'), hr = slot ? { bottom: slot.getBoundingClientRect().top - 6 } : (head ? head.getBoundingClientRect() : cr);
     // A day with more than one city: keep it right of the dashed line,
     // lined up with the activities.
