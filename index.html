@@ -2973,7 +2973,7 @@
       <div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span><span class="fs-col">Paid</span></div>
-        <div class="fs-hint">Ticked people split the cost equally.</div>
+        <div class="fs-hint">Ticked people share the cost: whoever paid less than their part owes the one who paid.</div>
         <div class="fs-list"></div>
         <div class="fs-left"></div>
       </div>
@@ -7811,7 +7811,7 @@
         // already walk li -> its panel -> the plan default in that
         // order, so this reads correctly either way.
         var paidSum = getPaid(li).reduce(function(sum, p){ return sum + p.a; }, 0);
-        header.textContent = 'Ticked people split the cost equally (unless you type a share)  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
+        header.textContent = 'Ticked people share the cost: whoever paid less than their part owes the one who paid  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
         // The equal part shows as the placeholder of every empty share.
         var eff = effectiveShares(li, ownerPanel);
         pop.querySelectorAll('.paysplit-row').forEach(function(r){ var inp = r.querySelector('.paysplit-amount:not(.paysplit-paid)'), k = r.getAttribute('data-key');
