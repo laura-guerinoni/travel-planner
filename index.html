@@ -2838,14 +2838,14 @@
   .acts > li[data-sec]:not(:first-child) { margin-top:40px; }
   /* the dashed line on the left, with the city's dot where its pill is */
   .acts > li[data-city]::after { content:''; position:absolute; left:-17.5px; width:14px; top:-8px; bottom:0; pointer-events:none;
-    background:repeating-linear-gradient(to bottom, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
-  .acts > li[data-city]:last-child::after { bottom:-6px; }
+    background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+  .acts > li[data-city]:last-child::after { bottom:7px; } /* ends level with the last line of the last activity (its 7px padding) */
   .acts > li[data-sec]::after { top:-25px;
     background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center top/14px 14px no-repeat,
-               repeating-linear-gradient(to bottom, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center 14px/2px calc(100% - 14px) no-repeat; }
+               repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center 14px/2px calc(100% - 14px) no-repeat; }
   .acts > li[data-sec]:not(:first-child)::after { top:-48px;
     background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center 23px/14px 14px no-repeat,
-               repeating-linear-gradient(to bottom, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+               repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
   /* the day's cities: same small capitals as the city sections */
   .cell > .loc > .loc-text { font-size:12px !important; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
   /* a pin before the day's city */
