@@ -2777,6 +2777,22 @@
 
   #fabAddPanel .gc-clear { flex:none; width:28px; height:28px; border:none; border-radius:50%; background:none; color:var(--muted); font:inherit; font-size:18px; line-height:1; cursor:pointer; }
   #fabAddPanel .gc-clear:hover { background:var(--bg); color:var(--ink); }
+
+  #dayPickDD { position:fixed; z-index:10000; width:280px; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(30,22,50,.22); padding:12px 12px 10px; }
+  #dayPickDD[hidden] { display:none; }
+  #dayPickDD .dp-head { display:flex; align-items:center; gap:4px; margin:0 2px 8px 6px; }
+  #dayPickDD .dp-title { flex:1; font-weight:800; font-size:14.5px; color:var(--ink); text-transform:capitalize; }
+  #dayPickDD .dp-nav { width:28px; height:28px; border:none; border-radius:50%; background:none; color:var(--ink); font:inherit; font-size:20px; line-height:1; cursor:pointer; }
+  #dayPickDD .dp-nav:hover { background:var(--bg); }
+  #dayPickDD .dp-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; text-align:center; }
+  #dayPickDD .dp-wd { font-size:11px; font-weight:800; color:var(--muted); padding:4px 0; }
+  #dayPickDD .dp-day { width:34px; height:34px; margin:0 auto; border:none; border-radius:50%; background:none; font:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
+  #dayPickDD .dp-day:hover:not(:disabled) { background:var(--bg); }
+  #dayPickDD .dp-day.other { color:var(--muted); }
+  #dayPickDD .dp-day.off { color:#cfc6e2; cursor:default; font-weight:500; }
+  #dayPickDD .dp-day.today:not(.sel) { box-shadow:inset 0 0 0 1.5px var(--line); }
+  #dayPickDD .dp-day.sel { background:var(--primary); color:#fff; font-weight:800; }
+  #fabAddPanel .dp-btn { text-transform:capitalize; }
 </style>
 </head>
 <body>
@@ -7035,7 +7051,9 @@
     var off = i - 0.2;
     var yAt = function(x){ return ay + off * ny + (x - (ax + off * nx)) * dyv / dxv; };
     var apexY = yAt(W / 2), cornerY = yAt(i);
-    var half = function(sign){ var x = W / 2 + sign * (W / 2 - i); return 'M ' + (W / 2) + ' ' + apexY.toFixed(2) + ' L ' + x + ' ' + cornerY.toFixed(2) + ' L ' + x + ' -1'; };
+    // The sides stop i px below the ribbon's top edge (it no longer runs off
+    // the top), the same margin as everywhere else.
+    var half = function(sign){ var x = W / 2 + sign * (W / 2 - i); return 'M ' + (W / 2) + ' ' + apexY.toFixed(2) + ' L ' + x + ' ' + cornerY.toFixed(2) + ' L ' + x + ' ' + (i + 1); };
     var path = half(-1) + ' ' + half(1);
     if(svg.dataset.d !== path){ svg.innerHTML = '<path d="' + half(-1) + '"/><path d="' + half(1) + '"/>'; svg.dataset.d = path; }
   }
@@ -12606,7 +12624,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13130,6 +13148,55 @@
     var panelEl = document.getElementById('fabAddPanel');
     if(panelEl) new MutationObserver(function(){ if(!panelEl.classList.contains('show') && !dd.hidden) close(); }).observe(panelEl, { attributes:true, attributeFilter:['class'] });
     // Keep the button in step whenever the list or value changes.
+    new MutationObserver(label).observe(sel, { childList:true });
+    sel.addEventListener('change', label);
+    setInterval(function(){ if(dd.hidden) label(); }, 600);
+    label();
+  })();
+  // Day: a small month calendar (like Google's date picker) instead of a
+  // long list. The real <select> keeps the value; only the alternative's
+  // own days can be picked, the rest are faded.
+  (function initDayPicker(){
+    var sel = document.getElementById('fabAddDaySelect'); if(!sel) return;
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fabadd-select tc-btn dp-btn';
+    sel.parentNode.insertBefore(btn, sel); sel.classList.add('tc-native');
+    var dd = document.createElement('div'); dd.id = 'dayPickDD'; dd.hidden = true; document.body.appendChild(dd);
+    var view = null; // {y, m} shown month
+    function panel(){ return document.querySelector('.panel.on'); }
+    function dayInfo(v){ var p = panel(); if(!p) return null; var r = realDate(p, parseInt(v, 10)); return new Date(r.year, r.month - 1, r.day); }
+    function label(){
+      var d = sel.value ? dayInfo(sel.value) : null;
+      btn.textContent = d ? d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' }) : '';
+    }
+    function draw(){
+      var p = panel(); if(!p) return;
+      var allowed = {}; [].forEach.call(sel.options, function(o){ var d = dayInfo(o.value); if(d) allowed[d.toDateString()] = o.value; });
+      var cur = dayInfo(sel.value), today = new Date().toDateString();
+      var first = new Date(view.y, view.m, 1), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+      var html = '<div class="dp-head"><span class="dp-title">' + first.toLocaleDateString(undefined, { month:'long', year:'numeric' }) + '</span>' +
+        '<button type="button" class="dp-nav" data-d="-1" aria-label="Previous month">‹</button><button type="button" class="dp-nav" data-d="1" aria-label="Next month">›</button></div><div class="dp-grid">';
+      WD_ABBR.forEach(function(w){ html += '<span class="dp-wd">' + w.charAt(0) + '</span>'; });
+      for(var i = 0; i < 42; i++){
+        var d = new Date(start); d.setDate(start.getDate() + i);
+        var key = d.toDateString(), v = allowed[key];
+        var cls = 'dp-day' + (d.getMonth() !== view.m ? ' other' : '') + (v ? '' : ' off') + (cur && key === cur.toDateString() ? ' sel' : '') + (key === today ? ' today' : '');
+        html += '<button type="button" class="' + cls + '"' + (v ? ' data-v="' + v + '"' : ' disabled') + '>' + d.getDate() + '</button>';
+      }
+      dd.innerHTML = html + '</div>';
+    }
+    function place(){ var b = btn.getBoundingClientRect(); dd.style.left = b.left + 'px'; dd.style.top = (b.bottom + 4) + 'px'; }
+    function open(){ var d = dayInfo(sel.value) || new Date(); view = { y:d.getFullYear(), m:d.getMonth() }; draw(); dd.hidden = false; btn.classList.add('open'); place();
+      (function follow(){ if(dd.hidden) return; place(); requestAnimationFrame(follow); })(); }
+    function close(){ dd.hidden = true; btn.classList.remove('open'); }
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if(dd.hidden) open(); else close(); });
+    dd.addEventListener('mousedown', function(e){
+      e.preventDefault();
+      var n = e.target.closest('.dp-nav'); if(n){ view.m += +n.dataset.d; if(view.m < 0){ view.m = 11; view.y--; } if(view.m > 11){ view.m = 0; view.y++; } draw(); return; }
+      var d = e.target.closest('.dp-day[data-v]'); if(d){ sel.value = d.dataset.v; sel.dispatchEvent(new Event('change', { bubbles:true })); label(); close(); }
+    });
+    document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
+    var panelEl = document.getElementById('fabAddPanel');
+    if(panelEl) new MutationObserver(function(){ if(!panelEl.classList.contains('show') && !dd.hidden) close(); }).observe(panelEl, { attributes:true, attributeFilter:['class'] });
     new MutationObserver(label).observe(sel, { childList:true });
     sel.addEventListener('change', label);
     setInterval(function(){ if(dd.hidden) label(); }, 600);
