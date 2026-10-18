@@ -2684,6 +2684,10 @@
   .fs-row.off .fs-amt { opacity:1; }
   .fs-amt::-webkit-outer-spin-button, .fs-amt::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
   .fs-amt { -moz-appearance:textfield; }
+
+  @media screen and (min-width: 721px) {
+    #fabAddPanel .map-inner { max-height:calc(100vh - 24px); overflow-y:auto; }
+  }
 </style>
 </head>
 <body>
