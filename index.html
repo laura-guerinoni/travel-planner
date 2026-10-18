@@ -12950,6 +12950,11 @@
     var t = document.getElementById('fabAddTitleInput'), txt = (t && t.value.trim()) || 'New activity';
     if(ghost.textContent !== txt) ghost.textContent = txt;
     if(ghost.style.display !== 'block') ghost.style.display = 'block';
+    // Tucked under the pinned weekday row (and the top bar) when its day
+    // scrolls up behind them, like the day itself.
+    var heads = document.querySelector('.panel.on > .grid.heads'), limit = heads ? heads.getBoundingClientRect().bottom : 0;
+    var gTop = hr.bottom + 6, cut = Math.max(0, limit - gTop), clip = cut ? 'inset(' + cut + 'px 0 0 0)' : '';
+    if(ghost.style.clipPath !== clip) ghost.style.clipPath = clip;
   }
   (function(){
     var panel = document.getElementById('fabAddPanel');
