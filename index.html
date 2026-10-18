@@ -3642,8 +3642,8 @@
       pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
       pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', default_alt_name: 'Alternative', default_plan_name: 'New plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Join another plan', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Split into its own plan', pillmenu_rename_plan: 'Name this plan', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
       pillmenu_no_access_yet: 'No one has access yet',
-      pillmenu_everyone_sees: 'Everyone can currently see this month.',
-      pillmenu_only_checked_see: 'Only checked members can see this month.',
+      pillmenu_everyone_sees: 'Everyone can see this plan.',
+      pillmenu_only_checked_see: 'Only ticked people can see this plan.',
       pillmenu_delete_confirm_title: 'Delete this alternative?',
       pillmenu_delete_confirm_pre: 'This will delete “', pillmenu_delete_confirm_post: '” and everything in it. This can’t be undone.',
       paysplit_participated: 'Charge this person for this activity',
@@ -3694,8 +3694,8 @@
       pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
       pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', default_alt_name: 'Alternativa', default_plan_name: 'Nuovo piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Unisci a un altro piano', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Separa in un piano a sé', pillmenu_rename_plan: 'Dai un nome al piano', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
       pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
-      pillmenu_everyone_sees: 'Tutti possono attualmente vedere questo mese.',
-      pillmenu_only_checked_see: 'Solo i membri selezionati possono vedere questo mese.',
+      pillmenu_everyone_sees: 'Tutti possono vedere questo piano.',
+      pillmenu_only_checked_see: 'Solo le persone selezionate possono vedere questo piano.',
       pillmenu_delete_confirm_title: 'Eliminare questa alternativa?',
       pillmenu_delete_confirm_pre: 'Questo eliminerà “', pillmenu_delete_confirm_post: '” e tutto il suo contenuto. Non può essere annullato.',
       paysplit_participated: 'Addebita questa persona per questa attività',
@@ -3746,8 +3746,8 @@
       pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
       pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', default_alt_name: 'Alternativa', default_plan_name: 'Nuevo plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Unir a otro plan', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Separar en un plan propio', pillmenu_rename_plan: 'Poner nombre al plan', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
       pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
-      pillmenu_everyone_sees: 'Todos pueden ver este mes actualmente.',
-      pillmenu_only_checked_see: 'Solo los miembros marcados pueden ver este mes.',
+      pillmenu_everyone_sees: 'Todos pueden ver este plan.',
+      pillmenu_only_checked_see: 'Solo las personas marcadas pueden ver este plan.',
       pillmenu_delete_confirm_title: '¿Eliminar esta alternativa?',
       pillmenu_delete_confirm_pre: 'Esto eliminará “', pillmenu_delete_confirm_post: '” y todo su contenido. No se puede deshacer.',
       paysplit_participated: 'Cobrar a esta persona por esta actividad',
@@ -7201,10 +7201,10 @@
     // In the top row, level with the middle of the tickets and the +.
     var mid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tab-mid')) || 40;
     head.style.top = (mid - 15) + 'px';
-    // The share icon's right edge lines up with the star ribbon's right
-    // edge (the button has 8px of padding around its 16px icon).
-    var rib = document.querySelector('.page-bookmark'), ribR = rib && rib.offsetWidth ? rib.getBoundingClientRect().right : r.right + 18;
-    head.style.left = (ribR + 8) + 'px';
+    // The share icon's right edge lines up with the edge of the last sheet
+    // in the stack behind the page (8px out from the page), the button
+    // having 8px of padding around its 16px icon.
+    head.style.left = (r.right + 8 + 8) + 'px';
   }
   (function(){
     var orig = renderPageBookmark;
