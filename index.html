@@ -2826,6 +2826,9 @@
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
   .day-ghost-slot { height:34px; margin-top:6px; }
+  /* a day with more than one city: a small city heading over its activities */
+  .acts > li[data-sec]::before { content:attr(data-sec); display:block; margin:6px 0 6px -2px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .acts > li[data-sec]:not(:first-child) { margin-top:10px; padding-top:8px; border-top:1px dashed var(--line); }
   /* a pin before the day's city */
   .cell > .loc::before { content:''; flex:none; align-self:center; width:15px; height:15px; margin-right:-3px; background:var(--muted);
     -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E") center/contain no-repeat;
@@ -13124,34 +13127,59 @@
   // photo) sit as small chips under the main fields.
   var fabAddEditLi = null, fabAddPendingPick = null;
   // ---- Place: the day's heading, set from the card ----
-  // The day's first activity starts blank (no "New location" stand-in:
-  // left empty, the day has no heading). From the second one on it's
-  // filled in with the day's place; a different place makes the heading
-  // "A → B". Editing an activity sets the heading to what's typed.
+  // Each activity has its city (data-place); the day's heading lists the
+  // day's cities in order, "Milano → Verona". The day's first activity
+  // starts blank (left empty, the day has no heading — never the old
+  // "New location" stand-in); later ones start in the day's last city.
+  // With more than one city, the day's activities are grouped under a
+  // small heading per city (see renderPlaceSections).
   var PLACE_STANDIN = 'New location', placeTouched = false;
   function placeOfCell(c){ var l = c && (c.querySelector(':scope > .loc > .loc-text') || c.querySelector(':scope > .loc')); var t = l ? l.textContent.trim() : ''; return t === PLACE_STANDIN ? '' : t; }
+  function citiesOf(text){ return text ? text.split('→').map(function(x){ return x.trim(); }).filter(Boolean) : []; }
+  function liPlace(li){ var p = li.getAttribute('data-place'); if(p) return p; var c = citiesOf(placeOfCell(li.closest('.cell'))); return c[0] || ''; }
   function cellOfDay(day){ var p = document.querySelector('.panel.on'), hit = null; if(p) p.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) hit = c; }); return hit; }
   function suggestPlace(){
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
-    var own = placeOfCell(cellOfDay(fabAddDaySelect.value));
-    inp.value = own;
+    var cell = cellOfDay(fabAddDaySelect.value);
+    if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
+    var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || '';
   }
-  function applyPlace(cell){
+  function dayActs(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)')); }
+  // li: the activity just added/edited (in its final day).
+  function applyPlace(cell, li){
     var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
-    var v = inp.value.trim(), base = placeOfCell(cell), loc = cell.querySelector(':scope > .loc'), final;
-    // Editing the day's only activity: what's typed is the place.
-    var others = [].filter.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)'), function(x){ return x !== fabAddEditLi; }).length;
-    if(fabAddEditLi && !others) final = v;
-    else if(!v) final = fabAddEditLi ? '' : base;
-    else if(!base || v.indexOf(base) !== -1) final = v;          // typed on from the day's place
-    else if(base.indexOf(v) !== -1) final = fabAddEditLi ? v : base; // a place the day already has
-    else final = base + ' → ' + v;                                     // a new city that day: A → B
+    var v = inp.value.trim(), cities = citiesOf(placeOfCell(cell)), loc = cell.querySelector(':scope > .loc');
+    var old = li ? li.getAttribute('data-place') || (cities[0] || '') : '';
+    var others = li ? dayActs(cell).filter(function(x){ return x !== li; }) : [];
+    if(li){ if(v) li.setAttribute('data-place', v); else li.removeAttribute('data-place'); }
+    if(!others.length) cities = v ? citiesOf(v) : [];   // the day's only activity: its place is the day's
+    else if(v && cities.indexOf(v) === -1){
+      // Renaming the one activity that was in `old`: swap it in place;
+      // otherwise a new city that day (A → B).
+      var oldStill = others.some(function(x){ return liPlace(x) === old; });
+      var at = cities.indexOf(old);
+      if(fabAddEditLi && old && at !== -1 && !oldStill) cities[at] = v; else cities.push(v);
+    }
+    var final = cities.join(' → ');
     if(final){
       if(!loc){ loc = buildLocEl(final); cell.insertBefore(loc, cell.querySelector(':scope > .acts') || null); }
       var lt = loc.querySelector('.loc-text') || loc; if(lt.textContent.trim() !== final) lt.textContent = final;
       cell.classList.add('active');
     } else if(loc) loc.remove();
+    renderPlaceSections(cell);
   }
+  // A day with more than one city: a small city heading over each run of
+  // its activities. data-sec is display only (not saved, not watched).
+  function renderPlaceSections(cell){
+    var lis = dayActs(cell), places = lis.map(liPlace);
+    var many = places.filter(function(p, i){ return p && places.indexOf(p) === i; }).length > 1;
+    lis.forEach(function(li, i){
+      var want = many && places[i] && (i === 0 || places[i] !== places[i - 1]) ? places[i] : null;
+      if(want){ if(li.getAttribute('data-sec') !== want) li.setAttribute('data-sec', want); }
+      else if(li.hasAttribute('data-sec')) li.removeAttribute('data-sec');
+    });
+  }
+  setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
   (function(){
     var inp = document.getElementById('fabAddPlace'); if(!inp) return;
     inp.addEventListener('input', function(){ placeTouched = true; });
@@ -13774,7 +13802,7 @@
       }
       applyAddPayment(newLi);
       applyExtras(newLi);
-      applyPlace(cell);
+      applyPlace(cell, newLi);
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
@@ -13827,7 +13855,7 @@
     var target = null;
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) target = c; });
     if(target && target !== oldCell){ ensureActsList(target).appendChild(li); target.classList.add('active'); recomputeCell(target); }
-    applyPlace(target || oldCell);
+    applyPlace(target || oldCell, li);
     reorderActivityByStartTime(li);
     if(oldCell) recomputeCell(oldCell);
     renderActivitySpans(panel); renderPaymentOverview();
@@ -14264,6 +14292,7 @@
     var paid = getPaid(li);
     if(paid.length) a.pd = paid;
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
+    if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
     var currency = li.getAttribute('data-currency');
     if(currency) a.cur = currency;
     return a;
@@ -14422,6 +14451,7 @@
     if(a.pyx && a.pyx.length) li.setAttribute('data-pay-excluded', JSON.stringify(a.pyx));
     if(a.pd && a.pd.length) li.setAttribute('data-paid', JSON.stringify(a.pd));
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
+    if(a.pl) li.setAttribute('data-place', a.pl);
     if(a.cur) li.setAttribute('data-currency', a.cur);
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
@@ -14698,7 +14728,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
