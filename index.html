@@ -13411,7 +13411,11 @@
         cell.insertBefore(slot, after ? after.nextSibling : null); }
     }
     var head = cell.querySelector(':scope > .cellhead'), hr = slot ? { bottom: slot.getBoundingClientRect().top - 6 } : (head ? head.getBoundingClientRect() : cr);
-    var gl = (cr.left + 8) + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.width - 16) + 'px';
+    // A day with more than one city: keep it right of the dashed line,
+    // lined up with the activities.
+    var cityLi = cell.querySelector(':scope > .acts > li[data-city]'), gx = cr.left + 8;
+    if(cityLi) gx = cityLi.getBoundingClientRect().left;
+    var gl = gx + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.right - 8 - gx) + 'px';
     if(ghost.style.left !== gl) ghost.style.left = gl;
     if(ghost.style.top !== gt) ghost.style.top = gt;
     if(ghost.style.width !== gw) ghost.style.width = gw;
