@@ -2701,6 +2701,31 @@
   .fabadd-split.own .fs-in { visibility:hidden; width:0; margin-right:-8px; }
   .fabadd-split.own .fs-row.off .fs-name, .fabadd-split.own .fs-row.off .fs-face { opacity:1; }
   .fs-hint { font-size:12px !important; }
+
+  /* Compact, Google-Calendar-like Add activity */
+  #fabAddPanel .gc-title { border:none !important; border-bottom:2px solid var(--line) !important; border-radius:0 !important; height:44px !important;
+    font-size:20px !important; font-weight:700; padding:0 2px !important; margin:0 0 14px !important; background:transparent !important; box-shadow:none !important; }
+  #fabAddPanel .gc-title:focus { outline:none; border-bottom-color:var(--primary) !important; }
+  #fabAddPanel .gc-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+  #fabAddPanel .gc-row > .gc-ic { width:20px; height:20px; flex:none; color:var(--muted); }
+  #fabAddPanel .gc-row > .fabadd-select, #fabAddPanel .gc-row > .fabadd-time-row, #fabAddPanel .gc-row > .fabadd-amount-row { flex:1; min-width:0; margin:0 !important; }
+  #fabAddPanel .gc-row .fabadd-select { height:38px !important; margin:0 !important; font-size:14px !important; }
+  #fabAddPanel .fabadd-time-row { display:flex; align-items:center; gap:6px; }
+  #fabAddPanel .fabadd-time-row .fabadd-select { flex:1; min-width:0; }
+  #fabAddPanel .fabadd-split { margin:4px 0 12px 32px; padding:8px 10px; }
+  #fabAddPanel .fs-mode { margin:0 0 4px; }
+  #fabAddPanel .fs-mode button { padding:5px 8px; font-size:12px; }
+  #fabAddPanel .fs-hint { margin:0 0 4px; }
+  #fabAddPanel .fs-head { display:none; }
+  #fabAddPanel .fs-row { padding:2px 0; }
+  #fabAddPanel .fs-amt { height:30px; width:84px; }
+  #fabAddPanel .fs-col { width:84px; }
+  #fabAddPanel .map-header { margin-bottom:6px; }
+  #fabAddPanel .map-header h2 { font-size:15px !important; color:var(--muted); font-weight:800; letter-spacing:.04em; }
+  #fabAddPanel .modal-primary-btn { height:40px !important; }
+
+  #fabAddPanel .fabadd-split { position:relative; }
+  #fabAddPanel .fabadd-split::before { content:''; position:absolute; left:-32px; top:10px; width:20px; height:20px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239b8fc0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='10' cy='7' r='4'/%3E%3Cpath d='M21 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E") no-repeat center / 20px 20px; }
 </style>
 </head>
 <body>
@@ -2970,20 +2995,17 @@
         <h2 data-i18n="fabadd_title">Add activity</h2>
         <button type="button" id="fabAddCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
       </div>
-      <label for="fabAddTitleInput" class="fabadd-label">What</label>
-      <input type="text" id="fabAddTitleInput" class="fabadd-select" placeholder="e.g. Train to Budapest" />
-      <label for="fabAddDaySelect" class="fabadd-label" data-i18n="fabadd_day_label">Day</label>
-      <select id="fabAddDaySelect" class="fabadd-select"></select>
-      <label for="fabAddTagSelect" class="fabadd-label" data-i18n="fabadd_type_label">Type</label>
-      <select id="fabAddTagSelect" class="fabadd-select"></select>
-      <label for="fabAddTimeInput" class="fabadd-label" data-i18n="fabadd_time_label">Time</label>
-      <div class="fabadd-time-row">
-        <input type="time" id="fabAddTimeInput" class="fabadd-select" />
+      <!-- Laid out like Google Calendar's quick add: the name as a big
+           underlined field, then one compact row per detail with an icon. -->
+      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name, e.g. Train to Budapest" aria-label="What" />
+      <div class="gc-row" title="Day"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select></div>
+      <div class="gc-row" title="Type"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
+      <div class="gc-row" title="Time"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div class="fabadd-time-row">
+        <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
-        <input type="time" id="fabAddTimeEndInput" class="fabadd-select" title="End time (optional)" />
-      </div>
-      <label for="fabAddAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
-      <div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div>
+        <input type="time" id="fabAddTimeEndInput" class="fabadd-select" title="End time (optional)" aria-label="End time" />
+      </div></div>
+      <div class="gc-row" title="Amount"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
         <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Shared</button><button type="button" data-mode="own">Each their own</button></div>
