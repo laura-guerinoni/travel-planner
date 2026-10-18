@@ -2071,7 +2071,9 @@
     .chip { font-size:11.5px; padding:3px 9px 3px 6px; }
     .dayaddbtn, .daymenu-btn { flex-basis:26px; width:26px; height:26px; border-radius:8px; }
     .dayaddbtn svg, .daymenu-btn svg { width:15px; height:15px; }
-    .dayaddbtn:hover, .daymenu-btn:hover { background:var(--bg); }
+    /* Same as the other + buttons: the glyph in ink, a soft tint on hover. */
+    .dayaddbtn, .daymenu-btn { color:var(--ink) !important; font-size:18px; font-weight:600; line-height:1; opacity:.7; }
+    .dayaddbtn:hover, .daymenu-btn:hover { background:rgba(61,53,104,.08) !important; color:var(--ink) !important; opacity:1; }
   }
   /* ---- Year → Plan → Alternatives (DRAFT) ----
      An alternative's tab carries its own dates ("12 – 25 Oct") between its
@@ -10006,7 +10008,8 @@
     var dayAddBtn = document.createElement('button');
     dayAddBtn.type = 'button'; dayAddBtn.className = 'dayaddbtn jsctl';
     dayAddBtn.textContent = '+';
-    dayAddBtn.title = t('add_activity'); dayAddBtn.setAttribute('aria-label', t('add_activity'));
+    // No browser tooltip (it's slow and grey); the + itself is enough.
+    dayAddBtn.setAttribute('aria-label', t('add_activity'));
 
     function refreshClear(){
       dayMenuBtn.classList.toggle('has-content', cellHasContent(cell));
