@@ -2668,6 +2668,16 @@
   #payPill .pp-debt { color:var(--ink); gap:3px; }
   #payPill .pp-arrow { color:var(--muted); font-size:12px; margin:0 1px; }
   .paysplit-row .paysplit-amount::placeholder { color:var(--muted); font-style:italic; }
+
+  #payPill { position:relative; }
+  #payPill .pp-debts { display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:260px; padding:10px 12px; border-radius:14px; background:#fff;
+    box-shadow:0 12px 30px rgba(40,25,60,.22); flex-direction:column; gap:6px; z-index:6; white-space:nowrap; }
+  #payPill:hover .pp-debts { display:flex; }
+  #payPill:hover [data-tip]:hover::after { display:none; }
+  #payPill .pd-title { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #payPill .pd-row { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; }
+  #payPill .pd-txt b { font-weight:800; }
+  #payPill .pd-amt { margin-left:auto; padding-left:12px; font-weight:800; }
 </style>
 </head>
 <body>
@@ -6401,14 +6411,25 @@
         var esc2 = function(t){ return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
         var faceOf = function(k){ var row = src.querySelector(':scope > li[data-key="' + k.replace(/"/g, '') + '"]'); var f = row && row.querySelector('.participant-avatar'); return f ? f.innerHTML : ''; };
         var nameOf = function(k){ var row = src.querySelector(':scope > li[data-key="' + k.replace(/"/g, '') + '"]'); return row ? ((row.querySelector('.payov-person span:last-child') || {}).textContent || k) : k.split(',')[0]; };
-        var debts = computeDebts(bal);
-        debts.forEach(function(d){
-          html += '<span class="pp-item pp-debt" data-tip="' + esc2(nameOf(d.from) + ' owes ' + nameOf(d.to) + ' ' + formatMoney(d.a, openPanel)) + '"><span class="pp-face">' + faceOf(d.from) + '</span><span class="pp-arrow">→</span><span class="pp-face">' + faceOf(d.to) + '</span>' + formatMoney(d.a, openPanel) + '</span>';
+        // First level: what each person has paid (and the total). Second
+        // level, on hover: who owes whom.
+        var keys = {}; Object.keys(bal.share).concat(Object.keys(bal.paid)).forEach(function(k){ keys[k] = 1; });
+        var order = [].slice.call(src.querySelectorAll(':scope > li[data-key]')).map(function(li){ return li.getAttribute('data-key'); }).filter(function(k){ return keys[k]; });
+        Object.keys(keys).forEach(function(k){ if(order.indexOf(k) === -1) order.push(k); });
+        var totPaid = 0;
+        order.forEach(function(k){
+          var pd = bal.paid[k] || 0, sh = bal.share[k] || 0; totPaid += pd;
+          html += '<span class="pp-item" data-tip="' + esc2(nameOf(k) + ' paid ' + formatMoney(pd, openPanel) + ' · share ' + formatMoney(sh, openPanel)) + '"><span class="pp-face">' + faceOf(k) + '</span>' + formatMoney(pd, openPanel) + '</span>';
         });
-        var totShare = 0, totPaid = 0; Object.keys(bal.share).forEach(function(k){ totShare += bal.share[k]; }); Object.keys(bal.paid).forEach(function(k){ totPaid += bal.paid[k]; });
+        var totShare = 0; Object.keys(bal.share).forEach(function(k){ totShare += bal.share[k]; });
         var unpaid = Math.round((Math.max(0, totShare - totPaid) + bal.unpaid) * 100) / 100;
-        if(unpaid >= .01) html += (debts.length ? '<span class="pp-sep"></span>' : '') + '<span class="pp-item pp-un" data-tip="' + esc2('Nobody has paid this part yet: ' + formatMoney(unpaid, openPanel)) + '">Unpaid ' + formatMoney(unpaid, openPanel) + '</span>';
-        html = '<span class="pp-lab" data-tip="Who owes whom, from what each paid and their share">' + (debts.length || unpaid >= .01 ? 'Owes' : 'All settled ✓') + '</span>' + html;
+        if(unpaid >= .01) html += '<span class="pp-item pp-un" data-tip="' + esc2('Nobody has paid this part yet: ' + formatMoney(unpaid, openPanel)) + '">? ' + formatMoney(unpaid, openPanel) + '</span>';
+        html += '<span class="pp-sep"></span><span class="pp-tot" data-tip="Total of this alternative">' + ((document.querySelector('.pill[data-opt].on .pill-price') || {}).textContent || '').trim() + '</span>';
+        var debts = computeDebts(bal), dl = '';
+        debts.forEach(function(d){
+          dl += '<div class="pd-row"><span class="pp-face">' + faceOf(d.from) + '</span><span class="pd-txt"><b>' + esc2(nameOf(d.from)) + '</b> owes <b>' + esc2(nameOf(d.to)) + '</b></span><span class="pp-face">' + faceOf(d.to) + '</span><span class="pd-amt">' + formatMoney(d.a, openPanel) + '</span></div>';
+        });
+        html = '<span class="pp-lab">Paid</span>' + html + '<span class="pp-debts"><span class="pd-title">' + (debts.length ? 'Who owes whom' : 'All settled ✓') + '</span>' + dl + '</span>';
         if(pill.dataset.h !== html){ pill.innerHTML = html; pill.dataset.h = html; }
         pill.style.display = '';
         return;
