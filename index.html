@@ -3203,9 +3203,9 @@
       </div>
       <!-- Laid out like Google Calendar's quick add: the name as a big
            underlined field, then one compact row per detail with an icon. -->
-      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name, e.g. Train to Budapest" aria-label="What" />
+      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" />
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select></div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Where are you? e.g. Kraków" aria-label="Place" autocomplete="off" /></div>
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Where are you?" aria-label="Place" autocomplete="off" /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
       <div id="fabAddNewTag" class="gc-newtag" hidden>
         <input type="text" class="fabadd-select nt-icon" maxlength="4" placeholder="🎟️" aria-label="Emoji">
@@ -11335,19 +11335,10 @@
       // from its own "+".)
       if(mine.length > 1){
         planRow(ICON_SPLIT, t('pillmenu_separate_plan'), function(){ separateFromPlan(panel); });
-        planRow(ICON_EDIT_NAME, t('pillmenu_rename_plan'), function(){ openRenamePlan(pill, panel); });
+        // (naming the plan lives in the plan's own menu, not an alternative's)
       }
     })();
-    var accessRow = document.createElement('div');
-    accessRow.className = 'itemmenu-row';
-    accessRow.innerHTML = '<span class="itemmenu-icon">' + SHARE_ICON + '</span>' + t('pillmenu_who_can_see');
-    accessRow.addEventListener('click', function(e){
-      e.stopPropagation();
-      closePop();
-      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
-      if(panel) openOptionMembersPicker(panel, pill);
-    });
-    pop.appendChild(accessRow);
+    // (sharing is per plan — the share button on the page — not per alternative)
     var printRow = document.createElement('div');
     printRow.className = 'itemmenu-row';
     printRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PRINT + '</span>' + t('pillmenu_print');
