@@ -13230,6 +13230,13 @@
     var ghost = document.getElementById('dayGhost');
     if(!ghost){ ghost = document.createElement('div'); ghost.id = 'dayGhost'; document.body.appendChild(ghost); }
     var head = cell.querySelector(':scope > .cellhead'), hr = head ? head.getBoundingClientRect() : cr;
+    // Below whatever the day already has (the new activity goes last).
+    var below = hr.bottom;
+    [].forEach.call(cell.children, function(ch){
+      var r = ch.getBoundingClientRect(), pos = getComputedStyle(ch).position;
+      if(r.height > 0 && pos !== 'absolute' && pos !== 'fixed') below = Math.max(below, r.bottom);
+    });
+    hr = { bottom: below };
     var gl = (cr.left + 8) + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.width - 16) + 'px';
     if(ghost.style.left !== gl) ghost.style.left = gl;
     if(ghost.style.top !== gt) ghost.style.top = gt;
