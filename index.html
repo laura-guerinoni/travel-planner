@@ -2837,19 +2837,23 @@
     line-height:16px; font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
     color:var(--muted); }
   .acts > li[data-sec] { margin-top:32px; }
-  .acts > li[data-sec]:not(:first-child) { margin-top:40px; }
+  .acts > li[data-sec]:not([data-sec-first]) { margin-top:40px; }
   /* the dashed line on the left, with the city's dot where its pill is */
   .acts > li[data-city]::after { content:''; position:absolute; left:-17.5px; width:14px; top:-8px; bottom:0; pointer-events:none;
     background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+  /* all-day activities (a Stay): first in the day, apart from the timed
+     ones and their route — a soft filled block */
+  .acts > li[data-allday] { order:-1; background:var(--bg); border-radius:10px; }
+  .acts > li[data-allday] + li:not([data-allday]) { margin-top:4px; }
   /* the placeholder slot between two cities keeps the line going */
   .acts:has(> li[data-city]) > .day-ghost-slot { position:relative; margin-left:24px; }
   .acts:has(> li[data-city]) > .day-ghost-slot::after { content:''; position:absolute; left:-17.5px; width:14px; top:-16px; bottom:0; pointer-events:none;
     background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
-  .acts > li[data-city]:last-child::after { bottom:7px; } /* ends level with the last line of the last activity (its 7px padding) */
+  .acts > li[data-city-last]::after { bottom:7px; } /* ends level with the last line of the last activity (its 7px padding) */
   .acts > li[data-sec]::after { top:-25px;
     background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center top/14px 14px no-repeat,
                repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center 14px/2px calc(100% - 14px) no-repeat; }
-  .acts > li[data-sec]:not(:first-child)::after { top:-48px;
+  .acts > li[data-sec]:not([data-sec-first])::after { top:-48px;
     background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center 23px/14px 14px no-repeat,
                repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
   /* the day's cities: same small capitals as the city sections */
@@ -13200,15 +13204,15 @@
     renderPlaceSections(cell);
   }
   // ---- All-day activities (a Stay): no time; they sit at the top of the
-  // day — or of their city, on a day with more than one — before the
-  // timed ones, like all-day events in a calendar. ----
+  // day, above the timed ones and apart from them, like all-day events in
+  // a calendar. ----
   function isAllDayTag(tg){ return !!tg && /^(stay)$/i.test(String(tg.name || '').trim()); }
   function isAllDay(li){ var c = li && li.querySelector('.chip'); return !!c && /^(stay)$/i.test((c.getAttribute('data-name') || '').trim()); }
   function placeAllDay(li){
     if(!isAllDay(li)) return;
     var acts = li.parentElement; if(!acts) return;
-    var p = liPlace(li), prev = li.previousElementSibling;
-    while(prev && prev.tagName === 'LI' && !prev.classList.contains('act-span-ghost') && !isAllDay(prev) && liPlace(prev) === p){
+    var prev = li.previousElementSibling;
+    while(prev && prev.tagName === 'LI' && !prev.classList.contains('act-span-ghost') && !isAllDay(prev)){
       acts.insertBefore(li, prev); prev = li.previousElementSibling;
     }
   }
@@ -13222,18 +13226,23 @@
   // A day with more than one city: a small city heading over each run of
   // its activities. data-sec is display only (not saved, not watched).
   function renderPlaceSections(cell){
-    var lis = dayActs(cell), places = lis.map(liPlace);
+    var all = dayActs(cell);
+    // all-day ones (a Stay) sit apart at the top (CSS order), outside the route
+    all.forEach(function(li){ var ad = isAllDay(li);
+      if(ad){ if(!li.hasAttribute('data-allday')) li.setAttribute('data-allday', ''); ['data-sec', 'data-city', 'data-sec-first', 'data-city-last'].forEach(function(a){ if(li.hasAttribute(a)) li.removeAttribute(a); }); }
+      else if(li.hasAttribute('data-allday')) li.removeAttribute('data-allday'); });
+    var lis = all.filter(function(li){ return !isAllDay(li); }), places = lis.map(liPlace);
     var many = places.filter(function(p, i){ return p && places.indexOf(p) === i; }).length > 1;
     var order = [];
+    function flag(li, a, on, v){ if(on){ if(li.getAttribute(a) !== v) li.setAttribute(a, v); } else if(li.hasAttribute(a)) li.removeAttribute(a); }
     lis.forEach(function(li, i){
       var want = many && places[i] && (i === 0 || places[i] !== places[i - 1]) ? places[i] : null;
-      if(want){ if(li.getAttribute('data-sec') !== want) li.setAttribute('data-sec', want); }
-      else if(li.hasAttribute('data-sec')) li.removeAttribute('data-sec');
+      flag(li, 'data-sec', !!want, want);
       // which colour its city gets (1st pink, 2nd green, 3rd orange…)
       if(places[i] && order.indexOf(places[i]) === -1) order.push(places[i]);
-      var ci = many ? String(Math.max(0, order.indexOf(places[i])) % 3) : null;
-      if(ci !== null){ if(li.getAttribute('data-city') !== ci) li.setAttribute('data-city', ci); }
-      else if(li.hasAttribute('data-city')) li.removeAttribute('data-city');
+      flag(li, 'data-city', many, String(Math.max(0, order.indexOf(places[i])) % 3));
+      flag(li, 'data-sec-first', many && i === 0, '');
+      flag(li, 'data-city-last', many && i === lis.length - 1, '');
     });
   }
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
