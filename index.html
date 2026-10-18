@@ -2861,6 +2861,18 @@
     .grid.heads.stuck::after { right:-1px; -webkit-mask:radial-gradient(circle 15px at 0 100%, transparent 14px, #000 14.5px); mask:radial-gradient(circle 15px at 0 100%, transparent 14px, #000 14.5px); }
     .grid.heads.stuck { isolation:auto; }
   }
+
+  /* option 5: two columns, Share and Paid */
+  .fs-row { gap:8px; }
+  .fs-row .fs-sh, .fs-row .fs-amt { width:76px !important; flex:none; height:30px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 8px; font:inherit; font-size:14px; color:var(--ink); background:#fff; text-align:right; -moz-appearance:textfield; }
+  .fs-row .fs-sh::placeholder { color:var(--muted); font-style:italic; }
+  .fs-row .fs-sh::-webkit-outer-spin-button, .fs-row .fs-sh::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .fs-colrow { gap:8px; }
+  .fs-colrow .fs-col { width:76px !important; text-align:center; }
+  .fabadd-split.own .fs-sh, .fabadd-split.own .fs-col-sh { visibility:hidden; }
+  .fs-left { text-align:left !important; display:flex; flex-direction:column; gap:2px; margin-top:6px !important; padding-top:6px; border-top:1px dashed var(--line); font-weight:700 !important; }
+  .fs-left b { color:var(--ink); }
+  .fs-left .ok { color:#2f9e74; } .fs-left .bad { color:#d6455d; }
 </style>
 </head>
 <body>
@@ -3149,9 +3161,8 @@
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
-        <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Shared</button><button type="button" data-mode="own">Each their own</button></div>
-        <div class="fs-hint">Split among ticked · they owe whoever paid</div>
-        <div class="fs-colrow"><span class="fs-col">Paid</span></div>
+        <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Split the bill</button><button type="button" data-mode="own">Each pays their own</button></div>
+        <div class="fs-colrow"><span class="fs-col fs-col-sh">Share</span><span class="fs-col">Paid</span></div>
         <div class="fs-list"></div>
         <div class="fs-left"></div>
       </div>
@@ -8079,7 +8090,7 @@
         // already walk li -> its panel -> the plan default in that
         // order, so this reads correctly either way.
         var paidSum = getPaid(li).reduce(function(sum, p){ return sum + p.a; }, 0);
-        header.textContent = (li.getAttribute('data-pay-mode') === 'own' ? 'No debts · everyone pays for themselves' : 'Split among ticked · they owe whoever paid') + '  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
+        header.textContent = (li.getAttribute('data-pay-mode') === 'own' ? 'Each pays their own · nobody owes anyone' : 'Share = their part (equal unless typed, 0 = not in it) · Paid = what they put in') + '  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
         // The equal part shows as the placeholder of every empty share.
         var eff = effectiveShares(li, ownerPanel);
         pop.querySelectorAll('.paysplit-row').forEach(function(r){ var inp = r.querySelector('.paysplit-amount:not(.paysplit-paid)'), k = r.getAttribute('data-key');
@@ -8112,7 +8123,7 @@
       if(eligible.length){
         var modeBar = document.createElement('div'); modeBar.className = 'fs-mode paysplit-mode';
         var isOwn = li.getAttribute('data-pay-mode') === 'own';
-        modeBar.innerHTML = '<button type="button" data-mode="split"' + (isOwn ? '' : ' class="on"') + '>Shared</button><button type="button" data-mode="own"' + (isOwn ? ' class="on"' : '') + '>Each their own</button>';
+        modeBar.innerHTML = '<button type="button" data-mode="split"' + (isOwn ? '' : ' class="on"') + '>Split the bill</button><button type="button" data-mode="own"' + (isOwn ? ' class="on"' : '') + '>Each pays their own</button>';
         modeBar.addEventListener('click', function(e){
           var b = e.target.closest('button'); if(!b) return; e.stopPropagation();
           if(b.dataset.mode === 'own') li.setAttribute('data-pay-mode', 'own'); else li.removeAttribute('data-pay-mode');
@@ -13111,8 +13122,10 @@
     var paid = getPaid(li), ex = getPaySplitExcluded(li), own = li.getAttribute('data-pay-mode') === 'own';
     window.__afterAddPeople = function(){
       var box = document.getElementById('fabAddSplit');
-      box.querySelectorAll('.fs-row').forEach(function(row){ var m = addSplitPeople[+row.querySelector('.fs-in').dataset.i];
-        row.querySelector('.fs-in').checked = ex.indexOf(m.key) === -1;
+      var typedSh = getPaySplits(li);
+      box.querySelectorAll('.fs-row').forEach(function(row){ var m = addSplitPeople[+row.dataset.i];
+        var t = typedSh.filter(function(x){ return x.k === m.key; })[0];
+        row.querySelector('.fs-sh').value = ex.indexOf(m.key) !== -1 ? '0' : (t ? t.a : '');
         var p = paid.filter(function(x){ return x.k === m.key; })[0]; row.querySelector('.fs-amt').value = p ? p.a : ''; });
       var mb = box.querySelector('.fs-mode [data-mode="' + (own ? 'own' : 'split') + '"]'); if(mb) mb.click();
       updateLeft();
@@ -13274,16 +13287,18 @@
     var box = document.getElementById('fabAddSplit'); if(!box) return;
     box.hidden = true; addSplitPeople = [];
     box.querySelectorAll('.fs-mode button').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === 'split'); });
-    box.classList.remove('own'); box.querySelector('.fs-head .fabadd-label').textContent = "Who's in";
-    box.querySelector('.fs-hint').textContent = 'Split among ticked · they owe whoever paid';
+    box.classList.remove('own');
+
     loadMemberAvatarData().then(function(data){
       var people = membersEligibleForOption(panel, data.members || []);
       addSplitPeople = people;
       if(!people.length){ box.hidden = true; return; }
       var list = box.querySelector('.fs-list');
       list.innerHTML = people.map(function(m, i){
-        return '<label class="fs-row"><input type="checkbox" class="fs-in" data-i="' + i + '" checked><span class="fs-face">' + avatarSvgFor(m.email, (data.avatars || {})[m.key]) + '</span>' +
-          '<span class="fs-name"></span><input type="number" class="fs-amt" data-i="' + i + '" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="Paid"></label>';
+        // Two questions, two columns: their Share (equal unless typed; 0 =
+        // wasn't part of it) and what they Paid.
+        return '<label class="fs-row" data-i="' + i + '"><span class="fs-face">' + avatarSvgFor(m.email, (data.avatars || {})[m.key]) + '</span>' +
+          '<span class="fs-name"></span><input type="number" class="fs-sh" min="0" step="0.01" inputmode="decimal" aria-label="Share"><input type="number" class="fs-amt" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="Paid"></label>';
       }).join('');
       list.querySelectorAll('.fs-name').forEach(function(n, i){ n.textContent = displayNameFor(people[i].email, (data.avatars || {})[people[i].key]).split('@')[0]; });
       box.hidden = false;
@@ -13297,15 +13312,28 @@
     // Who's in / paid only matters once the activity has a price.
     box.classList.toggle('no-price', !(addSplitTotal() > 0));
     if(box.hidden) return;
-    var sum = 0, n = 0; box.querySelectorAll('.fs-row').forEach(function(row){
-      var on = row.querySelector('.fs-in').checked; row.classList.toggle('off', !on); if(on) n++;
-      sum += parseFloat(row.querySelector('.fs-amt').value) || 0; });
     var total = addSplitTotal(), code = (document.getElementById('fabAddCurrencySelect') || {}).value, sym = CURRENCIES[code] || '';
     var fmt = function(v){ return sym + ' ' + (Math.round(v * 100) / 100); };
-    var el = box.querySelector('.fs-left');
     var own = !!box.querySelector('.fs-mode button.on[data-mode="own"]');
-    el.textContent = (own ? '' : (n ? fmt(total / n) + ' each  ·  ' : 'Nobody ticked  ·  ')) + fmt(sum) + ' / ' + fmt(total) + ' paid';
-    el.classList.toggle('over', sum > total + 0.004);
+    var rows = [].slice.call(box.querySelectorAll('.fs-row')), typed = 0, free = [], share = [], paid = [];
+    rows.forEach(function(r, j){ var v = r.querySelector('.fs-sh').value.trim(); if(v === '') free.push(j); else typed += parseFloat(v) || 0; paid[j] = parseFloat(r.querySelector('.fs-amt').value) || 0; });
+    var each = free.length ? Math.max(0, (total - typed) / free.length) : 0;
+    rows.forEach(function(r, j){ var inp = r.querySelector('.fs-sh'); inp.placeholder = String(Math.round(each * 100) / 100); share[j] = inp.value.trim() === '' ? each : (parseFloat(inp.value) || 0); });
+    var pt = paid.reduce(function(x, y){ return x + y; }, 0), el = box.querySelector('.fs-left'), lines = [];
+    var nameOf = function(j){ return (rows[j].querySelector('.fs-name') || {}).textContent || ''; };
+    if(own) lines.push(fmt(pt) + ' / ' + fmt(total) + ' paid · nobody owes anyone');
+    else {
+      var st = share.reduce(function(x, y){ return x + y; }, 0);
+      if(Math.abs(st - total) > .01) lines.push('<span class="bad">Shares add up to ' + fmt(st) + ', not ' + fmt(total) + '</span>');
+      var deb = [], cre = [];
+      share.forEach(function(sv, j){ var bl = paid[j] - sv; if(bl < -.004) deb.push({ j:j, a:-bl }); else if(bl > .004) cre.push({ j:j, a:bl }); });
+      if(pt > .004){ var a1 = 0, b1 = 0;
+        while(a1 < deb.length && b1 < cre.length){ var x = Math.min(deb[a1].a, cre[b1].a); lines.push('<b>' + nameOf(deb[a1].j) + '</b> owes <b>' + nameOf(cre[b1].j) + '</b> ' + fmt(x)); deb[a1].a -= x; cre[b1].a -= x; if(deb[a1].a < .005) a1++; if(cre[b1].a < .005) b1++; } }
+      if(pt < total - .004) lines.push('Not paid yet: ' + fmt(total - pt));
+      if(!lines.length) lines.push('<span class="ok">All settled ✓</span>');
+    }
+    el.innerHTML = lines.map(function(l){ return '<div>' + l + '</div>'; }).join('');
+    el.classList.toggle('over', pt > total + 0.004);
   }
   document.addEventListener('input', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
   document.addEventListener('change', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
@@ -13314,8 +13342,6 @@
     if(mb){ e.preventDefault();
       mb.parentElement.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === mb); });
       document.getElementById('fabAddSplit').classList.toggle('own', mb.dataset.mode === 'own');
-      document.querySelector('#fabAddSplit .fs-head .fabadd-label').textContent = mb.dataset.mode === 'own' ? 'Who paid' : "Who's in";
-      document.querySelector('#fabAddSplit .fs-hint').textContent = mb.dataset.mode === 'own' ? 'No debts · everyone pays for themselves' : 'Split among ticked · they owe whoever paid';
       updateLeft(); return; }
     var b = e.target.closest && e.target.closest('#fabAddSplit .fs-equal'); if(!b) return;
     e.preventDefault();
@@ -13335,16 +13361,15 @@
     }
     var box = document.getElementById('fabAddSplit');
     if(box && !box.hidden && addSplitPeople.length){
-      var paid = [], excluded = [];
+      var paid = [], typed = [];
       box.querySelectorAll('.fs-row').forEach(function(row){
-        var m = addSplitPeople[+row.querySelector('.fs-in').dataset.i];
-        if(!row.querySelector('.fs-in').checked) excluded.push(m.key);
+        var m = addSplitPeople[+row.dataset.i], sv = row.querySelector('.fs-sh').value.trim();
+        if(sv !== '') typed.push({ k: m.key, a: parseFloat(sv) || 0 });
         var v = parseFloat(row.querySelector('.fs-amt').value);
         if(v > 0) paid.push({ k: m.key, a: v });
       });
-      if(box.querySelector('.fs-mode button.on[data-mode="own"]')) li.setAttribute('data-pay-mode', 'own');
-      if(excluded.length) setPaySplitExcluded(li, excluded);
-      if(paid.length) setPaid(li, paid);
+      if(box.querySelector('.fs-mode button.on[data-mode="own"]')) li.setAttribute('data-pay-mode', 'own'); else li.removeAttribute('data-pay-mode');
+      setPaySplitExcluded(li, []); setPaySplits(li, typed); setPaid(li, paid);
     }
   }
   // The Type field is a searchable list: the real <select> stays (it holds
@@ -13686,12 +13711,15 @@
     // who's in / paid
     var box = document.getElementById('fabAddSplit');
     if(box && !box.hidden && !box.classList.contains('no-price') && addSplitPeople.length){
-      var paid = [], excluded = [];
-      box.querySelectorAll('.fs-row').forEach(function(row){ var m = addSplitPeople[+row.querySelector('.fs-in').dataset.i];
-        if(!row.querySelector('.fs-in').checked) excluded.push(m.key);
-        var v = parseFloat(row.querySelector('.fs-amt').value); if(v > 0) paid.push({ k:m.key, a:v }); });
+      var paid = [], typed = [];
+      box.querySelectorAll('.fs-row').forEach(function(row){
+        var m = addSplitPeople[+row.dataset.i], sv = row.querySelector('.fs-sh').value.trim();
+        if(sv !== '') typed.push({ k: m.key, a: parseFloat(sv) || 0 });
+        var v = parseFloat(row.querySelector('.fs-amt').value);
+        if(v > 0) paid.push({ k: m.key, a: v });
+      });
       if(box.querySelector('.fs-mode button.on[data-mode="own"]')) li.setAttribute('data-pay-mode', 'own'); else li.removeAttribute('data-pay-mode');
-      setPaySplitExcluded(li, excluded); setPaid(li, paid);
+      setPaySplitExcluded(li, []); setPaySplits(li, typed); setPaid(li, paid);
     }
     applyExtras(li);
     // another day?
