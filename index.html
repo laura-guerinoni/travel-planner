@@ -2651,6 +2651,19 @@
   }
 
   #payPill .pp-lab { font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding-left:6px; }
+
+  .itemmenu.paysplit { min-width:380px; }
+  .paysplit-equal { white-space:nowrap; }
+  .paysplit-cols { display:grid; grid-template-columns:1fr auto 72px 72px; gap:6px; align-items:center; padding:2px 10px 4px; font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+  .paysplit-cols .c { text-align:center; }
+  .paysplit-equal { border:none; background:var(--bg); color:var(--ink); font:inherit; font-size:11px; font-weight:800; letter-spacing:0; text-transform:none; border-radius:999px; padding:3px 9px; cursor:pointer; }
+  .paysplit-equal:hover { background:var(--primary); color:#fff; }
+  .paysplit-row .paysplit-amount { width:72px; flex:none; }
+  .paysplit-row .paysplit-paid { margin-left:6px; }
+  .paysplit-row.excluded .paysplit-paid { display:inline-block !important; }
+  #payPill .pp-plus { color:#2f9e74; }
+  #payPill .pp-minus { color:#d6455d; }
+  #payPill .pp-even { color:var(--muted); }
 </style>
 </head>
 <body>
@@ -6241,6 +6254,31 @@
   // isn't covered by any split (all of it, if none is set at all) counts
   // as unassigned. Ghosts (a multi-day activity's echo elsewhere) are
   // skipped — the real split lives on the start day only.
+  // What each person actually PAID for an activity (data-paid), next to
+  // their SHARE of it (data-pay). Balance = paid − share: positive means
+  // the others owe them, negative means they owe.
+  function getPaid(li){
+    try{ var v = JSON.parse(li.getAttribute('data-paid') || '[]'); return Array.isArray(v) ? v : []; }
+    catch(e){ return []; }
+  }
+  function setPaid(li, list){
+    var clean = list.filter(function(p){ return p.a > 0; });
+    if(clean.length) li.setAttribute('data-paid', JSON.stringify(clean)); else li.removeAttribute('data-paid');
+    renderPaymentOverview();
+    scheduleAutoSave(); scheduleUndoSnapshot();
+  }
+  function computeBalances(panel){
+    var share = {}, paid = {}, anyPaid = false;
+    if(!panel) return { share:share, paid:paid, anyPaid:false };
+    var panelCode = resolveCurrencyCode(panel);
+    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li:not(.act-span-ghost)').forEach(function(li){
+      var itemCode = resolveCurrencyCode(li);
+      var conv = function(a){ if(itemCode === panelCode) return a; var c = convertAmount(a, itemCode, panelCode); return c === null ? a : c; };
+      getPaySplits(li).forEach(function(x){ share[x.k] = (share[x.k] || 0) + conv(x.a); });
+      getPaid(li).forEach(function(x){ anyPaid = true; paid[x.k] = (paid[x.k] || 0) + conv(x.a); });
+    });
+    return { share:share, paid:paid, anyPaid:anyPaid };
+  }
   function computePaymentTotals(panel){
     var totals = {}, unassigned = 0, anyAssigned = false;
     if(!panel) return { totals: totals, unassigned: unassigned, anyAssigned: anyAssigned };
@@ -6312,6 +6350,30 @@
       if(!head) return;
       if(!pill){ pill = document.createElement('span'); pill.id = 'payPill'; head.insertBefore(pill, head.querySelector('.page-head-faces')); }
       var html = '';
+      var openPanel = document.querySelector('.panel.on'), bal = computeBalances(openPanel);
+      if(bal.anyPaid && src){
+        // Once anyone has recorded a payment: who is owed (+) and who owes (−).
+        var esc2 = function(t){ return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+        var keys = {}; Object.keys(bal.share).concat(Object.keys(bal.paid)).forEach(function(k){ keys[k] = 1; });
+        var allZero = true;
+        Object.keys(keys).forEach(function(k){
+          var row = src.querySelector(':scope > li[data-key="' + k.replace(/"/g, '') + '"]');
+          var name = row ? ((row.querySelector('.payov-person span:last-child') || {}).textContent || '') : k.split(',')[0];
+          var face = row ? row.querySelector('.participant-avatar') : null;
+          var sh = bal.share[k] || 0, pd = bal.paid[k] || 0, b = Math.round((pd - sh) * 100) / 100;
+          if(Math.abs(b) >= .01) allZero = false;
+          var tip = name + ': share ' + formatMoney(sh, openPanel) + ', paid ' + formatMoney(pd, openPanel) + (b > 0 ? ' → is owed ' + formatMoney(b, openPanel) : b < 0 ? ' → owes ' + formatMoney(-b, openPanel) : ' → even');
+          html += '<span class="pp-item ' + (b > 0 ? 'pp-plus' : b < 0 ? 'pp-minus' : 'pp-even') + '" data-tip="' + esc2(tip) + '"><span class="pp-face">' + (face ? face.innerHTML : '') + '</span>' +
+            (Math.abs(b) < .01 ? '✓' : (b > 0 ? '+' : '−') + formatMoney(Math.abs(b), openPanel)) + '</span>';
+        });
+        var totShare = 0, totPaid = 0; Object.keys(bal.share).forEach(function(k){ totShare += bal.share[k]; }); Object.keys(bal.paid).forEach(function(k){ totPaid += bal.paid[k]; });
+        var unpaid = Math.round((totShare - totPaid) * 100) / 100;
+        if(unpaid >= .01) html += '<span class="pp-sep"></span><span class="pp-item pp-un" data-tip="' + esc2('Nobody has paid this part yet: ' + formatMoney(unpaid, openPanel)) + '">Unpaid ' + formatMoney(unpaid, openPanel) + '</span>';
+        html = '<span class="pp-lab" data-tip="Paid minus share: + is owed money, − owes money">' + (allZero ? 'All settled ✓' : 'Balances') + '</span>' + html;
+        if(pill.dataset.h !== html){ pill.innerHTML = html; pill.dataset.h = html; }
+        pill.style.display = '';
+        return;
+      }
       if(src) src.querySelectorAll(':scope > li').forEach(function(li){
         var face = li.querySelector('.participant-avatar'), amt = li.querySelector('.payov-amt-native');
         if(!amt) return;
@@ -7675,7 +7737,8 @@
         // distinct from its alternative's. currencySymbol/formatMoney
         // already walk li -> its panel -> the plan default in that
         // order, so this reads correctly either way.
-        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining, li);
+        var paidSum = getPaid(li).reduce(function(sum, p){ return sum + p.a; }, 0);
+        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining, li) + '  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
         header.classList.toggle('over', remaining < 0);
       }
       // Same eligibility rule as openParticipantPicker — someone without
@@ -7700,6 +7763,19 @@
         pop.appendChild(hint);
       }
       var excluded = getPaySplitExcluded(li);
+      var paidList = getPaid(li);
+      if(eligible.length){
+        var cols = document.createElement('div'); cols.className = 'paysplit-cols';
+        cols.innerHTML = '<span></span><button type="button" class="paysplit-equal">Split equally</button><span class="c">Share</span><span class="c">Paid</span>';
+        cols.querySelector('.paysplit-equal').addEventListener('click', function(e){
+          e.stopPropagation();
+          var rows = [].slice.call(pop.querySelectorAll('.paysplit-row')).filter(function(r){ return r.querySelector('.paysplit-participated').checked; });
+          if(!rows.length) return;
+          var each = Math.floor(total / rows.length * 100) / 100, rest = Math.round((total - each * rows.length) * 100) / 100;
+          rows.forEach(function(r, i){ var inp = r.querySelector('.paysplit-amount'); inp.value = String(Math.round((each + (i === 0 ? rest : 0)) * 100) / 100); inp.dispatchEvent(new Event('input')); });
+        });
+        pop.appendChild(cols);
+      }
       eligible.forEach(function(m){
         var row = document.createElement('label');
         row.className = 'paysplit-row';
@@ -7781,6 +7857,21 @@
           }
         });
         row.appendChild(input);
+        // What this person actually paid for it (can be someone who isn't
+        // sharing the cost, e.g. paying for the others).
+        var paidIn = document.createElement('input');
+        paidIn.type = 'text'; paidIn.inputMode = 'decimal'; paidIn.className = 'paysplit-amount paysplit-paid'; paidIn.placeholder = '0';
+        var pe = paidList.filter(function(p){ return p.k === m.key; })[0];
+        paidIn.value = pe ? pe.a : '';
+        paidIn.addEventListener('click', function(e){ e.stopPropagation(); });
+        paidIn.addEventListener('input', function(){
+          var amt = parseFloat(String(paidIn.value).replace(',', '.')), idx = -1;
+          paidList.forEach(function(p, i){ if(p.k === m.key) idx = i; });
+          if(!isNaN(amt) && amt > 0){ if(idx === -1) paidList.push({ k:m.key, a:amt }); else paidList[idx].a = amt; }
+          else if(idx !== -1) paidList.splice(idx, 1);
+          setPaid(li, paidList); refreshHeader();
+        });
+        row.appendChild(paidIn);
         pop.appendChild(row);
       });
       refreshHeader();
@@ -13358,6 +13449,8 @@
     if(paySplits.length) a.py = paySplits;
     var paySplitExcluded = getPaySplitExcluded(li);
     if(paySplitExcluded.length) a.pyx = paySplitExcluded;
+    var paid = getPaid(li);
+    if(paid.length) a.pd = paid;
     var currency = li.getAttribute('data-currency');
     if(currency) a.cur = currency;
     return a;
@@ -13514,6 +13607,7 @@
     if(a.pt && a.pt.length) li.setAttribute('data-participants', JSON.stringify(a.pt));
     if(a.py && a.py.length) li.setAttribute('data-pay', JSON.stringify(a.py));
     if(a.pyx && a.pyx.length) li.setAttribute('data-pay-excluded', JSON.stringify(a.pyx));
+    if(a.pd && a.pd.length) li.setAttribute('data-paid', JSON.stringify(a.pd));
     if(a.cur) li.setAttribute('data-currency', a.cur);
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
@@ -13790,7 +13884,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
