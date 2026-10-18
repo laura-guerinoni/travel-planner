@@ -2664,6 +2664,10 @@
   #payPill .pp-plus { color:#2f9e74; }
   #payPill .pp-minus { color:#d6455d; }
   #payPill .pp-even { color:var(--muted); }
+
+  #payPill .pp-debt { color:var(--ink); gap:3px; }
+  #payPill .pp-arrow { color:var(--muted); font-size:12px; margin:0 1px; }
+  .paysplit-row .paysplit-amount::placeholder { color:var(--muted); font-style:italic; }
 </style>
 </head>
 <body>
@@ -4585,7 +4589,11 @@
       // Example shares on the open alternative's first priced activities.
       var lis = [].slice.call(document.querySelectorAll('.panel.on .acts > li:not(.act-span-ghost)')).filter(function(li){ var pv = li.querySelector('.price-val'); return pv && parseMoney(pv.textContent) > 0 && !li.hasAttribute('data-pay'); }).slice(0, 2);
       lis.forEach(function(li, i){ var tot = parseMoney(li.querySelector('.price-val').textContent);
-        li.setAttribute('data-pay', JSON.stringify(i === 0 ? [{ k:'laura,example,com', a:Math.round(tot / 2) }, { k:'seba,example,com', a:tot - Math.round(tot / 2) }] : [{ k:'marta,example,com', a:tot }])); });
+        // Example: Laura paid the first one for everyone; Marta wasn't on
+        // the second, which Seba paid.
+        li.setAttribute('data-pay', '[]');
+        if(i === 0) li.setAttribute('data-paid', JSON.stringify([{ k:'laura,example,com', a:tot }]));
+        else { li.setAttribute('data-pay-excluded', JSON.stringify(['marta,example,com'])); li.setAttribute('data-paid', JSON.stringify([{ k:'seba,example,com', a:tot }])); } });
       renderPillAccessFacesFromData(mm, MOCK_PEOPLE.avatars);
       renderPaymentOverview();
       return;
@@ -6267,17 +6275,53 @@
     renderPaymentOverview();
     scheduleAutoSave(); scheduleUndoSnapshot();
   }
+  // Each person's share of an activity: what was typed for them, and the
+  // rest split equally among everyone taking part who has nothing typed.
+  // Who takes part = everyone who can see the alternative, minus anyone
+  // unticked.
+  function effectiveShares(li, panel){
+    var pv = li.querySelector(':scope > .price > .price-val'), total = pv ? parseMoney(pv.textContent) : 0;
+    var typed = getPaySplits(li), excluded = getPaySplitExcluded(li);
+    var people = cachedMembers ? membersEligibleForOption(panel, cachedMembers).map(function(m){ return m.key; }) : typed.map(function(x){ return x.k; });
+    people = people.filter(function(k){ return excluded.indexOf(k) === -1; });
+    var out = {}, sum = 0;
+    typed.forEach(function(x){ out[x.k] = x.a; sum += x.a; });
+    var rest = people.filter(function(k){ return !(k in out); });
+    var left = total - sum;
+    if(rest.length && left > 0.004){ var each = left / rest.length; rest.forEach(function(k){ out[k] = each; }); }
+    return out;
+  }
+  // Who owes whom: match the people who owe with the people who are owed,
+  // biggest first, so there are as few payments as possible.
+  function computeDebts(bal){
+    var keys = {}; Object.keys(bal.share).concat(Object.keys(bal.paid)).forEach(function(k){ keys[k] = 1; });
+    var owe = [], owed = [];
+    Object.keys(keys).forEach(function(k){ var b = Math.round(((bal.paid[k] || 0) - (bal.share[k] || 0)) * 100) / 100;
+      if(b < -0.004) owe.push({ k:k, a:-b }); else if(b > 0.004) owed.push({ k:k, a:b }); });
+    owe.sort(function(a, b){ return b.a - a.a; }); owed.sort(function(a, b){ return b.a - a.a; });
+    var out = [], i = 0, j = 0;
+    while(i < owe.length && j < owed.length){
+      var x = Math.min(owe[i].a, owed[j].a);
+      out.push({ from:owe[i].k, to:owed[j].k, a:Math.round(x * 100) / 100 });
+      owe[i].a -= x; owed[j].a -= x;
+      if(owe[i].a < 0.005) i++; if(owed[j].a < 0.005) j++;
+    }
+    return out;
+  }
   function computeBalances(panel){
-    var share = {}, paid = {}, anyPaid = false;
-    if(!panel) return { share:share, paid:paid, anyPaid:false };
+    var share = {}, paid = {}, anyPaid = false, unpaidAll = 0;
+    if(!panel) return { share:share, paid:paid, anyPaid:false, unpaid:0 };
     var panelCode = resolveCurrencyCode(panel);
     panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li:not(.act-span-ghost)').forEach(function(li){
       var itemCode = resolveCurrencyCode(li);
       var conv = function(a){ if(itemCode === panelCode) return a; var c = convertAmount(a, itemCode, panelCode); return c === null ? a : c; };
-      getPaySplits(li).forEach(function(x){ share[x.k] = (share[x.k] || 0) + conv(x.a); });
+      // Only activities someone has paid for create debts between people;
+      // the ones nobody has paid yet are counted as "unpaid".
+      if(!getPaid(li).length){ var pv0 = li.querySelector(':scope > .price > .price-val'); unpaidAll += conv(pv0 ? parseMoney(pv0.textContent) : 0); return; }
+      var eff = effectiveShares(li, panel); Object.keys(eff).forEach(function(k){ share[k] = (share[k] || 0) + conv(eff[k]); });
       getPaid(li).forEach(function(x){ anyPaid = true; paid[x.k] = (paid[x.k] || 0) + conv(x.a); });
     });
-    return { share:share, paid:paid, anyPaid:anyPaid };
+    return { share:share, paid:paid, anyPaid:anyPaid, unpaid:unpaidAll };
   }
   function computePaymentTotals(panel){
     var totals = {}, unassigned = 0, anyAssigned = false;
@@ -6299,7 +6343,7 @@
         var converted = convertAmount(amount, itemCode, panelCode);
         return converted === null ? amount : converted;
       }
-      var splits = getPaySplits(li);
+      var eff = effectiveShares(li, panel), splits = Object.keys(eff).map(function(k){ return { k:k, a:eff[k] }; });
       if(splits.length) anyAssigned = true;
       var assignedSum = 0;
       splits.forEach(function(s){
@@ -6352,24 +6396,19 @@
       var html = '';
       var openPanel = document.querySelector('.panel.on'), bal = computeBalances(openPanel);
       if(bal.anyPaid && src){
-        // Once anyone has recorded a payment: who is owed (+) and who owes (−).
+        // Once anyone has recorded a payment: who owes whom, e.g.
+        // "Marta → Laura €23.33" (hover: "Marta owes Laura €23.33").
         var esc2 = function(t){ return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
-        var keys = {}; Object.keys(bal.share).concat(Object.keys(bal.paid)).forEach(function(k){ keys[k] = 1; });
-        var allZero = true;
-        Object.keys(keys).forEach(function(k){
-          var row = src.querySelector(':scope > li[data-key="' + k.replace(/"/g, '') + '"]');
-          var name = row ? ((row.querySelector('.payov-person span:last-child') || {}).textContent || '') : k.split(',')[0];
-          var face = row ? row.querySelector('.participant-avatar') : null;
-          var sh = bal.share[k] || 0, pd = bal.paid[k] || 0, b = Math.round((pd - sh) * 100) / 100;
-          if(Math.abs(b) >= .01) allZero = false;
-          var tip = name + ': share ' + formatMoney(sh, openPanel) + ', paid ' + formatMoney(pd, openPanel) + (b > 0 ? ' → is owed ' + formatMoney(b, openPanel) : b < 0 ? ' → owes ' + formatMoney(-b, openPanel) : ' → even');
-          html += '<span class="pp-item ' + (b > 0 ? 'pp-plus' : b < 0 ? 'pp-minus' : 'pp-even') + '" data-tip="' + esc2(tip) + '"><span class="pp-face">' + (face ? face.innerHTML : '') + '</span>' +
-            (Math.abs(b) < .01 ? '✓' : (b > 0 ? '+' : '−') + formatMoney(Math.abs(b), openPanel)) + '</span>';
+        var faceOf = function(k){ var row = src.querySelector(':scope > li[data-key="' + k.replace(/"/g, '') + '"]'); var f = row && row.querySelector('.participant-avatar'); return f ? f.innerHTML : ''; };
+        var nameOf = function(k){ var row = src.querySelector(':scope > li[data-key="' + k.replace(/"/g, '') + '"]'); return row ? ((row.querySelector('.payov-person span:last-child') || {}).textContent || k) : k.split(',')[0]; };
+        var debts = computeDebts(bal);
+        debts.forEach(function(d){
+          html += '<span class="pp-item pp-debt" data-tip="' + esc2(nameOf(d.from) + ' owes ' + nameOf(d.to) + ' ' + formatMoney(d.a, openPanel)) + '"><span class="pp-face">' + faceOf(d.from) + '</span><span class="pp-arrow">→</span><span class="pp-face">' + faceOf(d.to) + '</span>' + formatMoney(d.a, openPanel) + '</span>';
         });
         var totShare = 0, totPaid = 0; Object.keys(bal.share).forEach(function(k){ totShare += bal.share[k]; }); Object.keys(bal.paid).forEach(function(k){ totPaid += bal.paid[k]; });
-        var unpaid = Math.round((totShare - totPaid) * 100) / 100;
-        if(unpaid >= .01) html += '<span class="pp-sep"></span><span class="pp-item pp-un" data-tip="' + esc2('Nobody has paid this part yet: ' + formatMoney(unpaid, openPanel)) + '">Unpaid ' + formatMoney(unpaid, openPanel) + '</span>';
-        html = '<span class="pp-lab" data-tip="Paid minus share: + is owed money, − owes money">' + (allZero ? 'All settled ✓' : 'Balances') + '</span>' + html;
+        var unpaid = Math.round((Math.max(0, totShare - totPaid) + bal.unpaid) * 100) / 100;
+        if(unpaid >= .01) html += (debts.length ? '<span class="pp-sep"></span>' : '') + '<span class="pp-item pp-un" data-tip="' + esc2('Nobody has paid this part yet: ' + formatMoney(unpaid, openPanel)) + '">Unpaid ' + formatMoney(unpaid, openPanel) + '</span>';
+        html = '<span class="pp-lab" data-tip="Who owes whom, from what each paid and their share">' + (debts.length || unpaid >= .01 ? 'Owes' : 'All settled ✓') + '</span>' + html;
         if(pill.dataset.h !== html){ pill.innerHTML = html; pill.dataset.h = html; }
         pill.style.display = '';
         return;
@@ -7444,8 +7483,9 @@
       { key:'seba,example,com', email:'seba@example.com', role:'member' },
       { key:'marta,example,com', email:'marta@example.com', role:'member' } ],
     avatars: { 'laura,example,com':{ name:'Laura', hair:'#7a4a2a', skin:'#f3c9a4' }, 'seba,example,com':{ name:'Seba', hair:'#2f2f3a', skin:'#e8b892', glasses:'glasses' }, 'marta,example,com':{ name:'Marta', hair:'#c9772f', skin:'#f6d3b6' } } };
+  var cachedMembers = null;
   function loadMemberAvatarData(forceRefresh){
-    if(!IS_HOSTED) return Promise.resolve(MOCK_PEOPLE);
+    if(!IS_HOSTED){ cachedMembers = MOCK_PEOPLE.members; return Promise.resolve(MOCK_PEOPLE); }
     if(!memberAvatarDataPromise || forceRefresh){
       // firebase.database() itself can throw synchronously (not just
       // reject) if no app was ever initialized — same gotcha fixed in
@@ -7471,6 +7511,7 @@
         return { members: [], avatars: {} };
       });
     }
+    memberAvatarDataPromise.then(function(d){ if(d && d.members) cachedMembers = d.members; });
     return memberAvatarDataPromise;
   }
   function renderParticipants(li){
@@ -7738,7 +7779,11 @@
         // already walk li -> its panel -> the plan default in that
         // order, so this reads correctly either way.
         var paidSum = getPaid(li).reduce(function(sum, p){ return sum + p.a; }, 0);
-        header.textContent = t('paysplit_remaining') + ' ' + formatMoney(remaining, li) + '  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
+        header.textContent = 'Split equally unless you type a share  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
+        // The equal part shows as the placeholder of every empty share.
+        var eff = effectiveShares(li, ownerPanel);
+        pop.querySelectorAll('.paysplit-row').forEach(function(r){ var inp = r.querySelector('.paysplit-amount:not(.paysplit-paid)'), k = r.getAttribute('data-key');
+          if(inp) inp.placeholder = eff[k] != null ? String(Math.round(eff[k] * 100) / 100) : '0'; });
         header.classList.toggle('over', remaining < 0);
       }
       // Same eligibility rule as openParticipantPicker — someone without
@@ -7766,8 +7811,8 @@
       var paidList = getPaid(li);
       if(eligible.length){
         var cols = document.createElement('div'); cols.className = 'paysplit-cols';
-        cols.innerHTML = '<span></span><button type="button" class="paysplit-equal">Split equally</button><span class="c">Share</span><span class="c">Paid</span>';
-        cols.querySelector('.paysplit-equal').addEventListener('click', function(e){
+        cols.innerHTML = '<span></span><span></span><span class="c">Share</span><span class="c">Paid</span>';
+        if(false) cols.querySelector('.paysplit-equal').addEventListener('click', function(e){
           e.stopPropagation();
           var rows = [].slice.call(pop.querySelectorAll('.paysplit-row')).filter(function(r){ return r.querySelector('.paysplit-participated').checked; });
           if(!rows.length) return;
@@ -7816,14 +7861,14 @@
         // there's a real interaction (typing, or the checkbox itself),
         // so just opening this popover and closing it again still
         // leaves no trace.
-        input.value = existing ? existing.a : (isExcluded ? '' : '0');
+        input.value = existing ? existing.a : '';
         input.style.display = isExcluded ? 'none' : '';
         input.addEventListener('click', function(e){ e.stopPropagation(); });
         function commitAmount(){
           var amt = parseFloat(String(input.value).replace(',', '.'));
           var idx = -1;
           splits.forEach(function(s, i){ if(s.k === m.key) idx = i; });
-          if(!isNaN(amt) && amt >= 0){
+          if(String(input.value).trim() !== '' && !isNaN(amt) && amt >= 0){
             if(idx === -1) splits.push({ k: m.key, a: amt });
             else splits[idx].a = amt;
           } else if(idx !== -1){
@@ -7841,7 +7886,6 @@
             setPaySplitExcluded(li, exArr);
             row.classList.remove('excluded');
             input.style.display = '';
-            if(!input.value) input.value = '0';
             commitAmount();
           } else {
             if(exIdx === -1) exArr.push(m.key);
