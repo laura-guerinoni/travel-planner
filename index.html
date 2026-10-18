@@ -13135,10 +13135,13 @@
   function applyPlace(cell){
     var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
     var v = inp.value.trim(), base = placeOfCell(cell), loc = cell.querySelector(':scope > .loc'), final;
-    if(fabAddEditLi) final = v;
-    else if(!v) final = base;
-    else if(!base || v === base || v.indexOf(base) === 0) final = v;
-    else { var parts = base.split('→'); final = parts[parts.length - 1].trim() === v ? base : base + ' → ' + v; }
+    // Editing the day's only activity: what's typed is the place.
+    var others = [].filter.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)'), function(x){ return x !== fabAddEditLi; }).length;
+    if(fabAddEditLi && !others) final = v;
+    else if(!v) final = fabAddEditLi ? '' : base;
+    else if(!base || v.indexOf(base) !== -1) final = v;          // typed on from the day's place
+    else if(base.indexOf(v) !== -1) final = fabAddEditLi ? v : base; // a place the day already has
+    else final = base + ' → ' + v;                                     // a new city that day: A → B
     if(final){
       if(!loc){ loc = buildLocEl(final); cell.insertBefore(loc, cell.querySelector(':scope > .acts') || null); }
       var lt = loc.querySelector('.loc-text') || loc; if(lt.textContent.trim() !== final) lt.textContent = final;
