@@ -13179,6 +13179,19 @@
     e.preventDefault(); e.stopPropagation();
     openActivityEditor(li);
   }, true);
+  // Desktop: an activity's own fields (title, time, cost…) are never
+  // edited in place — only through its card. Anything that would put the
+  // cursor in one (a double click, Tab, a leftover focus) is undone.
+  document.addEventListener('focusin', function(e){
+    if(!window.matchMedia('(min-width:721px)').matches || VIEW_ONLY) return;
+    var t = e.target;
+    if(t && t.isContentEditable && t.closest('.panel .acts > li:not(.act-span-ghost)')){ t.blur(); var s = window.getSelection && window.getSelection(); if(s) s.removeAllRanges(); }
+  }, true);
+  document.addEventListener('beforeinput', function(e){
+    if(!window.matchMedia('(min-width:721px)').matches || VIEW_ONLY) return;
+    var t = e.target;
+    if(t && t.closest && t.closest('.panel .acts > li:not(.act-span-ghost)')) e.preventDefault();
+  }, true);
   // Desktop: a day's own "+" opens this same focused form (centred, page
   // dimmed, like the search) for that day, instead of a blank activity
   // appearing in the day to edit in place.
