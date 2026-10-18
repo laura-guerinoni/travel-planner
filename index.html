@@ -2740,15 +2740,15 @@
   #fabAddPanel .tc-native { display:none !important; }
   #fabAddPanel .gc-row { position:relative; }
   #fabAddPanel .tc-btn { flex:1; min-width:0; text-align:left; cursor:pointer; color:var(--ink); background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px !important; padding-right:28px !important; }
-  #fabAddPanel .tc-dd { position:absolute; left:32px; right:0; top:calc(100% + 4px); z-index:10; background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); padding:6px; }
-  #fabAddPanel .tc-dd[hidden] { display:none; }
-  #fabAddPanel .tc-q { width:100%; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 10px; font:inherit; font-size:14px; color:var(--ink); margin-bottom:4px; }
-  #fabAddPanel .tc-q:focus { outline:none; border-color:var(--primary); }
-  #fabAddPanel .tc-list { max-height:240px; overflow-y:auto; }
-  #fabAddPanel .tc-opt { padding:7px 10px; border-radius:8px; font-size:14px; color:var(--ink); cursor:pointer; }
-  #fabAddPanel .tc-opt.act, #fabAddPanel .tc-opt:hover { background:var(--bg); }
-  #fabAddPanel .tc-opt.cur { font-weight:800; }
-  #fabAddPanel .tc-new { color:var(--primary); font-weight:800; border-top:1px solid var(--line); border-radius:0 0 8px 8px; margin-top:2px; }
+  #typeComboDD { position:absolute; left:32px; right:0; top:calc(100% + 4px); z-index:10; background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); padding:6px; }
+  #typeComboDD[hidden] { display:none; }
+  #typeComboDD .tc-q { width:100%; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 10px; font:inherit; font-size:14px; color:var(--ink); margin-bottom:4px; }
+  #typeComboDD .tc-q:focus { outline:none; border-color:var(--primary); }
+  #typeComboDD .tc-list { max-height:240px; overflow-y:auto; }
+  #typeComboDD .tc-opt { padding:7px 10px; border-radius:8px; font-size:14px; color:var(--ink); cursor:pointer; }
+  #typeComboDD .tc-opt.act, #typeComboDD .tc-opt:hover { background:var(--bg); }
+  #typeComboDD .tc-opt.cur { font-weight:800; }
+  #typeComboDD .tc-new { color:var(--primary); font-weight:800; border-top:1px solid var(--line); border-radius:0 0 8px 8px; margin-top:2px; }
 
   /* Type dropdown, Google-style: a soft filled field with a small
      triangle; open, it gets an accent underline and the triangle flips;
@@ -2758,12 +2758,18 @@
     border-bottom:2px solid transparent !important; border-radius:8px 8px 0 0 !important; }
   #fabAddPanel .tc-btn:hover { background-color:#ebe3f6 !important; }
   #fabAddPanel .tc-btn.open { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 6h10L5 0z' fill='%23ec6a9c'/%3E%3C/svg%3E") !important; border-bottom-color:var(--primary) !important; }
-  #fabAddPanel .tc-dd { z-index:10000; top:calc(100% + 2px); border-radius:6px; padding:6px 0; box-shadow:0 6px 18px rgba(30,22,50,.22); }
-  #fabAddPanel .tc-q { margin:0 8px 6px; width:calc(100% - 16px); border-radius:6px; background:var(--bg); border-color:transparent; }
-  #fabAddPanel .tc-opt { padding:10px 16px; border-radius:0; font-size:14.5px; }
-  #fabAddPanel .tc-opt.cur { font-weight:600; background:var(--bg); box-shadow:inset 0 0 0 2px var(--primary); border-radius:6px; margin:0 6px; padding:10px 10px; }
-  #fabAddPanel .tc-opt.act:not(.cur) { background:#f6f1fb; }
-  #fabAddPanel .tc-new { margin-top:4px; border-radius:0; }
+  #typeComboDD { z-index:10000; top:calc(100% + 2px); border-radius:6px; padding:6px 0; box-shadow:0 6px 18px rgba(30,22,50,.22); }
+  #typeComboDD .tc-q { margin:0 8px 6px; width:calc(100% - 16px); border-radius:6px; background:var(--bg); border-color:transparent; }
+  #typeComboDD .tc-opt { padding:10px 16px; border-radius:0; font-size:14.5px; }
+  #typeComboDD .tc-opt.cur { font-weight:600; background:var(--bg); box-shadow:inset 0 0 0 2px var(--primary); border-radius:6px; margin:0 6px; padding:10px 10px; }
+  #typeComboDD .tc-opt.act:not(.cur) { background:#f6f1fb; }
+  #typeComboDD .tc-new { margin-top:4px; border-radius:0; }
+
+  @media screen and (min-width: 721px) {
+    #fabAddPanel.anchored .map-inner { transition:top .18s ease; }
+    #fabAddPanel .fabadd-split:not(.no-price) { animation:fs-in .18s ease-out; }
+    @keyframes fs-in { from { opacity:0; transform:scaleY(.96); } to { opacity:1; transform:none; } }
+  }
 </style>
 </head>
 <body>
@@ -12589,7 +12595,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -12915,7 +12921,14 @@
     var panel = document.getElementById('fabAddPanel'), card = panel.querySelector('.map-inner');
     var cr = cell.getBoundingClientRect(), W = card.offsetWidth || 420, H = card.offsetHeight || 560, gap = 10;
     var left = cr.right + gap; if(left + W > window.innerWidth - 12) left = cr.left - gap - W; if(left < 12) left = Math.max(12, (window.innerWidth - W) / 2);
-    var top = Math.min(Math.max(12, cr.top), window.innerHeight - H - 12);
+    // First placement: level with the day. After that, when the card grows
+    // or shrinks (e.g. the people section appearing once there's a price)
+    // it grows evenly up and down from where it is, like Google Calendar.
+    var top;
+    if(card._cell === cell && card._h){ top = (parseFloat(card.style.top) || cr.top) - (H - card._h) / 2; }
+    else top = cr.top;
+    top = Math.min(Math.max(12, top), window.innerHeight - H - 12);
+    card._cell = cell; card._h = H;
     if(card.style.left !== left + 'px') card.style.left = left + 'px';
     if(card.style.top !== top + 'px') card.style.top = top + 'px';
     var ghost = document.getElementById('dayGhost');
@@ -12937,7 +12950,7 @@
       // counts as a change and used to re-trigger this forever (freeze).
       if(!panel.classList.contains('show') && panel.classList.contains('anchored')){
         panel.classList.remove('anchored');
-        var card = panel.querySelector('.map-inner'); card.style.left = ''; card.style.top = '';
+        var card = panel.querySelector('.map-inner'); card.style.left = ''; card.style.top = ''; card._cell = null; card._h = 0;
         var g = document.getElementById('dayGhost'); if(g) g.style.display = 'none';
       }
     }).observe(panel, { attributes:true, attributeFilter:['class'] });
@@ -13053,7 +13066,9 @@
     sel.parentNode.insertBefore(btn, sel); sel.classList.add('tc-native');
     var dd = document.createElement('div'); dd.className = 'tc-dd'; dd.hidden = true;
     dd.innerHTML = '<input type="text" class="tc-q" placeholder="Search types…" aria-label="Search types"><div class="tc-list" role="listbox"></div>';
-    sel.parentNode.appendChild(dd);
+    // Lives on <body> (the card is transformed/animated, which would make a
+    // fixed child position relative to the card instead of the window).
+    dd.id = 'typeComboDD'; document.body.appendChild(dd);
     var q = dd.querySelector('.tc-q'), list = dd.querySelector('.tc-list'), act = 0;
     function label(){ var o = sel.options[sel.selectedIndex]; btn.textContent = o ? o.textContent : ''; }
     function draw(){
@@ -13070,7 +13085,8 @@
     // Fixed to the window so the card's own scrolling never clips it.
     function place(){ var b = btn.getBoundingClientRect(); dd.style.position = 'fixed'; dd.style.left = b.left + 'px'; dd.style.top = (b.bottom + 2) + 'px'; dd.style.width = Math.max(b.width, 240) + 'px';
       dd.style.right = 'auto'; dd.querySelector('.tc-list').style.maxHeight = Math.max(160, Math.min(320, window.innerHeight - b.bottom - 80)) + 'px'; }
-    function open(){ dd.hidden = false; btn.classList.add('open'); q.value = ''; draw(); place(); setTimeout(function(){ q.focus(); }, 0); }
+    function open(){ dd.hidden = false; btn.classList.add('open'); q.value = ''; draw(); place(); setTimeout(function(){ q.focus(); }, 0);
+      (function follow(){ if(dd.hidden) return; place(); requestAnimationFrame(follow); })(); }
     function close(){ dd.hidden = true; btn.classList.remove('open'); }
     function pick(v){
       close();
@@ -13093,6 +13109,9 @@
     });
     list.addEventListener('mousedown', function(e){ var o = e.target.closest('.tc-opt'); if(o){ e.preventDefault(); pick(o.dataset.v); } });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
+    // Closing the form closes the list too.
+    var panelEl = document.getElementById('fabAddPanel');
+    if(panelEl) new MutationObserver(function(){ if(!panelEl.classList.contains('show') && !dd.hidden) close(); }).observe(panelEl, { attributes:true, attributeFilter:['class'] });
     // Keep the button in step whenever the list or value changes.
     new MutationObserver(label).observe(sel, { childList:true });
     sel.addEventListener('change', label);
