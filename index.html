@@ -2826,6 +2826,8 @@
   @media screen and (min-width: 721px) {
     /* no "+" in the days: clicking a day opens the form */
     .dayaddbtn { display:none !important; }
+    /* no hover × on time/cost: the activity is edited in its card */
+    #fieldRemove { display:none !important; }
     /* an activity is one block: hover highlights it, click edits it */
     .panel .acts > li:not(.act-span-ghost) { cursor:pointer; border-radius:10px; transition:background-color .12s, box-shadow .12s; }
     .panel .acts > li:not(.act-span-ghost):hover { background:var(--bg); box-shadow:0 0 0 1px var(--line); }
