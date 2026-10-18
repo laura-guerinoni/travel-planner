@@ -2695,6 +2695,8 @@
   .paysplit-mode { background:var(--bg); margin:6px 10px; }
   .itemmenu.paysplit.own-mode .paysplit-row .paysplit-amount:not(.paysplit-paid), .itemmenu.paysplit.own-mode .paysplit-cols .c:nth-of-type(1) { visibility:hidden; }
   .itemmenu.paysplit .paysplit-hint { display:none; }
+
+  .fs-colrow { display:flex; justify-content:flex-end; margin-bottom:-2px; }
 </style>
 </head>
 <body>
@@ -2979,9 +2981,10 @@
       <label for="fabAddAmountInput" class="fabadd-label" data-i18n="fabadd_amount_label">Amount</label>
       <div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
-        <div class="fs-head"><span class="fabadd-label">Who's in</span><span class="fs-col">Paid</span></div>
+        <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
         <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Split the cost</button><button type="button" data-mode="own">Each pays their own</button></div>
         <div class="fs-hint">Ticked people share the cost: whoever paid less than their part owes the one who paid.</div>
+        <div class="fs-colrow"><span class="fs-col">Paid</span></div>
         <div class="fs-list"></div>
         <div class="fs-left"></div>
       </div>
