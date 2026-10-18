@@ -7033,7 +7033,7 @@
     // dashes mirror. The sides run i px in from the edges.
     var ax = 1.5 * W / 32, ay = H - 2.5, bx = W / 2, by = H - 13.8, dxv = bx - ax, dyv = by - ay, L = Math.sqrt(dxv * dxv + dyv * dyv);
     var nx = -dyv / L, ny = dxv / L; if(ny > 0){ nx = -nx; ny = -ny; }
-    var off = i - 1.5;
+    var off = i + 1.5;
     var yAt = function(x){ return ay + off * ny + (x - (ax + off * nx)) * dyv / dxv; };
     var apexY = yAt(W / 2), cornerY = yAt(i);
     var half = function(sign){ var x = W / 2 + sign * (W / 2 - i); return 'M ' + (W / 2) + ' ' + apexY.toFixed(2) + ' L ' + x + ' ' + cornerY.toFixed(2) + ' L ' + x + ' -1'; };
