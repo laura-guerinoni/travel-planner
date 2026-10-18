@@ -2851,8 +2851,15 @@
   #fabAddPanel .gc-edit-tools svg { width:17px; height:17px; }
 
   @media screen and (min-width: 721px) {
-    .grid.heads.stuck { margin-left:-17px; margin-right:-17px; padding:12px 17px 12px; border:1px solid var(--line); border-bottom:none;
-      border-radius:14px 14px 0 0; box-shadow:0 8px 12px -10px rgba(61,53,104,.25); }
+    .grid.heads.stuck { margin-left:-17px !important; margin-right:-17px !important; padding:12px 17px 12px !important; border:1px solid var(--line) !important; border-bottom:none !important;
+      border-radius:14px 14px 0 0 !important; box-shadow:none !important; background-clip:padding-box; }
+    /* The page scrolling underneath would still show square behind the
+       rounded corners: cover each corner's outside with the backdrop. */
+    .grid.heads.stuck::before, .grid.heads.stuck::after { content:''; position:absolute; top:-1px; width:15px; height:15px; pointer-events:none; z-index:-1;
+      background-color:var(--backdrop-color, #f8eefb); background-image:var(--backdrop); background-attachment:fixed; }
+    .grid.heads.stuck::before { left:-1px; -webkit-mask:radial-gradient(circle 15px at 100% 100%, transparent 14px, #000 14.5px); mask:radial-gradient(circle 15px at 100% 100%, transparent 14px, #000 14.5px); }
+    .grid.heads.stuck::after { right:-1px; -webkit-mask:radial-gradient(circle 15px at 0 100%, transparent 14px, #000 14.5px); mask:radial-gradient(circle 15px at 0 100%, transparent 14px, #000 14.5px); }
+    .grid.heads.stuck { isolation:auto; }
   }
 </style>
 </head>
