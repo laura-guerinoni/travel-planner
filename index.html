@@ -2828,6 +2828,7 @@
   .day-ghost-slot { height:34px; margin-top:6px; }
   #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
   #fabAddPanel .gc-allday select { flex:1; min-width:0; }
+  #fabAddPanel .gc-allday[hidden] { display:none; }
   #fabAddPanel .gc-allday:not([hidden]) + .fabadd-time-row { display:none; }
   /* a day with more than one city: a little route, like the plans list —
      a coloured dot per city on a dashed line, and the city as a soft pill */
@@ -2846,7 +2847,7 @@
      or first in its city, on a day with more than one */
   .acts > li[data-allday] { background:var(--bg); border-radius:10px; }
   /* the following nights of a stay: a lighter copy, on top of the day */
-  .acts > li.act-span-ghost.stay-ghost { order:-1; opacity:1; border:none; background:var(--bg); border-radius:10px; padding:7px; cursor:pointer; }
+  .acts > li.act-span-ghost.stay-ghost { opacity:1; border:none; background:var(--bg); border-radius:10px; padding:7px; cursor:pointer; }
   .acts > li.act-span-ghost.stay-ghost > * { opacity:.6; }
   .acts > li.act-span-ghost.stay-ghost:hover { box-shadow:0 0 0 1px var(--line); }
   .acts > li.act-span-ghost.stay-ghost .line { font-style:normal; }
@@ -9826,11 +9827,12 @@
         ghost.dataset.spanEnd = end;
         ghost.title = 'Continues from day ' + start + ' — edit the title, tag, or price there';
         ghost.__origin = li;
-        if(li.hasAttribute('data-stay-to')){ ghost.classList.add('stay-ghost'); ghost.title = 'Stay from day ' + start + ' — click to edit it'; }
+        if(li.hasAttribute('data-stay-to')){ ghost.classList.add('stay-ghost'); ghost.title = 'Stay from day ' + start + ' — click to edit it'; ghost.setAttribute('data-place', liPlace(li)); }
         var chip = li.querySelector('.chip');
         if(chip){
           var chipClone = document.createElement('span');
           chipClone.className = 'chip';
+          if(chip.getAttribute('data-name')) chipClone.setAttribute('data-name', chip.getAttribute('data-name'));
           chipClone.style.background = chip.style.background;
           chipClone.style.color = chip.style.color;
           // innerHTML, not textContent — the source chip's icon lives in
@@ -13202,6 +13204,7 @@
   function applyPlace(cell, li){
     var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
     var v = inp.value.trim(), cities = citiesOf(placeOfCell(cell)), loc = cell.querySelector(':scope > .loc');
+    var nightCities = stayNights(cell).map(liPlace).filter(Boolean);
     var old = li ? li.getAttribute('data-place') || (cities[0] || '') : '';
     var others = li ? dayActs(cell).filter(function(x){ return x !== li; }) : [];
     if(li){ if(v) li.setAttribute('data-place', v); else li.removeAttribute('data-place'); }
@@ -13213,6 +13216,8 @@
       var at = cities.indexOf(old);
       if(fabAddEditLi && old && at !== -1 && !oldStill) cities[at] = v; else cities.push(v);
     }
+    // a stay's night here: you wake up in its city, so it leads the day
+    nightCities.slice().reverse().forEach(function(c){ var k = cities.indexOf(c); if(k !== 0){ if(k > 0) cities.splice(k, 1); cities.unshift(c); } });
     var final = cities.join(' → ');
     if(final){
       if(!loc){ loc = buildLocEl(final); cell.insertBefore(loc, cell.querySelector(':scope > .acts') || null); }
@@ -13269,10 +13274,15 @@
     updateActivitySpan(li);
     var sp = staySpan(li), pl = liPlace(li), panel = li.closest('.panel');
     if(sp && pl && panel) panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){
-      var dn = dayNumOfCell(c); if(dn <= sp.start || dn > sp.end + 1 || placeOfCell(c)) return;
-      var loc = c.querySelector(':scope > .loc');
-      if(!loc){ loc = buildLocEl(pl); c.insertBefore(loc, c.querySelector(':scope > .acts') || null); }
-      else (loc.querySelector('.loc-text') || loc).textContent = pl;
+      var dn = dayNumOfCell(c); if(dn <= sp.start || dn > sp.end + 1) return;
+      // you wake up there: the stay's city leads that day's places
+      var cs = citiesOf(placeOfCell(c)); if(cs[0] === pl) return;
+      // activities there without their own city keep the one they had
+      if(cs[0]) dayActs(c).forEach(function(x){ if(!x.getAttribute('data-place')) x.setAttribute('data-place', cs[0]); });
+      cs = [pl].concat(cs.filter(function(x){ return x !== pl; }));
+      var loc = c.querySelector(':scope > .loc'), txt = cs.join(' → ');
+      if(!loc){ loc = buildLocEl(txt); c.insertBefore(loc, c.querySelector(':scope > .acts') || null); }
+      else (loc.querySelector('.loc-text') || loc).textContent = txt;
       c.classList.add('active');
     });
   }
@@ -13285,8 +13295,9 @@
   // between (see placeAnchored).
   (function(){ var css = ''; for(var k = 0; k <= 160; k++) css += '.acts > [data-ord="' + k + '"]{order:' + k + '}';
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); })();
+  function stayNights(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li.stay-ghost')); }
   function renderPlaceSections(cell){
-    var all = dayActs(cell), places = all.map(liPlace);
+    var all = stayNights(cell).concat(dayActs(cell)), places = all.map(liPlace);
     var uniq = places.filter(function(p, i){ return p && places.indexOf(p) === i; }), many = uniq.length > 1;
     var cities = citiesOf(placeOfCell(cell)).filter(function(c){ return uniq.indexOf(c) !== -1; });
     uniq.forEach(function(c){ if(cities.indexOf(c) === -1) cities.push(c); });
