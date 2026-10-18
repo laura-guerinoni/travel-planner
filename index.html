@@ -2859,6 +2859,11 @@
   .optmembers-err { flex-basis:100%; margin:0; font-size:12px; color:#d6455d; }
   .optmembers-err:empty { display:none; }
   @media screen and (min-width: 721px) {
+    /* the day's total sits where the "⋯" was (top right); clicking it
+       opens that same day menu (move day, clear day) */
+    .cell > .cellhead .daymenu-btn { display:none !important; }
+    .cell > .loc > .daytotal-badge { position:absolute; top:12px; right:11px; cursor:pointer; }
+    .cell > .loc > .daytotal-badge:hover { background:rgba(61,53,104,.08); color:var(--ink); }
     /* no "+" in the days: clicking a day opens the form */
     .dayaddbtn { display:none !important; }
     /* no hover × on time/cost: the activity is edited in its card */
@@ -13323,6 +13328,12 @@
   // dimmed, like the search) for that day, instead of a blank activity
   // appearing in the day to edit in place.
   var fabAddForcedCell = null, fabAddInsertAfter = null;
+  document.addEventListener('click', function(e){
+    if(!window.matchMedia('(min-width:721px)').matches) return;
+    var b = e.target.closest && e.target.closest('.panel.on .cell > .loc > .daytotal-badge'); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    openDayMenu(b.closest('.cell'), b);
+  }, true);
   // Clicking straight on a day (its empty space, not on an activity, place
   // or button) opens the same form attached beside that day — like Google
   // Calendar's quick add — with a "New activity" placeholder in the day,
