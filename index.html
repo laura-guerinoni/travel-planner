@@ -2770,6 +2770,9 @@
     #fabAddPanel .fabadd-split:not(.no-price) { animation:fs-in .18s ease-out; }
     @keyframes fs-in { from { opacity:0; transform:scaleY(.96); } to { opacity:1; transform:none; } }
   }
+
+  #typeComboDD .tc-foot { border-top:1px solid var(--line); margin-top:4px; padding-top:2px; }
+  #typeComboDD .tc-foot .tc-new { border-top:none; margin-top:0; }
 </style>
 </head>
 <body>
@@ -13065,11 +13068,11 @@
     var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fabadd-select tc-btn';
     sel.parentNode.insertBefore(btn, sel); sel.classList.add('tc-native');
     var dd = document.createElement('div'); dd.className = 'tc-dd'; dd.hidden = true;
-    dd.innerHTML = '<input type="text" class="tc-q" placeholder="Search types…" aria-label="Search types"><div class="tc-list" role="listbox"></div>';
+    dd.innerHTML = '<input type="text" class="tc-q" placeholder="Search types…" aria-label="Search types"><div class="tc-list" role="listbox"></div><div class="tc-foot"></div>';
     // Lives on <body> (the card is transformed/animated, which would make a
     // fixed child position relative to the card instead of the window).
     dd.id = 'typeComboDD'; document.body.appendChild(dd);
-    var q = dd.querySelector('.tc-q'), list = dd.querySelector('.tc-list'), act = 0;
+    var q = dd.querySelector('.tc-q'), list = dd.querySelector('.tc-list'), foot = dd.querySelector('.tc-foot'), act = 0;
     function label(){ var o = sel.options[sel.selectedIndex]; btn.textContent = o ? o.textContent : ''; }
     function draw(){
       var term = q.value.trim().toLowerCase(), html = '', i = 0;
@@ -13078,13 +13081,14 @@
         if(term && o.textContent.toLowerCase().indexOf(term) === -1) return;
         html += '<div class="tc-opt' + (o.value === sel.value ? ' cur' : '') + '" data-v="' + o.value + '">' + o.textContent.replace(/</g, '&lt;') + '</div>'; i++;
       });
-      html += '<div class="tc-opt tc-new" data-v="new">＋ New type' + (term ? ' “' + q.value.trim().replace(/</g, '&lt;') + '”' : '…') + '</div>';
+      // "New type" stays pinned at the bottom; only the types scroll.
+      foot.innerHTML = '<div class="tc-opt tc-new" data-v="new">＋ New type' + (term ? ' “' + q.value.trim().replace(/</g, '&lt;') + '”' : '…') + '</div>';
       list.innerHTML = html; act = 0; mark();
     }
-    function mark(){ var opts = list.querySelectorAll('.tc-opt'); opts.forEach(function(o, i){ o.classList.toggle('act', i === act); }); if(opts[act]) opts[act].scrollIntoView({ block:'nearest' }); }
+    function mark(){ var opts = dd.querySelectorAll('.tc-opt'); opts.forEach(function(o, i){ o.classList.toggle('act', i === act); }); if(opts[act]) opts[act].scrollIntoView({ block:'nearest' }); }
     // Fixed to the window so the card's own scrolling never clips it.
     function place(){ var b = btn.getBoundingClientRect(); dd.style.position = 'fixed'; dd.style.left = b.left + 'px'; dd.style.top = (b.bottom + 2) + 'px'; dd.style.width = Math.max(b.width, 240) + 'px';
-      dd.style.right = 'auto'; dd.querySelector('.tc-list').style.maxHeight = Math.max(160, Math.min(320, window.innerHeight - b.bottom - 80)) + 'px'; }
+      dd.style.right = 'auto'; dd.querySelector('.tc-list').style.maxHeight = Math.max(120, Math.min(320, window.innerHeight - b.bottom - 120)) + 'px'; }
     function open(){ dd.hidden = false; btn.classList.add('open'); q.value = ''; draw(); place(); setTimeout(function(){ q.focus(); }, 0);
       (function follow(){ if(dd.hidden) return; place(); requestAnimationFrame(follow); })(); }
     function close(){ dd.hidden = true; btn.classList.remove('open'); }
@@ -13101,13 +13105,13 @@
     btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if(dd.hidden) open(); else close(); });
     q.addEventListener('input', draw);
     q.addEventListener('keydown', function(e){
-      var n = list.querySelectorAll('.tc-opt').length;
+      var n = dd.querySelectorAll('.tc-opt').length;
       if(e.key === 'ArrowDown'){ e.preventDefault(); act = Math.min(n - 1, act + 1); mark(); }
       else if(e.key === 'ArrowUp'){ e.preventDefault(); act = Math.max(0, act - 1); mark(); }
-      else if(e.key === 'Enter'){ e.preventDefault(); var o = list.querySelectorAll('.tc-opt')[act]; if(o) pick(o.dataset.v); }
+      else if(e.key === 'Enter'){ e.preventDefault(); var o = dd.querySelectorAll('.tc-opt')[act]; if(o) pick(o.dataset.v); }
       else if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); btn.focus(); }
     });
-    list.addEventListener('mousedown', function(e){ var o = e.target.closest('.tc-opt'); if(o){ e.preventDefault(); pick(o.dataset.v); } });
+    dd.addEventListener('mousedown', function(e){ var o = e.target.closest('.tc-opt'); if(o){ e.preventDefault(); pick(o.dataset.v); } });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
     // Closing the form closes the list too.
     var panelEl = document.getElementById('fabAddPanel');
