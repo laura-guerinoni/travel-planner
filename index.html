@@ -2823,7 +2823,64 @@
   .dp-dd .dp-day.today:not(.sel) { box-shadow:inset 0 0 0 1.5px var(--line); }
   .dp-dd .dp-day.sel { background:var(--primary); color:#fff; font-weight:800; }
 
+  /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
+  #manageAccessBtn { display:none !important; }
+  .day-ghost-slot { height:34px; margin-top:6px; }
+  #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
+  #fabAddPanel .gc-allday select { flex:1; min-width:0; }
+  #fabAddPanel .gc-allday[hidden] { display:none; }
+  #fabAddPanel .gc-allday:not([hidden]) + .fabadd-time-row { display:none; }
+  /* a day with more than one city: a little route, like the plans list —
+     a coloured dot per city on a dashed line, and the city as a soft pill */
+  .acts > li[data-city] { --cc:var(--primary); --cc-rgb:var(--primary-rgb); margin-left:24px; }
+  .acts > li[data-city="1"] { --cc:var(--secondary); --cc-rgb:var(--secondary-rgb); }
+  .acts > li[data-city="2"] { --cc:var(--accent); --cc-rgb:var(--accent-rgb); }
+  .acts > li[data-sec]::before { content:attr(data-sec); position:absolute; left:3px; top:-26px; white-space:nowrap; pointer-events:none;
+    line-height:16px; font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted); }
+  .acts > li[data-sec] { margin-top:32px; }
+  .acts > li[data-sec]:not([data-sec-first]) { margin-top:40px; }
+  /* the dashed line on the left, with the city's dot where its pill is */
+  .acts > li[data-city]::after { content:''; position:absolute; left:-17.5px; width:14px; top:-8px; bottom:0; pointer-events:none;
+    background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+  /* all-day activities (a Stay): a soft filled block, first in the day —
+     or first in its city, on a day with more than one */
+  .acts > li[data-allday] { background:var(--bg); border-radius:10px; }
+  /* the following nights of a stay: a lighter copy, on top of the day */
+  .acts > li.act-span-ghost.stay-ghost { opacity:1; border:none; background:var(--bg); border-radius:10px; padding:7px; cursor:pointer; }
+  .acts > li.act-span-ghost.stay-ghost > * { opacity:.6; }
+  .acts > li.act-span-ghost.stay-ghost:hover { box-shadow:0 0 0 1px var(--line); }
+  .acts > li.act-span-ghost.stay-ghost .line { font-style:normal; }
+  .acts > li.act-span-ghost.stay-ghost .price { display:none; } /* the price lives on check-in (each night still counts its share in the day total) */
+  /* the placeholder slot between two cities keeps the line going */
+  .acts:has(> li[data-city]) > .day-ghost-slot { position:relative; margin-left:24px; }
+  .acts:has(> li[data-city]) > .day-ghost-slot::after { content:''; position:absolute; left:-17.5px; width:14px; top:-16px; bottom:0; pointer-events:none;
+    background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+  .acts > li[data-city-last]::after { bottom:7px; } /* ends level with the last line of the last activity (its 7px padding) */
+  .acts > li[data-sec]::after { top:-25px;
+    background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center top/14px 14px no-repeat,
+               repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center 14px/2px calc(100% - 14px) no-repeat; }
+  .acts > li[data-sec]:not([data-sec-first])::after { top:-48px;
+    background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center 23px/14px 14px no-repeat,
+               repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+  /* the day's cities: same small capitals as the city sections */
+  .cell > .loc > .loc-text { font-size:12px !important; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  /* a pin before the day's city */
+  .cell > .loc::before { content:''; flex:none; align-self:center; width:15px; height:15px; margin-right:-3px; background:var(--muted);
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E") center/contain no-repeat; }
+  .optmembers-invite { display:flex; flex-wrap:wrap; gap:6px; margin:8px 4px 2px; padding-top:10px; border-top:1px solid var(--line); }
+  .optmembers-invite input { flex:1; min-width:0; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font:inherit; font-size:13px; color:var(--ink); background:var(--card); }
+  .optmembers-invite input:focus { outline:none; border-color:var(--primary); }
+  .optmembers-invite button { padding:8px 12px; border-radius:8px; border:none; background:var(--primary); color:#fff; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+  .optmembers-err { flex-basis:100%; margin:0; font-size:12px; color:#d6455d; }
+  .optmembers-err:empty { display:none; }
   @media screen and (min-width: 721px) {
+    /* the day's total sits where the "⋯" was (top right); clicking it
+       opens that same day menu (move day, clear day) */
+    .cell > .cellhead .daymenu-btn { display:none !important; }
+    .cell > .loc > .daytotal-badge { position:absolute; top:12px; right:11px; cursor:pointer; }
+    .cell > .loc > .daytotal-badge:hover { background:rgba(61,53,104,.08); color:var(--ink); }
     /* no "+" in the days: clicking a day opens the form */
     .dayaddbtn { display:none !important; }
     /* no hover × on time/cost: the activity is edited in its card */
@@ -3148,6 +3205,7 @@
            underlined field, then one compact row per detail with an icon. -->
       <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name, e.g. Train to Budapest" aria-label="What" />
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select></div>
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Where are you? e.g. Kraków" aria-label="Place" autocomplete="off" /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
       <div id="fabAddNewTag" class="gc-newtag" hidden>
         <input type="text" class="fabadd-select nt-icon" maxlength="4" placeholder="🎟️" aria-label="Emoji">
@@ -3155,7 +3213,7 @@
         <input type="color" class="nt-color" value="#d9663f" aria-label="Colour">
         <button type="button" class="nt-add">Add</button>
       </div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div class="fabadd-time-row">
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden><span>All day · check-out</span><select id="fabAddStayOut" class="fabadd-select" aria-label="Check-out"></select></span><div class="fabadd-time-row">
         <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
@@ -9722,9 +9780,14 @@
     if(!d1 || !d2 || d1 === d2) return null;
     return d1 < d2 ? { start: d1, end: d2 } : { start: d2, end: d1 };
   }
+  // A stay's nights: from its own day to the night before check-out.
+  function staySpan(li){
+    var to = parseInt(li.getAttribute('data-stay-to'), 10), c = li.closest('.cell'), from = c ? dayNumOfCell(c) : null;
+    return to && from && to - 1 > from ? { start: from, end: to - 1 } : null;
+  }
   function updateActivitySpan(li){
     var lineEl = li.querySelector(':scope > .line');
-    var span = lineEl ? parseSpanFromLine(lineEl.textContent) : null;
+    var span = li.hasAttribute('data-stay-to') ? staySpan(li) : (lineEl ? parseSpanFromLine(lineEl.textContent) : null);
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
     var panel = li.closest('.panel');
@@ -9740,6 +9803,10 @@
       var c = g.closest('.cell');
       if(c) touchedCells.push(c);
       g.remove();
+    });
+    panel.querySelectorAll('.acts > li[data-stay-to]').forEach(function(li){
+      var sp = staySpan(li);
+      if(sp){ li.dataset.spanStart = sp.start; li.dataset.spanEnd = sp.end; } else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
     });
     panel.querySelectorAll('.acts > li[data-span-start]').forEach(function(li){
       var start = parseInt(li.dataset.spanStart, 10), end = parseInt(li.dataset.spanEnd, 10);
@@ -9759,10 +9826,13 @@
         ghost.dataset.spanStart = start;
         ghost.dataset.spanEnd = end;
         ghost.title = 'Continues from day ' + start + ' — edit the title, tag, or price there';
+        ghost.__origin = li;
+        if(li.hasAttribute('data-stay-to')){ ghost.classList.add('stay-ghost'); ghost.title = 'Stay from day ' + start + ' — click to edit it'; ghost.setAttribute('data-place', liPlace(li)); }
         var chip = li.querySelector('.chip');
         if(chip){
           var chipClone = document.createElement('span');
           chipClone.className = 'chip';
+          if(chip.getAttribute('data-name')) chipClone.setAttribute('data-name', chip.getAttribute('data-name'));
           chipClone.style.background = chip.style.background;
           chipClone.style.color = chip.style.color;
           // innerHTML, not textContent — the source chip's icon lives in
@@ -9778,7 +9848,7 @@
         ghost.appendChild(titleSpan);
         var contSpan = document.createElement('span');
         contSpan.className = 'line';
-        contSpan.textContent = '↔ continues';
+        contSpan.textContent = li.hasAttribute('data-stay-to') ? '🌙 night ' + (d - start + 1) + ' of ' + (end - start + 1) : '↔ continues';
         ghost.appendChild(contSpan);
         var priceEl = li.querySelector(':scope > .price .price-val');
         if(priceEl){
@@ -11467,6 +11537,29 @@
         row.appendChild(label);
         pop.appendChild(row);
       });
+      // Invite someone straight into this plan (Participants left the
+      // profile menu: each plan is shared on its own).
+      var form = document.createElement('form');
+      form.className = 'optmembers-invite';
+      form.innerHTML = '<input type="email" required autocomplete="off"><button type="submit"></button><p class="optmembers-err"></p>';
+      var inp = form.querySelector('input'), err = form.querySelector('.optmembers-err');
+      inp.placeholder = t('manage_invite_placeholder'); form.querySelector('button').textContent = t('manage_invite_btn');
+      form.addEventListener('click', function(e){ e.stopPropagation(); });
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        var email = (inp.value || '').trim().toLowerCase(); if(!email) return;
+        err.textContent = '';
+        var newKey = sanitizeEmailKey(email);
+        firebase.database().ref('members/' + newKey).set('invited').then(function(){
+          // A plan open to everyone already includes them; otherwise add
+          // them to this plan's own list (and only this plan's).
+          var arr = getOptionMembers(panel);
+          if(arr.length && arr.indexOf(newKey) === -1){ arr.push(newKey); setPlanMembers(panel, arr); afterChange(); }
+          inp.value = '';
+          loadMemberAvatarData(true).then(render);
+        }).catch(function(er){ err.textContent = 'Couldn’t invite ' + email + ' — try again.'; console.warn('Invite failed', er); });
+      });
+      pop.appendChild(form);
       positionPopover(pop, anchorEl);
     }
     var hadCache = !!memberAvatarDataPromise;
@@ -13078,13 +13171,164 @@
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
     if(fabAddPanel) fabAddPanel.classList.remove('show');
-    fabAddEditLi = null; fabAddPendingPick = null;
+    fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null;
+    var so = document.getElementById('fabAddStayOut'); if(so) delete so.dataset.want;
+    document.querySelectorAll('.day-ghost-slot').forEach(function(x){ x.remove(); });
   }
   // ---- One form to add AND edit an activity (desktop) ----
   // Clicking an activity opens this same card beside its day, filled in,
   // with Save, move up/down and delete; extras (notes, link, ticket,
   // photo) sit as small chips under the main fields.
   var fabAddEditLi = null, fabAddPendingPick = null;
+  // ---- Place: the day's heading, set from the card ----
+  // Each activity has its city (data-place); the day's heading lists the
+  // day's cities in order, "Milano → Verona". The day's first activity
+  // starts blank (left empty, the day has no heading — never the old
+  // "New location" stand-in); later ones start in the day's last city.
+  // With more than one city, the day's activities are grouped under a
+  // small heading per city (see renderPlaceSections).
+  var PLACE_STANDIN = 'New location', placeTouched = false;
+  function placeOfCell(c){ var l = c && (c.querySelector(':scope > .loc > .loc-text') || c.querySelector(':scope > .loc')); var t = l ? l.textContent.trim() : ''; return t === PLACE_STANDIN ? '' : t; }
+  function citiesOf(text){ return text ? text.split('→').map(function(x){ return x.trim(); }).filter(Boolean) : []; }
+  function liPlace(li){ var p = li.getAttribute('data-place'); if(p) return p; var c = citiesOf(placeOfCell(li.closest('.cell'))); return c[0] || ''; }
+  function cellOfDay(day){ var p = document.querySelector('.panel.on'), hit = null; if(p) p.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) hit = c; }); return hit; }
+  function suggestPlace(){
+    var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
+    var cell = cellOfDay(fabAddDaySelect.value);
+    if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
+    if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
+    var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || '';
+  }
+  function dayActs(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)')); }
+  // li: the activity just added/edited (in its final day).
+  function applyPlace(cell, li){
+    var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
+    var v = inp.value.trim(), cities = citiesOf(placeOfCell(cell)), loc = cell.querySelector(':scope > .loc');
+    var nightCities = stayNights(cell).map(liPlace).filter(Boolean);
+    var old = li ? li.getAttribute('data-place') || (cities[0] || '') : '';
+    var others = li ? dayActs(cell).filter(function(x){ return x !== li; }) : [];
+    if(li){ if(v) li.setAttribute('data-place', v); else li.removeAttribute('data-place'); }
+    if(!others.length) cities = v ? citiesOf(v) : [];   // the day's only activity: its place is the day's
+    else if(v && cities.indexOf(v) === -1){
+      // Renaming the one activity that was in `old`: swap it in place;
+      // otherwise a new city that day (A → B).
+      var oldStill = others.some(function(x){ return liPlace(x) === old; });
+      var at = cities.indexOf(old);
+      if(fabAddEditLi && old && at !== -1 && !oldStill) cities[at] = v; else cities.push(v);
+    }
+    // a stay's night here: you wake up in its city, so it leads the day
+    nightCities.slice().reverse().forEach(function(c){ var k = cities.indexOf(c); if(k !== 0){ if(k > 0) cities.splice(k, 1); cities.unshift(c); } });
+    var final = cities.join(' → ');
+    if(final){
+      if(!loc){ loc = buildLocEl(final); cell.insertBefore(loc, cell.querySelector(':scope > .acts') || null); }
+      var lt = loc.querySelector('.loc-text') || loc; if(lt.textContent.trim() !== final) lt.textContent = final;
+      cell.classList.add('active');
+    } else if(loc) loc.remove();
+    renderPlaceSections(cell);
+  }
+  // ---- All-day activities (a Stay): no time; they sit at the top of the
+  // day, above the timed ones and apart from them, like all-day events in
+  // a calendar. ----
+  function isAllDayTag(tg){ return !!tg && /^(stay)$/i.test(String(tg.name || '').trim()); }
+  function isAllDay(li){ var c = li && li.querySelector('.chip'); return !!c && /^(stay)$/i.test((c.getAttribute('data-name') || '').trim()); }
+  function placeAllDay(li){
+    if(!isAllDay(li)) return;
+    var acts = li.parentElement; if(!acts) return;
+    var prev = li.previousElementSibling;
+    while(prev && prev.tagName === 'LI' && !prev.classList.contains('act-span-ghost') && !isAllDay(prev)){
+      acts.insertBefore(li, prev); prev = li.previousElementSibling;
+    }
+  }
+  // Check-out: the days after check-in (up to two weeks); the default is
+  // the next day (one night), or what the stay already has.
+  function fillStayOut(){
+    var out = document.getElementById('fabAddStayOut'); if(!out) return;
+    var cell = cellOfDay(fabAddDaySelect.value), keep = out.dataset.want || '';
+    out.innerHTML = '';
+    if(!cell) return;
+    var cells = [].slice.call(cell.closest('.panel').querySelectorAll('.cell:not(.empty)')), i0 = cells.indexOf(cell);
+    var p = cell.closest('.panel');
+    cells.slice(i0 + 1, i0 + 15).forEach(function(c, k){
+      var dn = dayNumOfCell(c), r = realDate(p, dn), d = new Date(r.year, r.month - 1, r.day);
+      var o = document.createElement('option'); o.value = String(dn);
+      o.textContent = d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }) + ' · ' + (k + 1) + (k ? ' nights' : ' night');
+      out.appendChild(o);
+    });
+    if(keep && out.querySelector('option[value="' + keep + '"]')) out.value = keep;
+  }
+  function syncAllDayForm(){
+    var lab = document.getElementById('fabAddAllDay'); if(!lab || !fabAddTagSelect) return;
+    var on = isAllDayTag(TAGS[fabAddTagSelect.value]);
+    lab.hidden = !on;
+    if(on){ if(fabAddTimeInput) fabAddTimeInput.value = ''; if(fabAddTimeEndInput) fabAddTimeEndInput.value = ''; fillStayOut(); }
+  }
+  if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
+  if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
+  (function(){ var so = document.getElementById('fabAddStayOut'); if(so) so.addEventListener('change', function(){ so.dataset.want = so.value; }); })();
+  // Saves the stay's check-out; the nights after check-in get the stay's
+  // city as their place when they don't have one yet.
+  function applyStay(li){
+    var out = document.getElementById('fabAddStayOut');
+    if(!isAllDay(li) || !out || !out.value){ if(li.hasAttribute('data-stay-to')) li.removeAttribute('data-stay-to'); updateActivitySpan(li); return; }
+    li.setAttribute('data-stay-to', out.value);
+    updateActivitySpan(li);
+    var sp = staySpan(li), pl = liPlace(li), panel = li.closest('.panel');
+    if(sp && pl && panel) panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){
+      var dn = dayNumOfCell(c); if(dn <= sp.start || dn > sp.end + 1) return;
+      // you wake up there: the stay's city leads that day's places
+      var cs = citiesOf(placeOfCell(c)); if(cs[0] === pl) return;
+      // activities there without their own city keep the one they had
+      if(cs[0]) dayActs(c).forEach(function(x){ if(!x.getAttribute('data-place')) x.setAttribute('data-place', cs[0]); });
+      cs = [pl].concat(cs.filter(function(x){ return x !== pl; }));
+      var loc = c.querySelector(':scope > .loc'), txt = cs.join(' → ');
+      if(!loc){ loc = buildLocEl(txt); c.insertBefore(loc, c.querySelector(':scope > .acts') || null); }
+      else (loc.querySelector('.loc-text') || loc).textContent = txt;
+      c.classList.add('active');
+    });
+  }
+  // A day with more than one city: a small city heading over each run of
+  // its activities. data-sec is display only (not saved, not watched).
+  // Display order (CSS order via data-ord — never saved, never watched):
+  // one city → all-day ones (a Stay) first, then the rest; more than one
+  // city → a section per city in the day's order, each starting with its
+  // all-day ones. data-ord steps by 2 so the add placeholder can sit in
+  // between (see placeAnchored).
+  (function(){ var css = ''; for(var k = 0; k <= 160; k++) css += '.acts > [data-ord="' + k + '"]{order:' + k + '}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); })();
+  function stayNights(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li.stay-ghost')); }
+  function renderPlaceSections(cell){
+    var all = stayNights(cell).concat(dayActs(cell)), places = all.map(liPlace);
+    var uniq = places.filter(function(p, i){ return p && places.indexOf(p) === i; }), many = uniq.length > 1;
+    var cities = citiesOf(placeOfCell(cell)).filter(function(c){ return uniq.indexOf(c) !== -1; });
+    uniq.forEach(function(c){ if(cities.indexOf(c) === -1) cities.push(c); });
+    var seq = [];
+    if(many){
+      cities.forEach(function(c){
+        all.forEach(function(li, i){ if(places[i] === c && isAllDay(li)) seq.push(li); });
+        all.forEach(function(li, i){ if(places[i] === c && !isAllDay(li)) seq.push(li); });
+      });
+      all.forEach(function(li){ if(seq.indexOf(li) === -1) seq.push(li); });
+    } else {
+      all.forEach(function(li){ if(isAllDay(li)) seq.push(li); });
+      all.forEach(function(li){ if(!isAllDay(li)) seq.push(li); });
+    }
+    function flag(li, a, on, v){ if(on){ if(li.getAttribute(a) !== v) li.setAttribute(a, v); } else if(li.hasAttribute(a)) li.removeAttribute(a); }
+    seq.forEach(function(li, i){
+      var pl = liPlace(li), prevPl = i ? liPlace(seq[i - 1]) : null;
+      flag(li, 'data-ord', true, String(2 * i));
+      flag(li, 'data-allday', isAllDay(li), '');
+      flag(li, 'data-sec', many && !!pl && pl !== prevPl, pl);
+      flag(li, 'data-city', many, String(Math.max(0, cities.indexOf(pl)) % 3));
+      flag(li, 'data-sec-first', many && i === 0, '');
+      flag(li, 'data-city-last', many && i === seq.length - 1, '');
+    });
+  }
+  setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
+  (function(){
+    var inp = document.getElementById('fabAddPlace'); if(!inp) return;
+    inp.addEventListener('input', function(){ placeTouched = true; });
+    if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', suggestPlace);
+  })();
   function setFormMode(li){
     var h = document.getElementById('fabAddHeading'), b = document.getElementById('fabAddConfirmBtn');
     if(h) h.textContent = li ? 'Edit activity' : 'Add activity';
@@ -13101,9 +13345,11 @@
     more.querySelector('[data-x="ticket"] span').textContent = li && li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket';
     more.querySelector('[data-x="photo"] span').textContent = li && li.hasAttribute('data-img') ? 'Replace photo' : 'Photo';
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
+    placeTouched = false; suggestPlace(); syncAllDayForm();
   }
   function openActivityEditor(li){
     var cell = li.closest('.cell'); if(!cell) return;
+    var so = document.getElementById('fabAddStayOut'); if(so){ if(li.getAttribute('data-stay-to')) so.dataset.want = li.getAttribute('data-stay-to'); else delete so.dataset.want; }
     fabAddForcedCell = cell;
     var panelEl = document.getElementById('fabAddPanel');
     panelEl.classList.add('anchored');
@@ -13174,6 +13420,8 @@
   }, true);
   document.addEventListener('click', function(e){
     if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches || VIEW_ONLY) return;
+    var night = e.target.closest && e.target.closest('.panel.on .acts > li.stay-ghost');
+    if(night && night.__origin && night.__origin.isConnected){ e.preventDefault(); e.stopPropagation(); openActivityEditor(night.__origin); return; }
     var li = e.target.closest && e.target.closest('.panel.on .acts > li:not(.act-span-ghost)');
     if(!li || e.target.closest(ACT_ICON_SEL)) return;
     e.preventDefault(); e.stopPropagation();
@@ -13195,7 +13443,23 @@
   // Desktop: a day's own "+" opens this same focused form (centred, page
   // dimmed, like the search) for that day, instead of a blank activity
   // appearing in the day to edit in place.
-  var fabAddForcedCell = null;
+  var fabAddForcedCell = null, fabAddInsertAfter = null;
+  // Enter in any field of the activity card adds / saves it (not in
+  // notes, which take new lines, nor in the new-type row).
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || e.isComposing || e.shiftKey) return;
+    var t = e.target, panel = document.getElementById('fabAddPanel');
+    if(!panel || !panel.classList.contains('show') || !panel.contains(t)) return;
+    if(t.tagName !== 'INPUT' || t.closest('#fabAddNewTag')) return;
+    e.preventDefault();
+    var b = document.getElementById('fabAddConfirmBtn'); if(b) b.click();
+  });
+  document.addEventListener('click', function(e){
+    if(!window.matchMedia('(min-width:721px)').matches) return;
+    var b = e.target.closest && e.target.closest('.panel.on .cell > .loc > .daytotal-badge'); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    openDayMenu(b.closest('.cell'), b);
+  }, true);
   // Clicking straight on a day (its empty space, not on an activity, place
   // or button) opens the same form attached beside that day — like Google
   // Calendar's quick add — with a "New activity" placeholder in the day,
@@ -13204,7 +13468,18 @@
     if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches) return;
     var cell = e.target.closest('.panel.on > .grid.week > .cell:not(.empty)');
     if(!cell) return;
-    if(e.target.closest('.acts, .loc, button, a, input, select, [contenteditable="true"], .itemmenu-btn, .dayaddbtn, .daymenu-btn, .banner, .grid.banner-row')) return;
+    // The space between two activities counts too: the new one goes
+    // right there, in the city of the activity above it.
+    var gapAfter = null;
+    if(e.target.matches('.acts')){
+      // the activity just above the click, and only if there's one below it
+      var best = -Infinity, below = false;
+      [].forEach.call(e.target.querySelectorAll(':scope > li:not(.act-span-ghost)'), function(li){ var r = li.getBoundingClientRect();
+        if(r.bottom <= e.clientY && r.bottom > best){ best = r.bottom; gapAfter = li; } if(r.top >= e.clientY) below = true; });
+      if(!below) gapAfter = null;
+    }
+    else if(e.target.closest('.acts, .loc, button, a, input, select, [contenteditable="true"], .itemmenu-btn, .dayaddbtn, .daymenu-btn, .banner, .grid.banner-row')) return;
+    fabAddInsertAfter = gapAfter;
     var sel = window.getSelection && window.getSelection(); if(sel && String(sel).length) return;
     e.stopPropagation();
     fabAddForcedCell = cell;
@@ -13242,15 +13517,25 @@
     if(card.style.top !== top + 'px') card.style.top = top + 'px';
     var ghost = document.getElementById('dayGhost');
     if(!ghost){ ghost = document.createElement('div'); ghost.id = 'dayGhost'; document.body.appendChild(ghost); }
-    var head = cell.querySelector(':scope > .cellhead'), hr = head ? head.getBoundingClientRect() : cr;
-    // Below whatever the day already has (the new activity goes last).
-    var below = hr.bottom;
-    [].forEach.call(cell.children, function(ch){
-      var r = ch.getBoundingClientRect(), pos = getComputedStyle(ch).position;
-      if(r.height > 0 && pos !== 'absolute' && pos !== 'fixed') below = Math.max(below, r.bottom);
-    });
-    hr = { bottom: below };
-    var gl = (cr.left + 8) + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.width - 16) + 'px';
+    // The day makes room for it: an empty slot after its activities
+    // (runtime only — never saved, see the observer's filter), and the
+    // placeholder sits on it, so it never spills onto the next week.
+    var slot = cell.querySelector('.day-ghost-slot');
+    document.querySelectorAll('.day-ghost-slot').forEach(function(x){ if(x !== slot || fabAddEditLi) x.remove(); });
+    if(fabAddEditLi) slot = null;
+    else if(!slot){
+      slot = document.createElement('div'); slot.className = 'day-ghost-slot';
+      if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell) fabAddInsertAfter.parentNode.insertBefore(slot, fabAddInsertAfter.nextSibling);
+      else { var after = cell.querySelector(':scope > .acts') || cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead');
+        cell.insertBefore(slot, after ? after.nextSibling : null); }
+    }
+    if(slot && fabAddInsertAfter && slot.parentNode === fabAddInsertAfter.parentNode){ var so = String((parseInt(fabAddInsertAfter.getAttribute('data-ord'), 10) || 0) + 1); if(slot.getAttribute('data-ord') !== so) slot.setAttribute('data-ord', so); }
+    var head = cell.querySelector(':scope > .cellhead'), hr = slot ? { bottom: slot.getBoundingClientRect().top - 6 } : (head ? head.getBoundingClientRect() : cr);
+    // A day with more than one city: keep it right of the dashed line,
+    // lined up with the activities.
+    var cityLi = cell.querySelector(':scope > .acts > li[data-city]'), gx = cr.left + 8;
+    if(cityLi) gx = cityLi.getBoundingClientRect().left;
+    var gl = gx + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.right - 8 - gx) + 'px';
     if(ghost.style.left !== gl) ghost.style.left = gl;
     if(ghost.style.top !== gt) ghost.style.top = gt;
     if(ghost.style.width !== gw) ghost.style.width = gw;
@@ -13275,6 +13560,7 @@
         panel.classList.remove('anchored');
         var card = panel.querySelector('.map-inner'); card.style.left = ''; card.style.top = ''; card._cell = null; card._h = 0;
         var g = document.getElementById('dayGhost'); if(g) g.style.display = 'none';
+        document.querySelectorAll('.day-ghost-slot').forEach(function(x){ x.remove(); });
       }
     }).observe(panel, { attributes:true, attributeFilter:['class'] });
     // Quick add: a click anywhere outside the card, or Esc, closes it.
@@ -13436,6 +13722,7 @@
       }
       sel.value = v; sel.dataset.prev = v; label();
       var row2 = document.getElementById('fabAddNewTag'); if(row2) row2.hidden = true;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
     }
     btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if(dd.hidden) open(); else close(); });
     q.addEventListener('input', draw);
@@ -13624,6 +13911,7 @@
     var timeEndVal = fabAddTimeEndInput ? fabAddTimeEndInput.value : '';
     var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
     var titleVal = fabAddTitleInput ? fabAddTitleInput.value.trim() : '';
+    var insertAfter = fabAddInsertAfter;
     closeFabAdd();
     if(!panel || !day) return;
     var cells = panel.querySelectorAll('.cell:not(.empty)');
@@ -13645,6 +13933,7 @@
     addBtn.click();
     var acts = cell.querySelector(':scope > .acts');
     var newLi = acts ? acts.lastElementChild : null;
+    if(newLi && insertAfter && insertAfter.parentNode === acts) acts.insertBefore(newLi, insertAfter.nextSibling);
     if(newLi && titleVal){ var titleEl = newLi.querySelector(':scope > .title'); if(titleEl) titleEl.textContent = titleVal; }
     if(newLi){
       if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
@@ -13696,6 +13985,9 @@
       }
       applyAddPayment(newLi);
       applyExtras(newLi);
+      applyPlace(cell, newLi);
+      placeAllDay(newLi);
+      applyStay(newLi);
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
@@ -13748,6 +14040,9 @@
     var target = null;
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) target = c; });
     if(target && target !== oldCell){ ensureActsList(target).appendChild(li); target.classList.add('active'); recomputeCell(target); }
+    applyPlace(target || oldCell, li);
+    placeAllDay(li);
+    applyStay(li);
     reorderActivityByStartTime(li);
     if(oldCell) recomputeCell(oldCell);
     renderActivitySpans(panel); renderPaymentOverview();
@@ -14184,6 +14479,8 @@
     var paid = getPaid(li);
     if(paid.length) a.pd = paid;
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
+    if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
+    if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
     var currency = li.getAttribute('data-currency');
     if(currency) a.cur = currency;
     return a;
@@ -14342,6 +14639,8 @@
     if(a.pyx && a.pyx.length) li.setAttribute('data-pay-excluded', JSON.stringify(a.pyx));
     if(a.pd && a.pd.length) li.setAttribute('data-paid', JSON.stringify(a.pd));
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
+    if(a.pl) li.setAttribute('data-place', a.pl);
+    if(a.so) li.setAttribute('data-stay-to', String(a.so));
     if(a.cur) li.setAttribute('data-currency', a.cur);
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
@@ -14618,7 +14917,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-stay-to'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
@@ -14630,6 +14929,10 @@
       // style change ONLY on these two elements themselves (not their
       // descendants — an actual added/edited activity still counts)
       // shouldn't schedule a save or hold off an incoming update.
+      if(m.type === 'childList'){
+        var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && n.classList.contains('day-ghost-slot'); })) return false;
+      }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
       return !node.closest(SAVE_EXCLUDE_SEL);
