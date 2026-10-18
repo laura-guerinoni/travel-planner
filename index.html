@@ -2736,6 +2736,34 @@
   #fabAddPanel .gc-newtag .nt-add { flex:none; height:34px; border:none; border-radius:8px; padding:0 12px; background:var(--primary); color:#fff; font:inherit; font-weight:800; font-size:13px; cursor:pointer; }
 
   #fabAddPanel .fabadd-split.no-price { display:none; }
+
+  #fabAddPanel .tc-native { display:none !important; }
+  #fabAddPanel .gc-row { position:relative; }
+  #fabAddPanel .tc-btn { flex:1; min-width:0; text-align:left; cursor:pointer; color:var(--ink); background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px !important; padding-right:28px !important; }
+  #fabAddPanel .tc-dd { position:absolute; left:32px; right:0; top:calc(100% + 4px); z-index:10; background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); padding:6px; }
+  #fabAddPanel .tc-dd[hidden] { display:none; }
+  #fabAddPanel .tc-q { width:100%; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 10px; font:inherit; font-size:14px; color:var(--ink); margin-bottom:4px; }
+  #fabAddPanel .tc-q:focus { outline:none; border-color:var(--primary); }
+  #fabAddPanel .tc-list { max-height:240px; overflow-y:auto; }
+  #fabAddPanel .tc-opt { padding:7px 10px; border-radius:8px; font-size:14px; color:var(--ink); cursor:pointer; }
+  #fabAddPanel .tc-opt.act, #fabAddPanel .tc-opt:hover { background:var(--bg); }
+  #fabAddPanel .tc-opt.cur { font-weight:800; }
+  #fabAddPanel .tc-new { color:var(--primary); font-weight:800; border-top:1px solid var(--line); border-radius:0 0 8px 8px; margin-top:2px; }
+
+  /* Type dropdown, Google-style: a soft filled field with a small
+     triangle; open, it gets an accent underline and the triangle flips;
+     the menu sits right under it with roomy rows and the current one
+     outlined. */
+  #fabAddPanel .tc-btn { background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%239b8fc0'/%3E%3C/svg%3E") no-repeat right 12px center / 10px 6px !important; border:none !important;
+    border-bottom:2px solid transparent !important; border-radius:8px 8px 0 0 !important; }
+  #fabAddPanel .tc-btn:hover { background-color:#ebe3f6 !important; }
+  #fabAddPanel .tc-btn.open { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 6h10L5 0z' fill='%23ec6a9c'/%3E%3C/svg%3E") !important; border-bottom-color:var(--primary) !important; }
+  #fabAddPanel .tc-dd { z-index:10000; top:calc(100% + 2px); border-radius:6px; padding:6px 0; box-shadow:0 6px 18px rgba(30,22,50,.22); }
+  #fabAddPanel .tc-q { margin:0 8px 6px; width:calc(100% - 16px); border-radius:6px; background:var(--bg); border-color:transparent; }
+  #fabAddPanel .tc-opt { padding:10px 16px; border-radius:0; font-size:14.5px; }
+  #fabAddPanel .tc-opt.cur { font-weight:600; background:var(--bg); box-shadow:inset 0 0 0 2px var(--primary); border-radius:6px; margin:0 6px; padding:10px 10px; }
+  #fabAddPanel .tc-opt.act:not(.cur) { background:#f6f1fb; }
+  #fabAddPanel .tc-new { margin-top:4px; border-radius:0; }
 </style>
 </head>
 <body>
@@ -13015,6 +13043,62 @@
       if(paid.length) setPaid(li, paid);
     }
   }
+  // The Type field is a searchable list: the real <select> stays (it holds
+  // the value) but is hidden behind a button; clicking opens a dropdown
+  // with a search box, the types (filtered as you type, ↑↓ Enter), and
+  // "＋ New type…".
+  (function initTypeCombo(){
+    var sel = document.getElementById('fabAddTagSelect'); if(!sel) return;
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fabadd-select tc-btn';
+    sel.parentNode.insertBefore(btn, sel); sel.classList.add('tc-native');
+    var dd = document.createElement('div'); dd.className = 'tc-dd'; dd.hidden = true;
+    dd.innerHTML = '<input type="text" class="tc-q" placeholder="Search types…" aria-label="Search types"><div class="tc-list" role="listbox"></div>';
+    sel.parentNode.appendChild(dd);
+    var q = dd.querySelector('.tc-q'), list = dd.querySelector('.tc-list'), act = 0;
+    function label(){ var o = sel.options[sel.selectedIndex]; btn.textContent = o ? o.textContent : ''; }
+    function draw(){
+      var term = q.value.trim().toLowerCase(), html = '', i = 0;
+      [].forEach.call(sel.options, function(o){
+        if(o.value === 'new') return;
+        if(term && o.textContent.toLowerCase().indexOf(term) === -1) return;
+        html += '<div class="tc-opt' + (o.value === sel.value ? ' cur' : '') + '" data-v="' + o.value + '">' + o.textContent.replace(/</g, '&lt;') + '</div>'; i++;
+      });
+      html += '<div class="tc-opt tc-new" data-v="new">＋ New type' + (term ? ' “' + q.value.trim().replace(/</g, '&lt;') + '”' : '…') + '</div>';
+      list.innerHTML = html; act = 0; mark();
+    }
+    function mark(){ var opts = list.querySelectorAll('.tc-opt'); opts.forEach(function(o, i){ o.classList.toggle('act', i === act); }); if(opts[act]) opts[act].scrollIntoView({ block:'nearest' }); }
+    // Fixed to the window so the card's own scrolling never clips it.
+    function place(){ var b = btn.getBoundingClientRect(); dd.style.position = 'fixed'; dd.style.left = b.left + 'px'; dd.style.top = (b.bottom + 2) + 'px'; dd.style.width = Math.max(b.width, 240) + 'px';
+      dd.style.right = 'auto'; dd.querySelector('.tc-list').style.maxHeight = Math.max(160, Math.min(320, window.innerHeight - b.bottom - 80)) + 'px'; }
+    function open(){ dd.hidden = false; btn.classList.add('open'); q.value = ''; draw(); place(); setTimeout(function(){ q.focus(); }, 0); }
+    function close(){ dd.hidden = true; btn.classList.remove('open'); }
+    function pick(v){
+      close();
+      if(v === 'new'){
+        var row = document.getElementById('fabAddNewTag'); row.hidden = false;
+        if(q.value.trim()) row.querySelector('.nt-name').value = q.value.trim();
+        setTimeout(function(){ row.querySelector('.nt-name').focus(); }, 0); return;
+      }
+      sel.value = v; sel.dataset.prev = v; label();
+      var row2 = document.getElementById('fabAddNewTag'); if(row2) row2.hidden = true;
+    }
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if(dd.hidden) open(); else close(); });
+    q.addEventListener('input', draw);
+    q.addEventListener('keydown', function(e){
+      var n = list.querySelectorAll('.tc-opt').length;
+      if(e.key === 'ArrowDown'){ e.preventDefault(); act = Math.min(n - 1, act + 1); mark(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); act = Math.max(0, act - 1); mark(); }
+      else if(e.key === 'Enter'){ e.preventDefault(); var o = list.querySelectorAll('.tc-opt')[act]; if(o) pick(o.dataset.v); }
+      else if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); btn.focus(); }
+    });
+    list.addEventListener('mousedown', function(e){ var o = e.target.closest('.tc-opt'); if(o){ e.preventDefault(); pick(o.dataset.v); } });
+    document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
+    // Keep the button in step whenever the list or value changes.
+    new MutationObserver(label).observe(sel, { childList:true });
+    sel.addEventListener('change', label);
+    setInterval(function(){ if(dd.hidden) label(); }, 600);
+    label();
+  })();
   // "＋ New type…" at the end of the Type list: a small row to make one
   // (emoji, name, colour), added to the shared list like the tag picker's
   // own "+ New tag", and picked straight away.
