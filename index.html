@@ -2841,6 +2841,10 @@
   /* the dashed line on the left, with the city's dot where its pill is */
   .acts > li[data-city]::after { content:''; position:absolute; left:-17.5px; width:14px; top:-8px; bottom:0; pointer-events:none;
     background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
+  /* the placeholder slot between two cities keeps the line going */
+  .acts:has(> li[data-city]) > .day-ghost-slot { position:relative; margin-left:24px; }
+  .acts:has(> li[data-city]) > .day-ghost-slot::after { content:''; position:absolute; left:-17.5px; width:14px; top:-16px; bottom:0; pointer-events:none;
+    background:repeating-linear-gradient(to top, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
   .acts > li[data-city]:last-child::after { bottom:7px; } /* ends level with the last line of the last activity (its 7px padding) */
   .acts > li[data-sec]::after { top:-25px;
     background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center top/14px 14px no-repeat,
