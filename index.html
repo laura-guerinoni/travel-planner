@@ -13328,6 +13328,16 @@
   // dimmed, like the search) for that day, instead of a blank activity
   // appearing in the day to edit in place.
   var fabAddForcedCell = null, fabAddInsertAfter = null;
+  // Enter in any field of the activity card adds / saves it (not in
+  // notes, which take new lines, nor in the new-type row).
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || e.isComposing || e.shiftKey) return;
+    var t = e.target, panel = document.getElementById('fabAddPanel');
+    if(!panel || !panel.classList.contains('show') || !panel.contains(t)) return;
+    if(t.tagName !== 'INPUT' || t.closest('#fabAddNewTag')) return;
+    e.preventDefault();
+    var b = document.getElementById('fabAddConfirmBtn'); if(b) b.click();
+  });
   document.addEventListener('click', function(e){
     if(!window.matchMedia('(min-width:721px)').matches) return;
     var b = e.target.closest && e.target.closest('.panel.on .cell > .loc > .daytotal-badge'); if(!b) return;
