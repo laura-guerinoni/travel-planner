@@ -2826,7 +2826,8 @@
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
   .day-ghost-slot { height:34px; margin-top:6px; }
-  #fabAddPanel .gc-allday { flex:1; height:38px; display:flex; align-items:center; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); }
+  #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
+  #fabAddPanel .gc-allday select { flex:1; min-width:0; }
   #fabAddPanel .gc-allday:not([hidden]) + .fabadd-time-row { display:none; }
   /* a day with more than one city: a little route, like the plans list —
      a coloured dot per city on a dashed line, and the city as a soft pill */
@@ -2844,6 +2845,12 @@
   /* all-day activities (a Stay): a soft filled block, first in the day —
      or first in its city, on a day with more than one */
   .acts > li[data-allday] { background:var(--bg); border-radius:10px; }
+  /* the following nights of a stay: a lighter copy, on top of the day */
+  .acts > li.act-span-ghost.stay-ghost { order:-1; opacity:1; border:none; background:var(--bg); border-radius:10px; padding:7px; cursor:pointer; }
+  .acts > li.act-span-ghost.stay-ghost > * { opacity:.6; }
+  .acts > li.act-span-ghost.stay-ghost:hover { box-shadow:0 0 0 1px var(--line); }
+  .acts > li.act-span-ghost.stay-ghost .line { font-style:normal; }
+  .acts > li.act-span-ghost.stay-ghost .price { display:none; } /* the price lives on check-in (each night still counts its share in the day total) */
   /* the placeholder slot between two cities keeps the line going */
   .acts:has(> li[data-city]) > .day-ghost-slot { position:relative; margin-left:24px; }
   .acts:has(> li[data-city]) > .day-ghost-slot::after { content:''; position:absolute; left:-17.5px; width:14px; top:-16px; bottom:0; pointer-events:none;
@@ -3205,7 +3212,7 @@
         <input type="color" class="nt-color" value="#d9663f" aria-label="Colour">
         <button type="button" class="nt-add">Add</button>
       </div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden>All day</span><div class="fabadd-time-row">
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden><span>All day · check-out</span><select id="fabAddStayOut" class="fabadd-select" aria-label="Check-out"></select></span><div class="fabadd-time-row">
         <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
@@ -9772,9 +9779,14 @@
     if(!d1 || !d2 || d1 === d2) return null;
     return d1 < d2 ? { start: d1, end: d2 } : { start: d2, end: d1 };
   }
+  // A stay's nights: from its own day to the night before check-out.
+  function staySpan(li){
+    var to = parseInt(li.getAttribute('data-stay-to'), 10), c = li.closest('.cell'), from = c ? dayNumOfCell(c) : null;
+    return to && from && to - 1 > from ? { start: from, end: to - 1 } : null;
+  }
   function updateActivitySpan(li){
     var lineEl = li.querySelector(':scope > .line');
-    var span = lineEl ? parseSpanFromLine(lineEl.textContent) : null;
+    var span = li.hasAttribute('data-stay-to') ? staySpan(li) : (lineEl ? parseSpanFromLine(lineEl.textContent) : null);
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
     var panel = li.closest('.panel');
@@ -9790,6 +9802,10 @@
       var c = g.closest('.cell');
       if(c) touchedCells.push(c);
       g.remove();
+    });
+    panel.querySelectorAll('.acts > li[data-stay-to]').forEach(function(li){
+      var sp = staySpan(li);
+      if(sp){ li.dataset.spanStart = sp.start; li.dataset.spanEnd = sp.end; } else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
     });
     panel.querySelectorAll('.acts > li[data-span-start]').forEach(function(li){
       var start = parseInt(li.dataset.spanStart, 10), end = parseInt(li.dataset.spanEnd, 10);
@@ -9809,6 +9825,8 @@
         ghost.dataset.spanStart = start;
         ghost.dataset.spanEnd = end;
         ghost.title = 'Continues from day ' + start + ' — edit the title, tag, or price there';
+        ghost.__origin = li;
+        if(li.hasAttribute('data-stay-to')){ ghost.classList.add('stay-ghost'); ghost.title = 'Stay from day ' + start + ' — click to edit it'; }
         var chip = li.querySelector('.chip');
         if(chip){
           var chipClone = document.createElement('span');
@@ -9828,7 +9846,7 @@
         ghost.appendChild(titleSpan);
         var contSpan = document.createElement('span');
         contSpan.className = 'line';
-        contSpan.textContent = '↔ continues';
+        contSpan.textContent = li.hasAttribute('data-stay-to') ? '🌙 night ' + (d - start + 1) + ' of ' + (end - start + 1) : '↔ continues';
         ghost.appendChild(contSpan);
         var priceEl = li.querySelector(':scope > .price .price-val');
         if(priceEl){
@@ -13152,6 +13170,7 @@
   function closeFabAdd(){
     if(fabAddPanel) fabAddPanel.classList.remove('show');
     fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null;
+    var so = document.getElementById('fabAddStayOut'); if(so) delete so.dataset.want;
     document.querySelectorAll('.day-ghost-slot').forEach(function(x){ x.remove(); });
   }
   // ---- One form to add AND edit an activity (desktop) ----
@@ -13215,13 +13234,48 @@
       acts.insertBefore(li, prev); prev = li.previousElementSibling;
     }
   }
+  // Check-out: the days after check-in (up to two weeks); the default is
+  // the next day (one night), or what the stay already has.
+  function fillStayOut(){
+    var out = document.getElementById('fabAddStayOut'); if(!out) return;
+    var cell = cellOfDay(fabAddDaySelect.value), keep = out.dataset.want || '';
+    out.innerHTML = '';
+    if(!cell) return;
+    var cells = [].slice.call(cell.closest('.panel').querySelectorAll('.cell:not(.empty)')), i0 = cells.indexOf(cell);
+    var p = cell.closest('.panel');
+    cells.slice(i0 + 1, i0 + 15).forEach(function(c, k){
+      var dn = dayNumOfCell(c), r = realDate(p, dn), d = new Date(r.year, r.month - 1, r.day);
+      var o = document.createElement('option'); o.value = String(dn);
+      o.textContent = d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }) + ' · ' + (k + 1) + (k ? ' nights' : ' night');
+      out.appendChild(o);
+    });
+    if(keep && out.querySelector('option[value="' + keep + '"]')) out.value = keep;
+  }
   function syncAllDayForm(){
     var lab = document.getElementById('fabAddAllDay'); if(!lab || !fabAddTagSelect) return;
     var on = isAllDayTag(TAGS[fabAddTagSelect.value]);
     lab.hidden = !on;
-    if(on){ if(fabAddTimeInput) fabAddTimeInput.value = ''; if(fabAddTimeEndInput) fabAddTimeEndInput.value = ''; }
+    if(on){ if(fabAddTimeInput) fabAddTimeInput.value = ''; if(fabAddTimeEndInput) fabAddTimeEndInput.value = ''; fillStayOut(); }
   }
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
+  if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
+  (function(){ var so = document.getElementById('fabAddStayOut'); if(so) so.addEventListener('change', function(){ so.dataset.want = so.value; }); })();
+  // Saves the stay's check-out; the nights after check-in get the stay's
+  // city as their place when they don't have one yet.
+  function applyStay(li){
+    var out = document.getElementById('fabAddStayOut');
+    if(!isAllDay(li) || !out || !out.value){ if(li.hasAttribute('data-stay-to')) li.removeAttribute('data-stay-to'); updateActivitySpan(li); return; }
+    li.setAttribute('data-stay-to', out.value);
+    updateActivitySpan(li);
+    var sp = staySpan(li), pl = liPlace(li), panel = li.closest('.panel');
+    if(sp && pl && panel) panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){
+      var dn = dayNumOfCell(c); if(dn <= sp.start || dn > sp.end + 1 || placeOfCell(c)) return;
+      var loc = c.querySelector(':scope > .loc');
+      if(!loc){ loc = buildLocEl(pl); c.insertBefore(loc, c.querySelector(':scope > .acts') || null); }
+      else (loc.querySelector('.loc-text') || loc).textContent = pl;
+      c.classList.add('active');
+    });
+  }
   // A day with more than one city: a small city heading over each run of
   // its activities. data-sec is display only (not saved, not watched).
   // Display order (CSS order via data-ord — never saved, never watched):
@@ -13284,6 +13338,7 @@
   }
   function openActivityEditor(li){
     var cell = li.closest('.cell'); if(!cell) return;
+    var so = document.getElementById('fabAddStayOut'); if(so){ if(li.getAttribute('data-stay-to')) so.dataset.want = li.getAttribute('data-stay-to'); else delete so.dataset.want; }
     fabAddForcedCell = cell;
     var panelEl = document.getElementById('fabAddPanel');
     panelEl.classList.add('anchored');
@@ -13354,6 +13409,8 @@
   }, true);
   document.addEventListener('click', function(e){
     if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches || VIEW_ONLY) return;
+    var night = e.target.closest && e.target.closest('.panel.on .acts > li.stay-ghost');
+    if(night && night.__origin && night.__origin.isConnected){ e.preventDefault(); e.stopPropagation(); openActivityEditor(night.__origin); return; }
     var li = e.target.closest && e.target.closest('.panel.on .acts > li:not(.act-span-ghost)');
     if(!li || e.target.closest(ACT_ICON_SEL)) return;
     e.preventDefault(); e.stopPropagation();
@@ -13919,6 +13976,7 @@
       applyExtras(newLi);
       applyPlace(cell, newLi);
       placeAllDay(newLi);
+      applyStay(newLi);
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
@@ -13973,6 +14031,7 @@
     if(target && target !== oldCell){ ensureActsList(target).appendChild(li); target.classList.add('active'); recomputeCell(target); }
     applyPlace(target || oldCell, li);
     placeAllDay(li);
+    applyStay(li);
     reorderActivityByStartTime(li);
     if(oldCell) recomputeCell(oldCell);
     renderActivitySpans(panel); renderPaymentOverview();
@@ -14410,6 +14469,7 @@
     if(paid.length) a.pd = paid;
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
     if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
+    if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
     var currency = li.getAttribute('data-currency');
     if(currency) a.cur = currency;
     return a;
@@ -14569,6 +14629,7 @@
     if(a.pd && a.pd.length) li.setAttribute('data-paid', JSON.stringify(a.pd));
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
     if(a.pl) li.setAttribute('data-place', a.pl);
+    if(a.so) li.setAttribute('data-stay-to', String(a.so));
     if(a.cur) li.setAttribute('data-currency', a.cur);
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
@@ -14845,7 +14906,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-stay-to'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
