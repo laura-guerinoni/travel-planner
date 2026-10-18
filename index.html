@@ -2697,6 +2697,10 @@
   .itemmenu.paysplit .paysplit-hint { display:none; }
 
   .fs-colrow { display:flex; justify-content:flex-end; margin-bottom:-2px; }
+
+  .fabadd-split.own .fs-in { visibility:hidden; width:0; margin-right:-8px; }
+  .fabadd-split.own .fs-row.off .fs-name, .fabadd-split.own .fs-row.off .fs-face { opacity:1; }
+  .fs-hint { font-size:12px !important; }
 </style>
 </head>
 <body>
@@ -2982,8 +2986,8 @@
       <div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
-        <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Split the cost</button><button type="button" data-mode="own">Each pays their own</button></div>
-        <div class="fs-hint">Ticked people share the cost: whoever paid less than their part owes the one who paid.</div>
+        <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Shared</button><button type="button" data-mode="own">Each their own</button></div>
+        <div class="fs-hint">Split among ticked · they owe whoever paid</div>
         <div class="fs-colrow"><span class="fs-col">Paid</span></div>
         <div class="fs-list"></div>
         <div class="fs-left"></div>
@@ -7824,7 +7828,7 @@
         // already walk li -> its panel -> the plan default in that
         // order, so this reads correctly either way.
         var paidSum = getPaid(li).reduce(function(sum, p){ return sum + p.a; }, 0);
-        header.textContent = (li.getAttribute('data-pay-mode') === 'own' ? 'Everyone pays their own part — nobody owes anyone for this.' : 'Ticked people share the cost: whoever paid less than their part owes the one who paid.') + '  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
+        header.textContent = (li.getAttribute('data-pay-mode') === 'own' ? 'No debts · everyone pays for themselves' : 'Split among ticked · they owe whoever paid') + '  ·  Not paid yet: ' + formatMoney(Math.max(0, total - paidSum), li);
         // The equal part shows as the placeholder of every empty share.
         var eff = effectiveShares(li, ownerPanel);
         pop.querySelectorAll('.paysplit-row').forEach(function(r){ var inp = r.querySelector('.paysplit-amount:not(.paysplit-paid)'), k = r.getAttribute('data-key');
@@ -7857,7 +7861,7 @@
       if(eligible.length){
         var modeBar = document.createElement('div'); modeBar.className = 'fs-mode paysplit-mode';
         var isOwn = li.getAttribute('data-pay-mode') === 'own';
-        modeBar.innerHTML = '<button type="button" data-mode="split"' + (isOwn ? '' : ' class="on"') + '>Split the cost</button><button type="button" data-mode="own"' + (isOwn ? ' class="on"' : '') + '>Each pays their own</button>';
+        modeBar.innerHTML = '<button type="button" data-mode="split"' + (isOwn ? '' : ' class="on"') + '>Shared</button><button type="button" data-mode="own"' + (isOwn ? ' class="on"' : '') + '>Each their own</button>';
         modeBar.addEventListener('click', function(e){
           var b = e.target.closest('button'); if(!b) return; e.stopPropagation();
           if(b.dataset.mode === 'own') li.setAttribute('data-pay-mode', 'own'); else li.removeAttribute('data-pay-mode');
@@ -12901,7 +12905,8 @@
     var box = document.getElementById('fabAddSplit'); if(!box) return;
     box.hidden = true; addSplitPeople = [];
     box.querySelectorAll('.fs-mode button').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === 'split'); });
-    box.querySelector('.fs-hint').textContent = 'Ticked people share the cost: whoever paid less than their part owes the one who paid.';
+    box.classList.remove('own'); box.querySelector('.fs-head .fabadd-label').textContent = "Who's in";
+    box.querySelector('.fs-hint').textContent = 'Split among ticked · they owe whoever paid';
     loadMemberAvatarData().then(function(data){
       var people = membersEligibleForOption(panel, data.members || []);
       addSplitPeople = people;
@@ -12926,7 +12931,7 @@
     var fmt = function(v){ return sym + ' ' + (Math.round(v * 100) / 100); };
     var el = box.querySelector('.fs-left');
     var own = !!box.querySelector('.fs-mode button.on[data-mode="own"]');
-    el.textContent = (own ? '' : (n ? fmt(total / n) + ' each  ·  ' : 'Nobody ticked  ·  ')) + 'Paid ' + fmt(sum) + ' of ' + fmt(total);
+    el.textContent = (own ? '' : (n ? fmt(total / n) + ' each  ·  ' : 'Nobody ticked  ·  ')) + fmt(sum) + ' / ' + fmt(total) + ' paid';
     el.classList.toggle('over', sum > total + 0.004);
   }
   document.addEventListener('input', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
@@ -12935,7 +12940,9 @@
     var mb = e.target.closest && e.target.closest('#fabAddSplit .fs-mode button');
     if(mb){ e.preventDefault();
       mb.parentElement.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === mb); });
-      document.querySelector('#fabAddSplit .fs-hint').textContent = mb.dataset.mode === 'own' ? 'Everyone pays their own part — nobody owes anyone for this.' : 'Ticked people share the cost: whoever paid less than their part owes the one who paid.';
+      document.getElementById('fabAddSplit').classList.toggle('own', mb.dataset.mode === 'own');
+      document.querySelector('#fabAddSplit .fs-head .fabadd-label').textContent = mb.dataset.mode === 'own' ? 'Who paid' : "Who's in";
+      document.querySelector('#fabAddSplit .fs-hint').textContent = mb.dataset.mode === 'own' ? 'No debts · everyone pays for themselves' : 'Split among ticked · they owe whoever paid';
       updateLeft(); return; }
     var b = e.target.closest && e.target.closest('#fabAddSplit .fs-equal'); if(!b) return;
     e.preventDefault();
