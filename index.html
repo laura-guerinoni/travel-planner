@@ -5711,7 +5711,7 @@
       (function follow(){ if(dd.hidden || !btn.isConnected){ close(); return; } place(); requestAnimationFrame(follow); })(); });
     dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation();
       var n = e.target.closest('.dp-nav'); if(n){ y += +n.dataset.d; draw(); return; }
-      var m = e.target.closest('.mp-m[data-v]'); if(m){ sel.value = m.dataset.v; sel.dispatchEvent(new Event('change', { bubbles:true })); close(); } });
+      var m = e.target.closest('.mp-m[data-v]'); if(m){ window.__pickerPickedAt = Date.now(); sel.value = m.dataset.v; sel.dispatchEvent(new Event('change', { bubbles:true })); close(); } });
     dd.addEventListener('click', function(e){ e.stopPropagation(); });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
     var seen = false;
@@ -5744,7 +5744,7 @@
       (function follow(){ if(dd.hidden || !btn.isConnected){ close(); return; } place(); requestAnimationFrame(follow); })(); });
     dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation();
       var n = e.target.closest('.dp-nav'); if(n){ view.m += +n.dataset.d; if(view.m < 0){ view.m = 11; view.y--; } if(view.m > 11){ view.m = 0; view.y++; } draw(); return; }
-      var x = e.target.closest('.dp-day'); if(x){ inp.value = x.dataset.v; inp.dispatchEvent(new Event('change', { bubbles:true })); label(); close(); } });
+      var x = e.target.closest('.dp-day'); if(x){ window.__pickerPickedAt = Date.now(); inp.value = x.dataset.v; inp.dispatchEvent(new Event('change', { bubbles:true })); label(); close(); } });
     dd.addEventListener('click', function(e){ e.stopPropagation(); });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
     var seen = false;
@@ -7529,7 +7529,11 @@
     }
   }
   document.addEventListener('click', function(e){
-    if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') &&
+    // A pick in one of the little pickers (they close on mousedown, so the
+    // click that follows lands on whatever is underneath) mustn't close
+    // the form it belongs to.
+    if(Date.now() - (window.__pickerPickedAt || 0) < 400) return;
+    if(openPop && !openPop.contains(e.target) && !e.target.closest('.chip') && !e.target.closest('.mp-dd, #dayPickDD, #typeComboDD') &&
        !e.target.closest('.linkbtn') && !e.target.closest('.itemmenu-btn') &&
        !e.target.closest('.daymenu-btn')){
       closePop();
@@ -13235,7 +13239,7 @@
       else if(e.key === 'Enter'){ e.preventDefault(); var o = dd.querySelectorAll('.tc-opt')[act]; if(o) pick(o.dataset.v); }
       else if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); btn.focus(); }
     });
-    dd.addEventListener('mousedown', function(e){ var o = e.target.closest('.tc-opt'); if(o){ e.preventDefault(); pick(o.dataset.v); } });
+    dd.addEventListener('mousedown', function(e){ var o = e.target.closest('.tc-opt'); if(o){ window.__pickerPickedAt = Date.now(); e.preventDefault(); pick(o.dataset.v); } });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
     // Closing the form closes the list too.
     var panelEl = document.getElementById('fabAddPanel');
@@ -13287,7 +13291,7 @@
     dd.addEventListener('mousedown', function(e){
       e.preventDefault();
       var n = e.target.closest('.dp-nav'); if(n){ view.m += +n.dataset.d; if(view.m < 0){ view.m = 11; view.y--; } if(view.m > 11){ view.m = 0; view.y++; } draw(); return; }
-      var d = e.target.closest('.dp-day[data-v]'); if(d){ sel.value = d.dataset.v; sel.dispatchEvent(new Event('change', { bubbles:true })); label(); close(); }
+      var d = e.target.closest('.dp-day[data-v]'); if(d){ window.__pickerPickedAt = Date.now(); sel.value = d.dataset.v; sel.dispatchEvent(new Event('change', { bubbles:true })); label(); close(); }
     });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
     var panelEl = document.getElementById('fabAddPanel');
