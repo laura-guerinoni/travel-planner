@@ -2826,6 +2826,8 @@
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
   .day-ghost-slot { height:34px; margin-top:6px; }
+  #fabAddPanel .gc-allday { flex:1; height:38px; display:flex; align-items:center; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); }
+  #fabAddPanel .gc-allday:not([hidden]) + .fabadd-time-row { display:none; }
   /* a day with more than one city: a little route, like the plans list —
      a coloured dot per city on a dashed line, and the city as a soft pill */
   .acts > li[data-city] { --cc:var(--primary); --cc-rgb:var(--primary-rgb); margin-left:24px; }
@@ -3196,7 +3198,7 @@
         <input type="color" class="nt-color" value="#d9663f" aria-label="Colour">
         <button type="button" class="nt-add">Add</button>
       </div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div class="fabadd-time-row">
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden>All day</span><div class="fabadd-time-row">
         <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
@@ -13193,6 +13195,26 @@
     } else if(loc) loc.remove();
     renderPlaceSections(cell);
   }
+  // ---- All-day activities (a Stay): no time; they sit at the top of the
+  // day — or of their city, on a day with more than one — before the
+  // timed ones, like all-day events in a calendar. ----
+  function isAllDayTag(tg){ return !!tg && /^(stay)$/i.test(String(tg.name || '').trim()); }
+  function isAllDay(li){ var c = li && li.querySelector('.chip'); return !!c && /^(stay)$/i.test((c.getAttribute('data-name') || '').trim()); }
+  function placeAllDay(li){
+    if(!isAllDay(li)) return;
+    var acts = li.parentElement; if(!acts) return;
+    var p = liPlace(li), prev = li.previousElementSibling;
+    while(prev && prev.tagName === 'LI' && !prev.classList.contains('act-span-ghost') && !isAllDay(prev) && liPlace(prev) === p){
+      acts.insertBefore(li, prev); prev = li.previousElementSibling;
+    }
+  }
+  function syncAllDayForm(){
+    var lab = document.getElementById('fabAddAllDay'); if(!lab || !fabAddTagSelect) return;
+    var on = isAllDayTag(TAGS[fabAddTagSelect.value]);
+    lab.hidden = !on;
+    if(on){ if(fabAddTimeInput) fabAddTimeInput.value = ''; if(fabAddTimeEndInput) fabAddTimeEndInput.value = ''; }
+  }
+  if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
   // A day with more than one city: a small city heading over each run of
   // its activities. data-sec is display only (not saved, not watched).
   function renderPlaceSections(cell){
@@ -13232,7 +13254,7 @@
     more.querySelector('[data-x="ticket"] span').textContent = li && li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket';
     more.querySelector('[data-x="photo"] span').textContent = li && li.hasAttribute('data-img') ? 'Replace photo' : 'Photo';
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
-    placeTouched = false; suggestPlace();
+    placeTouched = false; suggestPlace(); syncAllDayForm();
   }
   function openActivityEditor(li){
     var cell = li.closest('.cell'); if(!cell) return;
@@ -13602,6 +13624,7 @@
       }
       sel.value = v; sel.dataset.prev = v; label();
       var row2 = document.getElementById('fabAddNewTag'); if(row2) row2.hidden = true;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
     }
     btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if(dd.hidden) open(); else close(); });
     q.addEventListener('input', draw);
@@ -13865,6 +13888,7 @@
       applyAddPayment(newLi);
       applyExtras(newLi);
       applyPlace(cell, newLi);
+      placeAllDay(newLi);
       recomputeCell(cell);
       newLi.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
@@ -13918,6 +13942,7 @@
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) target = c; });
     if(target && target !== oldCell){ ensureActsList(target).appendChild(li); target.classList.add('active'); recomputeCell(target); }
     applyPlace(target || oldCell, li);
+    placeAllDay(li);
     reorderActivityByStartTime(li);
     if(oldCell) recomputeCell(oldCell);
     renderActivitySpans(panel); renderPaymentOverview();
