@@ -7197,7 +7197,9 @@
     // In the top row, level with the middle of the tickets and the +.
     var mid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tab-mid')) || 40;
     head.style.top = (mid - 15) + 'px';
-    head.style.left = (r.right - 14 - 22) + 'px';
+    // Right edge lined up with the calendar's right edge (the Sunday column).
+    var lastCell = document.querySelector('.panel.on > .grid.week > .cell:last-child, .panel.on > .grid.heads > :last-child');
+    head.style.left = (lastCell ? lastCell.getBoundingClientRect().right : (r.right - 36)) + 'px';
   }
   (function(){
     var orig = renderPageBookmark;
