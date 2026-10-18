@@ -13122,7 +13122,7 @@
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
     if(fabAddPanel) fabAddPanel.classList.remove('show');
-    fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false;
+    fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null;
     document.querySelectorAll('.day-ghost-slot').forEach(function(x){ x.remove(); });
   }
   // ---- One form to add AND edit an activity (desktop) ----
@@ -13146,6 +13146,7 @@
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
     var cell = cellOfDay(fabAddDaySelect.value);
     if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
+    if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
     var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || '';
   }
   function dayActs(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)')); }
@@ -13300,7 +13301,7 @@
   // Desktop: a day's own "+" opens this same focused form (centred, page
   // dimmed, like the search) for that day, instead of a blank activity
   // appearing in the day to edit in place.
-  var fabAddForcedCell = null;
+  var fabAddForcedCell = null, fabAddInsertAfter = null;
   // Clicking straight on a day (its empty space, not on an activity, place
   // or button) opens the same form attached beside that day — like Google
   // Calendar's quick add — with a "New activity" placeholder in the day,
@@ -13309,7 +13310,15 @@
     if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches) return;
     var cell = e.target.closest('.panel.on > .grid.week > .cell:not(.empty)');
     if(!cell) return;
-    if(e.target.closest('.acts, .loc, button, a, input, select, [contenteditable="true"], .itemmenu-btn, .dayaddbtn, .daymenu-btn, .banner, .grid.banner-row')) return;
+    // The space between two activities counts too: the new one goes
+    // right there, in the city of the activity above it.
+    var gapAfter = null;
+    if(e.target.matches('.acts')){
+      [].forEach.call(e.target.querySelectorAll(':scope > li:not(.act-span-ghost)'), function(li){ if(li.getBoundingClientRect().bottom <= e.clientY) gapAfter = li; });
+      if(gapAfter && !gapAfter.nextElementSibling) gapAfter = null;
+    }
+    else if(e.target.closest('.acts, .loc, button, a, input, select, [contenteditable="true"], .itemmenu-btn, .dayaddbtn, .daymenu-btn, .banner, .grid.banner-row')) return;
+    fabAddInsertAfter = gapAfter;
     var sel = window.getSelection && window.getSelection(); if(sel && String(sel).length) return;
     e.stopPropagation();
     fabAddForcedCell = cell;
@@ -13350,13 +13359,14 @@
     // The day makes room for it: an empty slot after its activities
     // (runtime only — never saved, see the observer's filter), and the
     // placeholder sits on it, so it never spills onto the next week.
-    var slot = cell.querySelector(':scope > .day-ghost-slot');
+    var slot = cell.querySelector('.day-ghost-slot');
     document.querySelectorAll('.day-ghost-slot').forEach(function(x){ if(x !== slot || fabAddEditLi) x.remove(); });
     if(fabAddEditLi) slot = null;
     else if(!slot){
       slot = document.createElement('div'); slot.className = 'day-ghost-slot';
-      var after = cell.querySelector(':scope > .acts') || cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead');
-      cell.insertBefore(slot, after ? after.nextSibling : null);
+      if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell) fabAddInsertAfter.parentNode.insertBefore(slot, fabAddInsertAfter.nextSibling);
+      else { var after = cell.querySelector(':scope > .acts') || cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead');
+        cell.insertBefore(slot, after ? after.nextSibling : null); }
     }
     var head = cell.querySelector(':scope > .cellhead'), hr = slot ? { bottom: slot.getBoundingClientRect().top - 6 } : (head ? head.getBoundingClientRect() : cr);
     var gl = (cr.left + 8) + 'px', gt = (hr.bottom + 6) + 'px', gw = (cr.width - 16) + 'px';
@@ -13734,6 +13744,7 @@
     var timeEndVal = fabAddTimeEndInput ? fabAddTimeEndInput.value : '';
     var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
     var titleVal = fabAddTitleInput ? fabAddTitleInput.value.trim() : '';
+    var insertAfter = fabAddInsertAfter;
     closeFabAdd();
     if(!panel || !day) return;
     var cells = panel.querySelectorAll('.cell:not(.empty)');
@@ -13755,6 +13766,7 @@
     addBtn.click();
     var acts = cell.querySelector(':scope > .acts');
     var newLi = acts ? acts.lastElementChild : null;
+    if(newLi && insertAfter && insertAfter.parentNode === acts) acts.insertBefore(newLi, insertAfter.nextSibling);
     if(newLi && titleVal){ var titleEl = newLi.querySelector(':scope > .title'); if(titleEl) titleEl.textContent = titleVal; }
     if(newLi){
       if(tagIdx !== null && tagIdx !== '' && TAGS[tagIdx]){
