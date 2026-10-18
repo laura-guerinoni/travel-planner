@@ -2844,7 +2844,6 @@
   /* all-day activities (a Stay): first in the day, apart from the timed
      ones and their route — a soft filled block */
   .acts > li[data-allday] { order:-1; background:var(--bg); border-radius:10px; }
-  .acts > li[data-allday] + li:not([data-allday]) { margin-top:4px; }
   /* the placeholder slot between two cities keeps the line going */
   .acts:has(> li[data-city]) > .day-ghost-slot { position:relative; margin-left:24px; }
   .acts:has(> li[data-city]) > .day-ghost-slot::after { content:''; position:absolute; left:-17.5px; width:14px; top:-16px; bottom:0; pointer-events:none;
