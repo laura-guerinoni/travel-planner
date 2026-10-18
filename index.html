@@ -2828,7 +2828,7 @@
   .day-ghost-slot { height:34px; margin-top:6px; }
   /* a day with more than one city: a little route, like the plans list —
      a coloured dot per city on a dashed line, and the city as a soft pill */
-  .acts > li[data-city] { --cc:var(--primary); --cc-rgb:var(--primary-rgb); margin-left:20px; }
+  .acts > li[data-city] { --cc:var(--primary); --cc-rgb:var(--primary-rgb); margin-left:24px; }
   .acts > li[data-city="1"] { --cc:var(--secondary); --cc-rgb:var(--secondary-rgb); }
   .acts > li[data-city="2"] { --cc:var(--accent); --cc-rgb:var(--accent-rgb); }
   .acts > li[data-sec]::before { content:attr(data-sec); position:absolute; left:3px; top:-29px; white-space:nowrap; pointer-events:none;
@@ -2837,14 +2837,14 @@
   .acts > li[data-sec] { margin-top:32px; }
   .acts > li[data-sec]:not(:first-child) { margin-top:40px; }
   /* the dashed line on the left, with the city's dot where its pill is */
-  .acts > li[data-city]::after { content:''; position:absolute; left:-22px; width:14px; top:-8px; bottom:0; pointer-events:none;
+  .acts > li[data-city]::after { content:''; position:absolute; left:-17.5px; width:14px; top:-8px; bottom:0; pointer-events:none;
     background:repeating-linear-gradient(to bottom, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
   .acts > li[data-city]:last-child::after { bottom:-6px; }
   .acts > li[data-sec]::after { top:-25px;
-    background:radial-gradient(circle, var(--cc) 5.5px, transparent 6px) center top/14px 14px no-repeat,
+    background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center top/14px 14px no-repeat,
                repeating-linear-gradient(to bottom, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center 14px/2px calc(100% - 14px) no-repeat; }
   .acts > li[data-sec]:not(:first-child)::after { top:-48px;
-    background:radial-gradient(circle, var(--cc) 5.5px, transparent 6px) center 23px/14px 14px no-repeat,
+    background:radial-gradient(circle, var(--muted) 5.5px, transparent 6px) center 23px/14px 14px no-repeat,
                repeating-linear-gradient(to bottom, rgba(61,53,104,.22) 0 4px, transparent 4px 8px) center/2px 100% no-repeat; }
   /* the day's cities: same small capitals as the city sections */
   .cell > .loc > .loc-text { font-size:12px !important; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
