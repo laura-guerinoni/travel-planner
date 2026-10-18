@@ -2793,6 +2793,35 @@
   #dayPickDD .dp-day.today:not(.sel) { box-shadow:inset 0 0 0 1.5px var(--line); }
   #dayPickDD .dp-day.sel { background:var(--primary); color:#fff; font-weight:800; }
   #fabAddPanel .dp-btn { text-transform:capitalize; }
+
+  .mp-btn { flex:1 1 0; min-width:0; height:40px; box-sizing:border-box; text-align:left; border:1px solid var(--line); border-radius:8px; padding:0 28px 0 12px; font:inherit; font-size:14px; color:var(--ink); cursor:pointer;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px; }
+  .mp-btn.open { border-color:var(--primary); }
+  .mp-dd { position:fixed; z-index:10001; width:244px; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(30,22,50,.22); padding:12px; }
+  .mp-dd[hidden] { display:none; }
+  .mp-dd .dp-head { display:flex; align-items:center; gap:4px; margin:0 2px 8px 6px; }
+  .mp-dd .dp-title { flex:1; font-weight:800; font-size:14.5px; color:var(--ink); }
+  .mp-dd .dp-nav { width:28px; height:28px; border:none; border-radius:50%; background:none; color:var(--ink); font:inherit; font-size:20px; line-height:1; cursor:pointer; }
+  .mp-dd .dp-nav:hover { background:var(--bg); }
+  .mp-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+  .mp-m { height:36px; border:none; border-radius:999px; background:none; font:inherit; font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .mp-m:hover:not(:disabled) { background:var(--bg); }
+  .mp-m.off { color:#cfc6e2; cursor:default; }
+  .mp-m.sel { background:var(--primary); color:#fff; font-weight:800; }
+
+  /* Every checkbox: the app's own, pink with a white tick. */
+  input[type="checkbox"] { -webkit-appearance:none; appearance:none; width:18px; height:18px; margin:0; flex:none; border-radius:5px; border:2px solid var(--line); background:#fff; cursor:pointer; vertical-align:middle; }
+  input[type="checkbox"]:checked { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px 16px no-repeat; }
+  input[type="checkbox"]:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+
+  .dp-dd { width:280px; }
+  .dp-dd .dp-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:2px; text-align:center; }
+  .dp-dd .dp-wd { font-size:11px; font-weight:800; color:var(--muted); padding:4px 0; }
+  .dp-dd .dp-day { width:34px; height:34px; margin:0 auto; border:none; border-radius:50%; background:none; font:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; }
+  .dp-dd .dp-day:hover { background:var(--bg); }
+  .dp-dd .dp-day.other { color:var(--muted); }
+  .dp-dd .dp-day.today:not(.sel) { box-shadow:inset 0 0 0 1.5px var(--line); }
+  .dp-dd .dp-day.sel { background:var(--primary); color:#fff; font-weight:800; }
 </style>
 </head>
 <body>
@@ -5659,6 +5688,69 @@
   }
   // One small form for both "+"s: a name, and when — a month or a run of
   // months by default, exact dates only if you already know them.
+  // A month <select> shown as a small month picker (like Google's): the
+  // year with ‹ › and a 3×4 grid of months. The select keeps the value.
+  function enhanceMonthSelect(sel){
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mp-btn';
+    sel.parentNode.insertBefore(btn, sel); sel.style.display = 'none';
+    var dd = document.createElement('div'); dd.className = 'mp-dd'; dd.hidden = true; document.body.appendChild(dd);
+    var y = 0;
+    function label(){ var o = sel.options[sel.selectedIndex]; btn.textContent = o ? o.textContent : ''; }
+    function vals(){ return [].map.call(sel.options, function(o){ return o.value; }); }
+    function draw(){
+      var cur = sel.value, have = vals(), html = '<div class="dp-head"><span class="dp-title">' + y + '</span><button type="button" class="dp-nav" data-d="-1" aria-label="Previous year">‹</button><button type="button" class="dp-nav" data-d="1" aria-label="Next year">›</button></div><div class="mp-grid">';
+      for(var m = 1; m <= 12; m++){ var v = y + '-' + m, ok = have.indexOf(v) !== -1;
+        html += '<button type="button" class="mp-m' + (v === cur ? ' sel' : '') + (ok ? '' : ' off') + '"' + (ok ? ' data-v="' + v + '"' : ' disabled') + '>' + MONTH_SHORT[m - 1] + '</button>'; }
+      dd.innerHTML = html + '</div>';
+    }
+    function place(){ var b = btn.getBoundingClientRect(); dd.style.left = b.left + 'px'; dd.style.top = (b.bottom + 4) + 'px'; }
+    function close(){ dd.hidden = true; btn.classList.remove('open'); }
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+      if(!dd.hidden){ close(); return; }
+      y = parseInt(String(sel.value).split('-')[0], 10) || new Date().getFullYear(); draw(); dd.hidden = false; btn.classList.add('open'); place();
+      (function follow(){ if(dd.hidden || !btn.isConnected){ close(); return; } place(); requestAnimationFrame(follow); })(); });
+    dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation();
+      var n = e.target.closest('.dp-nav'); if(n){ y += +n.dataset.d; draw(); return; }
+      var m = e.target.closest('.mp-m[data-v]'); if(m){ sel.value = m.dataset.v; sel.dispatchEvent(new Event('change', { bubbles:true })); close(); } });
+    dd.addEventListener('click', function(e){ e.stopPropagation(); });
+    document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
+    var seen = false;
+    (function keep(){ if(btn.isConnected) seen = true; else if(seen){ dd.remove(); return; } if(dd.hidden) label(); setTimeout(keep, 300); })();
+    label();
+  }
+  // A date <input> shown with the same small calendar as the day picker
+  // (instead of the browser's own date popup).
+  function enhanceDateInput(inp){
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mp-btn';
+    inp.parentNode.insertBefore(btn, inp); inp.style.display = 'none';
+    var dd = document.createElement('div'); dd.className = 'mp-dd dp-dd'; dd.hidden = true; document.body.appendChild(dd);
+    var view = null;
+    function parse(v){ var a = String(v || '').split('-').map(Number); return a.length === 3 && a[0] ? new Date(a[0], a[1] - 1, a[2]) : null; }
+    function iso(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function label(){ var d = parse(inp.value); btn.textContent = d ? d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' }) : 'Pick a date'; }
+    function draw(){
+      var cur = inp.value, today = iso(new Date()), first = new Date(view.y, view.m, 1), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+      var html = '<div class="dp-head"><span class="dp-title" style="text-transform:capitalize">' + first.toLocaleDateString(undefined, { month:'long', year:'numeric' }) + '</span><button type="button" class="dp-nav" data-d="-1" aria-label="Previous month">‹</button><button type="button" class="dp-nav" data-d="1" aria-label="Next month">›</button></div><div class="dp-grid">';
+      WD_ABBR.forEach(function(w){ html += '<span class="dp-wd">' + w.charAt(0) + '</span>'; });
+      for(var i = 0; i < 42; i++){ var d = new Date(start); d.setDate(start.getDate() + i); var v = iso(d);
+        html += '<button type="button" class="dp-day' + (d.getMonth() !== view.m ? ' other' : '') + (v === cur ? ' sel' : '') + (v === today ? ' today' : '') + '" data-v="' + v + '">' + d.getDate() + '</button>'; }
+      dd.innerHTML = html + '</div>';
+    }
+    function place(){ var b = btn.getBoundingClientRect(); dd.style.left = b.left + 'px'; dd.style.top = (b.bottom + 4) + 'px'; }
+    function close(){ dd.hidden = true; btn.classList.remove('open'); }
+    btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+      if(!dd.hidden){ close(); return; }
+      var d = parse(inp.value) || new Date(); view = { y:d.getFullYear(), m:d.getMonth() }; draw(); dd.hidden = false; btn.classList.add('open'); place();
+      (function follow(){ if(dd.hidden || !btn.isConnected){ close(); return; } place(); requestAnimationFrame(follow); })(); });
+    dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation();
+      var n = e.target.closest('.dp-nav'); if(n){ view.m += +n.dataset.d; if(view.m < 0){ view.m = 11; view.y--; } if(view.m > 11){ view.m = 0; view.y++; } draw(); return; }
+      var x = e.target.closest('.dp-day'); if(x){ inp.value = x.dataset.v; inp.dispatchEvent(new Event('change', { bubbles:true })); label(); close(); } });
+    dd.addEventListener('click', function(e){ e.stopPropagation(); });
+    document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target) && e.target !== btn) close(); });
+    var seen = false;
+    (function keep(){ if(btn.isConnected) seen = true; else if(seen){ dd.remove(); return; } if(dd.hidden) label(); setTimeout(keep, 300); })();
+    label();
+  }
   function openWhenForm(anchorEl, o, done){
     closePop();
     var pop = document.createElement('div');
@@ -5690,6 +5782,7 @@
     m1.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m2.selectedIndex = m1.selectedIndex; });
     m2.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m1.selectedIndex = m2.selectedIndex; });
     exact.addEventListener('change', function(){ dates.hidden = !exact.checked; });
+    enhanceMonthSelect(m1); enhanceMonthSelect(m2); enhanceDateInput(fromIn); enhanceDateInput(toIn);
     pop.addEventListener('click', function(e){ e.stopPropagation(); });
     btn.addEventListener('click', function(e){
       e.stopPropagation();
@@ -13170,7 +13263,9 @@
     }
     function draw(){
       var p = panel(); if(!p) return;
-      var allowed = {}; [].forEach.call(sel.options, function(o){ var d = dayInfo(o.value); if(d) allowed[d.toDateString()] = o.value; });
+      // Only the alternative's own dates can be picked (e.g. 3 – 13 Aug).
+      var rg = altDates(p), lo = new Date(rg.from.year, rg.from.month - 1, rg.from.day), hi = new Date(rg.to.year, rg.to.month - 1, rg.to.day);
+      var allowed = {}; [].forEach.call(sel.options, function(o){ var d = dayInfo(o.value); if(d && d >= lo && d <= hi) allowed[d.toDateString()] = o.value; });
       var cur = dayInfo(sel.value), today = new Date().toDateString();
       var first = new Date(view.y, view.m, 1), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
       var html = '<div class="dp-head"><span class="dp-title">' + first.toLocaleDateString(undefined, { month:'long', year:'numeric' }) + '</span>' +
