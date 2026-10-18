@@ -11335,19 +11335,10 @@
       // from its own "+".)
       if(mine.length > 1){
         planRow(ICON_SPLIT, t('pillmenu_separate_plan'), function(){ separateFromPlan(panel); });
-        planRow(ICON_EDIT_NAME, t('pillmenu_rename_plan'), function(){ openRenamePlan(pill, panel); });
+        // (naming the plan lives in the plan's own menu, not an alternative's)
       }
     })();
-    var accessRow = document.createElement('div');
-    accessRow.className = 'itemmenu-row';
-    accessRow.innerHTML = '<span class="itemmenu-icon">' + SHARE_ICON + '</span>' + t('pillmenu_who_can_see');
-    accessRow.addEventListener('click', function(e){
-      e.stopPropagation();
-      closePop();
-      var panel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
-      if(panel) openOptionMembersPicker(panel, pill);
-    });
-    pop.appendChild(accessRow);
+    // (sharing is per plan — the share button on the page — not per alternative)
     var printRow = document.createElement('div');
     printRow.className = 'itemmenu-row';
     printRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PRINT + '</span>' + t('pillmenu_print');
