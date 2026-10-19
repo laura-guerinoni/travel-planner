@@ -2845,6 +2845,21 @@
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
   #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  .print-pay { display:none; }
+  @media print {
+    #paymentOverview, #paymentOverviewTitle { display:none !important; }
+    .print-pay { display:block; break-inside:avoid; page-break-inside:avoid; margin:14px 0 0; padding:12px 16px; border:1px solid #e6dcf2; border-radius:12px; color:#3d3568; font-size:12.5px; }
+    .print-pay h3 { margin:0 0 8px; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:#9b8fc0; }
+    .print-pay table { width:100%; border-collapse:collapse; }
+    .print-pay th { text-align:right; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:#9b8fc0; font-weight:800; padding:0 0 4px; }
+    .print-pay td { text-align:right; padding:4px 0; border-top:1px solid #f0e8f8; font-weight:700; }
+    .print-pay td:first-child, .print-pay th:first-child { text-align:left; }
+    .print-pay .pp-face { display:inline-block; width:18px; height:18px; vertical-align:-4px; margin-right:6px; }
+    .print-pay .pp-face svg { width:100%; height:100%; }
+    .print-pay td.pos { color:#2f9e74; } .print-pay td.neg { color:#d6455d; }
+    .print-pay .pp-debts { margin-top:8px; display:flex; flex-wrap:wrap; gap:4px 18px; }
+    .print-pay .pp-unpaid { margin-top:6px; color:#9b8fc0; font-weight:700; }
+  }
   /* no dangling divider at the bottom of the profile menu when there's no Sign out under it */
   #actionMenuDropdown .actionMenuDivider:has(+ #appSignOutBtn:not(.show)) { display:none; }
   /* Printing / Save as PDF after the desktop refresh: only the calendar —
@@ -7940,7 +7955,7 @@
     avatars: { 'laura,example,com':{ name:'Laura', hair:'#7a4a2a', skin:'#f3c9a4' }, 'seba,example,com':{ name:'Seba', hair:'#2f2f3a', skin:'#e8b892', glasses:'glasses' }, 'marta,example,com':{ name:'Marta', hair:'#c9772f', skin:'#f6d3b6' } } };
   var cachedMembers = null;
   function loadMemberAvatarData(forceRefresh){
-    if(!IS_HOSTED){ cachedMembers = MOCK_PEOPLE.members; return Promise.resolve(MOCK_PEOPLE); }
+    if(!IS_HOSTED){ cachedMembers = MOCK_PEOPLE.members; window.__memberData = MOCK_PEOPLE; return Promise.resolve(MOCK_PEOPLE); }
     if(!memberAvatarDataPromise || forceRefresh){
       // firebase.database() itself can throw synchronously (not just
       // reject) if no app was ever initialized — same gotcha fixed in
@@ -7966,7 +7981,7 @@
         return { members: [], avatars: {} };
       });
     }
-    memberAvatarDataPromise.then(function(d){ if(d && d.members) cachedMembers = d.members; });
+    memberAvatarDataPromise.then(function(d){ if(d && d.members){ cachedMembers = d.members; window.__memberData = d; } });
     return memberAvatarDataPromise;
   }
   function renderParticipants(li){
@@ -12929,7 +12944,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13031,8 +13046,40 @@
     document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
       li.classList.toggle('print-hide', scope === 'active' && li.getAttribute('data-opt') !== activeOpt);
     });
+    addPrintPayments();
+  }
+  // The payments of each printed alternative, the way the app shows them
+  // now: each person's share and what they paid, then who owes whom and
+  // what nobody has paid yet. Added just for printing, removed after.
+  function buildPrintPayments(panel){
+    var bal = computeBalances(panel), keys = {};
+    Object.keys(bal.share).concat(Object.keys(bal.paid)).forEach(function(k){ keys[k] = 1; });
+    var people = Object.keys(keys);
+    if(!people.length && !(bal.unpaid > 0.004)) return null;
+    var data = window.__memberData || { members:[], avatars:{} };
+    function nameOf(k){ var m = (data.members || []).filter(function(x){ return x.key === k; })[0]; var email = m ? m.email : k.replace(/,/g, '.'); return displayNameFor(email, (data.avatars || {})[k]); }
+    function faceOf(k){ var m = (data.members || []).filter(function(x){ return x.key === k; })[0]; var email = m ? m.email : k.replace(/,/g, '.'); return avatarSvgFor(email, (data.avatars || {})[k]); }
+    var money = function(a){ return formatMoney(Math.round(a * 100) / 100, panel); };
+    var box = document.createElement('section'); box.className = 'print-pay';
+    var h = '<h3>Payments</h3>';
+    if(people.length){
+      h += '<table><thead><tr><th></th><th>Share</th><th>Paid</th><th>Balance</th></tr></thead><tbody>';
+      people.forEach(function(k){ var sh = bal.share[k] || 0, pd = bal.paid[k] || 0, b = pd - sh;
+        h += '<tr><td><span class="pp-face">' + faceOf(k) + '</span>' + nameOf(k).replace(/</g, '&lt;') + '</td><td>' + money(sh) + '</td><td>' + money(pd) + '</td><td class="' + (b > 0.004 ? 'pos' : b < -0.004 ? 'neg' : '') + '">' + (b > 0.004 ? '+' + money(b) : b < -0.004 ? '−' + money(-b) : money(0)) + '</td></tr>'; });
+      h += '</tbody></table>';
+      var debts = computeDebts(bal);
+      h += '<div class="pp-debts">' + (debts.length ? debts.map(function(d){ return '<div><b>' + nameOf(d.from).replace(/</g, '&lt;') + '</b> owes <b>' + nameOf(d.to).replace(/</g, '&lt;') + '</b> ' + money(d.a) + '</div>'; }).join('') : '<div>All settled ✓</div>') + '</div>';
+    }
+    if(bal.unpaid > 0.004) h += '<div class="pp-unpaid">Not paid yet: ' + money(bal.unpaid) + '</div>';
+    box.innerHTML = h;
+    return box;
+  }
+  function addPrintPayments(){
+    document.querySelectorAll('.print-pay').forEach(function(x){ x.remove(); });
+    document.querySelectorAll('.panel[data-print-label]:not(.print-hide)').forEach(function(panel){ var b = buildPrintPayments(panel); if(b) panel.appendChild(b); });
   }
   function clearPrintScope(){
+    document.querySelectorAll('.print-pay').forEach(function(x){ x.remove(); });
     document.querySelectorAll('.print-hide').forEach(function(el){ el.classList.remove('print-hide'); });
     document.querySelectorAll('.panel[data-print-label]').forEach(function(el){ el.removeAttribute('data-print-label'); });
   }
@@ -15210,7 +15257,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && n.classList.contains('day-ghost-slot'); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
