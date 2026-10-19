@@ -2876,6 +2876,9 @@
   #niceDD { position:fixed; z-index:10001; background:#fff; border-radius:6px; padding:6px 0; overflow-y:auto; font-family:inherit;
     box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   #niceDD[hidden] { display:none; }
+  /* no browser-blue ring on a dropdown field; open, it's outlined in the app's pink */
+  select:focus { outline:none; }
+  select.nd-open { outline:none; border-color:var(--primary) !important; box-shadow:0 0 0 1px var(--primary) !important; }
   #niceDD .nd-group { padding:8px 16px 4px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
   #niceDD .nd-opt { padding:10px 16px; font-size:14.5px; color:var(--ink); cursor:pointer; white-space:nowrap; }
   #niceDD .nd-opt:hover, #niceDD .nd-opt.act { background:var(--bg); }
@@ -13594,12 +13597,13 @@
     document.body.appendChild(dd);
     var cur = null, act = -1;
     function rows(){ return [].slice.call(dd.querySelectorAll('.nd-opt:not([aria-disabled="true"])')); }
-    function close(){ dd.hidden = true; cur = null; act = -1; }
+    function close(){ if(cur) cur.classList.remove('nd-open'); dd.hidden = true; cur = null; act = -1; }
     function pick(o){ var sel = cur; close(); if(!sel || sel.value === o.dataset.v) return;
       window.__pickerPickedAt = Date.now();
       sel.value = o.dataset.v; sel.dispatchEvent(new Event('input', { bubbles:true })); sel.dispatchEvent(new Event('change', { bubbles:true })); }
     function open(sel){
-      cur = sel; dd.innerHTML = '';
+      if(cur) cur.classList.remove('nd-open');
+      cur = sel; sel.classList.add('nd-open'); dd.innerHTML = '';
       [].forEach.call(sel.children, function(ch){
         function opt(o){ var d = document.createElement('div'); d.className = 'nd-opt' + (o.selected ? ' cur' : ''); d.dataset.v = o.value; d.textContent = o.textContent;
           if(o.disabled) d.setAttribute('aria-disabled', 'true'); dd.appendChild(d); }
