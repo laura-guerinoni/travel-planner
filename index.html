@@ -2855,6 +2855,37 @@
   #printPanel input[type="radio"]:focus { outline:none; }
   #printPanel input[type="radio"]:focus-visible { box-shadow:0 0 0 3px rgba(var(--primary-rgb), .2); }
   .print-pay { display:none; }
+  /* ---- Notes: a tab after the alternatives; the page becomes a ruled
+     notebook page (lines instead of the squares, same paper and colours) ---- */
+  .notes-page { display:none; }
+  .pills .pill.notes-tab { display:none; }
+  @media screen and (min-width: 721px){
+    .pills .pill.notes-tab { display:flex; align-items:center; gap:7px; align-self:flex-end; position:relative; margin:6px 0 0 6px; padding:8px 22px; min-height:52px; box-sizing:border-box; border:none; border-radius:12px 12px 0 0;
+      background:var(--card); color:var(--ink); font:inherit; font-size:13px; font-weight:800; line-height:1.25; cursor:pointer; white-space:nowrap;
+      box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.18);
+      -webkit-mask:radial-gradient(circle 7px at 0 58%, transparent 6.5px, #000 7px) left/51% 100% no-repeat, radial-gradient(circle 7px at 100% 58%, transparent 6.5px, #000 7px) right/51% 100% no-repeat;
+              mask:radial-gradient(circle 7px at 0 58%, transparent 6.5px, #000 7px) left/51% 100% no-repeat, radial-gradient(circle 7px at 100% 58%, transparent 6.5px, #000 7px) right/51% 100% no-repeat; }
+    .pills .pill.notes-tab svg { width:15px; height:15px; color:var(--muted); }
+    .pills .pill.notes-tab:hover { background:#fbf8fe; }
+    body.notes-mode .pills .pill.notes-tab { margin-top:0; min-height:64px; padding-bottom:14px; background-color:var(--bg); background-image:var(--ruled-fine); box-shadow:0 -3px 10px -2px rgba(40,25,60,.18); }
+    body.notes-mode .pills .pill.notes-tab svg { color:var(--primary); }
+    /* the alternative's tab steps back while the notebook is open */
+    body.notes-mode .pills .pill[data-opt].on { margin-top:6px; padding-top:8px; padding-bottom:8px !important; box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32) !important; }
+    body.notes-mode #ticketStitch { display:none !important; }
+    body.notes-mode .wrap { background-image:var(--ruled-fine) !important; }
+    body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
+    body.notes-mode .notes-page { display:block; padding:6px 10px 24px; }
+    .notes-page .np-head { display:flex; align-items:baseline; gap:10px; margin:0 0 6px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    .notes-page .np-head .np-saved { margin-left:auto; letter-spacing:0; text-transform:none; font-weight:700; opacity:0; transition:opacity .3s; }
+    .notes-page .np-head .np-saved.on { opacity:1; }
+    .notes-page textarea { display:block; width:100%; min-height:calc(100vh - 230px); margin:0; box-sizing:border-box; padding:0 8px 0 52px; border:none; outline:none; resize:none;
+      font:inherit; font-size:16px; font-weight:600; line-height:34px; color:var(--ink); background-color:transparent; overflow:hidden;
+      background-image:linear-gradient(90deg, transparent 38px, rgba(var(--primary-rgb), .28) 38px, rgba(var(--primary-rgb), .28) 40px, transparent 40px),
+        repeating-linear-gradient(to bottom, transparent 0 33px, rgba(61,53,104,.09) 33px 34px); }
+    .notes-page textarea::placeholder { color:var(--muted); font-weight:600; }
+  }
+  :root { --ruled-fine: repeating-linear-gradient(0deg, rgba(61,53,104,.022) 0 1px, transparent 1px 5px); }
+  @media print { .notes-page, .pill.notes-tab { display:none !important; } }
   .rangepop-warn { margin:0 0 10px; padding:9px 12px; border-radius:10px; background:#fdecef; color:#b23a52; font-size:13px; font-weight:700; line-height:1.35; }
   .rangepop-warn[hidden] { display:none; }
   .rangepop .addbtn.danger { background:#d6455d !important; }
@@ -13028,7 +13059,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13318,7 +13349,68 @@
     pendingNotesKey = null;
     if(monthNotesPanel) monthNotesPanel.classList.remove('show');
   }
+  // ---- Notes tab: the plan's notes as its own page (see .notes-page) ----
+  var NOTES_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+  var notesPage = null, notesArea = null, notesKey = null, notesTimer = null;
+  function activeNotesKey(){ var p = document.querySelector('.panel.on'); if(!p) return null; var d = getPanelDate(p); return monthKey(d.year, d.month); }
+  function ensureNotesUI(){
+    var pills = document.querySelector('.pills'), add = document.getElementById('addOptionBtn');
+    if(pills && !pills.querySelector(':scope > .notes-tab')){
+      var tab = document.createElement('button'); tab.type = 'button'; tab.className = 'pill notes-tab jsctl';
+      tab.innerHTML = NOTES_ICON + '<span>Notes</span>';
+      tab.addEventListener('click', function(e){ e.stopPropagation(); if(document.body.classList.contains('notes-mode')) closeNotesPage(); else openNotesPage(); });
+      pills.insertBefore(tab, add || null);
+    }
+    var wrap = document.querySelector('.wrap');
+    if(wrap && !notesPage){
+      notesPage = document.createElement('section'); notesPage.className = 'notes-page jsctl';
+      notesPage.innerHTML = '<div class="np-head"><span>Notes</span><span class="np-plan"></span><span class="np-saved">Saved</span></div><textarea placeholder="Write anything for this plan: things to book, to pack, ideas…" spellcheck="true"></textarea>';
+      notesArea = notesPage.querySelector('textarea');
+      var budgetTitle = document.getElementById('budgetOverviewTitle');
+      wrap.insertBefore(notesPage, budgetTitle || null);
+      notesArea.addEventListener('input', function(){ growNotes(); clearTimeout(notesTimer); notesTimer = setTimeout(commitNotesPage, 500); });
+      notesArea.addEventListener('blur', commitNotesPage);
+    }
+  }
+  // the page grows with what's written (whole lines), so the ruling and the margin always end together
+  function growNotes(){ if(!notesArea) return; notesArea.style.height = 'auto'; notesArea.style.height = (Math.ceil(notesArea.scrollHeight / 34) * 34) + 'px'; }
+  function commitNotesPage(){
+    clearTimeout(notesTimer);
+    if(!notesKey || !notesArea) return;
+    var v = notesArea.value;
+    if((MONTH_NOTES[notesKey] || '') === v) return;
+    if(v.trim()) MONTH_NOTES[notesKey] = v; else delete MONTH_NOTES[notesKey];
+    scheduleAutoSave(); scheduleUndoSnapshot();
+    var sv = notesPage.querySelector('.np-saved'); sv.classList.add('on'); clearTimeout(sv._t); sv._t = setTimeout(function(){ sv.classList.remove('on'); }, 1200);
+  }
+  function fillNotesPage(){
+    notesKey = activeNotesKey();
+    var p = document.querySelector('.panel.on'), pill = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"]');
+    var planName = (p && p.getAttribute('data-plan-name')) || (pill ? pill.querySelector('.pill-name').textContent.trim() : '');
+    notesPage.querySelector('.np-plan').textContent = planName ? '· ' + planName : '';
+    notesArea.value = (notesKey && MONTH_NOTES[notesKey]) || '';
+    setTimeout(growNotes, 0);
+  }
+  function openNotesPage(){
+    ensureNotesUI(); if(!notesPage) return;
+    fillNotesPage();
+    document.body.classList.add('notes-mode');
+    setTimeout(function(){ notesArea.focus(); notesArea.setSelectionRange(notesArea.value.length, notesArea.value.length); }, 30);
+  }
+  function closeNotesPage(){ commitNotesPage(); document.body.classList.remove('notes-mode'); }
+  // an alternative's tab closes the notebook; another plan shows its own notes
+  document.addEventListener('click', function(e){ if(document.body.classList.contains('notes-mode') && e.target.closest && e.target.closest('.pill[data-opt]')) closeNotesPage(); }, true);
+  setInterval(function(){
+    ensureNotesUI();
+    if(!document.body.classList.contains('notes-mode')) return;
+    var k = activeNotesKey();
+    if(k !== notesKey){ commitNotesPage(); fillNotesPage(); }
+    else if(document.activeElement !== notesArea && notesArea.value !== (MONTH_NOTES[k] || '')) notesArea.value = MONTH_NOTES[k] || '';
+  }, 600);
   function openMonthNotes(year, month){
+    // the open plan's notes open on their own page now
+    var ak = activeNotesKey();
+    if(window.matchMedia('(min-width:721px)').matches && ak === monthKey(year, month)){ openNotesPage(); return; }
     pendingNotesKey = monthKey(year, month);
     if(monthNotesTitle) monthNotesTitle.textContent = 'Notes — ' + formatMonthLabel(year, month, 1);
     if(monthNotesTextarea) monthNotesTextarea.value = MONTH_NOTES[pendingNotesKey] || '';
@@ -15350,7 +15442,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay')); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
