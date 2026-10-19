@@ -2887,6 +2887,9 @@
   #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
   #fabAddPanel .gc-allday select { flex:1; min-width:0; }
   #fabAddPanel .gc-allday[hidden] { display:none; }
+  #fabAddPanel .gc-to-arrow { flex:none; color:var(--muted); font-weight:800; }
+  #fabAddPanel .gc-to-arrow[hidden], #fabAddPanel #fabAddPlaceTo[hidden] { display:none !important; }
+  #fabAddPanel #fabAddPlace, #fabAddPanel #fabAddPlaceTo { flex:1 1 0; min-width:0; }
   #fabAddPanel .gc-row > .gc-until { flex:0 0 auto !important; width:auto; max-width:48%; }
   #fabAddPanel .gc-until[hidden] { display:none !important; }
   #fabAddPanel #fabAddStayOut[hidden] { display:none; }
@@ -3189,7 +3192,7 @@
         <button type="button" class="backdrop-dot" data-backdrop-name="magical" title="Starry" aria-label="Starry background"></button>
         <button type="button" class="backdrop-dot" data-backdrop-name="minimal" title="Minimal" aria-label="Minimal background"></button>
       </div>
-      <label class="actionMenuThemeRow actionMenuYearsRow">
+      <label class="actionMenuThemeRow actionMenuYearsRow" hidden style="display:none">
         <span class="actionMenuThemeLabel" data-i18n="menu_collapse_years">Collapse other years</span>
         <input type="checkbox" id="collapseYearsToggle" />
       </label>
@@ -3283,7 +3286,7 @@
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
       </div></div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Add location" aria-label="Place" autocomplete="off" /></div>
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Add location" aria-label="Place" autocomplete="off" /><span class="gc-to-arrow" id="fabAddPlaceArrow" hidden>→</span><input type="text" id="fabAddPlaceTo" class="fabadd-select" placeholder="To" aria-label="To" autocomplete="off" hidden /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
@@ -12401,7 +12404,7 @@
 
   var COLLAPSE_YEARS_KEY = 'travelPlannerCollapseYears';
   function collapseOtherYears(){
-    try { return localStorage.getItem(COLLAPSE_YEARS_KEY) !== '0'; } catch(e){ return true; }
+    return true; // no longer an option: other years always start collapsed (each can still be opened from its own year tab)
   }
   // Years opened or closed by hand in the month column (year -> bool).
   var yearOpenOverride = {};
@@ -13251,8 +13254,22 @@
   function citiesOf(text){ return text ? text.split('→').map(function(x){ return x.trim(); }).filter(Boolean) : []; }
   function liPlace(li){ var p = li.getAttribute('data-place'); if(p) return p; var c = citiesOf(placeOfCell(li.closest('.cell'))); return c[0] || ''; }
   function cellOfDay(day){ var p = document.querySelector('.panel.on'), hit = null; if(p) p.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) hit = c; }); return hit; }
+  // Getting somewhere (train, bus, flight, drive, boat, bike, hike): the
+  // location becomes From → To. From starts where you are that day; To
+  // makes the day "A → B" and the next day starts in B. With no name, the
+  // activity is called "A → B".
+  var TRANSPORT_RE = /^(train|bus|flight|drive|boat|bike|hike)$/i;
+  function isTransportTag(tg){ return !!tg && TRANSPORT_RE.test(String(tg.name || '').trim()); }
+  function syncTransportForm(){
+    var to = document.getElementById('fabAddPlaceTo'), arrow = document.getElementById('fabAddPlaceArrow'), from = document.getElementById('fabAddPlace');
+    if(!to || !fabAddTagSelect) return;
+    var on = isTransportTag(TAGS[fabAddTagSelect.value]);
+    to.hidden = arrow.hidden = !on;
+    from.placeholder = on ? 'From' : 'Add location';
+  }
   function suggestPlace(){
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
+    var toInp = document.getElementById('fabAddPlaceTo'); if(toInp) toInp.value = fabAddEditLi ? (fabAddEditLi.getAttribute('data-place-to') || '') : '';
     var cell = cellOfDay(fabAddDaySelect.value);
     if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
     if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
@@ -13263,6 +13280,8 @@
   function applyPlace(cell, li){
     var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
     var v = inp.value.trim(), cities = citiesOf(placeOfCell(cell)), loc = cell.querySelector(':scope > .loc');
+    var toInp = document.getElementById('fabAddPlaceTo'), dest = toInp && !toInp.hidden ? toInp.value.trim() : '';
+    if(li){ if(dest) li.setAttribute('data-place-to', dest); else li.removeAttribute('data-place-to'); }
     var nightCities = stayNights(cell).map(liPlace).filter(Boolean);
     var old = li ? li.getAttribute('data-place') || (cities[0] || '') : '';
     var others = li ? dayActs(cell).filter(function(x){ return x !== li; }) : [];
@@ -13275,6 +13294,8 @@
       var at = cities.indexOf(old);
       if(fabAddEditLi && old && at !== -1 && !oldStill) cities[at] = v; else cities.push(v);
     }
+    // a journey: its destination comes right after where it leaves from
+    if(dest && cities.indexOf(dest) === -1){ var fi = v ? cities.indexOf(v) : -1; if(fi === -1) cities.push(dest); else cities.splice(fi + 1, 0, dest); }
     // a stay's night here: you wake up in its city, so it leads the day
     nightCities.slice().reverse().forEach(function(c){ var k = cities.indexOf(c); if(k !== 0){ if(k > 0) cities.splice(k, 1); cities.unshift(c); } });
     var final = cities.join(' → ');
@@ -13283,6 +13304,9 @@
       var lt = loc.querySelector('.loc-text') || loc; if(lt.textContent.trim() !== final) lt.textContent = final;
       cell.classList.add('active');
     } else if(loc) loc.remove();
+    // no name given: call it "A → B"
+    var tEl = li && li.querySelector(':scope > .title'), nm = document.getElementById('fabAddTitleInput');
+    if(tEl && dest && v && nm && !nm.value.trim()) tEl.textContent = v + ' → ' + dest;
     renderPlaceSections(cell);
   }
   // ---- All-day activities (a Stay): no time; they sit at the top of the
@@ -13384,6 +13408,7 @@
     return out.length > 1 ? out : null;
   }
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
+  if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncTransportForm);
   if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
   document.body.appendChild(Object.assign(document.createElement('div'), { id:'dragRange' }));
   (function(){ var so = document.getElementById('fabAddStayOut'); if(so) so.addEventListener('change', function(){ so.dataset.want = so.value; }); })();
@@ -13478,7 +13503,7 @@
     more.querySelector('[data-x="ticket"] span').textContent = li && li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket';
     more.querySelector('[data-x="photo"] span').textContent = li && li.hasAttribute('data-img') ? 'Replace photo' : 'Photo';
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
-    placeTouched = false; suggestPlace();
+    placeTouched = false; suggestPlace(); syncTransportForm();
     var end = document.getElementById('fabAddDayEnd');
     if(end){ var st = li && li.getAttribute('data-span-to'); if(st) end.dataset.want = st; else delete end.dataset.want; end.hidden = !st; fillDayEnd(); }
     syncAllDayForm();
@@ -13779,6 +13804,8 @@
     if(ghost.style.top !== gt) ghost.style.top = gt;
     if(ghost.style.width !== gw) ghost.style.width = gw;
     var t = document.getElementById('fabAddTitleInput'), txt = (t && t.value.trim()) || 'New activity';
+    var pf = document.getElementById('fabAddPlace'), pt = document.getElementById('fabAddPlaceTo');
+    if(!(t && t.value.trim()) && pt && !pt.hidden && pt.value.trim() && pf.value.trim()) txt = pf.value.trim() + ' → ' + pt.value.trim();
     if(ghost.textContent !== txt) ghost.textContent = txt;
     // Editing an existing activity: no "New activity" placeholder.
     var gd = fabAddEditLi || rc ? 'none' : 'block';
@@ -14720,6 +14747,7 @@
     if(paid.length) a.pd = paid;
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
     if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
+    if(li.getAttribute('data-place-to')) a.plt = li.getAttribute('data-place-to');
     if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
     if(li.getAttribute('data-span-to')) a.st = parseInt(li.getAttribute('data-span-to'), 10);
     var currency = li.getAttribute('data-currency');
@@ -14881,6 +14909,7 @@
     if(a.pd && a.pd.length) li.setAttribute('data-paid', JSON.stringify(a.pd));
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
     if(a.pl) li.setAttribute('data-place', a.pl);
+    if(a.plt) li.setAttribute('data-place-to', a.plt);
     if(a.so) li.setAttribute('data-stay-to', String(a.so));
     if(a.st) li.setAttribute('data-span-to', String(a.st));
     if(a.cur) li.setAttribute('data-currency', a.cur);
@@ -15159,7 +15188,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-stay-to', 'data-span-to'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
