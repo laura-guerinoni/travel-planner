@@ -7552,7 +7552,7 @@
       [[1, 1], [1.48, .5], [2.31, .25]].forEach(function(h){ tone(c, 'sine', f * h[0], f * h[0], t + dt, .16 - i * .03, .07 * h[1] * (1 - i * .25)); }); });
   } catch(e){} }
   // a to-do ticked off: a tiny pencil tick, then a light rising "ding"
-  function playCheckSound(){ try { sfxLevel = 1; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+  function playCheckSound(){ try { sfxLevel = 1.35; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
     burst(c, t, .035, .05, 'bandpass', 3800, 1.6);
     tone(c, 'sine', 1174.7, 1174.7, t + .03, .12, .1); tone(c, 'sine', 1760, 1760, t + .09, .32, .1); tone(c, 'sine', 3520, 3520, t + .09, .15, .015);
   } catch(e){} }
