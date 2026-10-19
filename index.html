@@ -2845,6 +2845,8 @@
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
   #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  /* no dangling divider at the bottom of the profile menu when there's no Sign out under it */
+  #actionMenuDropdown .actionMenuDivider:has(+ #appSignOutBtn:not(.show)) { display:none; }
   /* Printing / Save as PDF after the desktop refresh: only the calendar —
      none of the floating screen pieces (top row, tabs, stitching, faces,
      search, side panel, cards, dropdowns) — on plain white, one month per
@@ -13269,11 +13271,15 @@
   }
   function suggestPlace(){
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
-    var toInp = document.getElementById('fabAddPlaceTo'); if(toInp) toInp.value = fabAddEditLi ? (fabAddEditLi.getAttribute('data-place-to') || '') : '';
     var cell = cellOfDay(fabAddDaySelect.value);
     if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
     if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
     var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || '';
+    // a journey on a day with nothing yet leaves from where the day before ended
+    if(!inp.value && cell && isTransportTag(TAGS[fabAddTagSelect.value])){
+      var cells = [].slice.call(cell.closest('.panel').querySelectorAll('.cell:not(.empty)'));
+      for(var j = cells.indexOf(cell) - 1; j >= 0; j--){ var pc = citiesOf(placeOfCell(cells[j])); if(pc.length){ inp.value = pc[pc.length - 1]; break; } }
+    }
   }
   function dayActs(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)')); }
   // li: the activity just added/edited (in its final day).
@@ -13408,7 +13414,7 @@
     return out.length > 1 ? out : null;
   }
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
-  if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncTransportForm);
+  if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', function(){ syncTransportForm(); suggestPlace(); });
   if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
   document.body.appendChild(Object.assign(document.createElement('div'), { id:'dragRange' }));
   (function(){ var so = document.getElementById('fabAddStayOut'); if(so) so.addEventListener('change', function(){ so.dataset.want = so.value; }); })();
@@ -13503,7 +13509,9 @@
     more.querySelector('[data-x="ticket"] span').textContent = li && li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket';
     more.querySelector('[data-x="photo"] span').textContent = li && li.hasAttribute('data-img') ? 'Replace photo' : 'Photo';
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
-    placeTouched = false; suggestPlace(); syncTransportForm();
+    placeTouched = false;
+    var toInp = document.getElementById('fabAddPlaceTo'); if(toInp) toInp.value = li ? (li.getAttribute('data-place-to') || '') : '';
+    suggestPlace(); syncTransportForm();
     var end = document.getElementById('fabAddDayEnd');
     if(end){ var st = li && li.getAttribute('data-span-to'); if(st) end.dataset.want = st; else delete end.dataset.want; end.hidden = !st; fillDayEnd(); }
     syncAllDayForm();
