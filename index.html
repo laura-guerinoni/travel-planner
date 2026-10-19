@@ -7528,11 +7528,20 @@
   function playStampSound(){ try { var c = sfx(); if(!c) return; var t = c.currentTime + .02;
     tone(c, 'sine', 150, 55, t, .22, .35); burst(c, t, .09, .22, 'lowpass', 900, .7); burst(c, t + .004, .04, .08, 'bandpass', 2600, 1.2);
   } catch(e){} }
-  // 2 · someone paid: a little "cha-ching" (two bright coin dings after a soft rattle)
+  // 2 · someone paid: the classic little game "coin" — two quick rising
+  // notes (B5 → E6), round and soft, with a faint sparkle on the second
   var coinAt = 0;
   function playCoinSound(){ try { if(Date.now() - coinAt < 250) return; coinAt = Date.now(); var c = sfx(); if(!c) return; var t = c.currentTime + .01;
-    burst(c, t, .06, .07, 'highpass', 4000, .8);
-    [[1975.5, .05], [2637, .13]].forEach(function(n){ tone(c, 'triangle', n[0], n[0], t + n[1], .35, .12); tone(c, 'sine', n[0] * 2.76, n[0] * 2.76, t + n[1], .18, .035); });
+    function note(f, at, len, vol){
+      var o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+      o.type = 'triangle'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 4200;
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + .008);
+      g.gain.setValueAtTime(vol, at + len * .35); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+      o.connect(lp); lp.connect(g); g.connect(c.destination); o.start(at); o.stop(at + len + .03);
+    }
+    note(987.8, t, .085, .13);
+    note(1318.5, t + .075, .42, .13);
+    tone(c, 'sine', 2637, 2637, t + .08, .28, .025);
   } catch(e){} }
   //   … and everything's even: a soft three-note chime
   function playSettledSound(){ try { var c = sfx(); if(!c) return; var t = c.currentTime + .01;
