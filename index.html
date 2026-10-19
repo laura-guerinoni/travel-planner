@@ -13079,9 +13079,16 @@
       e.stopPropagation();
       if(!currentUserEmail || !currentUserKey) return;
       closeActionMenu();
+      function place(){
+        // just under the avatar button, above the top row, scrolling if it's taller than the window
+        var ed = document.querySelector('.avatar-editor'); if(!ed) return;
+        var b = actionMenuBtn.getBoundingClientRect(), top = b.bottom + 8;
+        ed.style.position = 'fixed'; ed.style.left = Math.max(8, b.left) + 'px'; ed.style.top = top + 'px';
+        ed.style.maxHeight = (window.innerHeight - top - 12) + 'px'; ed.style.overflowY = 'auto'; ed.style.zIndex = '10002';
+      }
       firebase.database().ref('avatars/' + currentUserKey).once('value').then(function(snap){
-        openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn, snap.val() || undefined);
-      }).catch(function(){ openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn); });
+        openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn, snap.val() || undefined); place();
+      }).catch(function(){ openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn); place(); });
     });
     // only once signed in
     (function show(){ editAvatarBtn.classList.toggle('show', !!currentUserKey); setTimeout(show, 1000); })();
