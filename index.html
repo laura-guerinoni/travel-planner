@@ -3141,6 +3141,7 @@
   <div id="actionMenu">
     <button type="button" id="actionMenuBtn" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="true">⋮</button>
     <div id="actionMenuDropdown">
+      <button type="button" id="editAvatarBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span>Edit avatar</span></button>
       <button type="button" id="saveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span id="saveBtnLabel">Save</span></button>
       <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="menu_manage">Participants</span></button>
       <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span data-i18n="menu_print">Print</span></button>
@@ -12951,6 +12952,21 @@
     e.stopPropagation();
     if(actionMenuDropdown) actionMenuDropdown.classList.toggle('show');
   });
+  // Your own avatar: change how your face looks (the same editor the old
+  // Participants list had), right from the profile menu.
+  var editAvatarBtn = document.getElementById('editAvatarBtn');
+  if(editAvatarBtn){
+    editAvatarBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(!currentUserEmail || !currentUserKey) return;
+      closeActionMenu();
+      firebase.database().ref('avatars/' + currentUserKey).once('value').then(function(snap){
+        openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn, snap.val() || undefined);
+      }).catch(function(){ openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn); });
+    });
+    // only once signed in
+    (function show(){ editAvatarBtn.classList.toggle('show', !!currentUserKey); setTimeout(show, 1000); })();
+  }
   document.addEventListener('click', function(e){
     if(!actionMenuDropdown || !actionMenuDropdown.classList.contains('show')) return;
     if(actionMenu && actionMenu.contains(e.target)) return;
