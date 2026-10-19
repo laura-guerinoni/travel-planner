@@ -2826,6 +2826,9 @@
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
   html { overflow-x:hidden; }
+  .acts > li[data-free] > .price { display:none; }
+  .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
+  .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
   #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
   #fabAddPanel .gc-allday select { flex:1; min-width:0; }
@@ -10187,11 +10190,8 @@
     var addBtn = cell.querySelector(':scope > .addloc');
     var loc = cell.querySelector(':scope > .loc');
     var acts = cell.querySelector(':scope > .acts');
-    if(!loc){
-      loc = buildLocEl('New location');
-      cell.insertBefore(loc, addBtn);
-      cell.classList.add('active');
-    }
+    // (no "New location" stand-in: a day's place comes from its activities)
+    cell.classList.add('active');
     if(!acts){
       acts = document.createElement('ul');
       acts.className = 'acts';
@@ -13382,6 +13382,10 @@
       all.forEach(function(li){ if(!isAllDay(li)) seq.push(li); });
     }
     function flag(li, a, on, v){ if(on){ if(li.getAttribute(a) !== v) li.setAttribute(a, v); } else if(li.hasAttribute(a)) li.removeAttribute(a); }
+    // an old "New location" stand-in isn't shown (display only)
+    var locEl = cell.querySelector(':scope > .loc'); if(locEl) flag(locEl, 'data-standin', placeOfCell(cell) === '' , '');
+    // an activity costing nothing doesn't show "€ 0" (display only)
+    all.forEach(function(li){ var pv = li.querySelector(':scope > .price > .price-val'); flag(li, 'data-free', !!pv && !(parseMoney(pv.textContent) > 0) && !li.hasAttribute('data-paid'), ''); });
     seq.forEach(function(li, i){
       var pl = liPlace(li), prevPl = i ? liPlace(seq[i - 1]) : null;
       flag(li, 'data-ord', true, String(2 * i));
@@ -13978,7 +13982,7 @@
     }
     if(fabAddTimeInput) fabAddTimeInput.value = '';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
-    if(fabAddAmountInput) fabAddAmountInput.value = '0';
+    if(fabAddAmountInput) fabAddAmountInput.value = '';
     fillAddPayment(panel);
     if(fabAddTitleInput) fabAddTitleInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
@@ -14105,6 +14109,8 @@
         priceVal.textContent = currencySymbol(priceValCurrencyCtx(newLi)) + ' ' + amountVal;
         if(priceValIsNew) makeEditable(priceVal);
       }
+      // no cost (empty or 0): no price on the activity
+      if(!(parseFloat(amountVal) > 0)){ var pz = newLi.querySelector(':scope > .price'); if(pz) pz.remove(); }
       applyAddPayment(newLi);
       applyExtras(newLi);
       applyPlace(cell, newLi);
@@ -14138,7 +14144,7 @@
     var priceEl = li.querySelector(':scope > .price');
     var cur = document.getElementById('fabAddCurrencySelect');
     if(cur){ var def = resolveCurrencyCode(li.closest('.panel')); if(cur.value && cur.value !== def) li.setAttribute('data-currency', cur.value); else li.removeAttribute('data-currency'); }
-    if(amountVal === ''){ if(priceEl) priceEl.remove(); li.removeAttribute('data-pay'); }
+    if(!(parseFloat(amountVal) > 0)){ if(priceEl) priceEl.remove(); li.removeAttribute('data-pay'); }
     else { var pv = li.querySelector(':scope > .price > .price-val');
       if(!pv){ priceEl = document.createElement('span'); priceEl.className = 'price'; pv = document.createElement('span'); pv.className = 'price-val'; priceEl.appendChild(pv); li.appendChild(priceEl); makeEditable(pv); }
       // Left as it was (e.g. "€ 45x2"), unless the amount or currency changed.
