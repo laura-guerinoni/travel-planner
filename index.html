@@ -2825,6 +2825,8 @@
 
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
+  /* printing lives in each alternative's own menu, not the profile menu */
+  #actionMenuDropdown > #printBtn { display:none !important; }
   /* no rubber-band bounce past the top/bottom: it pulled the calendar away from its tabs */
   /* the page's scrollbar space is always kept, so switching to a longer or
      shorter plan never shifts things sideways (the selected plan tab used to
