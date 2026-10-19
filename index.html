@@ -2882,7 +2882,26 @@
     .panel::before { font-family:inherit; color:#3d3568 !important; font-size:20px; margin:0 0 8px; }
     .grid.heads, .grid.heads.stuck { position:static !important; margin:0 !important; padding:0 0 4px !important; border:none !important; background:none !important; box-shadow:none !important; }
     .grid.heads::before, .grid.heads::after { display:none !important; }
-    body:not(.print-list) .cell { min-height:118px; }
+    /* compact days, so more weeks fit on a page (a week that doesn't fit
+       moves to the next page whole, which left big empty gaps) */
+    body:not(.print-list) .cell { min-height:84px; }
+    .cell { padding:7px 8px 8px !important; }
+    .cellhead .daynum { font-size:13px !important; }
+    .cell > .loc { margin:3px 0 4px !important; }
+    .cell > .loc > .loc-text { font-size:9.5px !important; }
+    .cell > .loc::before { width:11px !important; height:11px !important; }
+    .cell > .loc > .daytotal-badge { top:7px !important; right:7px !important; font-size:9.5px !important; padding:1px 6px !important; }
+    .acts { gap:3px !important; }
+    .acts > li { padding:3px 4px !important; font-size:10.5px !important; line-height:1.25 !important; }
+    .acts > li .chip { font-size:8.5px !important; padding:1px 6px !important; }
+    .acts > li .chip .chip-icon { width:11px !important; height:11px !important; }
+    .acts > li > .title { font-size:10.5px !important; margin-top:1px !important; }
+    .acts > li > .line, .acts > li > .price { font-size:9.5px !important; }
+    .acts > li > .line[data-ph] { display:none !important; }
+    .acts > li .payicon, .acts > li .actcurrency-icon, .acts > li .linkicons, .acts > li .act-participants { display:none !important; }
+    .acts > li[data-sec] { margin-top:20px !important; }
+    .acts > li[data-sec]:not([data-sec-first]) { margin-top:24px !important; }
+    .acts > li[data-sec]::before { top:-17px !important; font-size:9px !important; line-height:12px !important; background-size:11px 11px !important; padding-left:15px !important; }
     .cell { box-shadow:none !important; border-color:#e6dcf2 !important; }
     .cell.empty { border:none !important; background:none !important; }
     .cell.empty * { display:none !important; }
@@ -13573,6 +13592,8 @@
       if(st && en && (li.hasAttribute('data-span-to') || li.hasAttribute('data-stay-to'))) lab = (li.hasAttribute('data-stay-to') ? '🌙 night 1 of ' : '↔ day 1 of ') + (en - st + 1);
       flag(t, 'data-span-label', !!lab, lab);
     });
+    // an empty "🕒 time" placeholder line (left over from older activities) — hidden when printing
+    all.forEach(function(li){ li.querySelectorAll(':scope > .line').forEach(function(l){ flag(l, 'data-ph', /^🕒\s*time$/i.test(l.textContent.trim()), ''); }); });
     // an activity costing nothing doesn't show "€ 0" (display only)
     all.forEach(function(li){ var pv = li.querySelector(':scope > .price > .price-val'); flag(li, 'data-free', !!pv && !(parseMoney(pv.textContent) > 0) && !li.hasAttribute('data-paid'), ''); });
     seq.forEach(function(li, i){
