@@ -2825,8 +2825,10 @@
 
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
-  html { overflow-x:hidden; }
+  /* no rubber-band bounce past the top/bottom: it pulled the calendar away from its tabs */
+  html, body { overflow-x:hidden; overscroll-behavior:none; }
   .acts > li[data-free] > .price { display:none; }
+  .acts > li > .title[data-span-label]::after { content:attr(data-span-label); display:block; color:var(--muted); font-size:.9286em; font-weight:400; } /* = the copies' line (13px under a 14px title) */
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
@@ -3214,7 +3216,7 @@
       </div>
       <!-- Laid out like Google Calendar's quick add: the name as a big
            underlined field, then one compact row per detail with an icon. -->
-      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" />
+      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" autocomplete="off" />
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select><select id="fabAddDayEnd" class="fabadd-select gc-until" aria-label="Until" hidden></select></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Where are you?" aria-label="Place" autocomplete="off" /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
@@ -13384,6 +13386,13 @@
     function flag(li, a, on, v){ if(on){ if(li.getAttribute(a) !== v) li.setAttribute(a, v); } else if(li.hasAttribute(a)) li.removeAttribute(a); }
     // an old "New location" stand-in isn't shown (display only)
     var locEl = cell.querySelector(':scope > .loc'); if(locEl) flag(locEl, 'data-standin', placeOfCell(cell) === '' , '');
+    // the first day of something over several days says so, like its copies
+    dayActs(cell).forEach(function(li){
+      var t = li.querySelector(':scope > .title'); if(!t) return;
+      var st = parseInt(li.dataset.spanStart, 10), en = parseInt(li.dataset.spanEnd, 10), lab = '';
+      if(st && en && (li.hasAttribute('data-span-to') || li.hasAttribute('data-stay-to'))) lab = (li.hasAttribute('data-stay-to') ? '🌙 night 1 of ' : '↔ day 1 of ') + (en - st + 1);
+      flag(t, 'data-span-label', !!lab, lab);
+    });
     // an activity costing nothing doesn't show "€ 0" (display only)
     all.forEach(function(li){ var pv = li.querySelector(':scope > .price > .price-val'); flag(li, 'data-free', !!pv && !(parseMoney(pv.textContent) > 0) && !li.hasAttribute('data-paid'), ''); });
     seq.forEach(function(li, i){
@@ -13523,6 +13532,8 @@
   // that left the calendar scrolled down/sideways and cut off.
   window.addEventListener('wheel', function(e){ if(e.ctrlKey) e.preventDefault(); }, { passive:false });
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(t){ document.addEventListener(t, function(e){ e.preventDefault(); }, { passive:false }); });
+  // no browser autofill suggestions in the card's fields
+  document.querySelectorAll('#fabAddPanel input:not([type="checkbox"]), #fabAddPanel textarea').forEach(function(i){ i.setAttribute('autocomplete', 'off'); });
   var fabAddForcedCell = null, fabAddInsertAfter = null;
   // Press on a day and drag across others (like Google Calendar): the days
   // light up, and letting go opens the card for an all-day activity over
