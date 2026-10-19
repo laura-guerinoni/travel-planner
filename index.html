@@ -2846,8 +2846,58 @@
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
-  #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  /* radio buttons in the app's own look: a soft lavender ring, pink when chosen */
+  #printPanel input[type="radio"] { appearance:none; -webkit-appearance:none; flex:none; width:18px; height:18px; margin:0; border-radius:50%; cursor:pointer;
+    border:2px solid var(--line); background:#fff; transition:border-color .12s, background .12s; vertical-align:middle; }
+  #printPanel input[type="radio"]:hover { border-color:#d9c8ec; }
+  #printPanel input[type="radio"]:checked { border-color:var(--primary); background:radial-gradient(circle, var(--primary) 0 4px, #fff 4.5px); }
+  #printPanel input[type="radio"]:focus { outline:none; }
+  #printPanel input[type="radio"]:focus-visible { box-shadow:0 0 0 3px rgba(var(--primary-rgb), .2); }
   .print-pay { display:none; }
+  /* ---- Notes: a tab after the alternatives; the page becomes a ruled
+     notebook page (lines instead of the squares, same paper and colours) ---- */
+  .notes-page { display:none; }
+  .pills .pill.notes-tab { display:none; }
+  @media screen and (min-width: 721px){
+    .pills .pill.notes-tab { display:flex; align-items:center; gap:7px; align-self:flex-end; position:relative; margin:6px 0 0 0; padding:8px 22px; min-height:52px; box-sizing:border-box; border:none; border-radius:12px 12px 0 0;
+      background:var(--card); color:var(--ink); font:inherit; font-size:13px; font-weight:800; line-height:1.25; cursor:pointer; white-space:nowrap;
+      box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.18);
+      -webkit-mask:radial-gradient(circle 7px at 0 58%, transparent 6.5px, #000 7px) left/51% 100% no-repeat, radial-gradient(circle 7px at 100% 58%, transparent 6.5px, #000 7px) right/51% 100% no-repeat;
+              mask:radial-gradient(circle 7px at 0 58%, transparent 6.5px, #000 7px) left/51% 100% no-repeat, radial-gradient(circle 7px at 100% 58%, transparent 6.5px, #000 7px) right/51% 100% no-repeat; }
+    .pills .pill.notes-tab svg { width:15px; height:15px; color:var(--muted); }
+    .pills .pill.notes-tab:hover { background:#fbf8fe; }
+    body.notes-mode .pills .pill.notes-tab { margin-top:0; min-height:64px; padding-bottom:14px; background-color:var(--bg); background-image:var(--ruled-fine); box-shadow:0 -3px 10px -2px rgba(40,25,60,.18); }
+    body.notes-mode .pills .pill.notes-tab svg { color:var(--primary); }
+    /* the alternative's tab steps back while the notebook is open */
+    body.notes-mode .pills .pill[data-opt].on { margin-top:6px; padding-top:8px; padding-bottom:8px !important; box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32) !important; }
+    body.notes-mode #ticketStitch { display:none !important; }
+    body.notes-mode .wrap { background-image:var(--ruled-fine) !important; }
+    body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
+    body.notes-mode .notes-page { display:block; padding:6px 10px 24px; }
+    .notes-page .np-head { display:flex; align-items:baseline; gap:10px; margin:0 0 6px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    .notes-page .np-head .np-saved { margin-left:auto; letter-spacing:0; text-transform:none; font-weight:700; opacity:0; transition:opacity .3s; }
+    .notes-page .np-head .np-saved.on { opacity:1; }
+    .notes-page .np-lines { min-height:calc(100vh - 230px); padding:0 8px 34px 52px; cursor:text;
+      background-image:linear-gradient(90deg, transparent 38px, rgba(var(--primary-rgb), .28) 38px, rgba(var(--primary-rgb), .28) 40px, transparent 40px),
+        repeating-linear-gradient(to bottom, transparent 0 33px, rgba(61,53,104,.09) 33px 34px); }
+    .notes-page .np-row { display:flex; align-items:flex-start; gap:10px; min-height:34px; }
+    .notes-page .np-text { flex:1; min-width:0; min-height:34px; outline:none; font-size:16px; font-weight:600; line-height:34px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; cursor:text; }
+    .notes-page .np-text, .notes-page .np-text:focus, .notes-page .np-text:hover { background:none !important; box-shadow:none !important; border:none !important; outline:none !important; padding:0 !important; border-radius:0 !important; }
+    .notes-page .np-check { display:none; flex:none; width:18px; height:18px; margin-top:8px; padding:0; border:2px solid #d9c8ec; border-radius:5px; background:#fff; cursor:pointer; transition:background .12s, border-color .12s; }
+    .notes-page .np-check:hover { border-color:var(--primary); }
+    .notes-page .np-row[data-todo] .np-check { display:block; }
+    .notes-page .np-row[data-todo="done"] .np-check { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
+    .notes-page .np-row[data-todo="done"] .np-text { color:var(--muted); text-decoration:line-through; text-decoration-color:rgba(155,143,192,.7); }
+    .notes-page .np-lines:has(> .np-row:only-child .np-text:empty)::before { content:'Write anything for this plan: things to book, to pack, ideas…'; position:absolute; margin-left:0; line-height:34px; font-size:16px; font-weight:600; color:var(--muted); pointer-events:none; }
+    .notes-page .np-lines { position:relative; }
+    .notes-page .np-head .np-todo-btn { display:inline-flex; align-items:center; gap:6px; margin-left:10px; padding:4px 10px; border:none; border-radius:999px; background:var(--card); color:var(--ink);
+      font:inherit; font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
+    .notes-page .np-head .np-todo-btn:hover { box-shadow:0 0 0 1px var(--primary); }
+    .notes-page .np-head .np-box { width:12px; height:12px; border:2px solid #d9c8ec; border-radius:3px; }
+  }
+  :root { --ruled-fine: repeating-linear-gradient(0deg, rgba(61,53,104,.022) 0 1px, transparent 1px 5px); }
+  @media print { .notes-page, .pill.notes-tab { display:none !important; } }
   .rangepop-warn { margin:0 0 10px; padding:9px 12px; border-radius:10px; background:#fdecef; color:#b23a52; font-size:13px; font-weight:700; line-height:1.35; }
   .rangepop-warn[hidden] { display:none; }
   .rangepop .addbtn.danger { background:#d6455d !important; }
@@ -2920,6 +2970,10 @@
   /* no browser-blue ring on a dropdown field; open, it's outlined in the app's pink */
   select:focus { outline:none; }
   select.nd-open { outline:none; border-color:var(--primary) !important; box-shadow:0 0 0 1px var(--primary) !important; }
+  #niceDD .nd-q { position:sticky; top:-6px; z-index:1; display:block; width:calc(100% - 16px); height:34px; margin:0 8px 6px; box-sizing:border-box; border:1px solid transparent; border-radius:6px; padding:0 10px;
+    font:inherit; font-size:14px; color:var(--ink); background:var(--bg); outline:none; box-shadow:0 -6px 0 6px #fff; }
+  #niceDD .nd-q:focus { border-color:var(--primary); }
+  #niceDD [hidden] { display:none !important; }
   #niceDD .nd-group { padding:8px 16px 4px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
   #niceDD .nd-opt { padding:10px 16px; font-size:14.5px; color:var(--ink); cursor:pointer; white-space:nowrap; }
   #niceDD .nd-opt:hover, #niceDD .nd-opt.act { background:var(--bg); }
@@ -3699,6 +3753,12 @@
     "name": "Ski",
     "bg": "#7ec8e3",
     "fg": "#14213d"
+  },
+  {
+    "icon": "📌",
+    "name": "Other",
+    "bg": "#e8e3f0",
+    "fg": "#3d3568"
   }
 ]
 </script>
@@ -3911,7 +3971,7 @@
       manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
       invite_scope_open_hint: 'Open to everyone — can’t be removed here',
       pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
-      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', default_alt_name: 'Alternative', default_plan_name: 'New plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Join another plan', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Split into its own plan', pillmenu_rename_plan: 'Name this plan', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
+      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', default_alt_name: 'Alternative', default_plan_name: 'New plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Join another plan', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Split into its own plan', pillmenu_rename_plan: 'Name this plan', menu_rename: 'Rename', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
       pillmenu_no_access_yet: 'No one has access yet',
       pillmenu_everyone_sees: 'Everyone can see this plan.',
       pillmenu_only_checked_see: 'Only ticked people can see this plan.',
@@ -3963,7 +4023,7 @@
       manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
       invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
       pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
-      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', default_alt_name: 'Alternativa', default_plan_name: 'Nuovo piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Unisci a un altro piano', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Separa in un piano a sé', pillmenu_rename_plan: 'Dai un nome al piano', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
+      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', default_alt_name: 'Alternativa', default_plan_name: 'Nuovo piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Unisci a un altro piano', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Separa in un piano a sé', pillmenu_rename_plan: 'Dai un nome al piano', menu_rename: 'Rinomina', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
       pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
       pillmenu_everyone_sees: 'Tutti possono vedere questo piano.',
       pillmenu_only_checked_see: 'Solo le persone selezionate possono vedere questo piano.',
@@ -4015,7 +4075,7 @@
       manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
       invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
       pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
-      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', default_alt_name: 'Alternativa', default_plan_name: 'Nuevo plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Unir a otro plan', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Separar en un plan propio', pillmenu_rename_plan: 'Poner nombre al plan', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
+      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', default_alt_name: 'Alternativa', default_plan_name: 'Nuevo plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Unir a otro plan', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Separar en un plan propio', pillmenu_rename_plan: 'Poner nombre al plan', menu_rename: 'Renombrar', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
       pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
       pillmenu_everyone_sees: 'Todos pueden ver este plan.',
       pillmenu_only_checked_see: 'Solo las personas marcadas pueden ver este plan.',
@@ -6723,6 +6783,9 @@
   }
   function setPaid(li, list){
     var clean = list.filter(function(p){ return p.a > 0; });
+    // paid more than before, from the wallet popup (the card plays its own)
+    var before = getPaid(li).reduce(function(x, p){ return x + p.a; }, 0), after = clean.reduce(function(x, p){ return x + p.a; }, 0);
+    if(after > before + .004 && Date.now() - coinAt > 3000) playCoinSound();
     if(clean.length) li.setAttribute('data-paid', JSON.stringify(clean)); else li.removeAttribute('data-paid');
     renderPaymentOverview();
     scheduleAutoSave(); scheduleUndoSnapshot();
@@ -7408,7 +7471,7 @@
       var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
       var ctx = starAudio = starAudio || new AC();
       if(ctx.state === 'suspended') ctx.resume();
-      var now = ctx.currentTime, out = ctx.createGain(); out.gain.value = .22;
+      var now = ctx.currentTime, out = ctx.createGain(); out.gain.value = .14; // same loudness as the other sounds
       // A touch of echo, for space.
       var dl = ctx.createDelay(); dl.delayTime.value = .11; var fb = ctx.createGain(); fb.gain.value = .28;
       out.connect(ctx.destination); out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(ctx.destination);
@@ -7451,6 +7514,70 @@
       });
     } catch(e){}
   }
+  // ---- More little sounds (Web Audio, quiet, no files) ----
+  function sfx(){
+    var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null;
+    var ctx = starAudio = starAudio || new AC(); if(ctx.state === 'suspended') ctx.resume(); return ctx;
+  }
+  function noiseBuf(ctx, secs){
+    var n = Math.floor(ctx.sampleRate * secs), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+    for(var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; return b;
+  }
+  // every sound is set to the same loudness (measured: ~ -24 dB at its loudest
+  // moment, like the add plip); sfxLevel is that sound's own factor
+  var sfxLevel = 1;
+  function tone(ctx, type, f0, f1, t, len, vol, dest){
+    vol *= sfxLevel;
+    var o = ctx.createOscillator(), g = ctx.createGain(); o.type = type;
+    o.frequency.setValueAtTime(f0, t); if(f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + len * .8);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(dest || ctx.destination); o.start(t); o.stop(t + len + .03);
+  }
+  function burst(ctx, t, len, vol, ftype, freq, q, sweepTo){
+    vol *= sfxLevel;
+    var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = noiseBuf(ctx, len + .05); f.type = ftype; f.frequency.setValueAtTime(freq, t); if(sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + len); f.Q.value = q || 1;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .005); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t); src.stop(t + len + .05); return g;
+  }
+  // 1 · a new plan: a passport stamp — a soft, deep "thunk" with a pad of paper under it
+  function playStampSound(){ try { var c = sfx(); if(!c) return; var t = c.currentTime + .02;
+    tone(c, 'sine', 150, 55, t, .22, .35); burst(c, t, .09, .22, 'lowpass', 900, .7); burst(c, t + .004, .04, .08, 'bandpass', 2600, 1.2);
+  } catch(e){} }
+  // 2 · someone paid: a few small coins dropping onto a table — three
+  // quick metallic clinks, each a little softer
+  var coinAt = 0;
+  function playCoinSound(){ try { sfxLevel = 2.16; if(Date.now() - coinAt < 250) return; coinAt = Date.now(); var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    [0, .085, .15].forEach(function(dt, i){ var f = 3400 + i * 250;
+      [[1, 1], [1.48, .5], [2.31, .25]].forEach(function(h){ tone(c, 'sine', f * h[0], f * h[0], t + dt, .16 - i * .03, .07 * h[1] * (1 - i * .25)); }); });
+  } catch(e){} }
+  // a to-do ticked off: a tiny pencil tick, then a light rising "ding"
+  function playCheckSound(){ try { sfxLevel = 1.35; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    burst(c, t, .035, .05, 'bandpass', 3800, 1.6);
+    tone(c, 'sine', 1174.7, 1174.7, t + .03, .12, .1); tone(c, 'sine', 1760, 1760, t + .09, .32, .1); tone(c, 'sine', 3520, 3520, t + .09, .15, .015);
+  } catch(e){} }
+  //   … and everything's even: a soft three-note chime
+  function playSettledSound(){ try { sfxLevel = 1.2; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    [1046.5, 1318.5, 1568].forEach(function(f, i){ tone(c, 'sine', f, f, t + i * .07, .5, .1 - i * .015); });
+  } catch(e){} }
+  // 3 · an activity dropped on another day: a round "pop"
+  function playDropSound(){ try { sfxLevel = 1; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    tone(c, 'sine', 520, 260, t, .12, .22); burst(c, t, .02, .05, 'bandpass', 1800, 2);
+  } catch(e){} }
+  // 4 · dragging across days: one soft tick per day, a touch higher each time (like a zipper)
+  function playTickSound(n){ try { sfxLevel = 5.9; var c = sfx(); if(!c) return; var t = c.currentTime;
+    var f = 1400 + Math.min(n || 0, 14) * 70; tone(c, 'square', f, f, t, .025, .025); burst(c, t, .018, .03, 'highpass', 5000, .7);
+  } catch(e){} }
+  // 5 · an activity deleted: paper crumpled, then a little whoosh
+  var crumpleAt = 0;
+  function playCrumpleSound(){ try { sfxLevel = 11; if(Date.now() - crumpleAt < 200) return; crumpleAt = Date.now(); var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    for(var i = 0; i < 7; i++) burst(c, t + i * .028 + Math.random() * .012, .03, .05 + Math.random() * .05, 'bandpass', 1800 + Math.random() * 2600, 1.4);
+    burst(c, t + .19, .22, .06, 'bandpass', 600, .9, 3200);
+  } catch(e){} }
+  // 6 · undo: a short tape-rewind blip (redo plays it forwards)
+  function playRewindSound(forward){ try { sfxLevel = 1.9; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    if(forward){ tone(c, 'sine', 420, 980, t, .14, .1); } else { tone(c, 'sine', 980, 380, t, .14, .1); tone(c, 'sine', 640, 640, t + .12, .06, .05); }
+  } catch(e){} }
   var renderPageBookmark = function(){};
   (function initPageBookmark(){
     var host = document.getElementById('statusBar');
@@ -8957,7 +9084,7 @@
     });
   }
 
-  function pickImage(li){
+  function pickImage(li, preFile){
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -9018,7 +9145,8 @@
       }
       input.remove();
     });
-    input.click();
+    // a file already chosen (from the add card) goes straight in; otherwise open the folder
+    if(preFile){ var dt = new DataTransfer(); dt.items.add(preFile); input.files = dt.files; input.dispatchEvent(new Event('change')); } else input.click();
   }
 
   // ---- ticket attachment: a QR code, boarding pass, or PDF ticket kept
@@ -9027,7 +9155,7 @@
   // raw file size — this is what actually lands in the synced Firebase
   // tree, which is what the cap is protecting.
   var TICKET_MAX_PDF_BYTES = 4 * 1024 * 1024;
-  function pickTicket(li){
+  function pickTicket(li, preFile){
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*,application/pdf';
@@ -9098,7 +9226,8 @@
       }
       input.remove();
     });
-    input.click();
+    // a file already chosen (from the add card) goes straight in; otherwise open the folder
+    if(preFile){ var dt = new DataTransfer(); dt.items.add(preFile); input.files = dt.files; input.dispatchEvent(new Event('change')); } else input.click();
   }
   function removeTicketFromLi(li){
     if(!window.confirm('Remove this ticket?')) return;
@@ -9459,6 +9588,7 @@
     }
   }
   function deleteActivityLi(li){
+    playCrumpleSound();
     var cell = li.closest('.cell');
     var panel = cell && cell.closest('.panel');
     cleanupMediaForSubtree(li);
@@ -10353,6 +10483,7 @@
       var newCell = actDrag.li.closest('.cell');
       recomputeCell(actDrag.originCell);
       if(newCell !== actDrag.originCell){
+        playDropSound();
         recomputeCell(newCell);
         refreshHoliCell(newCell);
         var newMenu = newCell.querySelector('.daymenu-btn');
@@ -12424,13 +12555,13 @@
     function divider(){ var d = document.createElement('div'); d.className = 'itemmenu-divider'; pop.appendChild(d); }
     function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
 
-    row(icon('+') + t('add_new_alt'), function(){
+    row(icon('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>') + t('add_new_alt'), function(){
       openNewAltForm(anchorEl, s.panels[0]);
     });
-    row(icon('✎') + t('pillmenu_rename_plan'), function(){
+    row(icon(ICON_EDIT_NAME) + t('menu_rename'), function(){
       openRenamePlan(anchorEl, s.panels[0]);
     });
-    row(icon('📝') + (MONTH_NOTES[monthKey(s.year, s.month)] ? 'Edit notes' : 'Add notes'), function(){
+    row(icon('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>') + (MONTH_NOTES[monthKey(s.year, s.month)] ? 'Edit notes' : 'Add notes'), function(){
       openMonthNotes(s.year, s.month);
     });
     row(icon(ICON_ARCHIVE) + 'Archive', function(){
@@ -12447,9 +12578,8 @@
     // removeMonth's own checks (this is UI-level only, belt and
     // suspenders; the security rules independently enforce both).
     if(currentUserRole === 'owner'){
-      row(icon('🔗') + 'Share link', function(){ openMonthShare(s.year, s.month); });
-      divider();
-      row(icon('✕') + 'Remove plan', function(){ removePlan(s.panels, s.label); }, true);
+      row(icon(SHARE_ICON) + 'Share link', function(){ openMonthShare(s.year, s.month); });
+      row(icon(ICON_TRASH) + 'Delete plan', function(){ removePlan(s.panels, s.label); }, true);
     }
 
     pop._anchorEl = anchorEl;
@@ -13016,7 +13146,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13306,7 +13436,143 @@
     pendingNotesKey = null;
     if(monthNotesPanel) monthNotesPanel.classList.remove('show');
   }
+  // ---- Notes tab: the plan's notes as its own page (see .notes-page) ----
+  var NOTES_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+  var notesPage = null, notesArea = null, notesKey = null, notesTimer = null;
+  // The notebook is a list of lines; a line can be text or a to-do
+  // ("[ ] task" / "[x] task" in the saved notes, so older notes still read).
+  function activeNotesKey(){ var p = document.querySelector('.panel.on'); if(!p) return null; var d = getPanelDate(p); return monthKey(d.year, d.month); }
+  function npRow(text, todo){
+    var row = document.createElement('div'); row.className = 'np-row';
+    if(todo) row.setAttribute('data-todo', todo);
+    var cb = document.createElement('button'); cb.type = 'button'; cb.className = 'np-check'; cb.setAttribute('aria-label', 'Done'); cb.tabIndex = -1;
+    var tx = document.createElement('div'); tx.className = 'np-text'; tx.contentEditable = 'true'; tx.spellcheck = true; tx.textContent = text || '';
+    row.appendChild(cb); row.appendChild(tx); return row;
+  }
+  function npParse(line){ var m = /^\s*(?:-\s*)?\[( |x|X)?\]\s?(.*)$/.exec(line); return m ? { todo: (m[1] || '').toLowerCase() === 'x' ? 'done' : 'open', text: m[2] } : { todo: '', text: line }; }
+  function npRender(text){
+    notesArea.innerHTML = '';
+    String(text || '').split('\n').forEach(function(l){ var p = npParse(l); notesArea.appendChild(npRow(p.text, p.todo)); });
+    if(!notesArea.children.length) notesArea.appendChild(npRow('', ''));
+  }
+  function npSerialize(){
+    var out = [].map.call(notesArea.children, function(r){ var t = r.querySelector('.np-text').textContent.replace(/\n/g, ' '), td = r.getAttribute('data-todo');
+      return td ? (td === 'done' ? '[x] ' : '[ ] ') + t : t; });
+    while(out.length > 1 && out[out.length - 1] === '') out.pop();
+    return out.length === 1 && out[0] === '' ? '' : out.join('\n');
+  }
+  function npCaret(el){ var s = window.getSelection(); if(!s.rangeCount || !el.contains(s.anchorNode)) return 0; var r = s.getRangeAt(0).cloneRange(); r.selectNodeContents(el); r.setEnd(s.anchorNode, s.anchorOffset); return r.toString().length; }
+  function npFocus(el, pos){ el.focus(); var s = window.getSelection(), r = document.createRange(), node = el.firstChild;
+    if(!node){ r.setStart(el, 0); } else { r.setStart(node, Math.min(pos == null ? node.length : pos, node.length)); } r.collapse(true); s.removeAllRanges(); s.addRange(r); }
+  function npChanged(){ clearTimeout(notesTimer); notesTimer = setTimeout(commitNotesPage, 500); }
+  function npSetTodo(row, on){ if(on) row.setAttribute('data-todo', row.getAttribute('data-todo') || 'open'); else row.removeAttribute('data-todo'); npChanged(); }
+  function ensureNotesUI(){
+    var pills = document.querySelector('.pills'), add = document.getElementById('addOptionBtn');
+    if(pills && !pills.querySelector(':scope > .notes-tab')){
+      var tab = document.createElement('button'); tab.type = 'button'; tab.className = 'pill notes-tab jsctl';
+      tab.innerHTML = NOTES_ICON + '<span>Notes</span>';
+      tab.addEventListener('click', function(e){ e.stopPropagation(); if(document.body.classList.contains('notes-mode')) closeNotesPage(); else openNotesPage(); });
+      pills.insertBefore(tab, add || null);
+    }
+    // always just before the open plan's first alternative
+    if(pills){
+      var nt = pills.querySelector(':scope > .notes-tab'), first = [].filter.call(pills.querySelectorAll(':scope > .pill[data-opt]'), function(p){ return p.offsetWidth > 0; })[0];
+      if(nt && first && nt.nextElementSibling !== first) pills.insertBefore(nt, first);
+    }
+    var wrap = document.querySelector('.wrap');
+    if(wrap && !notesPage){
+      notesPage = document.createElement('section'); notesPage.className = 'notes-page jsctl';
+      notesPage.innerHTML = '<div class="np-head"><span>Notes</span><span class="np-plan"></span><button type="button" class="np-todo-btn" title="Make this line a to-do"><span class="np-box"></span>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
+      notesArea = notesPage.querySelector('.np-lines');
+      var budgetTitle = document.getElementById('budgetOverviewTitle');
+      wrap.insertBefore(notesPage, budgetTitle || null);
+      var lastRow = null;
+      notesArea.addEventListener('focusin', function(e){ var r = e.target.closest('.np-row'); if(r) lastRow = r; });
+      notesPage.querySelector('.np-todo-btn').addEventListener('mousedown', function(e){ e.preventDefault(); });
+      notesPage.querySelector('.np-todo-btn').addEventListener('click', function(){
+        var row = lastRow && lastRow.isConnected ? lastRow : notesArea.lastElementChild;
+        npSetTodo(row, !row.hasAttribute('data-todo')); var tx = row.querySelector('.np-text'); npFocus(tx);
+      });
+      notesArea.addEventListener('click', function(e){
+        var cb = e.target.closest('.np-check'); if(cb){ var row = cb.closest('.np-row'), done = row.getAttribute('data-todo') !== 'done';
+          row.setAttribute('data-todo', done ? 'done' : 'open'); if(done) playCheckSound(); npChanged(); return; }
+        // a click on the empty paper below the last line writes there
+        if(e.target === notesArea){ var last = notesArea.lastElementChild; npFocus(last.querySelector('.np-text')); }
+      });
+      notesArea.addEventListener('input', function(e){
+        var tx = e.target.closest('.np-text'); if(!tx) return; var row = tx.closest('.np-row');
+        // "[ ] " or "[] " at the start makes it a to-do
+        var m = /^\s*(?:-\s*)?\[\s?\]\s/.exec(tx.textContent);
+        if(m && !row.hasAttribute('data-todo')){ var cp = npCaret(tx); tx.textContent = tx.textContent.slice(m[0].length); row.setAttribute('data-todo', 'open'); npFocus(tx, Math.max(0, cp - m[0].length)); }
+        npChanged();
+      });
+      notesArea.addEventListener('paste', function(e){
+        var tx = e.target.closest('.np-text'); if(!tx) return; e.preventDefault();
+        var lines = (e.clipboardData.getData('text/plain') || '').replace(/\r/g, '').split('\n'), row = tx.closest('.np-row');
+        var pos = npCaret(tx), before = tx.textContent.slice(0, pos), after = tx.textContent.slice(pos);
+        tx.textContent = before + lines[0];
+        var cur = row;
+        for(var i = 1; i < lines.length; i++){ var p = npParse(lines[i]); var nr = npRow(p.text, p.todo); cur.after(nr); cur = nr; }
+        var lt = cur.querySelector('.np-text'), endPos = lt.textContent.length; lt.textContent += after; npFocus(lt, endPos); npChanged();
+      });
+      notesArea.addEventListener('keydown', function(e){
+        var tx = e.target.closest('.np-text'); if(!tx) return; var row = tx.closest('.np-row');
+        if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){
+          e.preventDefault();
+          // Enter on an empty to-do: back to plain text
+          if(row.hasAttribute('data-todo') && !tx.textContent){ npSetTodo(row, false); return; }
+          var pos = npCaret(tx), rest = tx.textContent.slice(pos); tx.textContent = tx.textContent.slice(0, pos);
+          var nr = npRow(rest, row.hasAttribute('data-todo') ? 'open' : ''); row.after(nr); npFocus(nr.querySelector('.np-text'), 0); npChanged(); return;
+        }
+        if(e.key === 'Backspace' && npCaret(tx) === 0 && !window.getSelection().toString()){
+          if(row.hasAttribute('data-todo')){ e.preventDefault(); npSetTodo(row, false); return; }
+          var prev = row.previousElementSibling; if(!prev) return;
+          e.preventDefault(); var pt = prev.querySelector('.np-text'), at = pt.textContent.length; pt.textContent += tx.textContent; row.remove(); npFocus(pt, at); npChanged(); return;
+        }
+        if((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey){
+          var to = e.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling; if(!to) return;
+          e.preventDefault(); npFocus(to.querySelector('.np-text'), Math.min(npCaret(tx), to.querySelector('.np-text').textContent.length));
+        }
+      });
+      notesArea.addEventListener('focusout', function(){ setTimeout(function(){ if(!notesArea.contains(document.activeElement)) commitNotesPage(); }, 0); });
+    }
+  }
+  function commitNotesPage(){
+    clearTimeout(notesTimer);
+    if(!notesKey || !notesArea) return;
+    var v = npSerialize();
+    if((MONTH_NOTES[notesKey] || '') === v) return;
+    if(v.trim()) MONTH_NOTES[notesKey] = v; else delete MONTH_NOTES[notesKey];
+    scheduleAutoSave(); scheduleUndoSnapshot();
+    var sv = notesPage.querySelector('.np-saved'); sv.classList.add('on'); clearTimeout(sv._t); sv._t = setTimeout(function(){ sv.classList.remove('on'); }, 1200);
+  }
+  function fillNotesPage(){
+    notesKey = activeNotesKey();
+    var p = document.querySelector('.panel.on'), pill = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"]');
+    var planName = (p && p.getAttribute('data-plan-name')) || (pill ? pill.querySelector('.pill-name').textContent.trim() : '');
+    notesPage.querySelector('.np-plan').textContent = planName ? '· ' + planName : '';
+    npRender((notesKey && MONTH_NOTES[notesKey]) || '');
+  }
+  function openNotesPage(){
+    ensureNotesUI(); if(!notesPage) return;
+    fillNotesPage();
+    document.body.classList.add('notes-mode');
+    setTimeout(function(){ var last = notesArea.lastElementChild; if(last) npFocus(last.querySelector('.np-text')); }, 30);
+  }
+  function closeNotesPage(){ commitNotesPage(); document.body.classList.remove('notes-mode'); }
+  // an alternative's tab closes the notebook; another plan shows its own notes
+  document.addEventListener('click', function(e){ if(document.body.classList.contains('notes-mode') && e.target.closest && e.target.closest('.pill[data-opt]')) closeNotesPage(); }, true);
+  setInterval(function(){
+    ensureNotesUI();
+    if(!document.body.classList.contains('notes-mode')) return;
+    var k = activeNotesKey();
+    if(k !== notesKey){ commitNotesPage(); fillNotesPage(); }
+    else if(!notesArea.contains(document.activeElement) && npSerialize() !== (MONTH_NOTES[k] || '')) npRender(MONTH_NOTES[k] || '');
+  }, 600);
   function openMonthNotes(year, month){
+    // the open plan's notes open on their own page now
+    var ak = activeNotesKey();
+    if(window.matchMedia('(min-width:721px)').matches && ak === monthKey(year, month)){ openNotesPage(); return; }
     pendingNotesKey = monthKey(year, month);
     if(monthNotesTitle) monthNotesTitle.textContent = 'Notes — ' + formatMonthLabel(year, month, 1);
     if(monthNotesTextarea) monthNotesTextarea.value = MONTH_NOTES[pendingNotesKey] || '';
@@ -13691,7 +13957,7 @@
     var links = getLinks(li);
     if(link){ if(!/^https?:\/\//i.test(link)) link = 'https://' + link; links[0] = link; } else links = links.slice(1);
     setLinks(li, links.filter(Boolean));
-    if(fabAddPendingPick === 'ticket') pickTicket(li); else if(fabAddPendingPick === 'photo') pickImage(li);
+    if(fabAddPendingPick && fabAddPendingPick.file){ if(fabAddPendingPick.kind === 'ticket') pickTicket(li, fabAddPendingPick.file); else pickImage(li, fabAddPendingPick.file); }
     fabAddPendingPick = null;
   }
   document.addEventListener('click', function(e){
@@ -13701,7 +13967,20 @@
     if(x === 'notes' || x === 'link'){ var row = document.getElementById(x === 'notes' ? 'fabAddNotesRow' : 'fabAddLinkRow'); row.hidden = false; b.hidden = true; row.querySelector('textarea, input').focus(); }
     else if(x === 'ticket' || x === 'photo'){
       if(li){ if(x === 'ticket') pickTicket(li); else pickImage(li); }
-      else { fabAddPendingPick = fabAddPendingPick === x ? null : x; document.querySelectorAll('#fabAddMore [data-x="ticket"], #fabAddMore [data-x="photo"]').forEach(function(y){ y.classList.toggle('picked', y.dataset.x === fabAddPendingPick); }); }
+      else {
+        // opens your folder right away; the file is attached when the activity is added
+        var inp = document.createElement('input'); inp.type = 'file'; inp.accept = x === 'ticket' ? 'image/*,application/pdf' : 'image/*';
+        inp.style.position = 'fixed'; inp.style.left = '-9999px'; document.body.appendChild(inp);
+        inp.addEventListener('change', function(){
+          var f = inp.files[0]; inp.remove(); if(!f) return;
+          fabAddPendingPick = { kind:x, file:f };
+          document.querySelectorAll('#fabAddMore [data-x="ticket"], #fabAddMore [data-x="photo"]').forEach(function(y){
+            var on = y.dataset.x === x; y.classList.toggle('picked', on);
+            var sp = y.querySelector('span'); if(sp) sp.textContent = on ? (x === 'ticket' ? 'Ticket ✓' : 'Photo ✓') : (y.dataset.x === 'ticket' ? 'Ticket' : 'Photo');
+            if(on) y.title = f.name; });
+        });
+        inp.click();
+      }
     }
     else if(li && (x === 'up' || x === 'down')){ moveActBy(li, x === 'up' ? -1 : 1); scheduleAutoSave(); scheduleUndoSnapshot(); }
     else if(li && x === 'delete'){ var c = li.closest('.cell'); closeFabAdd(); deleteActivityLi(li); scheduleAutoSave(); scheduleUndoSnapshot(); }
@@ -13757,7 +14036,7 @@
     var dd = document.createElement('div'); dd.id = 'niceDD'; dd.hidden = true; dd.setAttribute('role', 'listbox');
     document.body.appendChild(dd);
     var cur = null, act = -1;
-    function rows(){ return [].slice.call(dd.querySelectorAll('.nd-opt:not([aria-disabled="true"])')); }
+    function rows(){ return [].slice.call(dd.querySelectorAll('.nd-opt:not([aria-disabled="true"]):not([hidden])')); }
     function close(){ if(cur) cur.classList.remove('nd-open'); dd.hidden = true; cur = null; act = -1; }
     function pick(o){ var sel = cur; close(); if(!sel || sel.value === o.dataset.v) return;
       window.__pickerPickedAt = Date.now();
@@ -13771,20 +14050,33 @@
         if(ch.tagName === 'OPTGROUP'){ var h = document.createElement('div'); h.className = 'nd-group'; h.textContent = ch.label; dd.appendChild(h); [].forEach.call(ch.children, opt); }
         else if(ch.tagName === 'OPTION' && !ch.hidden) opt(ch);
       });
+      // a longer list gets a search box on top, like the type picker
+      var q = null;
+      if(dd.querySelectorAll('.nd-opt').length > 8){
+        q = document.createElement('input'); q.type = 'text'; q.className = 'nd-q'; q.placeholder = 'Search…'; q.setAttribute('autocomplete', 'off');
+        dd.insertBefore(q, dd.firstChild);
+        q.addEventListener('input', function(){
+          var term = q.value.trim().toLowerCase();
+          dd.querySelectorAll('.nd-opt').forEach(function(o){ o.hidden = !!term && o.textContent.toLowerCase().indexOf(term) === -1; o.classList.remove('act'); });
+          dd.querySelectorAll('.nd-group').forEach(function(g){ var n = g.nextElementSibling, any = false; while(n && !n.classList.contains('nd-group')){ if(!n.hidden) any = true; n = n.nextElementSibling; } g.hidden = !any; });
+          act = term ? 0 : -1; var rs = rows(); if(rs[0] && term) rs[0].classList.add('act');
+        });
+      }
       var r = sel.getBoundingClientRect(), below = window.innerHeight - r.bottom - 12, above = r.top - 12;
       dd.hidden = false; dd.style.minWidth = r.width + 'px'; dd.style.left = Math.max(8, Math.min(r.left, window.innerWidth - dd.offsetWidth - 8)) + 'px';
       var h = Math.min(dd.scrollHeight, 320);
       if(below >= Math.min(h, 200) || below >= above){ dd.style.top = (r.bottom + 2) + 'px'; dd.style.maxHeight = Math.max(120, below) + 'px'; }
       else { var hh = Math.min(h, above); dd.style.top = (r.top - 2 - hh) + 'px'; dd.style.maxHeight = hh + 'px'; }
       var c = dd.querySelector('.nd-opt.cur'); if(c) c.scrollIntoView({ block:'nearest' });
+      if(q) setTimeout(function(){ q.focus(); }, 0);
     }
     document.addEventListener('mousedown', function(e){
       var sel = e.target.closest && e.target.closest('select');
       if(sel && !sel.multiple && !sel.disabled && !sel.classList.contains('tc-native')){
-        e.preventDefault(); e.stopPropagation(); if(cur === sel){ close(); return; } open(sel); sel.focus(); return; }
+        e.preventDefault(); e.stopPropagation(); if(cur === sel){ close(); return; } open(sel); if(!dd.querySelector('.nd-q')) sel.focus(); return; }
       if(!dd.hidden && !dd.contains(e.target)) close();
     }, true);
-    dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation(); });
+    dd.addEventListener('mousedown', function(e){ if(!e.target.closest('.nd-q')) e.preventDefault(); e.stopPropagation(); });
     dd.addEventListener('click', function(e){ e.stopPropagation(); var o = e.target.closest('.nd-opt'); if(o && o.getAttribute('aria-disabled') !== 'true') pick(o); });
     document.addEventListener('keydown', function(e){
       if(dd.hidden) return;
@@ -13821,6 +14113,7 @@
       if(!start || !(e.buttons & 1)) return;
       var c = cellAt(e.clientX, e.clientY); if(!c || c === cur) return;
       cur = c; dragging = cur !== start;
+      if(dragging) playTickSound(between(start, cur).length);
       if(dragging){ e.preventDefault(); var sel = window.getSelection && window.getSelection(); if(sel) sel.removeAllRanges(); }
       showRange(dragging ? between(start, cur) : null, 'New activity');
     });
@@ -14047,6 +14340,12 @@
     el.classList.toggle('over', pt > total + 0.004);
   }
   document.addEventListener('input', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
+  // someone's "Paid" filled in: cha-ching (once the number is done, not per keystroke)
+  document.addEventListener('change', function(e){
+    var t = e.target; if(!t || !t.matches) return;
+    if(t.matches('.fs-amt') && parseFloat(t.value) > 0){ playCoinSound();
+      var left = document.querySelector('#fabAddSplit .fs-left'); if(left && left.querySelector('.ok')) setTimeout(playSettledSound, 420); }
+  });
   document.addEventListener('change', function(e){ if(e.target.closest && e.target.closest('#fabAddPanel')) updateLeft(); });
   document.addEventListener('click', function(e){
     var mb = e.target.closest && e.target.closest('#fabAddSplit .fs-mode button');
@@ -15277,12 +15576,14 @@
     withHistoryRestoreGuard(function(){
       if(e.shiftKey){
         if(redoStack.length){
+          playRewindSound(true);
           undoStack.push(lastSnapshot);
           lastSnapshot = redoStack.pop();
           restoreUndoSnapshot(lastSnapshot);
         }
       } else {
         if(undoStack.length){
+          playRewindSound(false);
           redoStack.push(lastSnapshot);
           lastSnapshot = undoStack.pop();
           restoreUndoSnapshot(lastSnapshot);
@@ -15338,7 +15639,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay')); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
