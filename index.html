@@ -9001,7 +9001,7 @@
     });
   }
 
-  function pickImage(li){
+  function pickImage(li, preFile){
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -9062,7 +9062,8 @@
       }
       input.remove();
     });
-    input.click();
+    // a file already chosen (from the add card) goes straight in; otherwise open the folder
+    if(preFile){ var dt = new DataTransfer(); dt.items.add(preFile); input.files = dt.files; input.dispatchEvent(new Event('change')); } else input.click();
   }
 
   // ---- ticket attachment: a QR code, boarding pass, or PDF ticket kept
@@ -9071,7 +9072,7 @@
   // raw file size — this is what actually lands in the synced Firebase
   // tree, which is what the cap is protecting.
   var TICKET_MAX_PDF_BYTES = 4 * 1024 * 1024;
-  function pickTicket(li){
+  function pickTicket(li, preFile){
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*,application/pdf';
@@ -9142,7 +9143,8 @@
       }
       input.remove();
     });
-    input.click();
+    // a file already chosen (from the add card) goes straight in; otherwise open the folder
+    if(preFile){ var dt = new DataTransfer(); dt.items.add(preFile); input.files = dt.files; input.dispatchEvent(new Event('change')); } else input.click();
   }
   function removeTicketFromLi(li){
     if(!window.confirm('Remove this ticket?')) return;
@@ -13795,7 +13797,7 @@
     var links = getLinks(li);
     if(link){ if(!/^https?:\/\//i.test(link)) link = 'https://' + link; links[0] = link; } else links = links.slice(1);
     setLinks(li, links.filter(Boolean));
-    if(fabAddPendingPick === 'ticket') pickTicket(li); else if(fabAddPendingPick === 'photo') pickImage(li);
+    if(fabAddPendingPick && fabAddPendingPick.file){ if(fabAddPendingPick.kind === 'ticket') pickTicket(li, fabAddPendingPick.file); else pickImage(li, fabAddPendingPick.file); }
     fabAddPendingPick = null;
   }
   document.addEventListener('click', function(e){
@@ -13805,7 +13807,20 @@
     if(x === 'notes' || x === 'link'){ var row = document.getElementById(x === 'notes' ? 'fabAddNotesRow' : 'fabAddLinkRow'); row.hidden = false; b.hidden = true; row.querySelector('textarea, input').focus(); }
     else if(x === 'ticket' || x === 'photo'){
       if(li){ if(x === 'ticket') pickTicket(li); else pickImage(li); }
-      else { fabAddPendingPick = fabAddPendingPick === x ? null : x; document.querySelectorAll('#fabAddMore [data-x="ticket"], #fabAddMore [data-x="photo"]').forEach(function(y){ y.classList.toggle('picked', y.dataset.x === fabAddPendingPick); }); }
+      else {
+        // opens your folder right away; the file is attached when the activity is added
+        var inp = document.createElement('input'); inp.type = 'file'; inp.accept = x === 'ticket' ? 'image/*,application/pdf' : 'image/*';
+        inp.style.position = 'fixed'; inp.style.left = '-9999px'; document.body.appendChild(inp);
+        inp.addEventListener('change', function(){
+          var f = inp.files[0]; inp.remove(); if(!f) return;
+          fabAddPendingPick = { kind:x, file:f };
+          document.querySelectorAll('#fabAddMore [data-x="ticket"], #fabAddMore [data-x="photo"]').forEach(function(y){
+            var on = y.dataset.x === x; y.classList.toggle('picked', on);
+            var sp = y.querySelector('span'); if(sp) sp.textContent = on ? (x === 'ticket' ? 'Ticket ✓' : 'Photo ✓') : (y.dataset.x === 'ticket' ? 'Ticket' : 'Photo');
+            if(on) y.title = f.name; });
+        });
+        inp.click();
+      }
     }
     else if(li && (x === 'up' || x === 'down')){ moveActBy(li, x === 'up' ? -1 : 1); scheduleAutoSave(); scheduleUndoSnapshot(); }
     else if(li && x === 'delete'){ var c = li.closest('.cell'); closeFabAdd(); deleteActivityLi(li); scheduleAutoSave(); scheduleUndoSnapshot(); }
