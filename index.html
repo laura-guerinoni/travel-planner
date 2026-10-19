@@ -13532,8 +13532,12 @@
   // that left the calendar scrolled down/sideways and cut off.
   window.addEventListener('wheel', function(e){ if(e.ctrlKey) e.preventDefault(); }, { passive:false });
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(t){ document.addEventListener(t, function(e){ e.preventDefault(); }, { passive:false }); });
-  // no browser autofill suggestions in the card's fields
-  document.querySelectorAll('#fabAddPanel input:not([type="checkbox"]), #fabAddPanel textarea').forEach(function(i){ i.setAttribute('autocomplete', 'off'); });
+  // No browser autofill suggestions anywhere in the app: every field (and
+  // any added later — a picker's search, a popup's box) is switched off the
+  // moment it's focused, before the browser offers anything.
+  function noSuggest(el){ if(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'FORM') && el.getAttribute('autocomplete') !== 'off') el.setAttribute('autocomplete', 'off'); }
+  document.querySelectorAll('input, textarea, form').forEach(noSuggest);
+  document.addEventListener('focusin', function(e){ noSuggest(e.target); if(e.target && e.target.form) noSuggest(e.target.form); }, true);
   var fabAddForcedCell = null, fabAddInsertAfter = null;
   // Press on a day and drag across others (like Google Calendar): the days
   // light up, and letting go opens the card for an all-day activity over
