@@ -10620,39 +10620,14 @@
     nameInput.type = 'text';
     nameInput.placeholder = t(isLocation ? 'range_location_placeholder' : 'range_holiday_placeholder');
     if(!isLocation) nameInput.value = 'Holiday - time off';
-    function fillDays(sel, count, selected){
-      sel.innerHTML = '';
-      for(var d = 1; d <= count; d++){
-        var opt = document.createElement('option');
-        opt.value = String(d); opt.textContent = String(d);
-        if(d === Math.min(selected, count)) opt.selected = true;
-        sel.appendChild(opt);
-      }
-    }
-    var fromSel = document.createElement('select'), toSel = document.createElement('select');
-    fillDays(fromSel, daysIn(here.year, here.month), 1);
-    fillDays(toSel, daysIn(here.year, here.month), isLocation ? 2 : 3);
-    // The end can be in this month or any of the next few.
-    var toMonthSel = document.createElement('select');
-    toMonthSel.className = 'rangepop-month';
-    for(var k = 0; k <= 5; k++){
-      var mm = here.month + k, yy = here.year + Math.floor((mm - 1) / 12);
-      mm = ((mm - 1) % 12) + 1;
-      var mo = document.createElement('option');
-      mo.value = yy + '-' + mm;
-      mo.textContent = MONTH_FULL[mm - 1] + (yy !== here.year ? ' ' + yy : '');
-      toMonthSel.appendChild(mo);
-    }
-    function endMonth(){ var parts = toMonthSel.value.split('-'); return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) }; }
-    toMonthSel.addEventListener('change', function(){
-      var em = endMonth();
-      fillDays(toSel, daysIn(em.year, em.month), parseInt(toSel.value, 10) || 1);
-    });
-    // Within one month, picking a start past the end drags the end along.
-    fromSel.addEventListener('change', function(){
-      var em = endMonth();
-      if(em.year === here.year && em.month === here.month && parseInt(toSel.value, 10) < parseInt(fromSel.value, 10)) toSel.value = fromSel.value;
-    });
+    // From / to: the same small calendar as every other date in the app.
+    function isoOf(y, m, d){ return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+    function parseIso(v){ var p = String(v || '').split('-').map(Number); return { year:p[0], month:p[1], day:p[2] }; }
+    var fromIn = document.createElement('input'), toIn = document.createElement('input');
+    fromIn.type = toIn.type = 'date';
+    fromIn.value = isoOf(here.year, here.month, 1);
+    toIn.value = isoOf(here.year, here.month, Math.min(isLocation ? 2 : 3, daysIn(here.year, here.month)));
+    fromIn.addEventListener('change', function(){ if(toIn.value < fromIn.value){ toIn.value = fromIn.value; toIn.dispatchEvent(new Event('change')); } });
     function line(labelText, controls){
       var row = document.createElement('div');
       row.className = 'rangepop-days';
@@ -10661,11 +10636,9 @@
       controls.forEach(function(c){ row.appendChild(c); });
       return row;
     }
-    var fromMonth = document.createElement('span');
-    fromMonth.className = 'rangepop-static';
-    fromMonth.textContent = MONTH_FULL[here.month - 1];
-    var fromRow = line(t('range_from'), [fromSel, fromMonth]);
-    var toRow = line(t('range_to'), [toSel, toMonthSel]);
+    var fromRow = line(t('range_from'), [fromIn]);
+    var toRow = line(t('range_to'), [toIn]);
+    enhanceDateInput(fromIn); enhanceDateInput(toIn);
     var applyBtn = document.createElement('button');
     applyBtn.type = 'button'; applyBtn.className = 'addbtn'; applyBtn.textContent = t('range_add');
     function addPiece(target, start, end, name){
@@ -10679,29 +10652,26 @@
     function apply(){
       var name = nameInput.value.trim();
       if(isLocation && !name){ nameInput.focus(); return; }
-      var start = parseInt(fromSel.value, 10), end = parseInt(toSel.value, 10), em = endMonth();
-      var sameMonth = em.year === here.year && em.month === here.month;
-      if(sameMonth && end < start){ var swap = start; start = end; end = swap; }
+      if(!fromIn.value || !toIn.value) return;
+      var lo = fromIn.value <= toIn.value ? fromIn.value : toIn.value, hi = fromIn.value <= toIn.value ? toIn.value : fromIn.value;
+      var a = parseIso(lo), b = parseIso(hi);
       closePop();
-      if(sameMonth){ addPiece(panel, start, end, name); return; }
-      addPiece(panel, start, daysIn(here.year, here.month), name);
-      // Creating a month opens it; come back to where the span was added.
-      var stayOn = optOf(panel);
-      var y = here.year, m = here.month;
-      do {
+      var stayOn = optOf(panel), y = a.year, m = a.month;
+      while(true){
+        var first = y === a.year && m === a.month, last = y === b.year && m === b.month, targets = [];
+        if(y === here.year && m === here.month) targets.push(panel);
+        else {
+          document.querySelectorAll('.panel').forEach(function(p){ var d = getPanelDate(p); if(d.year === y && d.month === m) targets.push(p); });
+          if(!targets.length){ var made = createOption(y, m); if(made) targets.push(made); }
+        }
+        var s0 = first ? a.day : 1, e0 = last ? b.day : daysIn(y, m);
+        targets.forEach(function(target){ addPiece(target, s0, e0, name); });
+        if(last) break;
         m++; if(m > 12){ m = 1; y++; }
-        var isLast = y === em.year && m === em.month;
-        var targets = [];
-        document.querySelectorAll('.panel').forEach(function(p){
-          var d = getPanelDate(p);
-          if(d.year === y && d.month === m) targets.push(p);
-        });
-        if(!targets.length){ var made = createOption(y, m); if(made) targets.push(made); }
-        targets.forEach(function(target){ addPiece(target, 1, isLast ? end : daysIn(y, m), name); });
-      } while(!(y === em.year && m === em.month));
+      }
       if(document.getElementById('panel-' + stayOn) && !panel.classList.contains('on')) activatePillByOpt(stayOn);
     }
-    [nameInput, fromSel, toSel, toMonthSel, fromRow, toRow, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    [nameInput, fromRow, toRow, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
     nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); apply(); } });
     applyBtn.addEventListener('click', function(e){ e.stopPropagation(); apply(); });
     pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(fromRow); pop.appendChild(toRow); pop.appendChild(applyBtn);
