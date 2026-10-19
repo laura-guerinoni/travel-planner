@@ -2844,6 +2844,32 @@
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
+  #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  /* Printing / Save as PDF after the desktop refresh: only the calendar —
+     none of the floating screen pieces (top row, tabs, stitching, faces,
+     search, side panel, cards, dropdowns) — on plain white, one month per
+     page with no day spilling onto the next sheet. */
+  @media print {
+    @page { margin:12mm; }
+    #pageHead, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel,
+    #dayGhost, #dragRange, #niceDD, #fieldRemove, #payFloat, #payPill, #typeComboDD, #dayPickDD, #searchPalette,
+    .mp-dd, .itemmenu, .monthpop, .tagpop, .linkpop, .page-share, .modal-overlay, .day-ghost-slot,
+    .month-sidebar, .pills, .pills-gapfill, .grid.banner-row { display:none !important; }
+    html, body { background:#fff !important; padding:0 !important; margin:0 !important; overflow:visible !important; }
+    body::before, body::after { display:none !important; }
+    .wrap, .panel { background:#fff !important; background-image:none !important; box-shadow:none !important; border:none !important; border-radius:0 !important; padding:0 !important; margin:0 !important; }
+    .wrap::before, .wrap::after, .panel::after { display:none !important; }
+    .panel::before { font-family:inherit; color:#3d3568 !important; font-size:20px; margin:0 0 8px; }
+    .grid.heads, .grid.heads.stuck { position:static !important; margin:0 !important; padding:0 0 4px !important; border:none !important; background:none !important; box-shadow:none !important; }
+    .grid.heads::before, .grid.heads::after { display:none !important; }
+    body:not(.print-list) .cell { min-height:118px; }
+    .cell { box-shadow:none !important; border-color:#e6dcf2 !important; }
+    .cell.empty { border:none !important; background:none !important; }
+    .cell.empty * { display:none !important; }
+    .acts > li:hover { background:none !important; box-shadow:none !important; }
+    .acts > li[data-allday] { background:#f6f1fb !important; }
+    .cell > .loc > .daytotal-badge { position:absolute !important; top:12px; right:11px; }
+  }
   /* holiday periods are no longer part of the app: their bands aren't shown (the data is left as is) */
   .grid.banner-row { display:none !important; }
   /* every dropdown list in the app looks like the type picker's */
