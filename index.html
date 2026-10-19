@@ -2844,6 +2844,15 @@
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
+  /* every dropdown list in the app looks like the type picker's */
+  #niceDD { position:fixed; z-index:10001; background:#fff; border-radius:6px; padding:6px 0; overflow-y:auto; font-family:inherit;
+    box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
+  #niceDD[hidden] { display:none; }
+  #niceDD .nd-group { padding:8px 16px 4px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #niceDD .nd-opt { padding:10px 16px; font-size:14.5px; color:var(--ink); cursor:pointer; white-space:nowrap; }
+  #niceDD .nd-opt:hover, #niceDD .nd-opt.act { background:var(--bg); }
+  #niceDD .nd-opt.cur { font-weight:600; background:var(--bg); box-shadow:inset 0 0 0 2px var(--primary); border-radius:6px; margin:0 6px; padding:10px 10px; }
+  #niceDD .nd-opt[aria-disabled="true"] { opacity:.45; cursor:default; }
   #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
   #fabAddPanel .gc-allday select { flex:1; min-width:0; }
   #fabAddPanel .gc-allday[hidden] { display:none; }
@@ -12913,7 +12922,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13563,6 +13572,53 @@
   function noSuggest(el){ if(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'FORM') && el.getAttribute('autocomplete') !== 'off') el.setAttribute('autocomplete', 'off'); }
   document.querySelectorAll('input, textarea, form').forEach(noSuggest);
   document.addEventListener('focusin', function(e){ noSuggest(e.target); if(e.target && e.target.form) noSuggest(e.target.form); }, true);
+  // Every <select> opens our own list (the type picker's look) instead of
+  // the browser's: the select itself stays and keeps the value, only the
+  // list that drops down is ours. Works for selects added later too.
+  (function(){
+    var dd = document.createElement('div'); dd.id = 'niceDD'; dd.hidden = true; dd.setAttribute('role', 'listbox');
+    document.body.appendChild(dd);
+    var cur = null, act = -1;
+    function rows(){ return [].slice.call(dd.querySelectorAll('.nd-opt:not([aria-disabled="true"])')); }
+    function close(){ dd.hidden = true; cur = null; act = -1; }
+    function pick(o){ var sel = cur; close(); if(!sel || sel.value === o.dataset.v) return;
+      window.__pickerPickedAt = Date.now();
+      sel.value = o.dataset.v; sel.dispatchEvent(new Event('input', { bubbles:true })); sel.dispatchEvent(new Event('change', { bubbles:true })); }
+    function open(sel){
+      cur = sel; dd.innerHTML = '';
+      [].forEach.call(sel.children, function(ch){
+        function opt(o){ var d = document.createElement('div'); d.className = 'nd-opt' + (o.selected ? ' cur' : ''); d.dataset.v = o.value; d.textContent = o.textContent;
+          if(o.disabled) d.setAttribute('aria-disabled', 'true'); dd.appendChild(d); }
+        if(ch.tagName === 'OPTGROUP'){ var h = document.createElement('div'); h.className = 'nd-group'; h.textContent = ch.label; dd.appendChild(h); [].forEach.call(ch.children, opt); }
+        else if(ch.tagName === 'OPTION' && !ch.hidden) opt(ch);
+      });
+      var r = sel.getBoundingClientRect(), below = window.innerHeight - r.bottom - 12, above = r.top - 12;
+      dd.hidden = false; dd.style.minWidth = r.width + 'px'; dd.style.left = Math.max(8, Math.min(r.left, window.innerWidth - dd.offsetWidth - 8)) + 'px';
+      var h = Math.min(dd.scrollHeight, 320);
+      if(below >= Math.min(h, 200) || below >= above){ dd.style.top = (r.bottom + 2) + 'px'; dd.style.maxHeight = Math.max(120, below) + 'px'; }
+      else { var hh = Math.min(h, above); dd.style.top = (r.top - 2 - hh) + 'px'; dd.style.maxHeight = hh + 'px'; }
+      var c = dd.querySelector('.nd-opt.cur'); if(c) c.scrollIntoView({ block:'nearest' });
+    }
+    document.addEventListener('mousedown', function(e){
+      var sel = e.target.closest && e.target.closest('select');
+      if(sel && !sel.multiple && !sel.disabled && !sel.classList.contains('tc-native')){
+        e.preventDefault(); e.stopPropagation(); if(cur === sel){ close(); return; } open(sel); sel.focus(); return; }
+      if(!dd.hidden && !dd.contains(e.target)) close();
+    }, true);
+    dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation(); });
+    dd.addEventListener('click', function(e){ e.stopPropagation(); var o = e.target.closest('.nd-opt'); if(o && o.getAttribute('aria-disabled') !== 'true') pick(o); });
+    document.addEventListener('keydown', function(e){
+      if(dd.hidden) return;
+      var rs = rows(); if(!rs.length) return;
+      if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); return; }
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); if(act < 0) act = rs.indexOf(dd.querySelector('.nd-opt.cur'));
+        act = Math.max(0, Math.min(rs.length - 1, act + (e.key === 'ArrowDown' ? 1 : -1)));
+        rs.forEach(function(x, i){ x.classList.toggle('act', i === act); }); rs[act].scrollIntoView({ block:'nearest' }); return; }
+      if(e.key === 'Enter' && act >= 0){ e.preventDefault(); e.stopPropagation(); pick(rs[act]); }
+    }, true);
+    window.addEventListener('resize', close);
+    document.addEventListener('scroll', function(e){ if(!dd.hidden && !dd.contains(e.target)) close(); }, true);
+  })();
   var fabAddForcedCell = null, fabAddInsertAfter = null;
   // Press on a day and drag across others (like Google Calendar): the days
   // light up, and letting go opens the card for an all-day activity over
