@@ -2874,15 +2874,15 @@
     body.notes-mode #ticketStitch, body.notes-mode .page-bookmark, body.notes-mode #ribbonStitch { display:none !important; }
     body.notes-mode .wrap { background-image:var(--ruled-fine) !important; }
     body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
-    body.notes-mode .notes-page { display:block; padding:6px 10px 24px; }
-    .notes-page .np-head { display:flex; align-items:baseline; gap:10px; margin:0 0 6px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    body.notes-mode .notes-page { display:block; padding:20px 10px 24px; }
+    .notes-page .np-head { display:flex; align-items:center; gap:10px; margin:0 0 12px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
     .notes-page .np-head .np-saved { margin-left:auto; letter-spacing:0; text-transform:none; font-weight:700; opacity:0; transition:opacity .3s; }
     .notes-page .np-head .np-saved.on { opacity:1; }
     .notes-page .np-lines { min-height:calc(100vh - 230px); padding:0 8px 34px 52px; cursor:text;
       background-image:linear-gradient(90deg, transparent 38px, rgba(var(--primary-rgb), .28) 38px, rgba(var(--primary-rgb), .28) 40px, transparent 40px),
         repeating-linear-gradient(to bottom, transparent 0 33px, rgba(61,53,104,.09) 33px 34px); }
     .notes-page .np-row { display:flex; align-items:flex-start; gap:10px; min-height:34px; }
-    .notes-page .np-text { flex:1; min-width:0; min-height:34px; outline:none; font-size:16px; font-weight:600; line-height:34px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; cursor:text; }
+    .notes-page .np-text { flex:1; min-width:0; min-height:34px; outline:none; font-size:16px; font-weight:500; line-height:34px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; cursor:text; }
     .notes-page .np-text, .notes-page .np-text:focus, .notes-page .np-text:hover { background:none !important; box-shadow:none !important; border:none !important; outline:none !important; padding:0 !important; border-radius:0 !important; }
     .notes-page .np-check { display:none; flex:none; width:18px; height:18px; margin-top:8px; padding:0; border:2px solid #d9c8ec; border-radius:5px; background:#fff; cursor:pointer; transition:background .12s, border-color .12s; }
     .notes-page .np-check:hover { border-color:var(--primary); }
@@ -2891,9 +2891,14 @@
     .notes-page .np-row[data-todo="done"] .np-text { color:var(--muted); text-decoration:line-through; text-decoration-color:rgba(155,143,192,.7); }
     .notes-page .np-row:only-child:not([data-todo]) .np-text:empty::before { content:'Write anything for this plan: things to book, to pack, ideas…'; color:var(--muted); pointer-events:none; }
     .notes-page .np-lines { position:relative; }
-    .notes-page .np-head .np-todo-btn { display:inline-flex; align-items:center; gap:6px; margin-left:52px; outline:none; padding:4px 10px; border:none; border-radius:999px; background:var(--card); color:var(--ink);
+    .notes-page .np-head .np-tool:first-child { margin-left:0; }
+    .notes-page .np-head .np-tool { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:30px; height:28px; margin-right:6px; outline:none; padding:4px 10px; border:none; border-radius:999px; background:var(--card); color:var(--ink);
       font:inherit; font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
-    .notes-page .np-head .np-todo-btn:hover { box-shadow:0 0 0 1px var(--primary); }
+    .notes-page .np-head .np-tool:hover { box-shadow:0 0 0 1px var(--primary); }
+    .notes-page .np-head .np-tool.on { background:var(--bg); box-shadow:0 0 0 1.5px var(--primary); color:var(--primary); }
+    .notes-page .np-head .np-tool b, .notes-page .np-head .np-tool i { font-size:14px; font-family:inherit; }
+    .notes-page .np-head .np-tool svg { width:15px; height:15px; color:var(--primary); }
+    .notes-page .np-text b { font-weight:800; }
     .notes-page .np-head .np-box { width:12px; height:12px; border:2px solid #d9c8ec; border-radius:3px; }
   }
   :root { --ruled-fine: repeating-linear-gradient(0deg, rgba(61,53,104,.022) 0 1px, transparent 1px 5px); }
@@ -13457,11 +13462,39 @@
     var firstPlan = null; document.querySelectorAll('.panel').forEach(function(x){ var dx = getPanelDate(x); if(!firstPlan && dx.year === d.year && dx.month === d.month) firstPlan = planIdOf(x); });
     return firstPlan === planIdOf(p) ? MONTH_NOTES[mk] : '';
   }
+  // A line keeps bold / italic: saved as text with only <b> and <i> in it.
+  function npEsc(t){ return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function npUnesc(t){ return t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+  function npFill(el, line){
+    el.innerHTML = '';
+    var stack = [el], re = /<(\/?)(b|i|strong|em)>/gi, last = 0, m;
+    while((m = re.exec(line))){
+      if(m.index > last) stack[stack.length - 1].appendChild(document.createTextNode(npUnesc(line.slice(last, m.index))));
+      if(m[1]){ if(stack.length > 1) stack.pop(); }
+      else { var n = document.createElement(/^(b|strong)$/i.test(m[2]) ? 'b' : 'i'); stack[stack.length - 1].appendChild(n); stack.push(n); }
+      last = re.lastIndex;
+    }
+    if(last < line.length) stack[stack.length - 1].appendChild(document.createTextNode(npUnesc(line.slice(last))));
+  }
+  function npHtml(el){
+    var out = '';
+    el.childNodes.forEach(function(n){
+      if(n.nodeType === 3) out += npEsc(n.nodeValue.replace(/\n/g, ' '));
+      else if(n.nodeType === 1){
+        var inner = npHtml(n), tag = n.tagName, st = n.style || {};
+        var bold = tag === 'B' || tag === 'STRONG' || parseInt(st.fontWeight, 10) >= 600, ital = tag === 'I' || tag === 'EM' || st.fontStyle === 'italic';
+        if(!inner) return;
+        if(bold) inner = '<b>' + inner + '</b>'; if(ital) inner = '<i>' + inner + '</i>';
+        out += inner;
+      }
+    });
+    return out;
+  }
   function npRow(text, todo){
     var row = document.createElement('div'); row.className = 'np-row';
     if(todo) row.setAttribute('data-todo', todo);
     var cb = document.createElement('button'); cb.type = 'button'; cb.className = 'np-check'; cb.setAttribute('aria-label', 'Done'); cb.tabIndex = -1;
-    var tx = document.createElement('div'); tx.className = 'np-text'; tx.contentEditable = 'true'; tx.spellcheck = true; tx.textContent = text || '';
+    var tx = document.createElement('div'); tx.className = 'np-text'; tx.contentEditable = 'true'; tx.spellcheck = true; npFill(tx, text || '');
     row.appendChild(cb); row.appendChild(tx); return row;
   }
   function npParse(line){ var m = /^\s*(?:-\s*)?\[( |x|X)?\]\s?(.*)$/.exec(line); return m ? { todo: (m[1] || '').toLowerCase() === 'x' ? 'done' : 'open', text: m[2] } : { todo: '', text: line }; }
@@ -13471,14 +13504,18 @@
     if(!notesArea.children.length) notesArea.appendChild(npRow('', ''));
   }
   function npSerialize(){
-    var out = [].map.call(notesArea.children, function(r){ var t = r.querySelector('.np-text').textContent.replace(/\n/g, ' '), td = r.getAttribute('data-todo');
+    var out = [].map.call(notesArea.children, function(r){ var t = npHtml(r.querySelector('.np-text')), td = r.getAttribute('data-todo');
       return td ? (td === 'done' ? '[x] ' : '[ ] ') + t : t; });
     while(out.length > 1 && out[out.length - 1] === '') out.pop();
     return out.length === 1 && out[0] === '' ? '' : out.join('\n');
   }
   function npCaret(el){ var s = window.getSelection(); if(!s.rangeCount || !el.contains(s.anchorNode)) return 0; var r = s.getRangeAt(0).cloneRange(); r.selectNodeContents(el); r.setEnd(s.anchorNode, s.anchorOffset); return r.toString().length; }
-  function npFocus(el, pos){ el.focus(); var s = window.getSelection(), r = document.createRange(), node = el.firstChild;
-    if(!node){ r.setStart(el, 0); } else { r.setStart(node, Math.min(pos == null ? node.length : pos, node.length)); } r.collapse(true); s.removeAllRanges(); s.addRange(r); }
+  function npFocus(el, pos){ el.focus(); var s = window.getSelection(), r = document.createRange();
+    var total = el.textContent.length; if(pos == null || pos > total) pos = total;
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, left = pos, set = false;
+    while((n = w.nextNode())){ if(left <= n.length){ r.setStart(n, left); set = true; break; } left -= n.length; }
+    if(!set){ r.selectNodeContents(el); r.collapse(false); } else r.collapse(true);
+    s.removeAllRanges(); s.addRange(r); }
   function npChanged(){ clearTimeout(notesTimer); notesTimer = setTimeout(commitNotesPage, 500); }
   function npSetTodo(row, on){ if(on) row.setAttribute('data-todo', row.getAttribute('data-todo') || 'open'); else row.removeAttribute('data-todo'); npChanged(); }
   function ensureNotesUI(){
@@ -13497,13 +13534,19 @@
     var wrap = document.querySelector('.wrap');
     if(wrap && !notesPage){
       notesPage = document.createElement('section'); notesPage.className = 'notes-page jsctl';
-      notesPage.innerHTML = '<div class="np-head"><button type="button" class="np-todo-btn" title="Make this line a to-do"><span class="np-box"></span>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
+      notesPage.innerHTML = '<div class="np-head"><button type="button" class="np-tool" data-cmd="bold" title="Bold (⌘B)"><b>B</b></button><button type="button" class="np-tool" data-cmd="italic" title="Italic (⌘I)"><i>I</i></button>' +
+        '<button type="button" class="np-tool np-todo-btn" title="Make this line a to-do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/></svg>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
       notesArea = notesPage.querySelector('.np-lines');
       var budgetTitle = document.getElementById('budgetOverviewTitle');
       wrap.insertBefore(notesPage, budgetTitle || null);
       var lastRow = null;
       notesArea.addEventListener('focusin', function(e){ var r = e.target.closest('.np-row'); if(r) lastRow = r; });
-      notesPage.querySelector('.np-todo-btn').addEventListener('mousedown', function(e){ e.preventDefault(); });
+      notesPage.querySelectorAll('.np-tool').forEach(function(b){ b.addEventListener('mousedown', function(e){ e.preventDefault(); }); });
+      notesPage.querySelectorAll('.np-tool[data-cmd]').forEach(function(b){ b.addEventListener('click', function(){
+        if(!notesArea.contains(document.activeElement)){ var last = lastRow && lastRow.isConnected ? lastRow : notesArea.lastElementChild; npFocus(last.querySelector('.np-text')); }
+        document.execCommand('styleWithCSS', false, false); document.execCommand(b.dataset.cmd, false, null); npChanged(); npTools(); }); });
+      function npTools(){ notesPage.querySelectorAll('.np-tool[data-cmd]').forEach(function(b){ var on = false; try { on = notesArea.contains(document.activeElement) && document.queryCommandState(b.dataset.cmd); } catch(e){} b.classList.toggle('on', on); }); }
+      document.addEventListener('selectionchange', function(){ if(document.body.classList.contains('notes-mode')) npTools(); });
       notesPage.querySelector('.np-todo-btn').addEventListener('click', function(){
         var row = lastRow && lastRow.isConnected ? lastRow : notesArea.lastElementChild;
         npSetTodo(row, !row.hasAttribute('data-todo')); var tx = row.querySelector('.np-text'); npFocus(tx);
@@ -13524,11 +13567,13 @@
       notesArea.addEventListener('paste', function(e){
         var tx = e.target.closest('.np-text'); if(!tx) return; e.preventDefault();
         var lines = (e.clipboardData.getData('text/plain') || '').replace(/\r/g, '').split('\n'), row = tx.closest('.np-row');
-        var pos = npCaret(tx), before = tx.textContent.slice(0, pos), after = tx.textContent.slice(pos);
-        tx.textContent = before + lines[0];
+        var sel = window.getSelection(); if(!sel.rangeCount) return; var cr = sel.getRangeAt(0); cr.deleteContents();
+        if(lines.length === 1){ var tn = document.createTextNode(lines[0]); cr.insertNode(tn); var at = document.createRange(); at.setStartAfter(tn); at.collapse(true); sel.removeAllRanges(); sel.addRange(at); npChanged(); return; }
+        var tail = document.createRange(); tail.setStart(cr.endContainer, cr.endOffset); tail.setEnd(tx, tx.childNodes.length); var rest = tail.extractContents();
+        tx.appendChild(document.createTextNode(lines[0]));
         var cur = row;
-        for(var i = 1; i < lines.length; i++){ var p = npParse(lines[i]); var nr = npRow(p.text, p.todo); cur.after(nr); cur = nr; }
-        var lt = cur.querySelector('.np-text'), endPos = lt.textContent.length; lt.textContent += after; npFocus(lt, endPos); npChanged();
+        for(var i = 1; i < lines.length; i++){ var p = npParse(npEsc(lines[i])); var nr = npRow(p.text, p.todo); cur.after(nr); cur = nr; }
+        var lt = cur.querySelector('.np-text'), endPos = lt.textContent.length; lt.appendChild(rest); npFocus(lt, endPos); npChanged();
       });
       notesArea.addEventListener('keydown', function(e){
         var tx = e.target.closest('.np-text'); if(!tx) return; var row = tx.closest('.np-row');
@@ -13536,13 +13581,15 @@
           e.preventDefault();
           // Enter on an empty to-do: back to plain text
           if(row.hasAttribute('data-todo') && !tx.textContent){ npSetTodo(row, false); return; }
-          var pos = npCaret(tx), rest = tx.textContent.slice(pos); tx.textContent = tx.textContent.slice(0, pos);
-          var nr = npRow(rest, row.hasAttribute('data-todo') ? 'open' : ''); row.after(nr); npFocus(nr.querySelector('.np-text'), 0); npChanged(); return;
+          var sel = window.getSelection(); if(sel.rangeCount && !sel.isCollapsed) sel.getRangeAt(0).deleteContents();
+          var nr = npRow('', row.hasAttribute('data-todo') ? 'open' : ''), ntx = nr.querySelector('.np-text');
+          if(sel.rangeCount && tx.contains(sel.anchorNode)){ var cr = sel.getRangeAt(0), after = document.createRange(); after.setStart(cr.endContainer, cr.endOffset); after.setEnd(tx, tx.childNodes.length); ntx.appendChild(after.extractContents()); }
+          row.after(nr); npFocus(ntx, 0); npChanged(); return;
         }
         if(e.key === 'Backspace' && npCaret(tx) === 0 && !window.getSelection().toString()){
           if(row.hasAttribute('data-todo')){ e.preventDefault(); npSetTodo(row, false); return; }
           var prev = row.previousElementSibling; if(!prev) return;
-          e.preventDefault(); var pt = prev.querySelector('.np-text'), at = pt.textContent.length; pt.textContent += tx.textContent; row.remove(); npFocus(pt, at); npChanged(); return;
+          e.preventDefault(); var pt = prev.querySelector('.np-text'), at = pt.textContent.length; while(tx.firstChild) pt.appendChild(tx.firstChild); row.remove(); npFocus(pt, at); npChanged(); return;
         }
         if((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey){
           var to = e.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling; if(!to) return;
