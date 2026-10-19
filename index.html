@@ -2830,10 +2830,10 @@
   /* the New activity chip: pops in, then a light sweep crosses it every
      few seconds while you fill in the card, like a shiny card */
   @keyframes ghostPop { 0% { transform:scale(.6); opacity:0; } 70% { transform:scale(1.06); opacity:1; } 100% { transform:scale(1); } }
-  @keyframes ghostSheen { 0% { left:-50%; } 45%, 100% { left:120%; } }
+  @keyframes ghostSheen { 0% { left:-50%; } 20%, 100% { left:120%; } }
   #dayGhost { animation:ghostPop .28s cubic-bezier(.3,1.4,.5,1) both; }
   #dayGhost::after, #dragRange > div::after { content:''; position:absolute; top:0; bottom:0; width:40%; left:-50%; pointer-events:none;
-    background:linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent); animation:ghostSheen 2.4s ease-in-out .4s infinite; }
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent); animation:ghostSheen 5.5s ease-in-out .4s infinite; }
   @media (prefers-reduced-motion: reduce){ #dayGhost, #dayGhost::after, #dragRange > div::after { animation:none; } #dayGhost::after, #dragRange > div::after { display:none; } }
   .acts > li[data-free] > .price { display:none; }
   .acts > li > .title[data-span-label]::after { content:attr(data-span-label); display:block; color:var(--muted); font-size:.9286em; font-weight:400; } /* = the copies' line (13px under a 14px title) */
