@@ -2871,7 +2871,7 @@
     body.notes-mode .pills .pill.notes-tab svg { color:var(--primary); }
     /* the alternative's tab steps back while the notebook is open */
     body.notes-mode .pills .pill[data-opt].on { margin-top:6px; padding-top:8px; padding-bottom:8px !important; box-shadow:inset 0 -9px 7px -6px rgba(40,25,60,.32) !important; }
-    body.notes-mode #ticketStitch { display:none !important; }
+    body.notes-mode #ticketStitch, body.notes-mode .page-bookmark, body.notes-mode #ribbonStitch { display:none !important; }
     body.notes-mode .wrap { background-image:var(--ruled-fine) !important; }
     body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
     body.notes-mode .notes-page { display:block; padding:6px 10px 24px; }
@@ -2889,9 +2889,9 @@
     .notes-page .np-row[data-todo] .np-check { display:block; }
     .notes-page .np-row[data-todo="done"] .np-check { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
     .notes-page .np-row[data-todo="done"] .np-text { color:var(--muted); text-decoration:line-through; text-decoration-color:rgba(155,143,192,.7); }
-    .notes-page .np-lines:has(> .np-row:only-child .np-text:empty)::before { content:'Write anything for this plan: things to book, to pack, ideas…'; position:absolute; margin-left:0; line-height:34px; font-size:16px; font-weight:600; color:var(--muted); pointer-events:none; }
+    .notes-page .np-row:only-child:not([data-todo]) .np-text:empty::before { content:'Write anything for this plan: things to book, to pack, ideas…'; color:var(--muted); pointer-events:none; }
     .notes-page .np-lines { position:relative; }
-    .notes-page .np-head .np-todo-btn { display:inline-flex; align-items:center; gap:6px; margin-left:10px; padding:4px 10px; border:none; border-radius:999px; background:var(--card); color:var(--ink);
+    .notes-page .np-head .np-todo-btn { display:inline-flex; align-items:center; gap:6px; margin-left:52px; outline:none; padding:4px 10px; border:none; border-radius:999px; background:var(--card); color:var(--ink);
       font:inherit; font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
     .notes-page .np-head .np-todo-btn:hover { box-shadow:0 0 0 1px var(--primary); }
     .notes-page .np-head .np-box { width:12px; height:12px; border:2px solid #d9c8ec; border-radius:3px; }
@@ -12561,8 +12561,11 @@
     row(icon(ICON_EDIT_NAME) + t('menu_rename'), function(){
       openRenamePlan(anchorEl, s.panels[0]);
     });
-    row(icon('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>') + (MONTH_NOTES[monthKey(s.year, s.month)] ? 'Edit notes' : 'Add notes'), function(){
-      openMonthNotes(s.year, s.month);
+    row(icon('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>') + (MONTH_NOTES[planNotesKey(s.panels[0])] ? 'Edit notes' : 'Add notes'), function(){
+      // this plan's own notebook (opening the plan first if it isn't the open one)
+      var p0 = s.panels[0];
+      if(!p0.classList.contains('on') && !s.panels.some(function(x){ return x.classList.contains('on'); })) activatePillByOpt(optOf(p0));
+      if(window.matchMedia('(min-width:721px)').matches) setTimeout(openNotesPage, 50); else openMonthNotes(s.year, s.month);
     });
     row(icon(ICON_ARCHIVE) + 'Archive', function(){
       s.panels.forEach(function(p){ setArchivedForMe(p, true); });
@@ -13441,7 +13444,19 @@
   var notesPage = null, notesArea = null, notesKey = null, notesTimer = null;
   // The notebook is a list of lines; a line can be text or a to-do
   // ("[ ] task" / "[x] task" in the saved notes, so older notes still read).
-  function activeNotesKey(){ var p = document.querySelector('.panel.on'); if(!p) return null; var d = getPanelDate(p); return monthKey(d.year, d.month); }
+  // Each plan has its own notes (saved under "plan:<id>"). Older notes were
+  // saved per month: the month's first plan still shows them until edited.
+  function planNotesKey(panel){ return panel ? 'plan:' + planIdOf(panel) : null; }
+  function activeNotesKey(){ return planNotesKey(document.querySelector('.panel.on')); }
+  function notesText(key){
+    if(!key) return '';
+    if(MONTH_NOTES[key] != null) return MONTH_NOTES[key];
+    var p = document.querySelector('.panel.on'); if(!p) return '';
+    var d = getPanelDate(p), mk = monthKey(d.year, d.month);
+    if(!MONTH_NOTES[mk]) return '';
+    var firstPlan = null; document.querySelectorAll('.panel').forEach(function(x){ var dx = getPanelDate(x); if(!firstPlan && dx.year === d.year && dx.month === d.month) firstPlan = planIdOf(x); });
+    return firstPlan === planIdOf(p) ? MONTH_NOTES[mk] : '';
+  }
   function npRow(text, todo){
     var row = document.createElement('div'); row.className = 'np-row';
     if(todo) row.setAttribute('data-todo', todo);
@@ -13482,7 +13497,7 @@
     var wrap = document.querySelector('.wrap');
     if(wrap && !notesPage){
       notesPage = document.createElement('section'); notesPage.className = 'notes-page jsctl';
-      notesPage.innerHTML = '<div class="np-head"><span>Notes</span><span class="np-plan"></span><button type="button" class="np-todo-btn" title="Make this line a to-do"><span class="np-box"></span>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
+      notesPage.innerHTML = '<div class="np-head"><button type="button" class="np-todo-btn" title="Make this line a to-do"><span class="np-box"></span>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
       notesArea = notesPage.querySelector('.np-lines');
       var budgetTitle = document.getElementById('budgetOverviewTitle');
       wrap.insertBefore(notesPage, budgetTitle || null);
@@ -13542,16 +13557,14 @@
     if(!notesKey || !notesArea) return;
     var v = npSerialize();
     if((MONTH_NOTES[notesKey] || '') === v) return;
-    if(v.trim()) MONTH_NOTES[notesKey] = v; else delete MONTH_NOTES[notesKey];
+    if((notesText(notesKey) || '') === v) return;
+    MONTH_NOTES[notesKey] = v;   // kept even when empty, so an emptied plan doesn't fall back to old month notes
     scheduleAutoSave(); scheduleUndoSnapshot();
     var sv = notesPage.querySelector('.np-saved'); sv.classList.add('on'); clearTimeout(sv._t); sv._t = setTimeout(function(){ sv.classList.remove('on'); }, 1200);
   }
   function fillNotesPage(){
     notesKey = activeNotesKey();
-    var p = document.querySelector('.panel.on'), pill = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"]');
-    var planName = (p && p.getAttribute('data-plan-name')) || (pill ? pill.querySelector('.pill-name').textContent.trim() : '');
-    notesPage.querySelector('.np-plan').textContent = planName ? '· ' + planName : '';
-    npRender((notesKey && MONTH_NOTES[notesKey]) || '');
+    npRender(notesText(notesKey));
   }
   function openNotesPage(){
     ensureNotesUI(); if(!notesPage) return;
@@ -13567,12 +13580,12 @@
     if(!document.body.classList.contains('notes-mode')) return;
     var k = activeNotesKey();
     if(k !== notesKey){ commitNotesPage(); fillNotesPage(); }
-    else if(!notesArea.contains(document.activeElement) && npSerialize() !== (MONTH_NOTES[k] || '')) npRender(MONTH_NOTES[k] || '');
+    else if(!notesArea.contains(document.activeElement) && npSerialize() !== notesText(k)) npRender(notesText(k));
   }, 600);
   function openMonthNotes(year, month){
     // the open plan's notes open on their own page now
-    var ak = activeNotesKey();
-    if(window.matchMedia('(min-width:721px)').matches && ak === monthKey(year, month)){ openNotesPage(); return; }
+    var ap = document.querySelector('.panel.on'), ad = ap && getPanelDate(ap);
+    if(window.matchMedia('(min-width:721px)').matches && ad && ad.year === year && ad.month === month){ openNotesPage(); return; }
     pendingNotesKey = monthKey(year, month);
     if(monthNotesTitle) monthNotesTitle.textContent = 'Notes — ' + formatMonthLabel(year, month, 1);
     if(monthNotesTextarea) monthNotesTextarea.value = MONTH_NOTES[pendingNotesKey] || '';
