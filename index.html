@@ -7551,6 +7551,11 @@
     [0, .085, .15].forEach(function(dt, i){ var f = 3400 + i * 250;
       [[1, 1], [1.48, .5], [2.31, .25]].forEach(function(h){ tone(c, 'sine', f * h[0], f * h[0], t + dt, .16 - i * .03, .07 * h[1] * (1 - i * .25)); }); });
   } catch(e){} }
+  // a to-do ticked off: a tiny pencil tick, then a light rising "ding"
+  function playCheckSound(){ try { sfxLevel = 1; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    burst(c, t, .035, .05, 'bandpass', 3800, 1.6);
+    tone(c, 'sine', 1174.7, 1174.7, t + .03, .12, .1); tone(c, 'sine', 1760, 1760, t + .09, .32, .1); tone(c, 'sine', 3520, 3520, t + .09, .15, .015);
+  } catch(e){} }
   //   … and everything's even: a soft three-note chime
   function playSettledSound(){ try { sfxLevel = 1.2; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
     [1046.5, 1318.5, 1568].forEach(function(f, i){ tone(c, 'sine', f, f, t + i * .07, .5, .1 - i * .015); });
@@ -13485,7 +13490,7 @@
       });
       notesArea.addEventListener('click', function(e){
         var cb = e.target.closest('.np-check'); if(cb){ var row = cb.closest('.np-row'), done = row.getAttribute('data-todo') !== 'done';
-          row.setAttribute('data-todo', done ? 'done' : 'open'); if(done) playAddSound(); npChanged(); return; }
+          row.setAttribute('data-todo', done ? 'done' : 'open'); if(done) playCheckSound(); npChanged(); return; }
         // a click on the empty paper below the last line writes there
         if(e.target === notesArea){ var last = notesArea.lastElementChild; npFocus(last.querySelector('.np-text')); }
       });
