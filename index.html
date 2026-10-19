@@ -2830,10 +2830,10 @@
   /* the New activity chip: pops in, then jiggles gently while you fill in
      the card (like icons in edit mode) */
   @keyframes ghostPop { 0% { transform:scale(.6); opacity:0; } 70% { transform:scale(1.06); opacity:1; } 100% { transform:scale(1); } }
-  @keyframes ghostJiggle { 0% { transform:rotate(-1.4deg); } 50% { transform:rotate(1.4deg) translateY(-1px); } 100% { transform:rotate(-1.4deg); } }
-  #dayGhost { animation:ghostPop .28s cubic-bezier(.3,1.4,.5,1) both, ghostJiggle .42s ease-in-out .28s infinite; transform-origin:50% 60%; }
-  #dragRange > div { animation:ghostJiggle .42s ease-in-out infinite; transform-origin:50% 60%; }
-  #dragRange > div:nth-child(2n) { animation-delay:-.21s; }
+  @keyframes ghostJiggle { 0% { transform:rotate(-.6deg); } 50% { transform:rotate(.6deg); } 100% { transform:rotate(-.6deg); } }
+  #dayGhost { animation:ghostPop .28s cubic-bezier(.3,1.4,.5,1) both, ghostJiggle .7s ease-in-out .28s infinite; transform-origin:50% 60%; }
+  #dragRange > div { animation:ghostJiggle .7s ease-in-out infinite; transform-origin:50% 60%; }
+  #dragRange > div:nth-child(2n) { animation-delay:-.35s; }
   @media (prefers-reduced-motion: reduce){ #dayGhost, #dragRange > div { animation:none; } }
   .acts > li[data-free] > .price { display:none; }
   .acts > li > .title[data-span-label]::after { content:attr(data-span-label); display:block; color:var(--muted); font-size:.9286em; font-weight:400; } /* = the copies' line (13px under a 14px title) */
