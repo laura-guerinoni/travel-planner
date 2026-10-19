@@ -2834,7 +2834,9 @@
   #fabAddPanel .gc-until[hidden] { display:none !important; }
   #fabAddPanel #fabAddStayOut[hidden] { display:none; }
   /* dragging across days: the chosen days light up, like Google Calendar */
-  #dragRange > div { position:absolute; z-index:5; pointer-events:none; border-radius:14px; background:rgba(var(--primary-rgb), .14); box-shadow:inset 0 0 0 2px rgba(var(--primary-rgb), .55); }
+  #dragRange > div { position:absolute; z-index:9996; pointer-events:none; box-sizing:border-box; height:32px; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:800; color:#fff;
+    background:var(--primary); box-shadow:0 6px 14px -4px rgba(40,25,60,.35); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dragRange > div + div { color:transparent; }
   #fabAddPanel .gc-allday:not([hidden]) + .fabadd-time-row { display:none; }
   /* a day with more than one city: a little route, like the plans list —
      a coloured dot per city on a dashed line, and the city as a soft pill */
@@ -13302,12 +13304,31 @@
     updateActivitySpan(li);
   }
   // Opens the card for days a..b (cells), as after dragging across them.
-  function showRange(cells){
+  // The new activity's chip, stretched across the chosen days (one piece
+  // per week row), like Google Calendar's — the days themselves stay as
+  // they are.
+  var rangeKey = '';
+  function showRange(cells, text){
     var box = document.getElementById('dragRange');
     if(!box){ box = document.createElement('div'); box.id = 'dragRange'; document.body.appendChild(box); }
-    box.innerHTML = '';
-    (cells || []).forEach(function(c){ var r = c.getBoundingClientRect(), d = document.createElement('div');
-      d.style.left = (r.left + window.scrollX) + 'px'; d.style.top = (r.top + window.scrollY) + 'px'; d.style.width = r.width + 'px'; d.style.height = r.height + 'px'; box.appendChild(d); });
+    var rows = [];
+    (cells || []).forEach(function(c){ var last = rows[rows.length - 1]; if(last && last.row === c.parentNode) last.cells.push(c); else rows.push({ row:c.parentNode, cells:[c] }); });
+    var parts = rows.map(function(g){
+      var a = g.cells[0].getBoundingClientRect(), b = g.cells[g.cells.length - 1].getBoundingClientRect();
+      var h = g.cells[0].querySelector(':scope > .cellhead'), top = (h ? h.getBoundingClientRect().bottom : a.top) + 6;
+      return [Math.round(a.left + 8 + window.scrollX), Math.round(top + window.scrollY), Math.round(b.right - a.left - 16)];
+    });
+    var key = JSON.stringify([parts, text]);
+    if(key === rangeKey) return;
+    rangeKey = key; box.innerHTML = '';
+    parts.forEach(function(p){ var d = document.createElement('div'); d.style.left = p[0] + 'px'; d.style.top = p[1] + 'px'; d.style.width = p[2] + 'px'; d.textContent = text || 'New activity'; box.appendChild(d); });
+  }
+  // the days the open card covers (its day … its "until" day)
+  function rangeCells(){
+    var to = rangeEnd(), a = cellOfDay(fabAddDaySelect.value); if(!to || !a) return null;
+    var cells = [].slice.call(a.closest('.panel').querySelectorAll(':scope > .grid.week > .cell:not(.empty)')), i = cells.indexOf(a), out = [];
+    for(var k = i; k < cells.length; k++){ out.push(cells[k]); if(String(dayNumOfCell(cells[k])) === String(to)) break; }
+    return out.length > 1 ? out : null;
   }
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
   if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
@@ -13522,7 +13543,7 @@
       var c = cellAt(e.clientX, e.clientY); if(!c || c === cur) return;
       cur = c; dragging = cur !== start;
       if(dragging){ e.preventDefault(); var sel = window.getSelection && window.getSelection(); if(sel) sel.removeAllRanges(); }
-      showRange(dragging ? between(start, cur) : null);
+      showRange(dragging ? between(start, cur) : null, 'New activity');
     });
     document.addEventListener('mouseup', function(){
       var a = start, b = cur, was = dragging; start = cur = null; dragging = false;
@@ -13538,7 +13559,6 @@
       var end = document.getElementById('fabAddDayEnd');
       end.dataset.want = String(dayNumOfCell(last)); end.hidden = false;
       syncAllDayForm();
-      showRange(cells);
       anchoredCell = first; placeAnchored(first);
       setTimeout(function(){ var t = document.getElementById('fabAddTitleInput'); if(t) t.focus(); }, 30);
     });
@@ -13621,8 +13641,9 @@
     // (runtime only — never saved, see the observer's filter), and the
     // placeholder sits on it, so it never spills onto the next week.
     var slot = cell.querySelector('.day-ghost-slot');
-    document.querySelectorAll('.day-ghost-slot').forEach(function(x){ if(x !== slot || fabAddEditLi) x.remove(); });
-    if(fabAddEditLi) slot = null;
+    var rc = !fabAddEditLi && document.getElementById('fabAddPanel').classList.contains('show') ? rangeCells() : null;
+    document.querySelectorAll('.day-ghost-slot').forEach(function(x){ if(x !== slot || fabAddEditLi || rc) x.remove(); });
+    if(fabAddEditLi || rc) slot = null;
     else if(!slot){
       slot = document.createElement('div'); slot.className = 'day-ghost-slot';
       if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell) fabAddInsertAfter.parentNode.insertBefore(slot, fabAddInsertAfter.nextSibling);
@@ -13642,7 +13663,8 @@
     var t = document.getElementById('fabAddTitleInput'), txt = (t && t.value.trim()) || 'New activity';
     if(ghost.textContent !== txt) ghost.textContent = txt;
     // Editing an existing activity: no "New activity" placeholder.
-    var gd = fabAddEditLi ? 'none' : 'block';
+    var gd = fabAddEditLi || rc ? 'none' : 'block';
+    showRange(rc, txt);
     if(ghost.style.display !== gd) ghost.style.display = gd;
     // Tucked under the pinned weekday row (and the top bar) when its day
     // scrolls up behind them, like the day itself.
