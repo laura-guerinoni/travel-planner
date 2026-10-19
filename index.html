@@ -2878,11 +2878,23 @@
     .notes-page .np-head { display:flex; align-items:baseline; gap:10px; margin:0 0 6px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
     .notes-page .np-head .np-saved { margin-left:auto; letter-spacing:0; text-transform:none; font-weight:700; opacity:0; transition:opacity .3s; }
     .notes-page .np-head .np-saved.on { opacity:1; }
-    .notes-page textarea { display:block; width:100%; min-height:calc(100vh - 230px); margin:0; box-sizing:border-box; padding:0 8px 0 52px; border:none; outline:none; resize:none;
-      font:inherit; font-size:16px; font-weight:600; line-height:34px; color:var(--ink); background-color:transparent; overflow:hidden;
+    .notes-page .np-lines { min-height:calc(100vh - 230px); padding:0 8px 34px 52px; cursor:text;
       background-image:linear-gradient(90deg, transparent 38px, rgba(var(--primary-rgb), .28) 38px, rgba(var(--primary-rgb), .28) 40px, transparent 40px),
         repeating-linear-gradient(to bottom, transparent 0 33px, rgba(61,53,104,.09) 33px 34px); }
-    .notes-page textarea::placeholder { color:var(--muted); font-weight:600; }
+    .notes-page .np-row { display:flex; align-items:flex-start; gap:10px; min-height:34px; }
+    .notes-page .np-text { flex:1; min-width:0; min-height:34px; outline:none; font-size:16px; font-weight:600; line-height:34px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; cursor:text; }
+    .notes-page .np-text, .notes-page .np-text:focus, .notes-page .np-text:hover { background:none !important; box-shadow:none !important; border:none !important; outline:none !important; padding:0 !important; border-radius:0 !important; }
+    .notes-page .np-check { display:none; flex:none; width:18px; height:18px; margin-top:8px; padding:0; border:2px solid #d9c8ec; border-radius:5px; background:#fff; cursor:pointer; transition:background .12s, border-color .12s; }
+    .notes-page .np-check:hover { border-color:var(--primary); }
+    .notes-page .np-row[data-todo] .np-check { display:block; }
+    .notes-page .np-row[data-todo="done"] .np-check { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
+    .notes-page .np-row[data-todo="done"] .np-text { color:var(--muted); text-decoration:line-through; text-decoration-color:rgba(155,143,192,.7); }
+    .notes-page .np-lines:has(> .np-row:only-child .np-text:empty)::before { content:'Write anything for this plan: things to book, to pack, ideas…'; position:absolute; margin-left:0; line-height:34px; font-size:16px; font-weight:600; color:var(--muted); pointer-events:none; }
+    .notes-page .np-lines { position:relative; }
+    .notes-page .np-head .np-todo-btn { display:inline-flex; align-items:center; gap:6px; margin-left:10px; padding:4px 10px; border:none; border-radius:999px; background:var(--card); color:var(--ink);
+      font:inherit; font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
+    .notes-page .np-head .np-todo-btn:hover { box-shadow:0 0 0 1px var(--primary); }
+    .notes-page .np-head .np-box { width:12px; height:12px; border:2px solid #d9c8ec; border-radius:3px; }
   }
   :root { --ruled-fine: repeating-linear-gradient(0deg, rgba(61,53,104,.022) 0 1px, transparent 1px 5px); }
   @media print { .notes-page, .pill.notes-tab { display:none !important; } }
@@ -7532,21 +7544,12 @@
   function playStampSound(){ try { var c = sfx(); if(!c) return; var t = c.currentTime + .02;
     tone(c, 'sine', 150, 55, t, .22, .35); burst(c, t, .09, .22, 'lowpass', 900, .7); burst(c, t + .004, .04, .08, 'bandpass', 2600, 1.2);
   } catch(e){} }
-  // 2 · someone paid: the classic little game "coin" — two quick rising
-  // notes (B5 → E6), round and soft, with a faint sparkle on the second
+  // 2 · someone paid: a few small coins dropping onto a table — three
+  // quick metallic clinks, each a little softer
   var coinAt = 0;
-  function playCoinSound(){ try { if(Date.now() - coinAt < 250) return; coinAt = Date.now(); var c = sfx(); if(!c) return; var t = c.currentTime + .01;
-    function note(f, at, len, vol){
-      var o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
-      o.type = 'triangle'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 4200;
-      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + .008);
-      g.gain.setValueAtTime(vol, at + len * .35); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
-      o.connect(lp); lp.connect(g); g.connect(c.destination); o.start(at); o.stop(at + len + .03);
-    }
-    sfxLevel = .76;
-    note(987.8, t, .085, .13 * sfxLevel);
-    note(1318.5, t + .075, .42, .13 * sfxLevel);
-    tone(c, 'sine', 2637, 2637, t + .08, .28, .025);
+  function playCoinSound(){ try { sfxLevel = 2.16; if(Date.now() - coinAt < 250) return; coinAt = Date.now(); var c = sfx(); if(!c) return; var t = c.currentTime + .01;
+    [0, .085, .15].forEach(function(dt, i){ var f = 3400 + i * 250;
+      [[1, 1], [1.48, .5], [2.31, .25]].forEach(function(h){ tone(c, 'sine', f * h[0], f * h[0], t + dt, .16 - i * .03, .07 * h[1] * (1 - i * .25)); }); });
   } catch(e){} }
   //   … and everything's even: a soft three-note chime
   function playSettledSound(){ try { sfxLevel = 1.2; var c = sfx(); if(!c) return; var t = c.currentTime + .01;
@@ -13431,7 +13434,33 @@
   // ---- Notes tab: the plan's notes as its own page (see .notes-page) ----
   var NOTES_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
   var notesPage = null, notesArea = null, notesKey = null, notesTimer = null;
+  // The notebook is a list of lines; a line can be text or a to-do
+  // ("[ ] task" / "[x] task" in the saved notes, so older notes still read).
   function activeNotesKey(){ var p = document.querySelector('.panel.on'); if(!p) return null; var d = getPanelDate(p); return monthKey(d.year, d.month); }
+  function npRow(text, todo){
+    var row = document.createElement('div'); row.className = 'np-row';
+    if(todo) row.setAttribute('data-todo', todo);
+    var cb = document.createElement('button'); cb.type = 'button'; cb.className = 'np-check'; cb.setAttribute('aria-label', 'Done'); cb.tabIndex = -1;
+    var tx = document.createElement('div'); tx.className = 'np-text'; tx.contentEditable = 'true'; tx.spellcheck = true; tx.textContent = text || '';
+    row.appendChild(cb); row.appendChild(tx); return row;
+  }
+  function npParse(line){ var m = /^\s*(?:-\s*)?\[( |x|X)?\]\s?(.*)$/.exec(line); return m ? { todo: (m[1] || '').toLowerCase() === 'x' ? 'done' : 'open', text: m[2] } : { todo: '', text: line }; }
+  function npRender(text){
+    notesArea.innerHTML = '';
+    String(text || '').split('\n').forEach(function(l){ var p = npParse(l); notesArea.appendChild(npRow(p.text, p.todo)); });
+    if(!notesArea.children.length) notesArea.appendChild(npRow('', ''));
+  }
+  function npSerialize(){
+    var out = [].map.call(notesArea.children, function(r){ var t = r.querySelector('.np-text').textContent.replace(/\n/g, ' '), td = r.getAttribute('data-todo');
+      return td ? (td === 'done' ? '[x] ' : '[ ] ') + t : t; });
+    while(out.length > 1 && out[out.length - 1] === '') out.pop();
+    return out.length === 1 && out[0] === '' ? '' : out.join('\n');
+  }
+  function npCaret(el){ var s = window.getSelection(); if(!s.rangeCount || !el.contains(s.anchorNode)) return 0; var r = s.getRangeAt(0).cloneRange(); r.selectNodeContents(el); r.setEnd(s.anchorNode, s.anchorOffset); return r.toString().length; }
+  function npFocus(el, pos){ el.focus(); var s = window.getSelection(), r = document.createRange(), node = el.firstChild;
+    if(!node){ r.setStart(el, 0); } else { r.setStart(node, Math.min(pos == null ? node.length : pos, node.length)); } r.collapse(true); s.removeAllRanges(); s.addRange(r); }
+  function npChanged(){ clearTimeout(notesTimer); notesTimer = setTimeout(commitNotesPage, 500); }
+  function npSetTodo(row, on){ if(on) row.setAttribute('data-todo', row.getAttribute('data-todo') || 'open'); else row.removeAttribute('data-todo'); npChanged(); }
   function ensureNotesUI(){
     var pills = document.querySelector('.pills'), add = document.getElementById('addOptionBtn');
     if(pills && !pills.querySelector(':scope > .notes-tab')){
@@ -13443,20 +13472,65 @@
     var wrap = document.querySelector('.wrap');
     if(wrap && !notesPage){
       notesPage = document.createElement('section'); notesPage.className = 'notes-page jsctl';
-      notesPage.innerHTML = '<div class="np-head"><span>Notes</span><span class="np-plan"></span><span class="np-saved">Saved</span></div><textarea placeholder="Write anything for this plan: things to book, to pack, ideas…" spellcheck="true"></textarea>';
-      notesArea = notesPage.querySelector('textarea');
+      notesPage.innerHTML = '<div class="np-head"><span>Notes</span><span class="np-plan"></span><button type="button" class="np-todo-btn" title="Make this line a to-do"><span class="np-box"></span>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
+      notesArea = notesPage.querySelector('.np-lines');
       var budgetTitle = document.getElementById('budgetOverviewTitle');
       wrap.insertBefore(notesPage, budgetTitle || null);
-      notesArea.addEventListener('input', function(){ growNotes(); clearTimeout(notesTimer); notesTimer = setTimeout(commitNotesPage, 500); });
-      notesArea.addEventListener('blur', commitNotesPage);
+      var lastRow = null;
+      notesArea.addEventListener('focusin', function(e){ var r = e.target.closest('.np-row'); if(r) lastRow = r; });
+      notesPage.querySelector('.np-todo-btn').addEventListener('mousedown', function(e){ e.preventDefault(); });
+      notesPage.querySelector('.np-todo-btn').addEventListener('click', function(){
+        var row = lastRow && lastRow.isConnected ? lastRow : notesArea.lastElementChild;
+        npSetTodo(row, !row.hasAttribute('data-todo')); var tx = row.querySelector('.np-text'); npFocus(tx);
+      });
+      notesArea.addEventListener('click', function(e){
+        var cb = e.target.closest('.np-check'); if(cb){ var row = cb.closest('.np-row'), done = row.getAttribute('data-todo') !== 'done';
+          row.setAttribute('data-todo', done ? 'done' : 'open'); if(done) playAddSound(); npChanged(); return; }
+        // a click on the empty paper below the last line writes there
+        if(e.target === notesArea){ var last = notesArea.lastElementChild; npFocus(last.querySelector('.np-text')); }
+      });
+      notesArea.addEventListener('input', function(e){
+        var tx = e.target.closest('.np-text'); if(!tx) return; var row = tx.closest('.np-row');
+        // "[ ] " or "[] " at the start makes it a to-do
+        var m = /^\s*(?:-\s*)?\[\s?\]\s/.exec(tx.textContent);
+        if(m && !row.hasAttribute('data-todo')){ var cp = npCaret(tx); tx.textContent = tx.textContent.slice(m[0].length); row.setAttribute('data-todo', 'open'); npFocus(tx, Math.max(0, cp - m[0].length)); }
+        npChanged();
+      });
+      notesArea.addEventListener('paste', function(e){
+        var tx = e.target.closest('.np-text'); if(!tx) return; e.preventDefault();
+        var lines = (e.clipboardData.getData('text/plain') || '').replace(/\r/g, '').split('\n'), row = tx.closest('.np-row');
+        var pos = npCaret(tx), before = tx.textContent.slice(0, pos), after = tx.textContent.slice(pos);
+        tx.textContent = before + lines[0];
+        var cur = row;
+        for(var i = 1; i < lines.length; i++){ var p = npParse(lines[i]); var nr = npRow(p.text, p.todo); cur.after(nr); cur = nr; }
+        var lt = cur.querySelector('.np-text'), endPos = lt.textContent.length; lt.textContent += after; npFocus(lt, endPos); npChanged();
+      });
+      notesArea.addEventListener('keydown', function(e){
+        var tx = e.target.closest('.np-text'); if(!tx) return; var row = tx.closest('.np-row');
+        if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){
+          e.preventDefault();
+          // Enter on an empty to-do: back to plain text
+          if(row.hasAttribute('data-todo') && !tx.textContent){ npSetTodo(row, false); return; }
+          var pos = npCaret(tx), rest = tx.textContent.slice(pos); tx.textContent = tx.textContent.slice(0, pos);
+          var nr = npRow(rest, row.hasAttribute('data-todo') ? 'open' : ''); row.after(nr); npFocus(nr.querySelector('.np-text'), 0); npChanged(); return;
+        }
+        if(e.key === 'Backspace' && npCaret(tx) === 0 && !window.getSelection().toString()){
+          if(row.hasAttribute('data-todo')){ e.preventDefault(); npSetTodo(row, false); return; }
+          var prev = row.previousElementSibling; if(!prev) return;
+          e.preventDefault(); var pt = prev.querySelector('.np-text'), at = pt.textContent.length; pt.textContent += tx.textContent; row.remove(); npFocus(pt, at); npChanged(); return;
+        }
+        if((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey){
+          var to = e.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling; if(!to) return;
+          e.preventDefault(); npFocus(to.querySelector('.np-text'), Math.min(npCaret(tx), to.querySelector('.np-text').textContent.length));
+        }
+      });
+      notesArea.addEventListener('focusout', function(){ setTimeout(function(){ if(!notesArea.contains(document.activeElement)) commitNotesPage(); }, 0); });
     }
   }
-  // the page grows with what's written (whole lines), so the ruling and the margin always end together
-  function growNotes(){ if(!notesArea) return; notesArea.style.height = 'auto'; notesArea.style.height = (Math.ceil(notesArea.scrollHeight / 34) * 34) + 'px'; }
   function commitNotesPage(){
     clearTimeout(notesTimer);
     if(!notesKey || !notesArea) return;
-    var v = notesArea.value;
+    var v = npSerialize();
     if((MONTH_NOTES[notesKey] || '') === v) return;
     if(v.trim()) MONTH_NOTES[notesKey] = v; else delete MONTH_NOTES[notesKey];
     scheduleAutoSave(); scheduleUndoSnapshot();
@@ -13467,14 +13541,13 @@
     var p = document.querySelector('.panel.on'), pill = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"]');
     var planName = (p && p.getAttribute('data-plan-name')) || (pill ? pill.querySelector('.pill-name').textContent.trim() : '');
     notesPage.querySelector('.np-plan').textContent = planName ? '· ' + planName : '';
-    notesArea.value = (notesKey && MONTH_NOTES[notesKey]) || '';
-    setTimeout(growNotes, 0);
+    npRender((notesKey && MONTH_NOTES[notesKey]) || '');
   }
   function openNotesPage(){
     ensureNotesUI(); if(!notesPage) return;
     fillNotesPage();
     document.body.classList.add('notes-mode');
-    setTimeout(function(){ notesArea.focus(); notesArea.setSelectionRange(notesArea.value.length, notesArea.value.length); }, 30);
+    setTimeout(function(){ var last = notesArea.lastElementChild; if(last) npFocus(last.querySelector('.np-text')); }, 30);
   }
   function closeNotesPage(){ commitNotesPage(); document.body.classList.remove('notes-mode'); }
   // an alternative's tab closes the notebook; another plan shows its own notes
@@ -13484,7 +13557,7 @@
     if(!document.body.classList.contains('notes-mode')) return;
     var k = activeNotesKey();
     if(k !== notesKey){ commitNotesPage(); fillNotesPage(); }
-    else if(document.activeElement !== notesArea && notesArea.value !== (MONTH_NOTES[k] || '')) notesArea.value = MONTH_NOTES[k] || '';
+    else if(!notesArea.contains(document.activeElement) && npSerialize() !== (MONTH_NOTES[k] || '')) npRender(MONTH_NOTES[k] || '');
   }, 600);
   function openMonthNotes(year, month){
     // the open plan's notes open on their own page now
