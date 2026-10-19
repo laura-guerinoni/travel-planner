@@ -2826,7 +2826,8 @@
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
   /* no rubber-band bounce past the top/bottom: it pulled the calendar away from its tabs */
-  html, body { overflow-x:hidden; overscroll-behavior:none; }
+  html { overflow-x:hidden; overscroll-behavior:none; }
+  body { overscroll-behavior:none; }
   /* the New activity chip: pops in, then a light sweep crosses it every
      few seconds while you fill in the card, like a shiny card */
   @keyframes ghostPop { 0% { transform:scale(.6); opacity:0; } 70% { transform:scale(1.06); opacity:1; } 100% { transform:scale(1); } }
