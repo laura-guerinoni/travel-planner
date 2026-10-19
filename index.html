@@ -2844,6 +2844,8 @@
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
+  /* holiday periods are no longer part of the app: their bands aren't shown (the data is left as is) */
+  .grid.banner-row { display:none !important; }
   /* every dropdown list in the app looks like the type picker's */
   #niceDD { position:fixed; z-index:10001; background:#fff; border-radius:6px; padding:6px 0; overflow-y:auto; font-family:inherit;
     box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
@@ -11344,7 +11346,7 @@
       if(!panel.classList.contains('on')) activatePillByOpt(opt);
       openRangePopover(pill, panel, 'holiday');
     });
-    pop.appendChild(holidayRow);
+    // (holiday periods are no longer part of the app)
     var locationRow = document.createElement('div');
     locationRow.className = 'itemmenu-row';
     locationRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PIN + '</span>' + t('pillmenu_add_location');
@@ -14115,10 +14117,6 @@
     menuRow('+ Alternative', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
       if(activePanel) openNewAltForm(mobileAddFab, activePanel);
-    });
-    menuRow('+ Holiday period', function(){
-      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      if(activePanel) openRangePopover(mobileAddFab, activePanel, 'holiday');
     });
     menuRow('+ Plan', function(){ openNewPlanForm(mobileAddFab); });
     positionPopover(pop, mobileAddFab);
