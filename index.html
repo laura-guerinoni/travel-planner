@@ -2846,6 +2846,9 @@
   .day-ghost-slot { height:34px; margin-top:6px; }
   #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
   .print-pay { display:none; }
+  .rangepop-warn { margin:0 0 10px; padding:9px 12px; border-radius:10px; background:#fdecef; color:#b23a52; font-size:13px; font-weight:700; line-height:1.35; }
+  .rangepop-warn[hidden] { display:none; }
+  .rangepop .addbtn.danger { background:#d6455d !important; }
   @media print {
     #paymentOverview, #paymentOverviewTitle { display:none !important; }
     .print-pay { display:block; break-inside:avoid; page-break-inside:avoid; margin:14px 0 0; padding:12px 16px; border:1px solid #e6dcf2; border-radius:12px; color:#3d3568; font-size:12.5px; }
@@ -7764,6 +7767,21 @@
     }
   });
 
+  // While a popup is open, the page underneath doesn't react: a click
+  // outside it only closes it (no day opening, no activity, no drag).
+  (function(){
+    function inside(t){
+      return openPop.contains(t) || (t.closest && t.closest('.mp-dd, #dayPickDD, #typeComboDD, #niceDD')) || (openPop._anchorEl && openPop._anchorEl.contains(t));
+    }
+    function guard(e){
+      if(!openPop || !openPop.isConnected) return;
+      var t = e.target; if(!t || inside(t)) return;
+      e.stopPropagation(); e.preventDefault();
+      if(e.type === 'click' && Date.now() - (window.__pickerPickedAt || 0) >= 400) closePop();
+    }
+    ['pointerdown', 'mousedown', 'click', 'dblclick', 'contextmenu'].forEach(function(type){ window.addEventListener(type, guard, true); });
+  })();
+
   // Shared popover placement: anchor below-left of the trigger element, then
   // clamp so it can't run off the right/bottom edge on narrow (mobile) viewports.
   function positionPopover(pop, anchorEl){
@@ -10699,12 +10717,44 @@
       setHolidays(target, arr);
       renderHoliday(target);
     }
+    // Days in the range that already have another location: warn first,
+    // and only replace them on a second click.
+    var warn = document.createElement('div'); warn.className = 'rangepop-warn'; warn.hidden = true;
+    var confirmed = false;
+    function existingPlaces(a, b){
+      var hits = [], y = a.year, m = a.month;
+      while(true){
+        var first = y === a.year && m === a.month, last = y === b.year && m === b.month;
+        var s0 = first ? a.day : 1, e0 = last ? b.day : daysIn(y, m);
+        document.querySelectorAll('.panel').forEach(function(p){
+          var d = getPanelDate(p);
+          if(y === here.year && m === here.month){ if(p !== panel) return; } else if(!(d.year === y && d.month === m)) return;   // same panels apply() will write to
+          p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){
+            var dn = dayNumOfCell(c), pl = placeOfCell(c);
+            if(dn >= s0 && dn <= e0 && pl && pl !== nameInput.value.trim()) hits.push({ day:dn, month:m, place:pl });
+          });
+        });
+        if(last) break;
+        m++; if(m > 12){ m = 1; y++; }
+      }
+      return hits;
+    }
+    function resetWarn(){ if(confirmed){ confirmed = false; warn.hidden = true; applyBtn.textContent = t('range_add'); applyBtn.classList.remove('danger'); } }
     function apply(){
       var name = nameInput.value.trim();
       if(isLocation && !name){ nameInput.focus(); return; }
       if(!fromIn.value || !toIn.value) return;
       var lo = fromIn.value <= toIn.value ? fromIn.value : toIn.value, hi = fromIn.value <= toIn.value ? toIn.value : fromIn.value;
       var a = parseIso(lo), b = parseIso(hi);
+      if(isLocation && !confirmed){
+        var hits = existingPlaces(a, b);
+        if(hits.length){
+          var names = hits.map(function(h){ return h.place; }).filter(function(x, i, arr){ return arr.indexOf(x) === i; });
+          warn.innerHTML = '⚠️ ' + hits.length + (hits.length === 1 ? ' day already has' : ' days already have') + ' a location (' + names.slice(0, 3).join(', ').replace(/</g, '&lt;') + (names.length > 3 ? '…' : '') + '). Adding will replace ' + (hits.length === 1 ? 'it' : 'them') + '.';
+          warn.hidden = false; confirmed = true; applyBtn.textContent = 'Replace'; applyBtn.classList.add('danger');
+          return;
+        }
+      }
       closePop();
       var stayOn = optOf(panel), y = a.year, m = a.month;
       while(true){
@@ -10721,10 +10771,11 @@
       }
       if(document.getElementById('panel-' + stayOn) && !panel.classList.contains('on')) activatePillByOpt(stayOn);
     }
-    [nameInput, fromRow, toRow, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    [nameInput, fromIn, toIn].forEach(function(el){ el.addEventListener('input', resetWarn); el.addEventListener('change', resetWarn); });
+    [nameInput, fromRow, toRow, title, warn].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
     nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); apply(); } });
     applyBtn.addEventListener('click', function(e){ e.stopPropagation(); apply(); });
-    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(fromRow); pop.appendChild(toRow); pop.appendChild(applyBtn);
+    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(fromRow); pop.appendChild(toRow); pop.appendChild(warn); pop.appendChild(applyBtn);
     positionPopover(pop, anchorEl);
     if(isLocation) nameInput.focus();
   }
