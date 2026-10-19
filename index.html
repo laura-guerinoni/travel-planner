@@ -2826,7 +2826,10 @@
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
   /* no rubber-band bounce past the top/bottom: it pulled the calendar away from its tabs */
-  html { overflow-x:hidden; overscroll-behavior:none; }
+  /* the page's scrollbar space is always kept, so switching to a longer or
+     shorter plan never shifts things sideways (the selected plan tab used to
+     come loose from the page) */
+  html { overflow-x:hidden; overscroll-behavior:none; scrollbar-gutter:stable; }
   body { overscroll-behavior:none; }
   /* the New activity chip: pops in, then a light sweep crosses it every
      few seconds while you fill in the card, like a shiny card */
@@ -2841,9 +2844,91 @@
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
+  #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  .print-pay { display:none; }
+  .rangepop-warn { margin:0 0 10px; padding:9px 12px; border-radius:10px; background:#fdecef; color:#b23a52; font-size:13px; font-weight:700; line-height:1.35; }
+  .rangepop-warn[hidden] { display:none; }
+  .rangepop .addbtn.danger { background:#d6455d !important; }
+  @media print {
+    #paymentOverview, #paymentOverviewTitle { display:none !important; }
+    .print-pay { display:block; break-inside:avoid; page-break-inside:avoid; margin:14px 0 0; padding:12px 16px; border:1px solid #e6dcf2; border-radius:12px; color:#3d3568; font-size:12.5px; }
+    .print-pay h3 { margin:0 0 8px; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:#9b8fc0; }
+    .print-pay table { width:100%; border-collapse:collapse; }
+    .print-pay th { text-align:right; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:#9b8fc0; font-weight:800; padding:0 0 4px; }
+    .print-pay td { text-align:right; padding:4px 0; border-top:1px solid #f0e8f8; font-weight:700; }
+    .print-pay td:first-child, .print-pay th:first-child { text-align:left; }
+    .print-pay .pp-face { display:inline-block; width:18px; height:18px; vertical-align:-4px; margin-right:6px; }
+    .print-pay .pp-face svg { width:100%; height:100%; }
+    .print-pay td.pos { color:#2f9e74; } .print-pay td.neg { color:#d6455d; }
+    .print-pay .pp-debts { margin-top:8px; display:flex; flex-wrap:wrap; gap:4px 18px; }
+    .print-pay .pp-unpaid { margin-top:6px; color:#9b8fc0; font-weight:700; }
+  }
+  /* no dangling divider at the bottom of the profile menu when there's no Sign out under it */
+  #actionMenuDropdown .actionMenuDivider:has(+ #appSignOutBtn:not(.show)) { display:none; }
+  /* Printing / Save as PDF after the desktop refresh: only the calendar —
+     none of the floating screen pieces (top row, tabs, stitching, faces,
+     search, side panel, cards, dropdowns) — on plain white, one month per
+     page with no day spilling onto the next sheet. */
+  @media print {
+    @page { margin:12mm; }
+    #pageHead, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel,
+    #dayGhost, #dragRange, #niceDD, #fieldRemove, #payFloat, #payPill, #typeComboDD, #dayPickDD, #searchPalette,
+    .mp-dd, .itemmenu, .monthpop, .tagpop, .linkpop, .page-share, .modal-overlay, .day-ghost-slot,
+    .month-sidebar, .pills, .pills-gapfill, .grid.banner-row { display:none !important; }
+    html, body { background:#fff !important; padding:0 !important; margin:0 !important; overflow:visible !important; }
+    body::before, body::after { display:none !important; }
+    .wrap, .panel { background:#fff !important; background-image:none !important; box-shadow:none !important; border:none !important; border-radius:0 !important; padding:0 !important; margin:0 !important; }
+    .wrap::before, .wrap::after, .panel::after { display:none !important; }
+    .panel::before { font-family:inherit; color:#3d3568 !important; font-size:20px; margin:0 0 8px; }
+    .grid.heads, .grid.heads.stuck { position:static !important; margin:0 !important; padding:0 0 4px !important; border:none !important; background:none !important; box-shadow:none !important; }
+    .grid.heads::before, .grid.heads::after { display:none !important; }
+    /* compact days, so more weeks fit on a page (a week that doesn't fit
+       moves to the next page whole, which left big empty gaps) */
+    body:not(.print-list) .cell { min-height:84px; }
+    .cell { padding:7px 8px 8px !important; }
+    .cellhead .daynum { font-size:13px !important; }
+    .cell > .loc { margin:3px 0 4px !important; }
+    .cell > .loc > .loc-text { font-size:9.5px !important; }
+    .cell > .loc::before { width:11px !important; height:11px !important; }
+    .cell > .loc > .daytotal-badge { top:7px !important; right:7px !important; font-size:9.5px !important; padding:1px 6px !important; }
+    .acts { gap:3px !important; }
+    .acts > li { padding:3px 4px !important; font-size:10.5px !important; line-height:1.25 !important; }
+    .acts > li .chip { font-size:8.5px !important; padding:1px 6px !important; }
+    .acts > li .chip .chip-icon { width:11px !important; height:11px !important; }
+    .acts > li > .title { font-size:10.5px !important; margin-top:1px !important; }
+    .acts > li > .line, .acts > li > .price { font-size:9.5px !important; }
+    .acts > li > .line[data-ph] { display:none !important; }
+    .acts > li .payicon, .acts > li .actcurrency-icon, .acts > li .linkicons, .acts > li .act-participants { display:none !important; }
+    .acts > li[data-sec] { margin-top:20px !important; }
+    .acts > li[data-sec]:not([data-sec-first]) { margin-top:24px !important; }
+    .acts > li[data-sec]::before { top:-17px !important; font-size:9px !important; line-height:12px !important; background-size:11px 11px !important; padding-left:15px !important; }
+    .cell { box-shadow:none !important; border-color:#e6dcf2 !important; }
+    .cell.empty { border:none !important; background:none !important; }
+    .cell.empty * { display:none !important; }
+    .acts > li:hover { background:none !important; box-shadow:none !important; }
+    .acts > li[data-allday] { background:#f6f1fb !important; }
+    .cell > .loc > .daytotal-badge { position:absolute !important; top:12px; right:11px; }
+  }
+  /* holiday periods are no longer part of the app: their bands aren't shown (the data is left as is) */
+  .grid.banner-row { display:none !important; }
+  /* every dropdown list in the app looks like the type picker's */
+  #niceDD { position:fixed; z-index:10001; background:#fff; border-radius:6px; padding:6px 0; overflow-y:auto; font-family:inherit;
+    box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
+  #niceDD[hidden] { display:none; }
+  /* no browser-blue ring on a dropdown field; open, it's outlined in the app's pink */
+  select:focus { outline:none; }
+  select.nd-open { outline:none; border-color:var(--primary) !important; box-shadow:0 0 0 1px var(--primary) !important; }
+  #niceDD .nd-group { padding:8px 16px 4px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #niceDD .nd-opt { padding:10px 16px; font-size:14.5px; color:var(--ink); cursor:pointer; white-space:nowrap; }
+  #niceDD .nd-opt:hover, #niceDD .nd-opt.act { background:var(--bg); }
+  #niceDD .nd-opt.cur { font-weight:600; background:var(--bg); box-shadow:inset 0 0 0 2px var(--primary); border-radius:6px; margin:0 6px; padding:10px 10px; }
+  #niceDD .nd-opt[aria-disabled="true"] { opacity:.45; cursor:default; }
   #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
   #fabAddPanel .gc-allday select { flex:1; min-width:0; }
   #fabAddPanel .gc-allday[hidden] { display:none; }
+  #fabAddPanel .gc-to-arrow { flex:none; color:var(--muted); font-weight:800; }
+  #fabAddPanel .gc-to-arrow[hidden], #fabAddPanel #fabAddPlaceTo[hidden] { display:none !important; }
+  #fabAddPanel #fabAddPlace, #fabAddPanel #fabAddPlaceTo { flex:1 1 0; min-width:0; }
   #fabAddPanel .gc-row > .gc-until { flex:0 0 auto !important; width:auto; max-width:48%; }
   #fabAddPanel .gc-until[hidden] { display:none !important; }
   #fabAddPanel #fabAddStayOut[hidden] { display:none; }
@@ -3127,6 +3212,7 @@
   <div id="actionMenu">
     <button type="button" id="actionMenuBtn" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="true">⋮</button>
     <div id="actionMenuDropdown">
+      <button type="button" id="editAvatarBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span>Edit avatar</span></button>
       <button type="button" id="saveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span id="saveBtnLabel">Save</span></button>
       <button type="button" id="manageAccessBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="menu_manage">Participants</span></button>
       <button type="button" id="printBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg><span data-i18n="menu_print">Print</span></button>
@@ -3145,7 +3231,7 @@
         <button type="button" class="backdrop-dot" data-backdrop-name="magical" title="Starry" aria-label="Starry background"></button>
         <button type="button" class="backdrop-dot" data-backdrop-name="minimal" title="Minimal" aria-label="Minimal background"></button>
       </div>
-      <label class="actionMenuThemeRow actionMenuYearsRow">
+      <label class="actionMenuThemeRow actionMenuYearsRow" hidden style="display:none">
         <span class="actionMenuThemeLabel" data-i18n="menu_collapse_years">Collapse other years</span>
         <input type="checkbox" id="collapseYearsToggle" />
       </label>
@@ -3226,8 +3312,6 @@
       <!-- Laid out like Google Calendar's quick add: the name as a big
            underlined field, then one compact row per detail with an icon. -->
       <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" autocomplete="off" />
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select><select id="fabAddDayEnd" class="fabadd-select gc-until" aria-label="Until" hidden></select></div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Where are you?" aria-label="Place" autocomplete="off" /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
       <div id="fabAddNewTag" class="gc-newtag" hidden>
         <input type="text" class="fabadd-select nt-icon" maxlength="4" placeholder="🎟️" aria-label="Emoji">
@@ -3235,11 +3319,13 @@
         <input type="color" class="nt-color" value="#d9663f" aria-label="Colour">
         <button type="button" class="nt-add">Add</button>
       </div>
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select><select id="fabAddDayEnd" class="fabadd-select gc-until" aria-label="Until" hidden></select></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden><span class="gc-allday-lab">All day · check-out</span><select id="fabAddStayOut" class="fabadd-select" aria-label="Check-out"></select></span><div class="fabadd-time-row">
         <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
       </div></div>
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Add location" aria-label="Place" autocomplete="off" /><span class="gc-to-arrow" id="fabAddPlaceArrow" hidden>→</span><input type="text" id="fabAddPlaceTo" class="fabadd-select" placeholder="To" aria-label="To" autocomplete="off" hidden /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
@@ -7297,7 +7383,20 @@
     var top = parseFloat(getComputedStyle(h).top) || 0, stuck = window.scrollY > 4 && Math.abs(h.getBoundingClientRect().top - top) < 1.5;
     if(h.classList.contains('stuck') !== stuck) h.classList.toggle('stuck', stuck);
   }
-  (function loop(){ renderTicketStitch(); renderPlanStitch(); renderRibbonStitch(); alignTopButtons(); markStuckHeads(); requestAnimationFrame(loop); })();
+  // The selected plan tab stays attached to the page: if anything moved
+  // it off its slot (a scrollbar coming or going, a layout shift after a
+  // switch), pin it again.
+  function keepTabsPinned(){
+    if(window.matchMedia('(max-width:720px)').matches) return;
+    var off = false;
+    document.querySelectorAll('.month-segment.current, .month-segment[data-year-seg]').forEach(function(seg){
+      if(!seg.parentElement) return;
+      var r = seg.getBoundingClientRect(), p = seg.parentElement.getBoundingClientRect();
+      if(Math.abs(r.right - p.right) > .5) off = true;
+    });
+    if(off) pinCurrentSegment();
+  }
+  (function loop(){ renderTicketStitch(); renderPlanStitch(); renderRibbonStitch(); alignTopButtons(); markStuckHeads(); keepTabsPinned(); requestAnimationFrame(loop); })();
   // A little magic when something gets starred: a quick rising run of
   // bell-like notes (high, soft, with a shimmer of overtones), then a
   // twinkle on top. Made with Web Audio, quiet.
@@ -7687,6 +7786,21 @@
     }
   });
 
+  // While a popup is open, the page underneath doesn't react: a click
+  // outside it only closes it (no day opening, no activity, no drag).
+  (function(){
+    function inside(t){
+      return openPop.contains(t) || (t.closest && t.closest('.mp-dd, #dayPickDD, #typeComboDD, #niceDD')) || (openPop._anchorEl && openPop._anchorEl.contains(t));
+    }
+    function guard(e){
+      if(!openPop || !openPop.isConnected) return;
+      var t = e.target; if(!t || inside(t)) return;
+      e.stopPropagation(); e.preventDefault();
+      if(e.type === 'click' && Date.now() - (window.__pickerPickedAt || 0) >= 400) closePop();
+    }
+    ['pointerdown', 'mousedown', 'click', 'dblclick', 'contextmenu'].forEach(function(type){ window.addEventListener(type, guard, true); });
+  })();
+
   // Shared popover placement: anchor below-left of the trigger element, then
   // clamp so it can't run off the right/bottom edge on narrow (mobile) viewports.
   function positionPopover(pop, anchorEl){
@@ -7878,7 +7992,7 @@
     avatars: { 'laura,example,com':{ name:'Laura', hair:'#7a4a2a', skin:'#f3c9a4' }, 'seba,example,com':{ name:'Seba', hair:'#2f2f3a', skin:'#e8b892', glasses:'glasses' }, 'marta,example,com':{ name:'Marta', hair:'#c9772f', skin:'#f6d3b6' } } };
   var cachedMembers = null;
   function loadMemberAvatarData(forceRefresh){
-    if(!IS_HOSTED){ cachedMembers = MOCK_PEOPLE.members; return Promise.resolve(MOCK_PEOPLE); }
+    if(!IS_HOSTED){ cachedMembers = MOCK_PEOPLE.members; window.__memberData = MOCK_PEOPLE; return Promise.resolve(MOCK_PEOPLE); }
     if(!memberAvatarDataPromise || forceRefresh){
       // firebase.database() itself can throw synchronously (not just
       // reject) if no app was ever initialized — same gotcha fixed in
@@ -7904,7 +8018,7 @@
         return { members: [], avatars: {} };
       });
     }
-    memberAvatarDataPromise.then(function(d){ if(d && d.members) cachedMembers = d.members; });
+    memberAvatarDataPromise.then(function(d){ if(d && d.members){ cachedMembers = d.members; window.__memberData = d; } });
     return memberAvatarDataPromise;
   }
   function renderParticipants(li){
@@ -10593,39 +10707,14 @@
     nameInput.type = 'text';
     nameInput.placeholder = t(isLocation ? 'range_location_placeholder' : 'range_holiday_placeholder');
     if(!isLocation) nameInput.value = 'Holiday - time off';
-    function fillDays(sel, count, selected){
-      sel.innerHTML = '';
-      for(var d = 1; d <= count; d++){
-        var opt = document.createElement('option');
-        opt.value = String(d); opt.textContent = String(d);
-        if(d === Math.min(selected, count)) opt.selected = true;
-        sel.appendChild(opt);
-      }
-    }
-    var fromSel = document.createElement('select'), toSel = document.createElement('select');
-    fillDays(fromSel, daysIn(here.year, here.month), 1);
-    fillDays(toSel, daysIn(here.year, here.month), isLocation ? 2 : 3);
-    // The end can be in this month or any of the next few.
-    var toMonthSel = document.createElement('select');
-    toMonthSel.className = 'rangepop-month';
-    for(var k = 0; k <= 5; k++){
-      var mm = here.month + k, yy = here.year + Math.floor((mm - 1) / 12);
-      mm = ((mm - 1) % 12) + 1;
-      var mo = document.createElement('option');
-      mo.value = yy + '-' + mm;
-      mo.textContent = MONTH_FULL[mm - 1] + (yy !== here.year ? ' ' + yy : '');
-      toMonthSel.appendChild(mo);
-    }
-    function endMonth(){ var parts = toMonthSel.value.split('-'); return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) }; }
-    toMonthSel.addEventListener('change', function(){
-      var em = endMonth();
-      fillDays(toSel, daysIn(em.year, em.month), parseInt(toSel.value, 10) || 1);
-    });
-    // Within one month, picking a start past the end drags the end along.
-    fromSel.addEventListener('change', function(){
-      var em = endMonth();
-      if(em.year === here.year && em.month === here.month && parseInt(toSel.value, 10) < parseInt(fromSel.value, 10)) toSel.value = fromSel.value;
-    });
+    // From / to: the same small calendar as every other date in the app.
+    function isoOf(y, m, d){ return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+    function parseIso(v){ var p = String(v || '').split('-').map(Number); return { year:p[0], month:p[1], day:p[2] }; }
+    var fromIn = document.createElement('input'), toIn = document.createElement('input');
+    fromIn.type = toIn.type = 'date';
+    fromIn.value = isoOf(here.year, here.month, 1);
+    toIn.value = isoOf(here.year, here.month, Math.min(isLocation ? 2 : 3, daysIn(here.year, here.month)));
+    fromIn.addEventListener('change', function(){ if(toIn.value < fromIn.value){ toIn.value = fromIn.value; toIn.dispatchEvent(new Event('change')); } });
     function line(labelText, controls){
       var row = document.createElement('div');
       row.className = 'rangepop-days';
@@ -10634,11 +10723,9 @@
       controls.forEach(function(c){ row.appendChild(c); });
       return row;
     }
-    var fromMonth = document.createElement('span');
-    fromMonth.className = 'rangepop-static';
-    fromMonth.textContent = MONTH_FULL[here.month - 1];
-    var fromRow = line(t('range_from'), [fromSel, fromMonth]);
-    var toRow = line(t('range_to'), [toSel, toMonthSel]);
+    var fromRow = line(t('range_from'), [fromIn]);
+    var toRow = line(t('range_to'), [toIn]);
+    enhanceDateInput(fromIn); enhanceDateInput(toIn);
     var applyBtn = document.createElement('button');
     applyBtn.type = 'button'; applyBtn.className = 'addbtn'; applyBtn.textContent = t('range_add');
     function addPiece(target, start, end, name){
@@ -10649,35 +10736,65 @@
       setHolidays(target, arr);
       renderHoliday(target);
     }
+    // Days in the range that already have another location: warn first,
+    // and only replace them on a second click.
+    var warn = document.createElement('div'); warn.className = 'rangepop-warn'; warn.hidden = true;
+    var confirmed = false;
+    function existingPlaces(a, b){
+      var hits = [], y = a.year, m = a.month;
+      while(true){
+        var first = y === a.year && m === a.month, last = y === b.year && m === b.month;
+        var s0 = first ? a.day : 1, e0 = last ? b.day : daysIn(y, m);
+        document.querySelectorAll('.panel').forEach(function(p){
+          var d = getPanelDate(p);
+          if(y === here.year && m === here.month){ if(p !== panel) return; } else if(!(d.year === y && d.month === m)) return;   // same panels apply() will write to
+          p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){
+            var dn = dayNumOfCell(c), pl = placeOfCell(c);
+            if(dn >= s0 && dn <= e0 && pl && pl !== nameInput.value.trim()) hits.push({ day:dn, month:m, place:pl });
+          });
+        });
+        if(last) break;
+        m++; if(m > 12){ m = 1; y++; }
+      }
+      return hits;
+    }
+    function resetWarn(){ if(confirmed){ confirmed = false; warn.hidden = true; applyBtn.textContent = t('range_add'); applyBtn.classList.remove('danger'); } }
     function apply(){
       var name = nameInput.value.trim();
       if(isLocation && !name){ nameInput.focus(); return; }
-      var start = parseInt(fromSel.value, 10), end = parseInt(toSel.value, 10), em = endMonth();
-      var sameMonth = em.year === here.year && em.month === here.month;
-      if(sameMonth && end < start){ var swap = start; start = end; end = swap; }
+      if(!fromIn.value || !toIn.value) return;
+      var lo = fromIn.value <= toIn.value ? fromIn.value : toIn.value, hi = fromIn.value <= toIn.value ? toIn.value : fromIn.value;
+      var a = parseIso(lo), b = parseIso(hi);
+      if(isLocation && !confirmed){
+        var hits = existingPlaces(a, b);
+        if(hits.length){
+          var names = hits.map(function(h){ return h.place; }).filter(function(x, i, arr){ return arr.indexOf(x) === i; });
+          warn.innerHTML = '⚠️ ' + hits.length + (hits.length === 1 ? ' day already has' : ' days already have') + ' a location (' + names.slice(0, 3).join(', ').replace(/</g, '&lt;') + (names.length > 3 ? '…' : '') + '). Adding will replace ' + (hits.length === 1 ? 'it' : 'them') + '.';
+          warn.hidden = false; confirmed = true; applyBtn.textContent = 'Replace'; applyBtn.classList.add('danger');
+          return;
+        }
+      }
       closePop();
-      if(sameMonth){ addPiece(panel, start, end, name); return; }
-      addPiece(panel, start, daysIn(here.year, here.month), name);
-      // Creating a month opens it; come back to where the span was added.
-      var stayOn = optOf(panel);
-      var y = here.year, m = here.month;
-      do {
+      var stayOn = optOf(panel), y = a.year, m = a.month;
+      while(true){
+        var first = y === a.year && m === a.month, last = y === b.year && m === b.month, targets = [];
+        if(y === here.year && m === here.month) targets.push(panel);
+        else {
+          document.querySelectorAll('.panel').forEach(function(p){ var d = getPanelDate(p); if(d.year === y && d.month === m) targets.push(p); });
+          if(!targets.length){ var made = createOption(y, m); if(made) targets.push(made); }
+        }
+        var s0 = first ? a.day : 1, e0 = last ? b.day : daysIn(y, m);
+        targets.forEach(function(target){ addPiece(target, s0, e0, name); });
+        if(last) break;
         m++; if(m > 12){ m = 1; y++; }
-        var isLast = y === em.year && m === em.month;
-        var targets = [];
-        document.querySelectorAll('.panel').forEach(function(p){
-          var d = getPanelDate(p);
-          if(d.year === y && d.month === m) targets.push(p);
-        });
-        if(!targets.length){ var made = createOption(y, m); if(made) targets.push(made); }
-        targets.forEach(function(target){ addPiece(target, 1, isLast ? end : daysIn(y, m), name); });
-      } while(!(y === em.year && m === em.month));
+      }
       if(document.getElementById('panel-' + stayOn) && !panel.classList.contains('on')) activatePillByOpt(stayOn);
     }
-    [nameInput, fromSel, toSel, toMonthSel, fromRow, toRow, title].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
+    [nameInput, fromIn, toIn].forEach(function(el){ el.addEventListener('input', resetWarn); el.addEventListener('change', resetWarn); });
+    [nameInput, fromRow, toRow, title, warn].forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); }); });
     nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); apply(); } });
     applyBtn.addEventListener('click', function(e){ e.stopPropagation(); apply(); });
-    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(fromRow); pop.appendChild(toRow); pop.appendChild(applyBtn);
+    pop.appendChild(title); pop.appendChild(nameInput); pop.appendChild(fromRow); pop.appendChild(toRow); pop.appendChild(warn); pop.appendChild(applyBtn);
     positionPopover(pop, anchorEl);
     if(isLocation) nameInput.focus();
   }
@@ -11319,7 +11436,7 @@
       if(!panel.classList.contains('on')) activatePillByOpt(opt);
       openRangePopover(pill, panel, 'holiday');
     });
-    pop.appendChild(holidayRow);
+    // (holiday periods are no longer part of the app)
     var locationRow = document.createElement('div');
     locationRow.className = 'itemmenu-row';
     locationRow.innerHTML = '<span class="itemmenu-icon">' + ICON_PIN + '</span>' + t('pillmenu_add_location');
@@ -12374,7 +12491,7 @@
 
   var COLLAPSE_YEARS_KEY = 'travelPlannerCollapseYears';
   function collapseOtherYears(){
-    try { return localStorage.getItem(COLLAPSE_YEARS_KEY) !== '0'; } catch(e){ return true; }
+    return true; // no longer an option: other years always start collapsed (each can still be opened from its own year tab)
   }
   // Years opened or closed by hand in the month column (year -> bool).
   var yearOpenOverride = {};
@@ -12897,7 +13014,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -12954,6 +13071,21 @@
     e.stopPropagation();
     if(actionMenuDropdown) actionMenuDropdown.classList.toggle('show');
   });
+  // Your own avatar: change how your face looks (the same editor the old
+  // Participants list had), right from the profile menu.
+  var editAvatarBtn = document.getElementById('editAvatarBtn');
+  if(editAvatarBtn){
+    editAvatarBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(!currentUserEmail || !currentUserKey) return;
+      closeActionMenu();
+      firebase.database().ref('avatars/' + currentUserKey).once('value').then(function(snap){
+        openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn, snap.val() || undefined);
+      }).catch(function(){ openAvatarEditor(currentUserEmail, currentUserKey, actionMenuBtn); });
+    });
+    // only once signed in
+    (function show(){ editAvatarBtn.classList.toggle('show', !!currentUserKey); setTimeout(show, 1000); })();
+  }
   document.addEventListener('click', function(e){
     if(!actionMenuDropdown || !actionMenuDropdown.classList.contains('show')) return;
     if(actionMenu && actionMenu.contains(e.target)) return;
@@ -12984,8 +13116,40 @@
     document.querySelectorAll('.budget li[data-opt]').forEach(function(li){
       li.classList.toggle('print-hide', scope === 'active' && li.getAttribute('data-opt') !== activeOpt);
     });
+    addPrintPayments();
+  }
+  // The payments of each printed alternative, the way the app shows them
+  // now: each person's share and what they paid, then who owes whom and
+  // what nobody has paid yet. Added just for printing, removed after.
+  function buildPrintPayments(panel){
+    var bal = computeBalances(panel), keys = {};
+    Object.keys(bal.share).concat(Object.keys(bal.paid)).forEach(function(k){ keys[k] = 1; });
+    var people = Object.keys(keys);
+    if(!people.length && !(bal.unpaid > 0.004)) return null;
+    var data = window.__memberData || { members:[], avatars:{} };
+    function nameOf(k){ var m = (data.members || []).filter(function(x){ return x.key === k; })[0]; var email = m ? m.email : k.replace(/,/g, '.'); return displayNameFor(email, (data.avatars || {})[k]); }
+    function faceOf(k){ var m = (data.members || []).filter(function(x){ return x.key === k; })[0]; var email = m ? m.email : k.replace(/,/g, '.'); return avatarSvgFor(email, (data.avatars || {})[k]); }
+    var money = function(a){ return formatMoney(Math.round(a * 100) / 100, panel); };
+    var box = document.createElement('section'); box.className = 'print-pay';
+    var h = '<h3>Payments</h3>';
+    if(people.length){
+      h += '<table><thead><tr><th></th><th>Share</th><th>Paid</th><th>Balance</th></tr></thead><tbody>';
+      people.forEach(function(k){ var sh = bal.share[k] || 0, pd = bal.paid[k] || 0, b = pd - sh;
+        h += '<tr><td><span class="pp-face">' + faceOf(k) + '</span>' + nameOf(k).replace(/</g, '&lt;') + '</td><td>' + money(sh) + '</td><td>' + money(pd) + '</td><td class="' + (b > 0.004 ? 'pos' : b < -0.004 ? 'neg' : '') + '">' + (b > 0.004 ? '+' + money(b) : b < -0.004 ? '−' + money(-b) : money(0)) + '</td></tr>'; });
+      h += '</tbody></table>';
+      var debts = computeDebts(bal);
+      h += '<div class="pp-debts">' + (debts.length ? debts.map(function(d){ return '<div><b>' + nameOf(d.from).replace(/</g, '&lt;') + '</b> owes <b>' + nameOf(d.to).replace(/</g, '&lt;') + '</b> ' + money(d.a) + '</div>'; }).join('') : '<div>All settled ✓</div>') + '</div>';
+    }
+    if(bal.unpaid > 0.004) h += '<div class="pp-unpaid">Not paid yet: ' + money(bal.unpaid) + '</div>';
+    box.innerHTML = h;
+    return box;
+  }
+  function addPrintPayments(){
+    document.querySelectorAll('.print-pay').forEach(function(x){ x.remove(); });
+    document.querySelectorAll('.panel[data-print-label]:not(.print-hide)').forEach(function(panel){ var b = buildPrintPayments(panel); if(b) panel.appendChild(b); });
   }
   function clearPrintScope(){
+    document.querySelectorAll('.print-pay').forEach(function(x){ x.remove(); });
     document.querySelectorAll('.print-hide').forEach(function(el){ el.classList.remove('print-hide'); });
     document.querySelectorAll('.panel[data-print-label]').forEach(function(el){ el.removeAttribute('data-print-label'); });
   }
@@ -13209,18 +13373,38 @@
   function citiesOf(text){ return text ? text.split('→').map(function(x){ return x.trim(); }).filter(Boolean) : []; }
   function liPlace(li){ var p = li.getAttribute('data-place'); if(p) return p; var c = citiesOf(placeOfCell(li.closest('.cell'))); return c[0] || ''; }
   function cellOfDay(day){ var p = document.querySelector('.panel.on'), hit = null; if(p) p.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) hit = c; }); return hit; }
+  // Getting somewhere (train, bus, flight, drive, boat, bike, hike): the
+  // location becomes From → To. From starts where you are that day; To
+  // makes the day "A → B" and the next day starts in B. With no name, the
+  // activity is called "A → B".
+  var TRANSPORT_RE = /^(train|bus|flight|drive|boat|bike|hike)$/i;
+  function isTransportTag(tg){ return !!tg && TRANSPORT_RE.test(String(tg.name || '').trim()); }
+  function syncTransportForm(){
+    var to = document.getElementById('fabAddPlaceTo'), arrow = document.getElementById('fabAddPlaceArrow'), from = document.getElementById('fabAddPlace');
+    if(!to || !fabAddTagSelect) return;
+    var on = isTransportTag(TAGS[fabAddTagSelect.value]);
+    to.hidden = arrow.hidden = !on;
+    from.placeholder = on ? 'From' : 'Add location';
+  }
   function suggestPlace(){
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
     var cell = cellOfDay(fabAddDaySelect.value);
     if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
     if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
     var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || '';
+    // a journey on a day with nothing yet leaves from where the day before ended
+    if(!inp.value && cell && isTransportTag(TAGS[fabAddTagSelect.value])){
+      var cells = [].slice.call(cell.closest('.panel').querySelectorAll('.cell:not(.empty)'));
+      for(var j = cells.indexOf(cell) - 1; j >= 0; j--){ var pc = citiesOf(placeOfCell(cells[j])); if(pc.length){ inp.value = pc[pc.length - 1]; break; } }
+    }
   }
   function dayActs(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)')); }
   // li: the activity just added/edited (in its final day).
   function applyPlace(cell, li){
     var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
     var v = inp.value.trim(), cities = citiesOf(placeOfCell(cell)), loc = cell.querySelector(':scope > .loc');
+    var toInp = document.getElementById('fabAddPlaceTo'), dest = toInp && !toInp.hidden ? toInp.value.trim() : '';
+    if(li){ if(dest) li.setAttribute('data-place-to', dest); else li.removeAttribute('data-place-to'); }
     var nightCities = stayNights(cell).map(liPlace).filter(Boolean);
     var old = li ? li.getAttribute('data-place') || (cities[0] || '') : '';
     var others = li ? dayActs(cell).filter(function(x){ return x !== li; }) : [];
@@ -13233,6 +13417,8 @@
       var at = cities.indexOf(old);
       if(fabAddEditLi && old && at !== -1 && !oldStill) cities[at] = v; else cities.push(v);
     }
+    // a journey: its destination comes right after where it leaves from
+    if(dest && cities.indexOf(dest) === -1){ var fi = v ? cities.indexOf(v) : -1; if(fi === -1) cities.push(dest); else cities.splice(fi + 1, 0, dest); }
     // a stay's night here: you wake up in its city, so it leads the day
     nightCities.slice().reverse().forEach(function(c){ var k = cities.indexOf(c); if(k !== 0){ if(k > 0) cities.splice(k, 1); cities.unshift(c); } });
     var final = cities.join(' → ');
@@ -13241,6 +13427,9 @@
       var lt = loc.querySelector('.loc-text') || loc; if(lt.textContent.trim() !== final) lt.textContent = final;
       cell.classList.add('active');
     } else if(loc) loc.remove();
+    // no name given: call it "A → B"
+    var tEl = li && li.querySelector(':scope > .title'), nm = document.getElementById('fabAddTitleInput');
+    if(tEl && dest && v && nm && !nm.value.trim()) tEl.textContent = v + ' → ' + dest;
     renderPlaceSections(cell);
   }
   // ---- All-day activities (a Stay): no time; they sit at the top of the
@@ -13342,6 +13531,7 @@
     return out.length > 1 ? out : null;
   }
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
+  if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', function(){ syncTransportForm(); suggestPlace(); });
   if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
   document.body.appendChild(Object.assign(document.createElement('div'), { id:'dragRange' }));
   (function(){ var so = document.getElementById('fabAddStayOut'); if(so) so.addEventListener('change', function(){ so.dataset.want = so.value; }); })();
@@ -13402,6 +13592,8 @@
       if(st && en && (li.hasAttribute('data-span-to') || li.hasAttribute('data-stay-to'))) lab = (li.hasAttribute('data-stay-to') ? '🌙 night 1 of ' : '↔ day 1 of ') + (en - st + 1);
       flag(t, 'data-span-label', !!lab, lab);
     });
+    // an empty "🕒 time" placeholder line (left over from older activities) — hidden when printing
+    all.forEach(function(li){ li.querySelectorAll(':scope > .line').forEach(function(l){ flag(l, 'data-ph', /^🕒\s*time$/i.test(l.textContent.trim()), ''); }); });
     // an activity costing nothing doesn't show "€ 0" (display only)
     all.forEach(function(li){ var pv = li.querySelector(':scope > .price > .price-val'); flag(li, 'data-free', !!pv && !(parseMoney(pv.textContent) > 0) && !li.hasAttribute('data-paid'), ''); });
     seq.forEach(function(li, i){
@@ -13436,7 +13628,9 @@
     more.querySelector('[data-x="ticket"] span').textContent = li && li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket';
     more.querySelector('[data-x="photo"] span').textContent = li && li.hasAttribute('data-img') ? 'Replace photo' : 'Photo';
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
-    placeTouched = false; suggestPlace();
+    placeTouched = false;
+    var toInp = document.getElementById('fabAddPlaceTo'); if(toInp) toInp.value = li ? (li.getAttribute('data-place-to') || '') : '';
+    suggestPlace(); syncTransportForm();
     var end = document.getElementById('fabAddDayEnd');
     if(end){ var st = li && li.getAttribute('data-span-to'); if(st) end.dataset.want = st; else delete end.dataset.want; end.hidden = !st; fillDayEnd(); }
     syncAllDayForm();
@@ -13547,6 +13741,54 @@
   function noSuggest(el){ if(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'FORM') && el.getAttribute('autocomplete') !== 'off') el.setAttribute('autocomplete', 'off'); }
   document.querySelectorAll('input, textarea, form').forEach(noSuggest);
   document.addEventListener('focusin', function(e){ noSuggest(e.target); if(e.target && e.target.form) noSuggest(e.target.form); }, true);
+  // Every <select> opens our own list (the type picker's look) instead of
+  // the browser's: the select itself stays and keeps the value, only the
+  // list that drops down is ours. Works for selects added later too.
+  (function(){
+    var dd = document.createElement('div'); dd.id = 'niceDD'; dd.hidden = true; dd.setAttribute('role', 'listbox');
+    document.body.appendChild(dd);
+    var cur = null, act = -1;
+    function rows(){ return [].slice.call(dd.querySelectorAll('.nd-opt:not([aria-disabled="true"])')); }
+    function close(){ if(cur) cur.classList.remove('nd-open'); dd.hidden = true; cur = null; act = -1; }
+    function pick(o){ var sel = cur; close(); if(!sel || sel.value === o.dataset.v) return;
+      window.__pickerPickedAt = Date.now();
+      sel.value = o.dataset.v; sel.dispatchEvent(new Event('input', { bubbles:true })); sel.dispatchEvent(new Event('change', { bubbles:true })); }
+    function open(sel){
+      if(cur) cur.classList.remove('nd-open');
+      cur = sel; sel.classList.add('nd-open'); dd.innerHTML = '';
+      [].forEach.call(sel.children, function(ch){
+        function opt(o){ var d = document.createElement('div'); d.className = 'nd-opt' + (o.selected ? ' cur' : ''); d.dataset.v = o.value; d.textContent = o.textContent;
+          if(o.disabled) d.setAttribute('aria-disabled', 'true'); dd.appendChild(d); }
+        if(ch.tagName === 'OPTGROUP'){ var h = document.createElement('div'); h.className = 'nd-group'; h.textContent = ch.label; dd.appendChild(h); [].forEach.call(ch.children, opt); }
+        else if(ch.tagName === 'OPTION' && !ch.hidden) opt(ch);
+      });
+      var r = sel.getBoundingClientRect(), below = window.innerHeight - r.bottom - 12, above = r.top - 12;
+      dd.hidden = false; dd.style.minWidth = r.width + 'px'; dd.style.left = Math.max(8, Math.min(r.left, window.innerWidth - dd.offsetWidth - 8)) + 'px';
+      var h = Math.min(dd.scrollHeight, 320);
+      if(below >= Math.min(h, 200) || below >= above){ dd.style.top = (r.bottom + 2) + 'px'; dd.style.maxHeight = Math.max(120, below) + 'px'; }
+      else { var hh = Math.min(h, above); dd.style.top = (r.top - 2 - hh) + 'px'; dd.style.maxHeight = hh + 'px'; }
+      var c = dd.querySelector('.nd-opt.cur'); if(c) c.scrollIntoView({ block:'nearest' });
+    }
+    document.addEventListener('mousedown', function(e){
+      var sel = e.target.closest && e.target.closest('select');
+      if(sel && !sel.multiple && !sel.disabled && !sel.classList.contains('tc-native')){
+        e.preventDefault(); e.stopPropagation(); if(cur === sel){ close(); return; } open(sel); sel.focus(); return; }
+      if(!dd.hidden && !dd.contains(e.target)) close();
+    }, true);
+    dd.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation(); });
+    dd.addEventListener('click', function(e){ e.stopPropagation(); var o = e.target.closest('.nd-opt'); if(o && o.getAttribute('aria-disabled') !== 'true') pick(o); });
+    document.addEventListener('keydown', function(e){
+      if(dd.hidden) return;
+      var rs = rows(); if(!rs.length) return;
+      if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); return; }
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); if(act < 0) act = rs.indexOf(dd.querySelector('.nd-opt.cur'));
+        act = Math.max(0, Math.min(rs.length - 1, act + (e.key === 'ArrowDown' ? 1 : -1)));
+        rs.forEach(function(x, i){ x.classList.toggle('act', i === act); }); rs[act].scrollIntoView({ block:'nearest' }); return; }
+      if(e.key === 'Enter' && act >= 0){ e.preventDefault(); e.stopPropagation(); pick(rs[act]); }
+    }, true);
+    window.addEventListener('resize', close);
+    document.addEventListener('scroll', function(e){ if(!dd.hidden && !dd.contains(e.target)) close(); }, true);
+  })();
   var fabAddForcedCell = null, fabAddInsertAfter = null;
   // Press on a day and drag across others (like Google Calendar): the days
   // light up, and letting go opens the card for an all-day activity over
@@ -13689,6 +13931,8 @@
     if(ghost.style.top !== gt) ghost.style.top = gt;
     if(ghost.style.width !== gw) ghost.style.width = gw;
     var t = document.getElementById('fabAddTitleInput'), txt = (t && t.value.trim()) || 'New activity';
+    var pf = document.getElementById('fabAddPlace'), pt = document.getElementById('fabAddPlaceTo');
+    if(!(t && t.value.trim()) && pt && !pt.hidden && pt.value.trim() && pf.value.trim()) txt = pf.value.trim() + ' → ' + pt.value.trim();
     if(ghost.textContent !== txt) ghost.textContent = txt;
     // Editing an existing activity: no "New activity" placeholder.
     var gd = fabAddEditLi || rc ? 'none' : 'block';
@@ -14043,10 +14287,6 @@
     menuRow('+ Alternative', function(){
       var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
       if(activePanel) openNewAltForm(mobileAddFab, activePanel);
-    });
-    menuRow('+ Holiday period', function(){
-      var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
-      if(activePanel) openRangePopover(mobileAddFab, activePanel, 'holiday');
     });
     menuRow('+ Plan', function(){ openNewPlanForm(mobileAddFab); });
     positionPopover(pop, mobileAddFab);
@@ -14634,6 +14874,7 @@
     if(paid.length) a.pd = paid;
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
     if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
+    if(li.getAttribute('data-place-to')) a.plt = li.getAttribute('data-place-to');
     if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
     if(li.getAttribute('data-span-to')) a.st = parseInt(li.getAttribute('data-span-to'), 10);
     var currency = li.getAttribute('data-currency');
@@ -14795,6 +15036,7 @@
     if(a.pd && a.pd.length) li.setAttribute('data-paid', JSON.stringify(a.pd));
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
     if(a.pl) li.setAttribute('data-place', a.pl);
+    if(a.plt) li.setAttribute('data-place-to', a.plt);
     if(a.so) li.setAttribute('data-stay-to', String(a.so));
     if(a.st) li.setAttribute('data-span-to', String(a.st));
     if(a.cur) li.setAttribute('data-currency', a.cur);
@@ -15073,7 +15315,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-stay-to', 'data-span-to'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
@@ -15087,7 +15329,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && n.classList.contains('day-ghost-slot'); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
