@@ -2846,7 +2846,14 @@
   .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
   .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
-  #printPanel input[type="radio"], #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  #printPanel input[type="checkbox"] { accent-color:var(--primary); }
+  /* radio buttons in the app's own look: a soft lavender ring, pink when chosen */
+  #printPanel input[type="radio"] { appearance:none; -webkit-appearance:none; flex:none; width:18px; height:18px; margin:0; border-radius:50%; cursor:pointer;
+    border:2px solid var(--line); background:#fff; transition:border-color .12s, background .12s; vertical-align:middle; }
+  #printPanel input[type="radio"]:hover { border-color:#d9c8ec; }
+  #printPanel input[type="radio"]:checked { border-color:var(--primary); background:radial-gradient(circle, var(--primary) 0 4px, #fff 4.5px); }
+  #printPanel input[type="radio"]:focus { outline:none; }
+  #printPanel input[type="radio"]:focus-visible { box-shadow:0 0 0 3px rgba(var(--primary-rgb), .2); }
   .print-pay { display:none; }
   .rangepop-warn { margin:0 0 10px; padding:9px 12px; border-radius:10px; background:#fdecef; color:#b23a52; font-size:13px; font-weight:700; line-height:1.35; }
   .rangepop-warn[hidden] { display:none; }
@@ -3699,6 +3706,12 @@
     "name": "Ski",
     "bg": "#7ec8e3",
     "fg": "#14213d"
+  },
+  {
+    "icon": "📌",
+    "name": "Other",
+    "bg": "#e8e3f0",
+    "fg": "#3d3568"
   }
 ]
 </script>
@@ -3911,7 +3924,7 @@
       manage_edit_access: 'Manage access', invite_scope_filter_placeholder: 'Filter…',
       invite_scope_open_hint: 'Open to everyone — can’t be removed here',
       pillmenu_duplicate: 'Duplicate', pillmenu_who_can_see: 'Share',
-      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', default_alt_name: 'Alternative', default_plan_name: 'New plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Join another plan', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Split into its own plan', pillmenu_rename_plan: 'Name this plan', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
+      pillmenu_print: 'Print', pillmenu_add_holiday: 'Add holiday period', pillmenu_add_location: 'Add location', plan_label: 'Plan', default_alt_name: 'Alternative', default_plan_name: 'New plan', add_new_alt: 'New alternative', add_new_alt_sub: 'Another version of “{plan}” — same people', add_new_plan: 'New plan', add_new_plan_sub: 'Something separate in {month} — its own people', pillmenu_merge_plan: 'Join another plan', pillmenu_merge_pick: 'Which plan is this a version of?', pillmenu_separate_plan: 'Split into its own plan', pillmenu_rename_plan: 'Name this plan', menu_rename: 'Rename', plan_name_placeholder: 'e.g. Summer with the group', plan_name_save: 'Save', range_from: 'From', range_to: 'to', range_add: 'Add', range_location_placeholder: 'Where? e.g. Kraków', range_holiday_placeholder: 'Label', pillmenu_delete: 'Delete alternative',
       pillmenu_no_access_yet: 'No one has access yet',
       pillmenu_everyone_sees: 'Everyone can see this plan.',
       pillmenu_only_checked_see: 'Only ticked people can see this plan.',
@@ -3963,7 +3976,7 @@
       manage_edit_access: 'Gestisci accesso', invite_scope_filter_placeholder: 'Filtra…',
       invite_scope_open_hint: 'Aperto a tutti — non rimovibile da qui',
       pillmenu_duplicate: 'Duplica', pillmenu_who_can_see: 'Condividi',
-      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', default_alt_name: 'Alternativa', default_plan_name: 'Nuovo piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Unisci a un altro piano', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Separa in un piano a sé', pillmenu_rename_plan: 'Dai un nome al piano', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
+      pillmenu_print: 'Stampa', pillmenu_add_holiday: 'Aggiungi periodo di ferie', pillmenu_add_location: 'Aggiungi località', plan_label: 'Piano', default_alt_name: 'Alternativa', default_plan_name: 'Nuovo piano', add_new_alt: 'Nuova alternativa', add_new_alt_sub: 'Un’altra versione di “{plan}” — stesse persone', add_new_plan: 'Nuovo piano', add_new_plan_sub: 'Qualcosa di separato a {month} — con le sue persone', pillmenu_merge_plan: 'Unisci a un altro piano', pillmenu_merge_pick: 'Di quale piano è una versione?', pillmenu_separate_plan: 'Separa in un piano a sé', pillmenu_rename_plan: 'Dai un nome al piano', menu_rename: 'Rinomina', plan_name_placeholder: 'es. Estate con il gruppo', plan_name_save: 'Salva', range_from: 'Dal', range_to: 'al', range_add: 'Aggiungi', range_location_placeholder: 'Dove? es. Cracovia', range_holiday_placeholder: 'Etichetta', pillmenu_delete: 'Elimina alternativa',
       pillmenu_no_access_yet: 'Nessuno ha ancora accesso',
       pillmenu_everyone_sees: 'Tutti possono vedere questo piano.',
       pillmenu_only_checked_see: 'Solo le persone selezionate possono vedere questo piano.',
@@ -4015,7 +4028,7 @@
       manage_edit_access: 'Gestionar acceso', invite_scope_filter_placeholder: 'Filtrar…',
       invite_scope_open_hint: 'Abierto para todos — no se puede quitar aquí',
       pillmenu_duplicate: 'Duplicar', pillmenu_who_can_see: 'Compartir',
-      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', default_alt_name: 'Alternativa', default_plan_name: 'Nuevo plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Unir a otro plan', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Separar en un plan propio', pillmenu_rename_plan: 'Poner nombre al plan', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
+      pillmenu_print: 'Imprimir', pillmenu_add_holiday: 'Añadir periodo de vacaciones', pillmenu_add_location: 'Añadir ubicación', plan_label: 'Plan', default_alt_name: 'Alternativa', default_plan_name: 'Nuevo plan', add_new_alt: 'Nueva alternativa', add_new_alt_sub: 'Otra versión de “{plan}” — las mismas personas', add_new_plan: 'Nuevo plan', add_new_plan_sub: 'Algo aparte en {month} — con sus propias personas', pillmenu_merge_plan: 'Unir a otro plan', pillmenu_merge_pick: '¿De qué plan es una versión?', pillmenu_separate_plan: 'Separar en un plan propio', pillmenu_rename_plan: 'Poner nombre al plan', menu_rename: 'Renombrar', plan_name_placeholder: 'p. ej. Verano con el grupo', plan_name_save: 'Guardar', range_from: 'Del', range_to: 'al', range_add: 'Añadir', range_location_placeholder: '¿Dónde? p. ej. Cracovia', range_holiday_placeholder: 'Etiqueta', pillmenu_delete: 'Eliminar alternativa',
       pillmenu_no_access_yet: 'Nadie tiene acceso todavía',
       pillmenu_everyone_sees: 'Todos pueden ver este plan.',
       pillmenu_only_checked_see: 'Solo las personas marcadas pueden ver este plan.',
@@ -12424,13 +12437,13 @@
     function divider(){ var d = document.createElement('div'); d.className = 'itemmenu-divider'; pop.appendChild(d); }
     function icon(glyph){ return '<span class="itemmenu-icon">' + glyph + '</span>'; }
 
-    row(icon('+') + t('add_new_alt'), function(){
+    row(icon('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>') + t('add_new_alt'), function(){
       openNewAltForm(anchorEl, s.panels[0]);
     });
-    row(icon('✎') + t('pillmenu_rename_plan'), function(){
+    row(icon(ICON_EDIT_NAME) + t('menu_rename'), function(){
       openRenamePlan(anchorEl, s.panels[0]);
     });
-    row(icon('📝') + (MONTH_NOTES[monthKey(s.year, s.month)] ? 'Edit notes' : 'Add notes'), function(){
+    row(icon('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>') + (MONTH_NOTES[monthKey(s.year, s.month)] ? 'Edit notes' : 'Add notes'), function(){
       openMonthNotes(s.year, s.month);
     });
     row(icon(ICON_ARCHIVE) + 'Archive', function(){
@@ -12447,9 +12460,8 @@
     // removeMonth's own checks (this is UI-level only, belt and
     // suspenders; the security rules independently enforce both).
     if(currentUserRole === 'owner'){
-      row(icon('🔗') + 'Share link', function(){ openMonthShare(s.year, s.month); });
-      divider();
-      row(icon('✕') + 'Remove plan', function(){ removePlan(s.panels, s.label); }, true);
+      row(icon(SHARE_ICON) + 'Share link', function(){ openMonthShare(s.year, s.month); });
+      row(icon(ICON_TRASH) + 'Delete plan', function(){ removePlan(s.panels, s.label); }, true);
     }
 
     pop._anchorEl = anchorEl;
