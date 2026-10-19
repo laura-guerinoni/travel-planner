@@ -2825,10 +2825,32 @@
 
   /* Participants left the profile menu: each plan is shared on its own (the plan's share button). */
   #manageAccessBtn { display:none !important; }
+  /* no rubber-band bounce past the top/bottom: it pulled the calendar away from its tabs */
+  html { overflow-x:hidden; overscroll-behavior:none; }
+  body { overscroll-behavior:none; }
+  /* the New activity chip: pops in, then a light sweep crosses it every
+     few seconds while you fill in the card, like a shiny card */
+  @keyframes ghostPop { 0% { transform:scale(.6); opacity:0; } 70% { transform:scale(1.06); opacity:1; } 100% { transform:scale(1); } }
+  @keyframes ghostSheen { 0% { left:-50%; } 20%, 100% { left:120%; } }
+  #dayGhost { animation:ghostPop .28s cubic-bezier(.3,1.4,.5,1) both; }
+  #dayGhost::after, #dragRange > div::after { content:''; position:absolute; top:0; bottom:0; width:40%; left:-50%; pointer-events:none;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent); animation:ghostSheen 5.5s ease-in-out .4s infinite; }
+  @media (prefers-reduced-motion: reduce){ #dayGhost, #dayGhost::after, #dragRange > div::after { animation:none; } #dayGhost::after, #dragRange > div::after { display:none; } }
+  .acts > li[data-free] > .price { display:none; }
+  .acts > li > .title[data-span-label]::after { content:attr(data-span-label); display:block; color:var(--muted); font-size:.9286em; font-weight:400; } /* = the copies' line (13px under a 14px title) */
+  .cell > .loc[data-standin] { margin:0; padding:0; height:0; min-height:0; }
+  .cell > .loc[data-standin] > .loc-text, .cell > .loc[data-standin]::before { display:none; }
   .day-ghost-slot { height:34px; margin-top:6px; }
   #fabAddPanel .gc-allday { flex:1; min-width:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 2px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
   #fabAddPanel .gc-allday select { flex:1; min-width:0; }
   #fabAddPanel .gc-allday[hidden] { display:none; }
+  #fabAddPanel .gc-row > .gc-until { flex:0 0 auto !important; width:auto; max-width:48%; }
+  #fabAddPanel .gc-until[hidden] { display:none !important; }
+  #fabAddPanel #fabAddStayOut[hidden] { display:none; }
+  /* dragging across days: the chosen days light up, like Google Calendar */
+  #dragRange > div { position:absolute; z-index:9996; pointer-events:none; box-sizing:border-box; height:32px; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:800; color:#fff;
+    background:var(--primary); box-shadow:0 6px 14px -4px rgba(40,25,60,.35); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dragRange > div + div { color:transparent; }
   #fabAddPanel .gc-allday:not([hidden]) + .fabadd-time-row { display:none; }
   /* a day with more than one city: a little route, like the plans list —
      a coloured dot per city on a dashed line, and the city as a soft pill */
@@ -3203,8 +3225,8 @@
       </div>
       <!-- Laid out like Google Calendar's quick add: the name as a big
            underlined field, then one compact row per detail with an icon. -->
-      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" />
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select></div>
+      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" autocomplete="off" />
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><select id="fabAddDaySelect" class="fabadd-select" aria-label="Day"></select><select id="fabAddDayEnd" class="fabadd-select gc-until" aria-label="Until" hidden></select></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Where are you?" aria-label="Place" autocomplete="off" /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
       <div id="fabAddNewTag" class="gc-newtag" hidden>
@@ -3213,7 +3235,7 @@
         <input type="color" class="nt-color" value="#d9663f" aria-label="Colour">
         <button type="button" class="nt-add">Add</button>
       </div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden><span>All day · check-out</span><select id="fabAddStayOut" class="fabadd-select" aria-label="Check-out"></select></span><div class="fabadd-time-row">
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="gc-allday" id="fabAddAllDay" hidden><span class="gc-allday-lab">All day · check-out</span><select id="fabAddStayOut" class="fabadd-select" aria-label="Check-out"></select></span><div class="fabadd-time-row">
         <input type="time" id="fabAddTimeInput" class="fabadd-select" aria-label="Start time" />
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
@@ -9781,13 +9803,18 @@
     return d1 < d2 ? { start: d1, end: d2 } : { start: d2, end: d1 };
   }
   // A stay's nights: from its own day to the night before check-out.
+  // A stay's nights (its day to the night before check-out), or an
+  // all-day activity's days (its day to data-span-to, both included).
   function staySpan(li){
-    var to = parseInt(li.getAttribute('data-stay-to'), 10), c = li.closest('.cell'), from = c ? dayNumOfCell(c) : null;
-    return to && from && to - 1 > from ? { start: from, end: to - 1 } : null;
+    var c = li.closest('.cell'), from = c ? dayNumOfCell(c) : null;
+    var to = parseInt(li.getAttribute('data-stay-to'), 10);
+    if(to) return from && to - 1 > from ? { start: from, end: to - 1 } : null;
+    var last = parseInt(li.getAttribute('data-span-to'), 10);
+    return last && from && last > from ? { start: from, end: last } : null;
   }
   function updateActivitySpan(li){
     var lineEl = li.querySelector(':scope > .line');
-    var span = li.hasAttribute('data-stay-to') ? staySpan(li) : (lineEl ? parseSpanFromLine(lineEl.textContent) : null);
+    var span = (li.hasAttribute('data-stay-to') || li.hasAttribute('data-span-to')) ? staySpan(li) : (lineEl ? parseSpanFromLine(lineEl.textContent) : null);
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
     else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
     var panel = li.closest('.panel');
@@ -9804,7 +9831,7 @@
       if(c) touchedCells.push(c);
       g.remove();
     });
-    panel.querySelectorAll('.acts > li[data-stay-to]').forEach(function(li){
+    panel.querySelectorAll('.acts > li[data-stay-to], .acts > li[data-span-to]').forEach(function(li){
       var sp = staySpan(li);
       if(sp){ li.dataset.spanStart = sp.start; li.dataset.spanEnd = sp.end; } else { delete li.dataset.spanStart; delete li.dataset.spanEnd; }
     });
@@ -9827,7 +9854,7 @@
         ghost.dataset.spanEnd = end;
         ghost.title = 'Continues from day ' + start + ' — edit the title, tag, or price there';
         ghost.__origin = li;
-        if(li.hasAttribute('data-stay-to')){ ghost.classList.add('stay-ghost'); ghost.title = 'Stay from day ' + start + ' — click to edit it'; ghost.setAttribute('data-place', liPlace(li)); }
+        if(li.hasAttribute('data-stay-to') || li.hasAttribute('data-span-to')){ ghost.classList.add('stay-ghost'); ghost.title = 'From day ' + start + ' — click to edit it'; ghost.setAttribute('data-place', liPlace(li)); }
         var chip = li.querySelector('.chip');
         if(chip){
           var chipClone = document.createElement('span');
@@ -9848,7 +9875,7 @@
         ghost.appendChild(titleSpan);
         var contSpan = document.createElement('span');
         contSpan.className = 'line';
-        contSpan.textContent = li.hasAttribute('data-stay-to') ? '🌙 night ' + (d - start + 1) + ' of ' + (end - start + 1) : '↔ continues';
+        contSpan.textContent = li.hasAttribute('data-stay-to') ? '🌙 night ' + (d - start + 1) + ' of ' + (end - start + 1) : li.hasAttribute('data-span-to') ? '↔ day ' + (d - start + 1) + ' of ' + (end - start + 1) : '↔ continues';
         ghost.appendChild(contSpan);
         var priceEl = li.querySelector(':scope > .price .price-val');
         if(priceEl){
@@ -10174,11 +10201,8 @@
     var addBtn = cell.querySelector(':scope > .addloc');
     var loc = cell.querySelector(':scope > .loc');
     var acts = cell.querySelector(':scope > .acts');
-    if(!loc){
-      loc = buildLocEl('New location');
-      cell.insertBefore(loc, addBtn);
-      cell.classList.add('active');
-    }
+    // (no "New location" stand-in: a day's place comes from its activities)
+    cell.classList.add('active');
     if(!acts){
       acts = document.createElement('ul');
       acts.className = 'acts';
@@ -12873,7 +12897,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13164,6 +13188,8 @@
     if(fabAddPanel) fabAddPanel.classList.remove('show');
     fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null;
     var so = document.getElementById('fabAddStayOut'); if(so) delete so.dataset.want;
+    var de = document.getElementById('fabAddDayEnd'); if(de){ delete de.dataset.want; de.hidden = true; }
+    showRange(null);
     document.querySelectorAll('.day-ghost-slot').forEach(function(x){ x.remove(); });
   }
   // ---- One form to add AND edit an activity (desktop) ----
@@ -13221,7 +13247,9 @@
   // day, above the timed ones and apart from them, like all-day events in
   // a calendar. ----
   function isAllDayTag(tg){ return !!tg && /^(stay)$/i.test(String(tg.name || '').trim()); }
-  function isAllDay(li){ var c = li && li.querySelector('.chip'); return !!c && /^(stay)$/i.test((c.getAttribute('data-name') || '').trim()); }
+  function isStayLi(li){ var c = li && li.querySelector('.chip'); return !!c && /^(stay)$/i.test((c.getAttribute('data-name') || '').trim()); }
+  // all-day: a Stay, an activity over several days, or one of their copies
+  function isAllDay(li){ return !!li && (isStayLi(li) || li.hasAttribute('data-span-to') || li.classList.contains('stay-ghost')); }
   function placeAllDay(li){
     if(!isAllDay(li)) return;
     var acts = li.parentElement; if(!acts) return;
@@ -13247,20 +13275,81 @@
     });
     if(keep && out.querySelector('option[value="' + keep + '"]')) out.value = keep;
   }
+  // "until": the last day of an all-day activity over several days (set by
+  // dragging across days, like Google Calendar).
+  function fillDayEnd(){
+    var end = document.getElementById('fabAddDayEnd'); if(!end) return;
+    var cell = cellOfDay(fabAddDaySelect.value), keep = end.dataset.want || '';
+    end.innerHTML = '<option value="">One day</option>';
+    if(!cell) return;
+    var cells = [].slice.call(cell.closest('.panel').querySelectorAll('.cell:not(.empty)')), i0 = cells.indexOf(cell), p = cell.closest('.panel');
+    cells.slice(i0 + 1, i0 + 31).forEach(function(c){
+      var dn = dayNumOfCell(c), r = realDate(p, dn), d = new Date(r.year, r.month - 1, r.day);
+      var o = document.createElement('option'); o.value = String(dn);
+      o.textContent = '– ' + d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
+      end.appendChild(o);
+    });
+    end.value = keep && end.querySelector('option[value="' + keep + '"]') ? keep : '';
+  }
+  function rangeEnd(){ var end = document.getElementById('fabAddDayEnd'); return end && !end.hidden ? end.value : ''; }
   function syncAllDayForm(){
     var lab = document.getElementById('fabAddAllDay'); if(!lab || !fabAddTagSelect) return;
-    var on = isAllDayTag(TAGS[fabAddTagSelect.value]);
+    var stay = isAllDayTag(TAGS[fabAddTagSelect.value]), end = document.getElementById('fabAddDayEnd');
+    if(end && !end.hidden) fillDayEnd();
+    var range = !!rangeEnd();
+    // a Stay's range is check-in → check-out; anything else, all day over those days
+    if(end) end.style.display = stay ? 'none' : '';
+    var so = document.getElementById('fabAddStayOut'), on = stay || range;
     lab.hidden = !on;
-    if(on){ if(fabAddTimeInput) fabAddTimeInput.value = ''; if(fabAddTimeEndInput) fabAddTimeEndInput.value = ''; fillStayOut(); }
+    lab.querySelector('.gc-allday-lab').textContent = stay ? 'All day · check-out' : 'All day';
+    if(so) so.hidden = !stay;
+    if(on){ if(fabAddTimeInput) fabAddTimeInput.value = ''; if(fabAddTimeEndInput) fabAddTimeEndInput.value = ''; }
+    if(stay){ if(so && range && !so.dataset.want) so.dataset.want = rangeEnd(); fillStayOut(); }
+  }
+  (function(){ var end = document.getElementById('fabAddDayEnd'); if(end) end.addEventListener('change', function(){ end.dataset.want = end.value; syncAllDayForm(); }); })();
+  // Saves an all-day activity's last day (not for a Stay: that's check-out).
+  function applyRange(li, to){
+    var v = isStayLi(li) ? '' : (to === undefined ? rangeEnd() : to);
+    if(v) li.setAttribute('data-span-to', v); else if(li.hasAttribute('data-span-to')) li.removeAttribute('data-span-to');
+    if(v){ var tl = findTimeLine(li); if(tl) tl.remove(); }
+    updateActivitySpan(li);
+  }
+  // Opens the card for days a..b (cells), as after dragging across them.
+  // The new activity's chip, stretched across the chosen days (one piece
+  // per week row), like Google Calendar's — the days themselves stay as
+  // they are.
+  var rangeKey = '';
+  function showRange(cells, text){
+    var box = document.getElementById('dragRange');
+    if(!box){ box = document.createElement('div'); box.id = 'dragRange'; document.body.appendChild(box); }
+    var rows = [];
+    (cells || []).forEach(function(c){ var last = rows[rows.length - 1]; if(last && last.row === c.parentNode) last.cells.push(c); else rows.push({ row:c.parentNode, cells:[c] }); });
+    var parts = rows.map(function(g){
+      var a = g.cells[0].getBoundingClientRect(), b = g.cells[g.cells.length - 1].getBoundingClientRect();
+      var h = g.cells[0].querySelector(':scope > .cellhead'), top = (h ? h.getBoundingClientRect().bottom : a.top) + 6;
+      return [Math.round(a.left + 8 + window.scrollX), Math.round(top + window.scrollY), Math.round(b.right - a.left - 16)];
+    });
+    var key = JSON.stringify([parts, text]);
+    if(key === rangeKey) return;
+    rangeKey = key; box.innerHTML = '';
+    parts.forEach(function(p){ var d = document.createElement('div'); d.style.left = p[0] + 'px'; d.style.top = p[1] + 'px'; d.style.width = p[2] + 'px'; d.textContent = text || 'New activity'; box.appendChild(d); });
+  }
+  // the days the open card covers (its day … its "until" day)
+  function rangeCells(){
+    var to = rangeEnd(), a = cellOfDay(fabAddDaySelect.value); if(!to || !a) return null;
+    var cells = [].slice.call(a.closest('.panel').querySelectorAll(':scope > .grid.week > .cell:not(.empty)')), i = cells.indexOf(a), out = [];
+    for(var k = i; k < cells.length; k++){ out.push(cells[k]); if(String(dayNumOfCell(cells[k])) === String(to)) break; }
+    return out.length > 1 ? out : null;
   }
   if(fabAddTagSelect) fabAddTagSelect.addEventListener('change', syncAllDayForm);
   if(fabAddDaySelect) fabAddDaySelect.addEventListener('change', syncAllDayForm);
+  document.body.appendChild(Object.assign(document.createElement('div'), { id:'dragRange' }));
   (function(){ var so = document.getElementById('fabAddStayOut'); if(so) so.addEventListener('change', function(){ so.dataset.want = so.value; }); })();
   // Saves the stay's check-out; the nights after check-in get the stay's
   // city as their place when they don't have one yet.
   function applyStay(li){
     var out = document.getElementById('fabAddStayOut');
-    if(!isAllDay(li) || !out || !out.value){ if(li.hasAttribute('data-stay-to')) li.removeAttribute('data-stay-to'); updateActivitySpan(li); return; }
+    if(!isStayLi(li) || !out || !out.value){ if(li.hasAttribute('data-stay-to')) li.removeAttribute('data-stay-to'); updateActivitySpan(li); return; }
     li.setAttribute('data-stay-to', out.value);
     updateActivitySpan(li);
     var sp = staySpan(li), pl = liPlace(li), panel = li.closest('.panel');
@@ -13304,6 +13393,17 @@
       all.forEach(function(li){ if(!isAllDay(li)) seq.push(li); });
     }
     function flag(li, a, on, v){ if(on){ if(li.getAttribute(a) !== v) li.setAttribute(a, v); } else if(li.hasAttribute(a)) li.removeAttribute(a); }
+    // an old "New location" stand-in isn't shown (display only)
+    var locEl = cell.querySelector(':scope > .loc'); if(locEl) flag(locEl, 'data-standin', placeOfCell(cell) === '' , '');
+    // the first day of something over several days says so, like its copies
+    dayActs(cell).forEach(function(li){
+      var t = li.querySelector(':scope > .title'); if(!t) return;
+      var st = parseInt(li.dataset.spanStart, 10), en = parseInt(li.dataset.spanEnd, 10), lab = '';
+      if(st && en && (li.hasAttribute('data-span-to') || li.hasAttribute('data-stay-to'))) lab = (li.hasAttribute('data-stay-to') ? '🌙 night 1 of ' : '↔ day 1 of ') + (en - st + 1);
+      flag(t, 'data-span-label', !!lab, lab);
+    });
+    // an activity costing nothing doesn't show "€ 0" (display only)
+    all.forEach(function(li){ var pv = li.querySelector(':scope > .price > .price-val'); flag(li, 'data-free', !!pv && !(parseMoney(pv.textContent) > 0) && !li.hasAttribute('data-paid'), ''); });
     seq.forEach(function(li, i){
       var pl = liPlace(li), prevPl = i ? liPlace(seq[i - 1]) : null;
       flag(li, 'data-ord', true, String(2 * i));
@@ -13336,7 +13436,10 @@
     more.querySelector('[data-x="ticket"] span').textContent = li && li.hasAttribute('data-ticket') ? 'Replace ticket' : 'Ticket';
     more.querySelector('[data-x="photo"] span').textContent = li && li.hasAttribute('data-img') ? 'Replace photo' : 'Photo';
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
-    placeTouched = false; suggestPlace(); syncAllDayForm();
+    placeTouched = false; suggestPlace();
+    var end = document.getElementById('fabAddDayEnd');
+    if(end){ var st = li && li.getAttribute('data-span-to'); if(st) end.dataset.want = st; else delete end.dataset.want; end.hidden = !st; fillDayEnd(); }
+    syncAllDayForm();
   }
   function openActivityEditor(li){
     var cell = li.closest('.cell'); if(!cell) return;
@@ -13434,7 +13537,60 @@
   // Desktop: a day's own "+" opens this same focused form (centred, page
   // dimmed, like the search) for that day, instead of a blank activity
   // appearing in the day to edit in place.
+  // The page never zooms in with a trackpad pinch (or ctrl + scroll) —
+  // that left the calendar scrolled down/sideways and cut off.
+  window.addEventListener('wheel', function(e){ if(e.ctrlKey) e.preventDefault(); }, { passive:false });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(t){ document.addEventListener(t, function(e){ e.preventDefault(); }, { passive:false }); });
+  // No browser autofill suggestions anywhere in the app: every field (and
+  // any added later — a picker's search, a popup's box) is switched off the
+  // moment it's focused, before the browser offers anything.
+  function noSuggest(el){ if(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'FORM') && el.getAttribute('autocomplete') !== 'off') el.setAttribute('autocomplete', 'off'); }
+  document.querySelectorAll('input, textarea, form').forEach(noSuggest);
+  document.addEventListener('focusin', function(e){ noSuggest(e.target); if(e.target && e.target.form) noSuggest(e.target.form); }, true);
   var fabAddForcedCell = null, fabAddInsertAfter = null;
+  // Press on a day and drag across others (like Google Calendar): the days
+  // light up, and letting go opens the card for an all-day activity over
+  // all of them (for a Stay: check-in → check-out).
+  (function(){
+    var start = null, cur = null, dragging = false;
+    var SKIP = '.acts > li, .loc, button, a, input, select, [contenteditable="true"], .itemmenu-btn, .dayaddbtn, .daymenu-btn, .banner, .grid.banner-row';
+    function cellAt(x, y){ var el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('.panel.on > .grid.week > .cell:not(.empty)') : null; }
+    function between(a, b){
+      var cells = [].slice.call(a.closest('.panel').querySelectorAll(':scope > .grid.week > .cell:not(.empty)')), i = cells.indexOf(a), j = cells.indexOf(b);
+      return i < 0 || j < 0 ? [] : cells.slice(Math.min(i, j), Math.max(i, j) + 1);
+    }
+    document.addEventListener('mousedown', function(e){
+      if(e.button !== 0 || !window.matchMedia('(min-width:721px)').matches || VIEW_ONLY) return;
+      if(document.getElementById('fabAddPanel').classList.contains('show')) return;
+      var c = e.target.closest && e.target.closest('.panel.on > .grid.week > .cell:not(.empty)');
+      if(!c || e.target.closest(SKIP)) return;
+      start = cur = c; dragging = false;
+    }, true);
+    document.addEventListener('mousemove', function(e){
+      if(!start || !(e.buttons & 1)) return;
+      var c = cellAt(e.clientX, e.clientY); if(!c || c === cur) return;
+      cur = c; dragging = cur !== start;
+      if(dragging){ e.preventDefault(); var sel = window.getSelection && window.getSelection(); if(sel) sel.removeAllRanges(); }
+      showRange(dragging ? between(start, cur) : null, 'New activity');
+    });
+    document.addEventListener('mouseup', function(){
+      var a = start, b = cur, was = dragging; start = cur = null; dragging = false;
+      if(!was || !a || !b) return;
+      var cells = between(a, b); if(cells.length < 2) return;
+      var first = cells[0], last = cells[cells.length - 1];
+      window.__pickerPickedAt = Date.now(); window.__rangeJustMade = Date.now();
+      fabAddForcedCell = first;
+      document.getElementById('fabAddPanel').classList.add('anchored');
+      fabAddEditLi = null; fabAddInsertAfter = null;
+      openFabAdd();
+      setFormMode(null);
+      var end = document.getElementById('fabAddDayEnd');
+      end.dataset.want = String(dayNumOfCell(last)); end.hidden = false;
+      syncAllDayForm();
+      anchoredCell = first; placeAnchored(first);
+      setTimeout(function(){ var t = document.getElementById('fabAddTitleInput'); if(t) t.focus(); }, 30);
+    });
+  })();
   // Enter in any field of the activity card adds / saves it (not in
   // notes, which take new lines, nor in the new-type row).
   document.addEventListener('keydown', function(e){
@@ -13457,6 +13613,7 @@
   // and the page not dimmed.
   document.addEventListener('click', function(e){
     if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches) return;
+    if(window.__rangeJustMade && Date.now() - window.__rangeJustMade < 400) return;
     var cell = e.target.closest('.panel.on > .grid.week > .cell:not(.empty)');
     if(!cell) return;
     // The space between two activities counts too: the new one goes
@@ -13512,8 +13669,9 @@
     // (runtime only — never saved, see the observer's filter), and the
     // placeholder sits on it, so it never spills onto the next week.
     var slot = cell.querySelector('.day-ghost-slot');
-    document.querySelectorAll('.day-ghost-slot').forEach(function(x){ if(x !== slot || fabAddEditLi) x.remove(); });
-    if(fabAddEditLi) slot = null;
+    var rc = !fabAddEditLi && document.getElementById('fabAddPanel').classList.contains('show') ? rangeCells() : null;
+    document.querySelectorAll('.day-ghost-slot').forEach(function(x){ if(x !== slot || fabAddEditLi || rc) x.remove(); });
+    if(fabAddEditLi || rc) slot = null;
     else if(!slot){
       slot = document.createElement('div'); slot.className = 'day-ghost-slot';
       if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell) fabAddInsertAfter.parentNode.insertBefore(slot, fabAddInsertAfter.nextSibling);
@@ -13533,7 +13691,8 @@
     var t = document.getElementById('fabAddTitleInput'), txt = (t && t.value.trim()) || 'New activity';
     if(ghost.textContent !== txt) ghost.textContent = txt;
     // Editing an existing activity: no "New activity" placeholder.
-    var gd = fabAddEditLi ? 'none' : 'block';
+    var gd = fabAddEditLi || rc ? 'none' : 'block';
+    showRange(rc, txt);
     if(ghost.style.display !== gd) ghost.style.display = gd;
     // Tucked under the pinned weekday row (and the top bar) when its day
     // scrolls up behind them, like the day itself.
@@ -13847,7 +14006,7 @@
     }
     if(fabAddTimeInput) fabAddTimeInput.value = '';
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
-    if(fabAddAmountInput) fabAddAmountInput.value = '0';
+    if(fabAddAmountInput) fabAddAmountInput.value = '';
     fillAddPayment(panel);
     if(fabAddTitleInput) fabAddTitleInput.value = '';
     if(fabAddPanel) fabAddPanel.classList.add('show');
@@ -13902,7 +14061,7 @@
     var timeEndVal = fabAddTimeEndInput ? fabAddTimeEndInput.value : '';
     var amountVal = fabAddAmountInput ? fabAddAmountInput.value : '';
     var titleVal = fabAddTitleInput ? fabAddTitleInput.value.trim() : '';
-    var insertAfter = fabAddInsertAfter;
+    var insertAfter = fabAddInsertAfter, rangeTo = rangeEnd();
     closeFabAdd();
     if(!panel || !day) return;
     var cells = panel.querySelectorAll('.cell:not(.empty)');
@@ -13974,9 +14133,12 @@
         priceVal.textContent = currencySymbol(priceValCurrencyCtx(newLi)) + ' ' + amountVal;
         if(priceValIsNew) makeEditable(priceVal);
       }
+      // no cost (empty or 0): no price on the activity
+      if(!(parseFloat(amountVal) > 0)){ var pz = newLi.querySelector(':scope > .price'); if(pz) pz.remove(); }
       applyAddPayment(newLi);
       applyExtras(newLi);
       applyPlace(cell, newLi);
+      applyRange(newLi, rangeTo);
       placeAllDay(newLi);
       applyStay(newLi);
       recomputeCell(cell);
@@ -14006,7 +14168,7 @@
     var priceEl = li.querySelector(':scope > .price');
     var cur = document.getElementById('fabAddCurrencySelect');
     if(cur){ var def = resolveCurrencyCode(li.closest('.panel')); if(cur.value && cur.value !== def) li.setAttribute('data-currency', cur.value); else li.removeAttribute('data-currency'); }
-    if(amountVal === ''){ if(priceEl) priceEl.remove(); li.removeAttribute('data-pay'); }
+    if(!(parseFloat(amountVal) > 0)){ if(priceEl) priceEl.remove(); li.removeAttribute('data-pay'); }
     else { var pv = li.querySelector(':scope > .price > .price-val');
       if(!pv){ priceEl = document.createElement('span'); priceEl.className = 'price'; pv = document.createElement('span'); pv.className = 'price-val'; priceEl.appendChild(pv); li.appendChild(priceEl); makeEditable(pv); }
       // Left as it was (e.g. "€ 45x2"), unless the amount or currency changed.
@@ -14032,6 +14194,7 @@
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) target = c; });
     if(target && target !== oldCell){ ensureActsList(target).appendChild(li); target.classList.add('active'); recomputeCell(target); }
     applyPlace(target || oldCell, li);
+    applyRange(li);
     placeAllDay(li);
     applyStay(li);
     reorderActivityByStartTime(li);
@@ -14472,6 +14635,7 @@
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
     if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
     if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
+    if(li.getAttribute('data-span-to')) a.st = parseInt(li.getAttribute('data-span-to'), 10);
     var currency = li.getAttribute('data-currency');
     if(currency) a.cur = currency;
     return a;
@@ -14632,6 +14796,7 @@
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
     if(a.pl) li.setAttribute('data-place', a.pl);
     if(a.so) li.setAttribute('data-stay-to', String(a.so));
+    if(a.st) li.setAttribute('data-span-to', String(a.st));
     if(a.cur) li.setAttribute('data-currency', a.cur);
     var span = timeTexts.length ? parseSpanFromLine(timeTexts[0]) : null;
     if(span){ li.dataset.spanStart = span.start; li.dataset.spanEnd = span.end; }
@@ -14908,7 +15073,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-stay-to'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-stay-to', 'data-span-to'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
