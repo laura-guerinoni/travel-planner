@@ -2950,6 +2950,9 @@
   @media (prefers-reduced-motion: reduce){ #ideaPop .ip-env, #ideaPop .ip-env .ip-heart { animation:none; } }
   #ideaPop .ip-done .ip-ok { width:48px; height:48px; margin:0 auto; border-radius:50%; background:rgba(63,191,148,.15); color:#2a9d76; display:grid; place-items:center; font-size:24px; font-weight:800; }
   @media print { .page-idea, #ideaPop { display:none !important; } }
+  #staleBar { position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:10050; display:flex; align-items:center; gap:14px; max-width:calc(100vw - 32px); padding:10px 12px 10px 18px; border-radius:14px; background:var(--ink); color:#fff; font-size:13.5px; font-weight:700; box-shadow:0 12px 30px rgba(30,22,50,.3); }
+  #staleBar button { flex:none; border:none; border-radius:999px; padding:7px 16px; background:var(--primary); color:#fff; font:inherit; font-weight:800; cursor:pointer; }
+  @media print { #staleBar { display:none !important; } }
   /* places on the map, and the travel lines between activities */
   #placeDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #placeDD[hidden] { display:none; }
@@ -14543,6 +14546,31 @@
   }
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
 
+  // ---------- An older copy left open ----------
+  // Every few minutes, check whether a newer version of the app has been
+  // published. If so, this copy stops saving (it doesn't know about newer
+  // fields and would quietly drop them for everyone) and asks to reload.
+  (function(){
+    if(!IS_HOSTED) return;
+    var first = null;
+    function hash(t){ var h = 0; for(var i = 0; i < t.length; i++){ h = (h * 31 + t.charCodeAt(i)) | 0; } return h; }
+    function check(){
+      fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.text() : null; }).then(function(t){
+        if(!t) return; var h = hash(t);
+        if(first === null){ first = h; return; }
+        if(h !== first && !window.TP_STALE){ window.TP_STALE = true; showStale(); }
+      }).catch(function(){});
+    }
+    function showStale(){
+      var b = document.createElement('div'); b.id = 'staleBar';
+      b.innerHTML = '<span>Travel Planner was updated. Reload to keep editing; changes in this tab aren’t saved until you do.</span><button type="button">Reload</button>';
+      b.querySelector('button').addEventListener('click', function(){ location.reload(); });
+      document.body.appendChild(b);
+    }
+    check(); setInterval(check, 3 * 60 * 1000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
+  })();
+
   // ---------- Places on the map, and travel times between activities ----------
   // The place field suggests real places as you type (OpenRouteService,
   // through the Apps Script, which keeps the key). Picking one saves its
@@ -15940,6 +15968,7 @@
   }
 
   async function triggerAutoSave(){
+    if(window.TP_STALE) return;   // an older copy of the app (see the update check)
     if(IS_HOSTED){
       // firstLoadDone (declared as a top-level var near syncStarted, set by
       // startSync() below) only flips true once this client has actually
@@ -15982,6 +16011,7 @@
 
   var autoSaveTimer = null;
   function scheduleAutoSave(){
+    if(window.TP_STALE) return;   // an older copy of the app: it must not overwrite newer data (see the update check)
     setStatus('Editing…');
     clearTimeout(autoSaveTimer);
     // Shorter when hosted (was 400ms) — shrinks the last-write-wins collision
