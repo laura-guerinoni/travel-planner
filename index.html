@@ -17683,6 +17683,15 @@
     var list = grpSkippers(li), at = list.indexOf(me);
     if(at === -1) list.push(me); else list.splice(at, 1);
     setPaySplitExcluded(li, list);
+    // Skipping is the bill split's "Pays" switch turned off: the same rule
+    // applies, so a share or payment typed for you is cleared (Off means
+    // pays nothing, owes nothing). Turning Pays back on in the activity's
+    // card takes you off the skip list the same way.
+    if(at === -1){
+      var sh = getPaySplits(li), pd = getPaid(li);
+      if(sh.some(function(x){ return x.k === me; })) setPaySplits(li, sh.filter(function(x){ return x.k !== me; }));
+      if(pd.some(function(x){ return x.k === me; })) setPaid(li, pd.filter(function(x){ return x.k !== me; }));
+    }
     renderPaymentOverview();
     var cell = li.closest('.cell'); if(cell) recomputeCell(cell);
     if(at === -1) playCrumpleSound(); else playCheckSound();
