@@ -8018,7 +8018,7 @@
       faces.innerHTML = who.map(function(k){ return '<span class="grp-face" title="' + (memberNameOf(k) || '').replace(/"/g, '&quot;') + '">' + memberFaceOf(k) + '</span>'; }).join('');
       faces.style.display = cur && who.length ? '' : 'none';
       var br = btn.getBoundingClientRect();
-      faces.style.left = (wrapEl.getBoundingClientRect().right - 14) + 'px';
+      faces.style.left = btn.style.left;   // under the ribbon, wherever it hangs
       faces.style.top = (br.bottom + 6) + 'px';
       // Option ids are generated ("option-12"); anything else is skipped
       // rather than written into a selector.
