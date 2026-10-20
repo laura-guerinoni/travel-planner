@@ -3407,6 +3407,8 @@
   /* idea box button + drawer */
   .grp-ideabtn { display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--line); background:var(--card); color:var(--ink);
     font:inherit; font-size:13px; font-weight:800; padding:4px 11px; border-radius:999px; cursor:pointer; box-shadow:0 4px 12px -8px rgba(61,53,104,.5); }
+  .grp-ideabtn svg, #fabAddPanel .gc-edit-tools button.grp-tool svg { width:15px; height:15px; flex:none; }
+  .grp-pollbar-ic svg { width:22px; height:22px; color:var(--secondary); display:block; }
   .grp-ideabtn b { background:var(--primary); color:#fff; border-radius:999px; padding:0 6px; font-size:11px; }
   .grp-ideabtn:hover { border-color:var(--primary); }
   .grp-drawer { position:fixed; top:12px; right:12px; bottom:12px; width:min(380px, calc(100vw - 24px)); z-index:10005; background:var(--card); border-radius:20px;
@@ -3807,7 +3809,7 @@
         <button type="button" data-x="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Notes</button><button type="button" data-x="link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>Link</button><button type="button" data-x="ticket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12" stroke-dasharray="2 2"/></svg><span>Ticket</span></button><button type="button" data-x="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><span>Photo</span></button>
       </div>
       <div class="gc-foot">
-        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="duel" class="grp-tool" title="Put this to a vote against something else">⚔️ This or that</button><button type="button" data-x="idea" class="grp-tool" title="Take it off the day and keep it as an idea">💡 To ideas</button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
+        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="duel" class="grp-tool" title="Put this to a vote against something else"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M8 3H3v5M21 3l-7 7M3 3l7 7M12 14v7"/></svg> This or that</button><button type="button" data-x="idea" class="grp-tool" title="Take it off the day and keep it as an idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> To ideas</button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
         <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
       </div>
     </div>
@@ -16080,7 +16082,7 @@
       if(activePanel) openNewAltForm(mobileAddFab, activePanel);
     });
     menuRow('+ Plan', function(){ openNewPlanForm(mobileAddFab); });
-    menuRow('💡 Idea box', function(){ openIdeaBox(); });
+    menuRow('Idea box', function(){ openIdeaBox(); });
     positionPopover(pop, mobileAddFab);
   });
   if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
@@ -17742,7 +17744,7 @@
           '<div class="grp-idea-act"><button type="button" class="grp-heart' + (mine ? ' on' : '') + '" aria-pressed="' + mine + '" aria-label="Heart ' + grpEsc(it.a.t || '') + '">♥ ' + hs.length + '</button>' +
           '<select class="grp-plan" aria-label="Plan on a day"><option value="">Plan it…</option>' + days.map(function(dn){ return '<option value="' + dn + '">' + grpEsc(grpDayLabel(panel, dn)) + '</option>'; }).join('') + '</select>' +
           '<button type="button" class="grp-rm" aria-label="Remove idea" title="Remove idea">✕</button></div></div>';
-      }).join('') : '<p class="grp-empty">No ideas yet. Add the first one above, or open an activity and tap the light bulb.</p>') + '</div>';
+      }).join('') : '<p class="grp-empty">No ideas yet. Add the first one above, or open an activity and choose To ideas.</p>') + '</div>';
     var titleIn = box.querySelector('#grpIdeaTitle'); titleIn.value = draft;
     var tagSel = box.querySelector('#grpIdeaTag');
     var other = TAGS.findIndex(function(tg){ return tg.name === 'Other'; }); if(other >= 0) tagSel.value = String(other);
@@ -17907,7 +17909,7 @@
     var mineDone = me && (av[me] || []).length;
     if(!bar){ bar = document.createElement('div'); bar.className = 'grp-ui grp-pollbar jsctl'; panel.insertBefore(bar, panel.firstChild); }
     var dl = poll.dl ? poll.dl.split('-').map(Number) : null;
-    bar.innerHTML = '<span class="grp-pollbar-ic" aria-hidden="true">🗳️</span><div class="grp-pollbar-t"><b>When can everyone go?</b><span>' + poll.len + ' days · ' + answered.length + ' of ' + people.length + ' answered' +
+    bar.innerHTML = '<span class="grp-pollbar-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg></span><div class="grp-pollbar-t"><b>When can everyone go?</b><span>' + poll.len + ' days · ' + answered.length + ' of ' + people.length + ' answered' +
       (dl ? ' · answers by ' + WD_ABBR[(new Date(dl[0], dl[1] - 1, dl[2]).getDay() + 6) % 7] + ' ' + dl[2] + ' ' + MONTH_SHORT[dl[1] - 1] : '') + '</span></div>' +
       grpFaces(answered) + '<button type="button" class="grp-btn">' + (mineDone ? 'See results' : 'Mark my days') + '</button>';
     bar.querySelector('.grp-btn').addEventListener('click', function(e){ e.stopPropagation(); openPoll(panel); });
@@ -18126,7 +18128,7 @@
     var head = document.getElementById('pageHead');
     if(head && btn.parentElement !== head) head.insertBefore(btn, head.firstChild);
     var n = panel ? grpIdeas(optOf(panel)).length : 0;
-    var html = '<span aria-hidden="true">💡</span> Ideas' + (n ? ' <b>' + n + '</b>' : '');
+    var html = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> Ideas' + (n ? ' <b>' + n + '</b>' : '');
     if(btn.innerHTML !== html) btn.innerHTML = html;
     btn.title = 'Idea box'; btn.setAttribute('aria-label', 'Idea box, ' + n + ' ideas');
     btn.hidden = !panel;
@@ -18168,10 +18170,10 @@
     var me = meKey(), panel = li.closest('.panel');
     if(me && panel && grpEligible(panel).indexOf(me) !== -1){
       var out = grpSkippers(li).indexOf(me) !== -1;
-      row(icon(out ? '✓' : '🙅') + (out ? 'Join again' : 'I\'ll skip this'), function(){ grpToggleSkip(li); });
+      row(icon(out ? '✓' : '–') + (out ? 'Join again' : 'I\'ll skip this'), function(){ grpToggleSkip(li); });
     }
-    row(icon('⚔️') + 'This or that…', function(){ openDuelForm(li, anchorEl); });
-    row(icon('💡') + 'Move to idea box', function(){ grpMoveToIdeas(li); });
+    row(icon('⑂') + 'This or that…', function(){ openDuelForm(li, anchorEl); });
+    row(icon('+') + 'Move to idea box', function(){ grpMoveToIdeas(li); });
   };
   // Re-render on switching alternatives (renderPageBookmark runs then) and
   // once the member list (names, faces) has loaded.
