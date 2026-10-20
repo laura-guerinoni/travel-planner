@@ -2950,6 +2950,34 @@
   @media (prefers-reduced-motion: reduce){ #ideaPop .ip-env, #ideaPop .ip-env .ip-heart { animation:none; } }
   #ideaPop .ip-done .ip-ok { width:48px; height:48px; margin:0 auto; border-radius:50%; background:rgba(63,191,148,.15); color:#2a9d76; display:grid; place-items:center; font-size:24px; font-weight:800; }
   @media print { .page-idea, #ideaPop { display:none !important; } }
+  /* places on the map, and the travel lines between activities */
+  .place-mark { flex:none; width:18px; height:18px; margin-left:-30px; margin-right:12px; border-radius:50%; background:#3fbf94; color:#fff; font-size:11px; font-weight:800; line-height:18px; text-align:center; pointer-events:none; position:relative; z-index:1; }
+  .place-mark[hidden] { display:none; }
+  #placeDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  #placeDD[hidden] { display:none; }
+  #placeDD .pd-opt { display:flex; gap:10px; padding:7px 12px; cursor:pointer; }
+  #placeDD .pd-opt.act, #placeDD .pd-opt:hover { background:var(--bg); }
+  #placeDD .pd-opt svg { width:16px; height:16px; color:var(--muted); flex:none; margin-top:2px; }
+  #placeDD .pd-opt b { display:block; font-size:13.5px; font-weight:800; }
+  #placeDD .pd-opt small { display:block; font-size:12px; font-weight:600; color:var(--muted); }
+  #placeDD .pd-keep { border-top:1px solid var(--line); margin-top:4px; padding-top:9px; } #placeDD .pd-keep b { font-weight:700; }
+  #placeDD .pd-src, #goMenu .gm-src { padding:4px 12px 2px; font-size:10.5px; font-weight:700; color:#b9b0d4; }
+  .acts > li > .spot-line { display:block; margin-top:1px; font-size:12px; font-weight:600; color:var(--muted); }
+  .acts > .go-line { display:flex; align-items:center; margin:-2px 0 -2px 14px; padding:2px 0 2px 10px; border-left:2px solid #e7def2; font-size:12px; font-weight:700; color:var(--muted); }
+  .go-line .go-b { display:inline-flex; align-items:center; gap:5px; border:none; background:none; padding:2px 6px 2px 4px; margin-left:-4px; border-radius:7px; font:inherit; color:inherit; cursor:pointer; white-space:nowrap; }
+  .go-line .go-b:hover { background:var(--bg); color:var(--ink); }
+  .go-line .go-b svg { width:14px; height:14px; flex:none; }
+  .go-line .go-b svg:last-child { width:12px; height:12px; }
+  .go-line .go-off { letter-spacing:2px; opacity:.5; }
+  #goMenu { position:fixed; z-index:10020; width:250px; background:#fff; border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
+  #goMenu[hidden] { display:none; }
+  #goMenu .gm-opt { display:flex; align-items:center; gap:10px; width:100%; padding:8px 14px; border:none; background:none; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink); cursor:pointer; text-decoration:none; text-align:left; }
+  #goMenu .gm-opt:hover { background:var(--bg); }
+  #goMenu .gm-opt svg { width:17px; height:17px; color:var(--muted); flex:none; }
+  #goMenu .gm-opt.on, #goMenu .gm-opt.on svg { color:var(--primary); }
+  #goMenu .gm-ext { margin-left:auto; font-size:11px; color:var(--muted); }
+  #goMenu hr { border:none; border-top:1px solid var(--line); margin:6px 0; }
+  @media print { .acts > .go-line, #goMenu, #placeDD, .place-mark { display:none !important; } }
   /* ---- Notes: a tab after the alternatives; the page becomes a ruled
      notebook page (lines instead of the squares, same paper and colours) ---- */
   .notes-page { display:none; }
@@ -13301,7 +13329,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #ideaPop, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13906,6 +13934,7 @@
   // per person and plan, with a catch-up of anything missed, and capped per
   // sender — see the script.
   var EMAIL_HOOK_URL = 'https://script.google.com/macros/s/AKfycbzttnW80EB51C7vp4r0Lwq2vmyNmKuw-P2kHX7MkP0d_MpO8pkxYs-hrlqM5NwEx2cEKQ/exec'; // the Apps Script "Web app" (mention emails)
+  window.TP_SCRIPT_URL = EMAIL_HOOK_URL;   // also answers place searches and travel times
   function mentionItems(text){ var out = [], re = /<m k="([^"]*)"(?: msg="([^"]*)")?>/g, m; while((m = re.exec(text || ''))) out.push({ k: npUnesc(m[1]), msg: npUnesc(m[2] || '') }); return out; }
   function memberNameOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; var n = displayNameFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]) || '';
     if(n.indexOf('@') !== -1){ n = n.split('@')[0].split(/[._-]/)[0]; n = n.charAt(0).toUpperCase() + n.slice(1); } return n; }
@@ -14288,7 +14317,7 @@
     var cell = cellOfDay(fabAddDaySelect.value);
     if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
     if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
-    var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || '';
+    var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || ''; inp._geo = null; inp._orig = inp.value; placeMark(inp);
     // a journey on a day with nothing yet leaves from where the day before ended
     if(!inp.value && cell && isTransportTag(TAGS[fabAddTagSelect.value])){
       var cells = [].slice.call(cell.closest('.panel').querySelectorAll('.cell:not(.empty)'));
@@ -14299,6 +14328,8 @@
   // li: the activity just added/edited (in its final day).
   function applyPlace(cell, li){
     var inp = document.getElementById('fabAddPlace'); if(!inp || !cell) return;
+    var toInp0 = document.getElementById('fabAddPlaceTo');
+    if(li){ applyGeo(li, inp, 'data-geo', 'data-spot'); if(toInp0 && !toInp0.hidden) applyGeo(li, toInp0, 'data-geo-to', 'data-spot-to'); else { li.removeAttribute('data-geo-to'); li.removeAttribute('data-spot-to'); } }
     var v = inp.value.trim(), cities = citiesOf(placeOfCell(cell)), loc = cell.querySelector(':scope > .loc');
     var toInp = document.getElementById('fabAddPlaceTo'), dest = toInp && !toInp.hidden ? toInp.value.trim() : '';
     if(li){ if(dest) li.setAttribute('data-place-to', dest); else li.removeAttribute('data-place-to'); }
@@ -14502,8 +14533,212 @@
       flag(li, 'data-sec-first', many && i === 0, '');
       flag(li, 'data-city-last', many && i === seq.length - 1, '');
     });
+    // the exact spot picked on the map, under the name (display only)
+    dayActs(cell).forEach(function(li){
+      var sp = li.getAttribute('data-spot'), el = li.querySelector(':scope > .spot-line'), t = li.querySelector(':scope > .title');
+      if(!sp || !t){ if(el) el.remove(); return; }
+      if(!el){ el = document.createElement('span'); el.className = 'spot-line'; el.contentEditable = 'false'; t.after(el); }
+      if(el.textContent !== '📍 ' + sp) el.textContent = '📍 ' + sp;
+    });
+    renderGoLines(cell, seq);
   }
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
+
+  // ---------- Places on the map, and travel times between activities ----------
+  // The place field suggests real places as you type (OpenRouteService,
+  // through the Apps Script, which keeps the key). Picking one saves its
+  // map point (data-geo) and, for an exact spot like a restaurant, its name
+  // (data-spot); the activity's location stays the city, so the day's
+  // heading and city sections don't change. Between two activities with
+  // points, a small line shows how long it takes to get from one to the
+  // next (walk when it's short, car otherwise); times are fetched once and
+  // saved with the activity (data-go).
+  function travelCall(req){
+    if(!IS_HOSTED || !window.TP_SCRIPT_URL) return Promise.resolve(travelMock(req));   // the local draft: made-up answers
+    var u = firebase.auth().currentUser; if(!u) return Promise.reject(new Error('signed out'));
+    return u.getIdToken().then(function(tok){
+      return fetch(window.TP_SCRIPT_URL, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify(Object.assign({ idToken: tok }, req)) }); })
+      .then(function(r){ return r.json(); });
+  }
+  var MOCK_PLACES = [['Zakopane', 'Zakopane, Poland', 49.2958, 19.9539, 'Zakopane', 0], ['Dworzec PKP Zakopane', 'Chramcówki 35A, Zakopane, Poland', 49.3010, 19.9628, 'Zakopane', 1],
+    ['Willa Orla', 'Kościeliska 12, Zakopane, Poland', 49.2955, 19.9390, 'Zakopane', 1], ['Krupówki', 'Krupówki, Zakopane, Poland', 49.2965, 19.9530, 'Zakopane', 1],
+    ['Karczma Zapiecek', 'Krupówki 43, Zakopane, Poland', 49.2970, 19.9520, 'Zakopane', 1], ['Gubałówka', 'Zakopane, Poland', 49.3082, 19.9311, 'Zakopane', 1],
+    ['Terme Chochołów', 'Chochołów 241, Poland', 49.3640, 19.8040, 'Chochołów', 1], ['Morskie Oko', 'Tatra National Park, Poland', 49.2013, 20.0711, 'Bukowina Tatrzańska', 1],
+    ['Kraków', 'Kraków, Poland', 50.0614, 19.9366, 'Kraków', 0], ['Kraków Główny', 'Pawia 5a, Kraków, Poland', 50.0687, 19.9476, 'Kraków', 1],
+    ['Wawel Castle', 'Wawel 5, Kraków, Poland', 50.0540, 19.9355, 'Kraków', 1], ['Rynek Główny', 'Kraków, Poland', 50.0617, 19.9373, 'Kraków', 1],
+    ['Košice', 'Košice, Slovakia', 48.7164, 21.2611, 'Košice', 0], ['Budapest', 'Budapest, Hungary', 47.4979, 19.0402, 'Budapest', 0]];
+  function kmBetween(a, b){ var R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180;
+    var x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(x)); }
+  function travelMock(req){
+    if(req.kind === 'geo'){ var q = String(req.text || '').toLowerCase();
+      var hits = MOCK_PLACES.filter(function(m){ return (m[0] + ' ' + m[1]).toLowerCase().indexOf(q) !== -1; }).slice(0, 5)
+        .map(function(m){ return { name:m[0], label:m[1], lat:m[2], lon:m[3], city:m[4], spot:!!m[5] }; });
+      return hits.length ? { places: hits } : { error:'not found' }; }
+    var d = kmBetween(req.from, req.to) * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[req.mode] || 28;
+    return { min: Math.max(1, Math.round(d / sp * 60) + (req.mode === 'car' ? 3 : 0)), km: Math.round(d * 10) / 10 };
+  }
+  function parseGeo(v){ var m = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(v || ''); return m ? { lat: +m[1], lon: +m[2] } : null; }
+  function fmtGeo(g){ return (Math.round(g.lat * 1e5) / 1e5) + ',' + (Math.round(g.lon * 1e5) / 1e5); }
+  // a ✓ at the end of the field when the place is on the map
+  function placeMark(inp){
+    if(!inp) return; var m = inp.parentNode.querySelector('.place-mark[data-for="' + inp.id + '"]');
+    if(!m){ m = document.createElement('span'); m.className = 'place-mark'; m.setAttribute('data-for', inp.id); m.textContent = '✓'; m.title = 'On the map: travel times can show'; inp.after(m); }
+    m.hidden = !(inp._geo && inp.value.trim() === inp._geo.name);
+  }
+  function loadGeo(li){
+    [['fabAddPlace', 'data-geo', 'data-spot', 'data-place'], ['fabAddPlaceTo', 'data-geo-to', 'data-spot-to', 'data-place-to']].forEach(function(f){
+      var inp = document.getElementById(f[0]); if(!inp) return;
+      var g = li && parseGeo(li.getAttribute(f[1])), spot = li && li.getAttribute(f[2]);
+      if(li && spot) inp.value = spot;
+      inp._geo = g ? { lat:g.lat, lon:g.lon, name: inp.value.trim(), spot: !!spot, city: li.getAttribute(f[3]) || '' } : null;
+      inp._orig = inp.value; placeMark(inp);
+    });
+  }
+  // saving: a picked spot keeps the day's city as the location
+  function applyGeo(li, inp, geoAttr, spotAttr){
+    var g = inp._geo, v = inp.value.trim();
+    if(g && v === g.name){
+      li.setAttribute(geoAttr, fmtGeo(g));
+      if(g.spot){ li.setAttribute(spotAttr, g.name); if(g.city) inp.value = g.city; } else li.removeAttribute(spotAttr);
+    } else if(v !== inp._orig || !v){ li.removeAttribute(geoAttr); li.removeAttribute(spotAttr); }
+  }
+  // the suggestions list under the place fields
+  (function(){
+    var dd = document.createElement('div'); dd.id = 'placeDD'; dd.hidden = true; document.body.appendChild(dd);
+    var forInp = null, list = [], act = 0, timer = null, seq = 0;
+    var PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+    var TXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></svg>';
+    function close(){ dd.hidden = true; forInp = null; }
+    function near(){   // a point nearby, so the right "Zakopane" comes first
+      var li = fabAddEditLi || fabAddInsertAfter, cell = li ? li.closest('.cell') : cellOfDay(fabAddDaySelect.value), g = null;
+      var other = document.getElementById(forInp && forInp.id === 'fabAddPlace' ? 'fabAddPlaceTo' : 'fabAddPlace');
+      if(other && other._geo) return other._geo;
+      if(cell) cell.querySelectorAll(':scope > .acts > li').forEach(function(x){ g = g || parseGeo((x.__origin || x).getAttribute('data-geo')); });
+      if(!g){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll('.acts > li[data-geo]').forEach(function(x){ g = g || parseGeo(x.getAttribute('data-geo')); }); }
+      return g;
+    }
+    function draw(){
+      var r = forInp.getBoundingClientRect(), v = forInp.value.trim();
+      dd.innerHTML = list.map(function(p, i){ return '<div class="pd-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '">' + PIN + '<span><b></b><small></small></span></div>'; }).join('') +
+        '<div class="pd-opt pd-keep' + (act === list.length ? ' act' : '') + '" data-i="keep">' + TXT + '<span><b></b><small>without travel times</small></span></div><div class="pd-src">Places © OpenStreetMap</div>';
+      dd.querySelectorAll('.pd-opt[data-i]').forEach(function(o){ var i = o.dataset.i;
+        if(i === 'keep') o.querySelector('b').textContent = 'Use “' + v + '” as written';
+        else { o.querySelector('b').textContent = list[+i].name; o.querySelector('small').textContent = list[+i].label || ''; } });
+      dd.hidden = false; dd.style.left = Math.round(r.left) + 'px'; dd.style.top = Math.round(r.bottom + 4) + 'px'; dd.style.width = Math.max(280, Math.round(r.width)) + 'px';
+    }
+    function search(inp){
+      var v = inp.value.trim(); clearTimeout(timer);
+      if(v.length < 3 || (inp._geo && v === inp._geo.name)){ if(forInp === inp) close(); return; }
+      timer = setTimeout(function(){
+        var my = ++seq, n = near();
+        travelCall({ kind:'geo', text:v, near: n ? { lon:n.lon, lat:n.lat } : null }).then(function(res){
+          if(my !== seq || document.activeElement !== inp) return;
+          forInp = inp; list = (res && res.places) || []; act = 0; draw();
+        }).catch(function(){});
+      }, 350);
+    }
+    function pick(i){
+      var inp = forInp; if(!inp) return;
+      if(i !== 'keep'){ var p = list[i]; inp.value = p.name; inp._geo = { lat:p.lat, lon:p.lon, name:p.name, spot:!!p.spot, city:p.city || '' }; }
+      else inp._geo = null;
+      placeTouched = true; close(); placeMark(inp);
+    }
+    document.addEventListener('input', function(e){ var t = e.target; if(t && (t.id === 'fabAddPlace' || t.id === 'fabAddPlaceTo')){ placeMark(t); search(t); } });
+    // on window, so it runs before the form's own Enter (which saves)
+    window.addEventListener('keydown', function(e){
+      if(dd.hidden || !forInp || e.target !== forInp) return; var n = list.length + 1;
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); e.stopImmediatePropagation(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; draw(); }
+      else if(e.key === 'Enter'){ e.preventDefault(); e.stopImmediatePropagation(); pick(act < list.length ? act : 'keep'); }
+      else if(e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); close(); }
+    }, true);
+    dd.addEventListener('mousedown', function(e){ e.preventDefault(); var o = e.target.closest('.pd-opt'); if(o) pick(o.dataset.i === 'keep' ? 'keep' : +o.dataset.i); });
+    document.addEventListener('focusout', function(e){ if(e.target === forInp) setTimeout(close, 120); });
+  })();
+
+  // ---- the travel lines ----
+  var GO_ICONS = {
+    walk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9 21l2-6 3 3v3M7 12l3-4 4 1 3 4M10 8l-1 7"/></svg>',
+    bike:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M15 6h2l3 11M5.5 17 9 9h7l-4 8H5.5M12 6h-2"/></svg>',
+    car:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14v-5l-2-5H7l-2 5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M5 12h14"/></svg>',
+    bus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/><circle cx="8" cy="14.5" r="1"/><circle cx="16" cy="14.5" r="1"/></svg>',
+    hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9.8 9.8 0 0 1 12 5c5 0 9 5 9 7a11 11 0 0 1-2.6 3.4M6.1 6.1C4 7.6 3 10 3 12c0 2 4 7 9 7 1.6 0 3.1-.4 4.4-1.1"/></svg>',
+    caret:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
+  };
+  var GO_MODES = { walk:'Walk', bike:'Bike', car:'Car' };
+  function goPref(){ try { return localStorage.getItem('tp-go-mode') || 'auto'; } catch(e){ return 'auto'; } }
+  function goData(li){ try { return JSON.parse(li.getAttribute('data-go') || '{}') || {}; } catch(e){ return {}; } }
+  function goModeOf(d){ var m = d.m || goPref(); if(m !== 'auto') return m; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
+  function fmtMin(m){ return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
+  function fmtKm(k){ return String(Math.round(k * 10) / 10).replace('.', ',') + ' km'; }
+  // the stretch between two activities: from where the first ends to where the next starts
+  function goEnds(a, b){
+    a = a.__origin || a; b = b.__origin || b;
+    var fg = parseGeo(a.getAttribute('data-geo-to')) || parseGeo(a.getAttribute('data-geo')), tg = parseGeo(b.getAttribute('data-geo'));
+    if(!fg || !tg) return null;
+    var fSpot = a.hasAttribute('data-geo-to') ? a.hasAttribute('data-spot-to') : a.hasAttribute('data-spot'), d = kmBetween(fg, tg);
+    // two exact spots, or two different towns; not the same spot, not a trip of its own
+    if(d < .08 || d > 50 || (!(fSpot && b.hasAttribute('data-spot')) && d < 3)) return null;
+    return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b };
+  }
+  var goQueue = [], goBusy = false, goAsked = {};
+  function goFetch(ends, mode){
+    var k = ends.key + '|' + mode; if(goAsked[k] || VIEW_ONLY) return; goAsked[k] = 1;
+    goQueue.push(function(done){
+      travelCall({ kind:'route', mode:mode, from:{ lon:ends.from.lon, lat:ends.from.lat }, to:{ lon:ends.to.lon, lat:ends.to.lat } }).then(function(res){
+        if(res && !res.error && ends.li.isConnected){ var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key }; d[mode] = [res.min, res.km]; ends.li.setAttribute('data-go', JSON.stringify(d)); }
+      }).catch(function(){}).then(function(){ setTimeout(done, 1600); });   // the free plan allows ~40 a minute
+    });
+    goPump();
+  }
+  function goPump(){ if(goBusy || !goQueue.length) return; goBusy = true; goQueue.shift()(function(){ goBusy = false; goPump(); }); }
+  function renderGoLines(cell, seq){
+    var acts = cell.querySelector(':scope > .acts'); if(!acts) return;
+    var keep = [];
+    seq.forEach(function(li, i){
+      if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
+      var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+      var mode = goModeOf(d);
+      if(!d.walk) goFetch(ends, 'walk'); if(!d[mode]) goFetch(ends, mode);
+      var el = acts.querySelector(':scope > .go-line[data-k="' + ends.key + '"]');
+      if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
+      el.__ends = ends; keep.push(el);
+      var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
+      var v = d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
+        : '<button type="button" class="go-b" aria-label="Travel time">' + GO_ICONS[mode] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '…') + GO_ICONS.caret + '</button>';
+      if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
+    });
+    acts.querySelectorAll(':scope > .go-line').forEach(function(el){ if(keep.indexOf(el) === -1) el.remove(); });
+  }
+  (function(){
+    var menu = document.createElement('div'); menu.id = 'goMenu'; menu.hidden = true; document.body.appendChild(menu);
+    function setGo(li, fn){ if(VIEW_ONLY) return; var d = goData(li); fn(d); li.setAttribute('data-go', JSON.stringify(d)); }
+    document.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('.go-line .go-b'); if(!b){ if(!menu.contains(e.target)) menu.hidden = true; return; }
+      e.preventDefault(); e.stopPropagation();
+      var ends = b.parentNode.__ends; if(!ends) return;
+      if(b.classList.contains('go-off')){ setGo(ends.li, function(d){ delete d.h; }); return; }
+      var d = goData(ends.li), cur = goModeOf(d);
+      Object.keys(GO_MODES).forEach(function(m){ if(!d[m]) goFetch(ends, m); });
+      var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
+      menu.innerHTML = Object.keys(GO_MODES).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : GO_MODES[m] + ' …') + '</button>'; }).join('') +
+        '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + 'Public transport<span class="gm-ext">Google Maps ↗</span></a>' +
+        '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
+        '<button type="button" class="gm-opt" data-x="def">Use ' + GO_MODES[cur].toLowerCase() + ' for every line</button>' +
+        (goPref() !== 'auto' ? '<button type="button" class="gm-opt" data-x="auto">Back to automatic (walk if short)</button>' : '') +
+        '<div class="gm-src">Routes © openrouteservice · Map data © OpenStreetMap</div>';
+      var r = b.getBoundingClientRect(); menu.hidden = false;
+      menu.style.left = Math.round(Math.min(r.left, innerWidth - menu.offsetWidth - 8)) + 'px'; menu.style.top = Math.round(r.bottom + 6) + 'px';
+      menu.onclick = function(ev){
+        var o = ev.target.closest('.gm-opt'); if(!o) return; if(o.tagName === 'A'){ menu.hidden = true; return; }
+        if(o.dataset.m) setGo(ends.li, function(x){ if(o.dataset.m === goPref()) delete x.m; else x.m = o.dataset.m; });
+        else if(o.dataset.x === 'hide') setGo(ends.li, function(x){ x.h = 1; });
+        else if(o.dataset.x === 'def'){ try { localStorage.setItem('tp-go-mode', cur); } catch(err){} }
+        else if(o.dataset.x === 'auto'){ try { localStorage.removeItem('tp-go-mode'); } catch(err){} }
+        menu.hidden = true;
+      };
+    }, true);
+  })();
   (function(){
     var inp = document.getElementById('fabAddPlace'); if(!inp) return;
     inp.addEventListener('input', function(){ placeTouched = true; });
@@ -14527,7 +14762,7 @@
     more.querySelectorAll('[data-x="ticket"], [data-x="photo"]').forEach(function(x){ x.classList.remove('picked'); });
     placeTouched = false;
     var toInp = document.getElementById('fabAddPlaceTo'); if(toInp) toInp.value = li ? (li.getAttribute('data-place-to') || '') : '';
-    suggestPlace(); syncTransportForm();
+    suggestPlace(); syncTransportForm(); loadGeo(li);
     var end = document.getElementById('fabAddDayEnd');
     if(end){ var st = li && li.getAttribute('data-span-to'); if(st) end.dataset.want = st; else delete end.dataset.want; end.hidden = !st; fillDayEnd(); }
     syncAllDayForm();
@@ -15829,6 +16064,11 @@
     if(li.getAttribute('data-pay-mode') === 'own') a.pm = 'own';
     if(li.getAttribute('data-place')) a.pl = li.getAttribute('data-place');
     if(li.getAttribute('data-place-to')) a.plt = li.getAttribute('data-place-to');
+    if(li.getAttribute('data-spot')) a.sp = li.getAttribute('data-spot');
+    if(li.getAttribute('data-spot-to')) a.spt = li.getAttribute('data-spot-to');
+    if(li.getAttribute('data-geo')) a.gp = li.getAttribute('data-geo');
+    if(li.getAttribute('data-geo-to')) a.gpt = li.getAttribute('data-geo-to');
+    if(li.getAttribute('data-go')) a.go = li.getAttribute('data-go');
     if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
     if(li.getAttribute('data-span-to')) a.st = parseInt(li.getAttribute('data-span-to'), 10);
     var currency = li.getAttribute('data-currency');
@@ -15991,6 +16231,11 @@
     if(a.pm === 'own') li.setAttribute('data-pay-mode', 'own');
     if(a.pl) li.setAttribute('data-place', a.pl);
     if(a.plt) li.setAttribute('data-place-to', a.plt);
+    if(a.sp) li.setAttribute('data-spot', a.sp);
+    if(a.spt) li.setAttribute('data-spot-to', a.spt);
+    if(a.gp) li.setAttribute('data-geo', a.gp);
+    if(a.gpt) li.setAttribute('data-geo-to', a.gpt);
+    if(a.go) li.setAttribute('data-go', a.go);
     if(a.so) li.setAttribute('data-stay-to', String(a.so));
     if(a.st) li.setAttribute('data-span-to', String(a.st));
     if(a.cur) li.setAttribute('data-currency', a.cur);
@@ -16273,7 +16518,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to', 'data-spot', 'data-spot-to', 'data-geo', 'data-geo-to', 'data-go'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
@@ -16287,7 +16532,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('go-line') || n.classList.contains('spot-line') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
