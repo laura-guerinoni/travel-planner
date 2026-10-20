@@ -2951,8 +2951,6 @@
   #ideaPop .ip-done .ip-ok { width:48px; height:48px; margin:0 auto; border-radius:50%; background:rgba(63,191,148,.15); color:#2a9d76; display:grid; place-items:center; font-size:24px; font-weight:800; }
   @media print { .page-idea, #ideaPop { display:none !important; } }
   /* places on the map, and the travel lines between activities */
-  .place-mark { flex:none; width:18px; height:18px; margin-left:-30px; margin-right:12px; border-radius:50%; background:#3fbf94; color:#fff; font-size:11px; font-weight:800; line-height:18px; text-align:center; pointer-events:none; position:relative; z-index:1; }
-  .place-mark[hidden] { display:none; }
   #placeDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #placeDD[hidden] { display:none; }
   #placeDD .pd-opt { display:flex; gap:10px; padding:7px 12px; cursor:pointer; }
@@ -2977,7 +2975,7 @@
   #goMenu .gm-opt.on, #goMenu .gm-opt.on svg { color:var(--primary); }
   #goMenu .gm-ext { margin-left:auto; font-size:11px; color:var(--muted); }
   #goMenu hr { border:none; border-top:1px solid var(--line); margin:6px 0; }
-  @media print { .acts > .go-line, #goMenu, #placeDD, .place-mark { display:none !important; } }
+  @media print { .acts > .go-line, #goMenu, #placeDD { display:none !important; } }
   /* ---- Notes: a tab after the alternatives; the page becomes a ruled
      notebook page (lines instead of the squares, same paper and colours) ---- */
   .notes-page { display:none; }
@@ -14580,12 +14578,7 @@
   }
   function parseGeo(v){ var m = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(v || ''); return m ? { lat: +m[1], lon: +m[2] } : null; }
   function fmtGeo(g){ return (Math.round(g.lat * 1e5) / 1e5) + ',' + (Math.round(g.lon * 1e5) / 1e5); }
-  // a ✓ at the end of the field when the place is on the map
-  function placeMark(inp){
-    if(!inp) return; var m = inp.parentNode.querySelector('.place-mark[data-for="' + inp.id + '"]');
-    if(!m){ m = document.createElement('span'); m.className = 'place-mark'; m.setAttribute('data-for', inp.id); m.textContent = '✓'; m.title = 'On the map: travel times can show'; inp.after(m); }
-    m.hidden = !(inp._geo && inp.value.trim() === inp._geo.name);
-  }
+  function placeMark(){}   // (no mark in the field: the suggestions list is enough)
   function loadGeo(li){
     [['fabAddPlace', 'data-geo', 'data-spot', 'data-place'], ['fabAddPlaceTo', 'data-geo-to', 'data-spot-to', 'data-place-to']].forEach(function(f){
       var inp = document.getElementById(f[0]); if(!inp) return;
