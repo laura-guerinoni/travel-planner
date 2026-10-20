@@ -3035,6 +3035,16 @@
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
   #dayMap .dm-note:empty { display:none; }
   #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:Nunito, sans-serif; }
+  /* a place picked on the map */
+  .dm-popup .maplibregl-popup-content { border-radius:14px; padding:12px 14px 12px; box-shadow:0 10px 26px -10px rgba(40,25,60,.45); font-family:Nunito, sans-serif; color:var(--ink); }
+  .dm-popup .maplibregl-popup-close-button { font-size:16px; color:var(--muted); right:4px; top:2px; }
+  .dm-card b { display:block; font-size:14px; font-weight:800; padding-right:14px; line-height:1.25; }
+  .dm-card small { display:block; margin-top:2px; font-size:11.5px; font-weight:700; color:var(--muted); }
+  .dm-card-btns { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .dm-card-btns button { border:none; border-radius:10px; padding:7px 10px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; text-align:left; }
+  .dm-add-day { background:var(--primary); color:#fff; }
+  .dm-add-idea { background:var(--bg); color:var(--ink); }
+  .dm-card-btns button:hover { filter:brightness(1.05); }
   .acts > li .map-num { width:18px; height:18px; flex:none; border-radius:50%; background:var(--primary); color:#fff; font-size:10.5px; font-weight:800; display:grid; place-items:center; }
   .acts > li .tagrow > .map-num { margin-right:1px; }
   .acts > li[data-map-hl] { background:rgba(var(--primary-rgb), .1) !important; }
@@ -14914,10 +14924,90 @@
         map.addSource('dm-route', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
         map.addLayer({ id:'dm-route-casing', type:'line', source:'dm-route', paint:{ 'line-color':'#fff', 'line-width':7, 'line-opacity':.9 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
         map.addLayer({ id:'dm-route', type:'line', source:'dm-route', paint:{ 'line-color': getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ec6a9c', 'line-width':3.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
+        addPlaces();
         sig = ''; draw(true);
       });
       map.on('moveend', fitSegs); map.on('zoom', fitSegs);
     }
+    // ---- Places on the map: the tiles already carry shops, restaurants,
+    // sights and stations (OpenMapTiles "poi" layer). They're drawn as soft
+    // dots with their names, under the route and the pins; clicking one
+    // opens a small card to add it to the day shown, or to the ideas.
+    var PLACE_KIND = [   // [tile classes, the tag to use, dot colour]
+      [['restaurant', 'fast_food', 'cafe', 'bar', 'beer', 'ice_cream', 'bakery'], 'Food', '#f2884d'],
+      [['museum', 'art_gallery', 'gallery'], 'Museum', '#4a86c5'],
+      [['attraction', 'monument', 'castle', 'place_of_worship', 'viewpoint', 'theatre', 'cinema', 'music'], 'City', '#8a6fd1'],
+      [['lodging', 'hotel', 'hostel', 'campsite'], 'Stay', '#3fbf94'],
+      [['railway', 'train'], 'Train', '#4a86c5'],
+      [['bus'], 'Bus', '#3fbf94'],
+      [['beach', 'swimming'], 'Beach', '#3fa7d6'],
+      [['shop', 'grocery', 'clothing_store', 'gift', 'jewelry', 'books', 'mall'], 'Shopping', '#d6619a'],
+      [['park', 'garden', 'zoo', 'stadium', 'sports', 'golf'], 'Sport', '#5fa043'] ];
+    function kindOf(cls, sub){ for(var i = 0; i < PLACE_KIND.length; i++){ if(PLACE_KIND[i][0].indexOf(cls) !== -1 || PLACE_KIND[i][0].indexOf(sub) !== -1) return PLACE_KIND[i]; } return null; }
+    function tagNamed(n){ for(var i = 0; i < TAGS.length; i++){ if(TAGS[i].name === n) return TAGS[i]; } for(var j = 0; j < TAGS.length; j++){ if(TAGS[j].name === 'Other') return TAGS[j]; } return { icon:'', name:n }; }
+    function addPlaces(){
+      var st = map.getStyle(), src = null, font = null;
+      Object.keys(st.sources || {}).forEach(function(k){ if(!src && st.sources[k].type === 'vector') src = k; });
+      if(!src) return;
+      (st.layers || []).forEach(function(l){ if(!font && l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font'])) font = l.layout['text-font']; });
+      var colour = ['match', ['get', 'class']];
+      PLACE_KIND.forEach(function(k){ colour.push(k[0], k[2]); });
+      colour.push('#9b8fc0');
+      // Dots from zoom 13, names from 14; where they crowd, the better-known
+      // places (lower rank) win.
+      var filter = ['has', 'name'];
+      try {
+        map.addLayer({ id:'dm-place-dot', type:'circle', source:src, 'source-layer':'poi', minzoom:13, filter:filter,
+          paint:{ 'circle-radius':['interpolate', ['linear'], ['zoom'], 13, 3, 17, 5], 'circle-color':colour, 'circle-opacity':.85, 'circle-stroke-color':'#fff', 'circle-stroke-width':1.5 } }, 'dm-route-casing');
+        map.addLayer({ id:'dm-place-label', type:'symbol', source:src, 'source-layer':'poi', minzoom:14, filter:filter,
+          layout:{ 'symbol-sort-key':['coalesce', ['get', 'rank'], 99], 'text-field':['get', 'name'], 'text-font':font || ['Noto Sans Regular'], 'text-size':11, 'text-anchor':'top', 'text-offset':[0, .6], 'text-max-width':8, 'text-optional':true },
+          paint:{ 'text-color':'#6a5f92', 'text-halo-color':'rgba(255,255,255,.95)', 'text-halo-width':1.4 } }, 'dm-route-casing');
+      } catch(e){ return; }
+      ['dm-place-dot', 'dm-place-label'].forEach(function(id){
+        map.on('mouseenter', id, function(){ map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', id, function(){ map.getCanvas().style.cursor = ''; });
+        map.on('click', id, function(e){
+          var f = e.features && e.features[0]; if(!f || !f.properties || !f.properties.name) return;
+          var c = f.geometry && f.geometry.type === 'Point' ? f.geometry.coordinates : [e.lngLat.lng, e.lngLat.lat];
+          placeCard({ lon:c[0], lat:c[1] }, f.properties);
+        });
+      });
+    }
+    var card = null;
+    function placeCard(g, props){
+      if(card){ card.remove(); card = null; }
+      var k = kindOf(props.class, props.subclass), tg = tagNamed(k ? k[1] : 'Other');
+      var type = String(props.subclass || props.class || '').replace(/_/g, ' ');
+      var el = document.createElement('div'); el.className = 'dm-card';
+      el.innerHTML = '<b></b><small></small><div class="dm-card-btns"><button type="button" class="dm-add-day"></button><button type="button" class="dm-add-idea">Add to ideas</button></div>';
+      el.querySelector('b').textContent = props.name;
+      el.querySelector('small').textContent = (tg.icon ? tg.icon + ' ' : '') + (type ? type.charAt(0).toUpperCase() + type.slice(1) : tg.name);
+      el.querySelector('.dm-add-day').textContent = 'Add to ' + (day ? dayTitle(day) : 'this day');
+      var activity = { i: tg.icon || '', n: tg.name || '', t: props.name, gp: g.lat.toFixed(5) + ',' + g.lon.toFixed(5), sp: props.name };
+      var town = day ? ((day.querySelector(':scope > .loc .loc-text') || {}).textContent || '').trim() : '';
+      if(town) activity.pl = town;
+      el.querySelector('.dm-add-day').addEventListener('click', function(){
+        if(!day) return;
+        var li = buildActivityLi(activity);
+        ensureActsList(day).appendChild(li);
+        attachItemControls(li); renderParticipants(li); renderPaySplit(li);
+        recomputeCell(day); if(typeof refreshHoliCell === 'function') refreshHoliCell(day);
+        var pnl = day.closest('.panel'); if(pnl) renderActivitySpans(pnl);
+        playAddSound();
+        if(card){ card.remove(); card = null; }
+        sig = ''; setTimeout(function(){ draw(false); }, 50);
+        if(typeof grpToast === 'function') grpToast('Added ' + props.name + ' to ' + dayTitle(day));
+      });
+      el.querySelector('.dm-add-idea').addEventListener('click', function(){
+        var pnl = document.querySelector('.panel.on'); if(!pnl || typeof grpAddIdea !== 'function') return;
+        grpAddIdea(optOf(pnl), activity); grpChanged();
+        playAddSound();
+        if(card){ card.remove(); card = null; }
+        grpToast('Added ' + props.name + ' to the ideas');
+      });
+      card = new maplibregl.Popup({ closeButton:true, closeOnClick:true, maxWidth:'240px', offset:10, className:'dm-popup' }).setLngLat([g.lon, g.lat]).setDOMContent(el).addTo(map);
+    }
+    if(!IS_HOSTED) window.__dmPlaceCard = function(lat, lon, props){ placeCard({ lat:lat, lon:lon }, props); };   // local test hook
     function cells(){ var p = document.querySelector('.panel.on'); return p ? [].slice.call(p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)')) : []; }
     function itemsOf(cell){   // the day's activities in the order they're shown
       var acts = cell.querySelector(':scope > .acts'); if(!acts) return [];
