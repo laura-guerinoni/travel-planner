@@ -2626,7 +2626,8 @@
 
   #payPill { display:none; }
   @media screen and (min-width: 721px) {
-    :root.side-closed #payPill { display:inline-flex; align-items:center; gap:10px; height:30px; padding:0 12px 0 6px; margin-right:10px; border-radius:999px;
+    /* the payments pill stays in the top row, column open or closed */
+    #payPill { display:inline-flex; align-items:center; gap:10px; height:30px; padding:0 12px 0 6px; margin-right:10px; border-radius:999px;
       background:#fff; box-shadow:0 1px 4px rgba(40,25,60,.12); font-size:13px; font-weight:800; color:var(--ink); white-space:nowrap; }
     #payPill .pp-item { display:inline-flex; align-items:center; gap:5px; }
     #payPill .pp-face { width:20px; height:20px; border-radius:50%; overflow:hidden; display:inline-block; }
