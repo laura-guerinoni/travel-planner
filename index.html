@@ -2899,8 +2899,10 @@
   #bellDD .bd-empty { padding:10px 14px 14px; color:var(--muted); font-weight:600; font-size:13px; line-height:1.4; }
   @media print { .page-bell, #bellDD, #mentionDD { display:none !important; } }
   /* "Request a feature": a labelled button in the top bar, easy to spot */
-  .page-idea { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 13px 0 10px; margin-right:6px; border:none; border-radius:999px; background:#fff; color:var(--primary); font:inherit; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px -3px rgba(40,25,60,.25), 0 0 0 1px rgba(var(--primary-rgb), .25); white-space:nowrap; }
-  .page-idea:hover { background:rgba(var(--primary-rgb), .1); }
+  .page-idea { position:fixed; left:12px; bottom:16px; z-index:900; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 13px 0 10px; border:none; border-radius:999px; background:#fff; color:var(--primary); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px -3px rgba(40,25,60,.25), 0 0 0 1px rgba(var(--primary-rgb), .25); white-space:nowrap; }
+  .page-idea:hover { background:#fdf3f8; }
+  .page-idea { box-shadow:0 6px 18px -6px rgba(40,25,60,.35), 0 0 0 1px rgba(var(--primary-rgb), .25) !important; }
+  @media screen and (max-width:720px) { .page-idea { display:none !important; } }
   .page-idea:focus { outline:none; } .page-idea:focus-visible { box-shadow:0 0 0 2px var(--primary); }
   .page-idea svg { width:16px; height:16px; }
   #ideaPop { position:fixed; inset:0; z-index:10010; display:flex; align-items:center; justify-content:center; background:rgba(40,25,60,.28); }
@@ -2915,10 +2917,12 @@
   #ideaPop .ip-thumb { position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; box-shadow:0 0 0 1px var(--line); }
   #ideaPop .ip-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
   #ideaPop .ip-thumb button { position:absolute; top:3px; right:3px; width:20px; height:20px; border:none; border-radius:50%; background:rgba(40,25,60,.65); color:#fff; font-size:12px; line-height:20px; padding:0; cursor:pointer; }
-  #ideaPop .ip-add { display:inline-flex; align-items:center; gap:7px; height:64px; padding:0 14px; border:1.5px solid var(--line); border-radius:10px; background:#fff; font:inherit; font-size:13px; font-weight:800; color:var(--muted); cursor:pointer; }
+  #ideaPop .ip-add { display:flex; width:100%; align-items:center; justify-content:center; gap:9px; height:58px; margin-top:10px; padding:0 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; font:inherit; font-size:13.5px; font-weight:800; color:var(--muted); cursor:pointer; text-align:left; }
+  #ideaPop .ip-add[hidden] { display:none; }
   #ideaPop .ip-add:hover { color:var(--ink); border-color:#d8cbe9; }
   #ideaPop .ip-add svg { width:17px; height:17px; }
-  #ideaPop .ip-add small { display:block; font-size:11px; font-weight:700; }
+  #ideaPop .ip-add small { display:block; font-size:11.5px; font-weight:700; }
+  #ideaPop .ip-imgs:empty { display:none; }
   #ideaPop.drag .ip-card { box-shadow:0 0 0 3px var(--primary), 0 24px 60px rgba(30,22,50,.3); }
   #ideaPop .ip-foot { display:flex; align-items:center; gap:10px; margin-top:16px; }
   #ideaPop .ip-note { flex:1; font-size:12px; font-weight:700; color:var(--muted); }
@@ -13982,9 +13986,9 @@
     var MAX_IMGS = 4, imgs = [];
     var pop = document.createElement('div'); pop.id = 'ideaPop'; pop.hidden = true; document.body.appendChild(pop);
     function ensureBtn(){
-      var head = document.getElementById('pageHead'); if(!head || head.querySelector('.page-idea')) return;
+      if(document.querySelector('.page-idea')) return;
       var b = document.createElement('button'); b.type = 'button'; b.className = 'page-idea'; b.innerHTML = BULB + '<span>Request a feature</span>';
-      var bell = head.querySelector('.page-bell'), share = head.querySelector('.page-share'); head.insertBefore(b, bell || share || null);
+      document.body.appendChild(b);   // floats bottom-left, out of the busy top bar
       b.addEventListener('click', function(e){ e.stopPropagation(); openForm(); });
     }
     setInterval(ensureBtn, 500);
@@ -13993,7 +13997,7 @@
       pop.innerHTML = '<div class="ip-card" role="dialog" aria-label="Request a feature"><h3>' + BULB + 'Request a feature</h3>' +
         '<p class="ip-sub">What would make Travel Planner better for you? Screenshots help a lot.</p>' +
         '<textarea placeholder="e.g. Let me see the total cost of each city" aria-label="Your request"></textarea>' +
-        '<div class="ip-imgs"><button type="button" class="ip-add">' + IMG + '<span>Add images<small>or paste / drop them here</small></span></button></div>' +
+        '<button type="button" class="ip-add">' + IMG + '<span>Add images<small>or paste / drop them here · up to ' + MAX_IMGS + '</small></span></button><div class="ip-imgs"></div>' +
         '<input type="file" accept="image/*" multiple hidden>' +
         '<div class="ip-foot"><span class="ip-note">You’ll get a copy by email.</span><button type="button" class="ip-cancel">Cancel</button><button type="button" class="ip-send" disabled>Send</button></div></div>';
       pop.hidden = false;
@@ -14022,11 +14026,11 @@
     }
     function drawThumbs(){
       var box = pop.querySelector('.ip-imgs'); if(!box) return;
-      box.querySelectorAll('.ip-thumb').forEach(function(t){ t.remove(); });
-      var add = box.querySelector('.ip-add');
+      box.innerHTML = '';
+      var add = pop.querySelector('.ip-add');
       imgs.forEach(function(im, i){ if(!im.data) return; var t = document.createElement('div'); t.className = 'ip-thumb';
         t.innerHTML = '<img alt=""><button type="button" aria-label="Remove image">✕</button>'; t.querySelector('img').src = im.data;
-        t.querySelector('button').addEventListener('click', function(){ imgs.splice(i, 1); drawThumbs(); }); box.insertBefore(t, add); });
+        t.querySelector('button').addEventListener('click', function(){ imgs.splice(i, 1); drawThumbs(); }); box.appendChild(t); });
       add.hidden = imgs.length >= MAX_IMGS;
     }
     pop.addEventListener('paste', function(e){ var fs = [].slice.call((e.clipboardData || {}).files || []); if(fs.length){ e.preventDefault(); addFiles(fs); } });
