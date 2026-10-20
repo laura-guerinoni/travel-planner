@@ -14577,6 +14577,27 @@
     var d = kmBetween(req.from, req.to) * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[req.mode] || 28;
     return { min: Math.max(1, Math.round(d / sp * 60) + (req.mode === 'car' ? 3 : 0)), km: Math.round(d * 10) / 10 };
   }
+  // Suggestions come straight from Photon (OpenStreetMap's free place
+  // search: no key, answers in a fraction of a second); the script stays
+  // the fallback. Only travel times go through the script.
+  var PHOTON_AREA = { city:1, town:1, village:1, hamlet:1, district:1, county:1, state:1, country:1, region:1, locality:1 };
+  var geoMemo = {};
+  function placeSearch(text, near){
+    if(!IS_HOSTED) return Promise.resolve(travelMock({ kind:'geo', text:text }));
+    var url = 'https://photon.komoot.io/api/?limit=6&lang=en&q=' + encodeURIComponent(text) + (near ? '&lat=' + near.lat.toFixed(3) + '&lon=' + near.lon.toFixed(3) : '');
+    if(geoMemo[url]) return Promise.resolve(geoMemo[url]);
+    return fetch(url).then(function(r){ if(!r.ok) throw new Error('photon ' + r.status); return r.json(); }).then(function(j){
+      var seen = {}, places = (j.features || []).map(function(f){
+        var p = f.properties || {}, c = f.geometry && f.geometry.coordinates; if(!c) return null;
+        var area = !!PHOTON_AREA[p.type], street = p.street ? p.street + (p.housenumber ? ' ' + p.housenumber : '') : '';
+        var name = p.name || street || p.city || text, city = area && (p.type === 'city' || p.type === 'town' || p.type === 'village') ? name : (p.city || p.locality || p.county || '');
+        var label = [area ? '' : street, area ? '' : city, area ? (p.state || '') : '', p.country || ''].filter(function(x){ return x && x !== name; }).join(', ');
+        var key = name + '|' + label; if(seen[key]) return null; seen[key] = 1;
+        return { name:name, label:label, lat:c[1], lon:c[0], city:city, spot:!area };
+      }).filter(Boolean).slice(0, 5);
+      var res = places.length ? { places:places } : { error:'not found' }; geoMemo[url] = res; return res;
+    }).catch(function(){ return travelCall({ kind:'geo', text:text, near: near ? { lon:near.lon, lat:near.lat } : null }); });
+  }
   function parseGeo(v){ var m = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(v || ''); return m ? { lat: +m[1], lon: +m[2] } : null; }
   function fmtGeo(g){ return (Math.round(g.lat * 1e5) / 1e5) + ',' + (Math.round(g.lon * 1e5) / 1e5); }
   function placeMark(){}   // (no mark in the field: the suggestions list is enough)
@@ -14616,7 +14637,7 @@
       var r = forInp.getBoundingClientRect(), v = forInp.value.trim();
       dd.innerHTML = list.map(function(p, i){ return '<div class="pd-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '">' + PIN + '<span><b></b><small></small></span></div>'; }).join('') +
         (note ? '<div class="pd-note">' + note + '</div>' : '') +
-        '<div class="pd-opt pd-keep' + (act === list.length ? ' act' : '') + '" data-i="keep">' + TXT + '<span><b></b><small>without travel times</small></span></div><div class="pd-src">Places © OpenStreetMap</div>';
+        '<div class="pd-opt pd-keep' + (act === list.length ? ' act' : '') + '" data-i="keep">' + TXT + '<span><b></b><small>without travel times</small></span></div><div class="pd-src">Search by Photon · Places © OpenStreetMap</div>';
       dd.querySelectorAll('.pd-opt[data-i]').forEach(function(o){ var i = o.dataset.i;
         if(i === 'keep') o.querySelector('b').textContent = 'Use “' + v + '” as written';
         else { o.querySelector('b').textContent = list[+i].name; o.querySelector('small').textContent = list[+i].label || ''; } });
@@ -14629,12 +14650,12 @@
       forInp = inp; list = []; act = 0; note = 'Searching…'; draw();
       timer = setTimeout(function(){
         var my = ++seq, n = near();
-        travelCall({ kind:'geo', text:v, near: n ? { lon:n.lon, lat:n.lat } : null }).then(function(res){
+        placeSearch(v, n).then(function(res){
           if(my !== seq || document.activeElement !== inp) return;
           forInp = inp; list = (res && res.places) || []; act = 0;
           note = list.length ? '' : (res && res.error && res.error !== 'not found' ? 'Place search isn’t available right now' : 'No places found'); draw();
         }).catch(function(){ if(my !== seq || document.activeElement !== inp) return; list = []; act = 0; note = 'Place search isn’t available right now'; draw(); });
-      }, 300);
+      }, 150);
     }
     function pick(i){
       var inp = forInp; if(!inp) return;
@@ -14666,7 +14687,8 @@
   var GO_MODES = { walk:'Walk', bike:'Bike', car:'Car' };
   function goPref(){ try { return localStorage.getItem('tp-go-mode') || 'auto'; } catch(e){ return 'auto'; } }
   function goData(li){ try { return JSON.parse(li.getAttribute('data-go') || '{}') || {}; } catch(e){ return {}; } }
-  function goModeOf(d){ var m = d.m || goPref(); if(m !== 'auto') return m; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
+  // automatic: walk when it's under 30 min; anything over ~5 km is a drive
+  function goModeOf(d, ends){ var m = d.m || goPref(); if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
   function fmtMin(m){ return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
   function fmtKm(k){ return String(Math.round(k * 10) / 10).replace('.', ',') + ' km'; }
   // the stretch between two activities: from where the first ends to where the next starts
@@ -14675,9 +14697,9 @@
     var fg = parseGeo(a.getAttribute('data-geo-to')) || parseGeo(a.getAttribute('data-geo')), tg = parseGeo(b.getAttribute('data-geo'));
     if(!fg || !tg) return null;
     var fSpot = a.hasAttribute('data-geo-to') ? a.hasAttribute('data-spot-to') : a.hasAttribute('data-spot'), d = kmBetween(fg, tg);
-    // two exact spots, or two different towns; not the same spot, not a trip of its own
-    if(d < .08 || d > 50 || (!(fSpot && b.hasAttribute('data-spot')) && d < 3)) return null;
-    return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b };
+    // two exact spots, or two different towns (not the same spot)
+    if(d < .08 || d > 2500 || (!(fSpot && b.hasAttribute('data-spot')) && d < 3)) return null;
+    return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b, km:d };
   }
   var goQueue = [], goBusy = false, goAsked = {};
   function goFetch(ends, mode){
@@ -14696,8 +14718,8 @@
     seq.forEach(function(li, i){
       if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
       var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
-      var mode = goModeOf(d);
-      if(!d.walk) goFetch(ends, 'walk'); if(!d[mode]) goFetch(ends, mode);
+      var mode = goModeOf(d, ends);
+      if(!d.walk && ends.km <= 5) goFetch(ends, 'walk'); if(!d[mode]) goFetch(ends, mode);
       var el = acts.querySelector(':scope > .go-line[data-k="' + ends.key + '"]');
       if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
       el.__ends = ends; keep.push(el);
@@ -14716,10 +14738,10 @@
       e.preventDefault(); e.stopPropagation();
       var ends = b.parentNode.__ends; if(!ends) return;
       if(b.classList.contains('go-off')){ setGo(ends.li, function(d){ delete d.h; }); return; }
-      var d = goData(ends.li), cur = goModeOf(d);
-      Object.keys(GO_MODES).forEach(function(m){ if(!d[m]) goFetch(ends, m); });
+      var d = goData(ends.li), cur = goModeOf(d, ends);
+      Object.keys(GO_MODES).forEach(function(m){ if(!d[m] && (m === 'car' || ends.km <= 150)) goFetch(ends, m); });
       var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
-      menu.innerHTML = Object.keys(GO_MODES).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : GO_MODES[m] + ' …') + '</button>'; }).join('') +
+      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || ends.km <= 150; }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : GO_MODES[m] + ' …') + '</button>'; }).join('') +
         '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + 'Public transport<span class="gm-ext">Google Maps ↗</span></a>' +
         '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
         '<button type="button" class="gm-opt" data-x="def">Use ' + GO_MODES[cur].toLowerCase() + ' for every line</button>' +
