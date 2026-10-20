@@ -3349,6 +3349,162 @@
   .fs-left { text-align:left !important; display:flex; flex-direction:column; gap:2px; margin-top:6px !important; padding-top:6px; border-top:1px dashed var(--line); font-weight:700 !important; }
   .fs-left b { color:var(--ink); }
   .fs-left .ok { color:#2f9e74; } .fs-left .bad { color:#d6455d; }
+  /* ---- Doing it together: stars, who's in, idea box, this or that, date
+     polls (see the "Doing it together" script section). ---- */
+  .grp-face { display:inline-flex; width:22px; height:22px; border-radius:50%; overflow:hidden; border:2px solid var(--card); background:var(--card); flex:none; }
+  .grp-face svg { width:100%; height:100%; display:block; }
+  .grp-faces { display:inline-flex; align-items:center; vertical-align:middle; }
+  .grp-faces .grp-face + .grp-face { margin-left:-7px; }
+  .grp-face.out { filter:grayscale(1); opacity:.7; }
+  .grp-muted { color:var(--muted); font-weight:600; font-size:13px; }
+  .grp-hint { margin:0; color:var(--muted); font-size:13px; font-weight:600; line-height:1.4; }
+  .grp-btn { border:0; border-radius:10px; padding:8px 14px; font:inherit; font-weight:800; font-size:13px; background:var(--primary); color:#fff; cursor:pointer; white-space:nowrap; }
+  .grp-btn.ghost { background:var(--card); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
+  .grp-btn:hover { filter:brightness(1.05); }
+  .grp-x { border:0; background:none; font-size:16px; color:var(--muted); cursor:pointer; padding:4px 6px; border-radius:8px; }
+  .grp-x:hover { background:var(--bg); color:var(--ink); }
+  .grp-chip { display:inline-block; font-size:11px; font-weight:800; padding:2px 7px; border-radius:999px; white-space:nowrap; }
+  .grp-ui :focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+  .grp-toast { position:fixed; left:50%; bottom:68px; transform:translate(-50%, 20px); opacity:0; pointer-events:none; z-index:10020;
+    background:var(--ink); color:var(--card); font-weight:800; font-size:14px; padding:10px 16px; border-radius:12px; transition:opacity .2s, transform .2s; }
+  .grp-toast.show { opacity:1; transform:translate(-50%, 0); }
+  /* shared stars: faces hang under the ribbon */
+  .grp-starfaces { position:fixed; z-index:2; display:flex; flex-direction:column; align-items:center; width:32px; gap:0; }
+  .grp-starfaces .grp-face { width:24px; height:24px; box-shadow:0 2px 6px rgba(61,53,104,.18); }
+  .grp-starfaces .grp-face + .grp-face { margin-top:-6px; }
+  @media screen and (max-width: 720px) { .grp-starfaces { display:none !important; } }
+  /* who's in, under each activity */
+  .acts li > .grp-in { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:3px; font-size:11px; font-weight:700; color:var(--muted); }
+  .acts li > .grp-in .grp-face { width:18px; height:18px; border-width:1.5px; }
+  .grp-skipbtn { visibility:hidden; border:1px solid var(--line); background:var(--card); color:var(--muted); font:inherit; font-size:10.5px; font-weight:800; border-radius:999px; padding:0 7px; height:18px; line-height:16px; cursor:pointer; white-space:nowrap; }
+  li:hover .grp-skipbtn, .grp-skipbtn.on, .grp-skipbtn:focus-visible { visibility:visible; }
+  .grp-skipbtn:hover { color:var(--ink); border-color:var(--muted); }
+  .grp-skipbtn.on { color:var(--primary); border-color:rgba(var(--primary-rgb), .45); }
+  .acts li:has(> .grp-in.me-out) > .title, .acts li:has(> .grp-in.me-out) > .line { opacity:.5; text-decoration:line-through; text-decoration-thickness:1px; }
+  @media (hover: none) { .grp-skipbtn { visibility:visible; } }
+  /* this or that, inside a day */
+  .grp-duel { margin:6px 0 4px; border:1.5px dashed rgba(var(--primary-rgb), .55); border-radius:12px; padding:7px; display:grid; gap:4px; background:rgba(var(--primary-rgb), .04); }
+  .grp-duel-head { display:flex; justify-content:space-between; flex-wrap:wrap; gap:2px 6px; font-size:11px; font-weight:900; color:var(--primary); text-transform:uppercase; letter-spacing:.04em; }
+  .grp-duel-n { color:var(--muted); text-transform:none; letter-spacing:0; font-weight:700; }
+  .grp-side { position:relative; overflow:hidden; display:grid; gap:3px; text-align:left; border:1.5px solid var(--line); background:var(--card); border-radius:10px; padding:6px 7px; font:inherit; color:var(--ink); cursor:pointer; }
+  .grp-side:hover { border-color:rgba(var(--primary-rgb), .5); }
+  .grp-side.on { border-color:var(--primary); }
+  .grp-side-fill { position:absolute; inset:0 auto 0 0; background:rgba(var(--primary-rgb), .12); transition:width .35s; }
+  .grp-side > :not(.grp-side-fill) { position:relative; }
+  .grp-side-t { display:flex; flex-wrap:wrap; gap:4px; align-items:center; font-size:12.5px; line-height:1.25; }
+  .grp-side .grp-face { width:18px; height:18px; border-width:1.5px; }
+  .grp-or { justify-self:center; font-size:11px; font-weight:800; color:var(--muted); }
+  .grp-duel-foot { display:flex; justify-content:space-between; gap:4px 8px; flex-wrap:wrap; }
+  .grp-duel-foot .grp-link { white-space:nowrap; }
+  .grp-link { border:0; background:none; padding:0; font:inherit; font-size:11px; font-weight:800; color:var(--muted); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+  .grp-link:hover { color:var(--ink); }
+  .grp-duelpop { max-width:340px; }
+  .grp-duelpop .grp-hint { margin:4px 0 8px; }
+  .grp-duel-ideas { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .grp-duel-idea { display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:4px 10px 4px 4px; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .grp-duel-idea:hover { border-color:var(--primary); }
+  .grp-duelpop input, .grp-duelpop select { min-width:0; }
+  /* idea box button + drawer */
+  .grp-ideabtn { display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--line); background:var(--card); color:var(--ink);
+    font:inherit; font-size:13px; font-weight:800; padding:4px 11px; border-radius:999px; cursor:pointer; box-shadow:0 4px 12px -8px rgba(61,53,104,.5); }
+  .grp-ideabtn b { background:var(--primary); color:#fff; border-radius:999px; padding:0 6px; font-size:11px; }
+  .grp-ideabtn:hover { border-color:var(--primary); }
+  .grp-drawer { position:fixed; top:12px; right:12px; bottom:12px; width:min(380px, calc(100vw - 24px)); z-index:10005; background:var(--card); border-radius:20px;
+    box-shadow:0 24px 60px rgba(30,22,50,.28); padding:18px; display:flex; flex-direction:column; gap:12px; overflow:auto; color:var(--ink); transform:translateX(16px); opacity:0; transition:transform .2s, opacity .2s; }
+  .grp-drawer.open { transform:none; opacity:1; }
+  .grp-drawer[hidden] { display:none; }
+  .grp-drawer-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .grp-drawer h3, .grp-sheet h3 { margin:0; font-size:19px; font-weight:900; }
+  .grp-drawer-head p { margin:2px 0 0; color:var(--muted); font-weight:700; font-size:13px; }
+  .grp-ideaform { display:flex; gap:6px; flex-wrap:wrap; }
+  .grp-ideaform input { flex:1 1 160px; min-width:0; }
+  .grp-ui input:not([type=checkbox]), .grp-ui select { font:inherit; font-size:13px; color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:10px; padding:7px 9px; }
+  .grp-ideas { display:grid; gap:8px; }
+  .grp-idea { border:1px solid var(--line); border-radius:14px; padding:10px 12px; display:grid; gap:8px; }
+  .grp-idea-t { display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:14px; }
+  .grp-idea-meta { font-size:12px; color:var(--muted); font-weight:600; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .grp-fav { display:block; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-bottom:2px; }
+  .grp-idea-act { display:flex; gap:6px; align-items:center; }
+  .grp-idea-act .grp-plan { flex:1; min-width:0; }
+  .grp-heart { border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:4px 10px; font:inherit; font-size:13px; font-weight:900; cursor:pointer; white-space:nowrap; }
+  .grp-heart.on { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .grp-rm { border:0; background:none; color:var(--muted); cursor:pointer; padding:4px; font-size:12px; border-radius:6px; }
+  .grp-rm:hover { color:var(--ink); background:var(--bg); }
+  .grp-empty { color:var(--muted); font-weight:600; font-size:13px; margin:8px 0; }
+  /* date poll: banner on the plan, and the full sheet */
+  .panel > .grp-pollbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; border-radius:14px;
+    background:rgba(var(--secondary-rgb), .1); border:1.5px dashed rgba(var(--secondary-rgb), .6); color:var(--ink); }
+  .grp-pollbar-ic { font-size:20px; }
+  .grp-pollbar-t { display:grid; flex:1 1 200px; min-width:0; }
+  .grp-pollbar-t b { font-size:14px; }
+  .grp-pollbar-t span { font-size:12.5px; color:var(--muted); font-weight:700; }
+  .grp-overlay { position:fixed; inset:0; z-index:10010; display:flex; align-items:flex-start; justify-content:center; overflow:auto; padding:40px 16px; background:rgba(40,25,60,.32); }
+  .grp-overlay[hidden] { display:none; }
+  .grp-sheet { width:min(820px, 100%); background:var(--card); color:var(--ink); border-radius:20px; padding:22px 24px; box-shadow:0 24px 60px rgba(30,22,50,.3); display:grid; gap:14px; font-family:inherit; }
+  .grp-sheet-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .grp-sheet-head p { margin:3px 0 0; }
+  .grp-sheet-foot { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:12px; }
+  .grp-resp { display:flex; flex-wrap:wrap; gap:10px; }
+  .grp-r { display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:800; }
+  .grp-r.wait { opacity:.5; }
+  .grp-pmonths { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:18px; }
+  .grp-pmonth h4 { margin:0 0 6px; font-size:14px; font-weight:900; }
+  .grp-pgrid { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:4px; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .grp-pwd { font-size:10px; font-weight:900; color:var(--muted); text-align:center; }
+  .grp-pday { position:relative; min-height:40px; border:1px solid var(--line); border-radius:8px; padding:3px 4px; text-align:left; font:inherit; color:var(--ink); cursor:pointer;
+    background:color-mix(in srgb, var(--secondary) calc(var(--free) * .5), var(--card)); display:grid; align-content:space-between; }
+  .grp-pdn { font-size:12px; font-weight:900; }
+  .grp-pdots { display:flex; gap:2px; flex-wrap:wrap; }
+  .grp-pdots i { width:6px; height:6px; border-radius:50%; }
+  .grp-pday.mine { box-shadow:inset 0 0 0 2px var(--ink); }
+  .grp-pday.best::after { content:''; position:absolute; inset:-3px; border:2px dashed var(--secondary); border-radius:10px; pointer-events:none; }
+  .grp-pday.locked { background:var(--primary); color:#fff; }
+  .grp-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; font-weight:700; color:var(--muted); }
+  .grp-legend span { display:inline-flex; gap:5px; align-items:center; }
+  .grp-legend .sw { width:16px; height:12px; border-radius:4px; border:1px solid var(--line); display:inline-block; }
+  .grp-legend .sw.all { background:color-mix(in srgb, var(--secondary) 50%, var(--card)); }
+  .grp-legend .sw.some { background:color-mix(in srgb, var(--secondary) 22%, var(--card)); }
+  .grp-legend .sw.best { border:2px dashed var(--secondary); }
+  .grp-legend .sw.mine { box-shadow:inset 0 0 0 2px var(--ink); }
+  .grp-sub { margin:0; font-size:15px; font-weight:900; }
+  .grp-wins { display:grid; gap:8px; }
+  .grp-win { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; border:1.5px dashed var(--line); border-radius:12px; padding:10px 12px; }
+  .grp-win.top { border:2px solid var(--secondary); background:rgba(var(--secondary-rgb), .07); }
+  .grp-win b { font-size:15px; margin-right:4px; }
+  .grp-miss { color:#d0543f; font-size:12px; font-weight:800; margin-top:2px; }
+  /* new plan */
+  .grp-newform { width:min(620px, 100%); }
+  .grp-field { display:grid; gap:7px; }
+  .grp-field[hidden] { display:none; }
+  .grp-label { font-weight:900; font-size:14px; }
+  .grp-kinds, .grp-people { display:flex; flex-wrap:wrap; gap:7px; }
+  .grp-pick, .grp-person { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:6px 13px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+  .grp-person { padding:3px 11px 3px 3px; }
+  .grp-pick[aria-pressed="true"] { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .grp-person.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .08); }
+  span.grp-person { cursor:default; }
+  .grp-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .grp-row[hidden] { display:none; }
+  .grp-row .mp-btn { white-space:nowrap; }
+  .grp-row input[type=email] { flex:1 1 220px; }
+  .grp-modes { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+  .grp-mode { display:grid; gap:2px; text-align:left; border:2px solid var(--line); background:var(--card); color:var(--ink); border-radius:14px; padding:12px 14px; font:inherit; cursor:pointer; }
+  .grp-mode b { font-size:14px; }
+  .grp-mode span { color:var(--muted); font-size:12.5px; font-weight:600; }
+  .grp-mode[aria-pressed="true"] { border-color:var(--primary); background:rgba(var(--primary-rgb), .06); }
+  .grp-stepper { display:inline-flex; align-items:center; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; }
+  .grp-stepper button { border:0; background:var(--bg); width:30px; height:32px; font:inherit; font-weight:900; color:var(--ink); cursor:pointer; }
+  .grp-stepper .grp-len { min-width:64px; text-align:center; font-weight:900; font-size:13px; }
+  .grp-err { color:#d0543f; }
+  /* local test helper */
+  .grp-demo { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:10030; display:flex; align-items:center; gap:6px; background:var(--ink); color:var(--card);
+    border-radius:999px; padding:5px 12px 5px 12px; font-size:12px; font-weight:800; box-shadow:0 8px 24px -10px rgba(0,0,0,.5); }
+  .grp-demo button { width:26px; height:26px; padding:0; border-radius:50%; border:2px solid transparent; background:var(--card); overflow:hidden; cursor:pointer; }
+  .grp-demo button svg { width:100%; height:100%; display:block; }
+  .grp-demo button[aria-pressed="true"] { border-color:var(--primary); }
+  .mp-dd { z-index:10015; }
+  @media (max-width:720px) { .grp-demo { bottom:84px; } .grp-ideabtn { display:none; } }
+  @media print { .grp-ui { display:none !important; } }
 </style>
 </head>
 <body>
@@ -3650,7 +3806,7 @@
         <button type="button" data-x="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Notes</button><button type="button" data-x="link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>Link</button><button type="button" data-x="ticket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12" stroke-dasharray="2 2"/></svg><span>Ticket</span></button><button type="button" data-x="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><span>Photo</span></button>
       </div>
       <div class="gc-foot">
-        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
+        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="duel" aria-label="This or that: put it to a vote" title="This or that: put it to a vote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M8 3H3v5M21 3l-7 7M3 3l7 7M12 14v7"/></svg></button><button type="button" data-x="idea" aria-label="Move to the idea box" title="Move to the idea box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
         <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
       </div>
     </div>
@@ -6345,21 +6501,9 @@
     positionPopover(pop, anchorEl);
     nameIn.focus(); nameIn.select();
   }
-  function openNewPlanForm(anchorEl){
-    var d = todayOrPanelDate(document.querySelector('.panel.on'));
-    openWhenForm(anchorEl, { title: t('add_new_plan'), nameLabel: 'Name <span class="whenpop-hint">· on the tab, up to 9 letters</span>',
-      name: '', maxlength: PLAN_NAME_MAX, from: { year: d.year, month: d.month, day: 1 }, to: { year: d.year, month: d.month, day: daysInMonth(d.year, d.month) },
-      exact: false, button: 'Add plan' }, function(name, w){
-      var created = createOption(w.from.year, w.from.month);
-      if(!created) return;
-      applyAltDates(created, w);
-      created.setAttribute('data-plan', optOf(created));
-      created.setAttribute('data-plan-name', (name || t('default_plan_name')).toUpperCase());
-      setOptionName(created, t('default_alt_name') + ' 1');
-      planChanged();
-      activatePillByOpt(optOf(created));
-    });
-  }
+  // A new plan asks what kind, who's coming, and whether the dates are
+  // known — or starts a date poll (see openNewTripForm).
+  function openNewPlanForm(anchorEl){ openNewTripForm(); }
   function openNewAltForm(anchorEl, panel){
     var r = altDates(panel);
     openWhenForm(anchorEl, { title: t('add_new_alt'), nameLabel: 'Name', name: t('default_alt_name') + ' ' + (panelsOfPlan(panel).length + 1),
@@ -7837,24 +7981,24 @@
     var host = document.getElementById('statusBar');
     var wrapEl = document.querySelector('.wrap');
     if(!host || !wrapEl) return;
-    var KEY = 'travelPlannerStars';
-    function stars(){
-      try {
-        var list = JSON.parse(localStorage.getItem(KEY) || '[]');
-        return Array.isArray(list) ? list.filter(function(x){ return typeof x === 'string'; }) : [];
-      } catch(e){ return []; }
-    }
-    function save(list){ try { localStorage.setItem(KEY, JSON.stringify(list)); } catch(e){} }
+    // Stars are shared now: each alternative keeps who starred it (GROUP.stars,
+    // saved with the plan). The ribbon is filled when YOU starred the open
+    // alternative; the faces of everyone who did hang under it, and each
+    // tab shows how many stars it has.
     function currentOpt(){ var p = document.querySelector('.panel.on'); return p ? optOf(p) : ''; }
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'page-bookmark';
+    var faces = document.createElement('div');
+    faces.className = 'grp-ui grp-starfaces';
     var tabStars = document.createElement('style');
-    host.appendChild(btn); host.appendChild(tabStars);
+    host.appendChild(btn); host.appendChild(faces); host.appendChild(tabStars);
     renderPageBookmark = function(){
-      var list = stars(), cur = currentOpt();
-      var on = !!cur && list.indexOf(cur) !== -1;
+      var cur = currentOpt(), me = (typeof meKey === 'function' && GROUP) ? meKey() : null;
+      var who = GROUP && cur ? (GROUP.stars[cur] || []) : [];
+      var on = !!me && who.indexOf(me) !== -1;
       btn.dataset.state = on ? 'on' : 'off';
-      btn.title = on ? 'Starred — click to remove the star' : 'Star this alternative';
+      btn.title = on ? 'You starred this — click to remove your star' : 'Star this alternative';
+      if(who.length) btn.title += ' · starred by ' + who.map(function(k){ return memberNameOf(k) || k.split(',')[0]; }).join(', ');
       btn.setAttribute('aria-label', btn.title);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.style.display = cur ? '' : 'none';
@@ -7868,22 +8012,27 @@
       var onPill = document.querySelector('.pill.on');
       var tabColor = onPill ? (onPill.style.background || getComputedStyle(onPill).backgroundColor) : '';
       if(tabColor) btn.style.setProperty('--bookmark-color', tabColor);
+      faces.innerHTML = who.map(function(k){ return '<span class="grp-face" title="' + (memberNameOf(k) || '').replace(/"/g, '&quot;') + '">' + memberFaceOf(k) + '</span>'; }).join('');
+      faces.style.display = cur && who.length ? '' : 'none';
+      var br = btn.getBoundingClientRect();
+      faces.style.left = (wrapEl.getBoundingClientRect().right - 14) + 'px';
+      faces.style.top = (br.bottom + 6) + 'px';
       // Option ids are generated ("option-12"); anything else is skipped
       // rather than written into a selector.
-      tabStars.textContent = list.filter(function(id){ return /^[\w-]+$/.test(id); }).map(function(id){
-        return '.pill[data-opt="' + id + '"] .pill-name::before{content:"\\2605\\00a0";}';
+      var all = GROUP ? GROUP.stars : {};
+      tabStars.textContent = Object.keys(all).filter(function(id){ return /^[\w-]+$/.test(id) && (all[id] || []).length; }).map(function(id){
+        var n = all[id].length;
+        return '.pill[data-opt="' + id + '"] .pill-name::before{content:"\\2605 ' + (n > 1 ? n : '') + '\\00a0";}';
       }).join('');
     };
     btn.addEventListener('click', function(e){
       e.stopPropagation();
       var cur = currentOpt();
-      if(!cur) return;
-      var list = stars(), at = list.indexOf(cur);
-      if(at === -1) list.push(cur); else list.splice(at, 1);
-      save(list);
+      if(!cur || !GROUP) return;
+      var added = grpToggleStar(cur);
       renderPageBookmark();
-      if(at === -1) playStarSound();
-      if(at === -1 && btn.animate) btn.animate([
+      if(added) playStarSound();
+      if(added && btn.animate) btn.animate([
         { transform: 'scaleY(.5)' }, { transform: 'scaleY(1.1)', offset: .6 }, { transform: 'scaleY(1)' }
       ], { duration: 340, easing: 'ease-out' });
     });
@@ -10081,6 +10230,7 @@
     row(icon(ICON_CAMERA) + (li.hasAttribute('data-img') ? 'Replace photo' : 'Add photo'), function(){ pickImage(li); });
     row(icon(ICON_PEOPLE) + (getParticipants(li).length ? 'Edit participants' : 'Add participants'), function(){ openParticipantPicker(li, anchorEl); });
     divider();
+    if(grpItemMenuRows){ grpItemMenuRows(li, row, icon, anchorEl); divider(); }
 
     row(icon('↑') + 'Move up', function(){ moveActBy(li, -1); });
     row(icon('↓') + 'Move down', function(){ moveActBy(li, 1); });
@@ -12146,6 +12296,9 @@
   // kind of thing a day's location or an activity's notes line already
   // is.
   var MONTH_NOTES = {};
+  // Shared group data (stars, ideas, votes, date polls) — see the
+  // "Doing it together" section near the end.
+  var GROUP = null, grpItemMenuRows = null;
   function formatMonthLabel(year, month, segCount){
     if(segCount <= 2) return MONTH_FULL[month - 1] + ' ' + year;
     if(segCount <= 4) return MONTH_SHORT[month - 1] + ' ' + year;
@@ -13252,6 +13405,7 @@
     var activePanel = document.querySelector('.panel.on') || document.querySelector('.panel');
     if(activePanel){ var d0 = getPanelDate(activePanel); filterPillsByMonth(d0.year, d0.month); }
     renderPaymentOverview();
+    if(GROUP) renderGroup();
   }
   reattachAll();
   // In hosted mode this recomputes the placeholder content, harmlessly —
@@ -13422,7 +13576,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #dayMap, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #dayMap, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .grp-ui, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -15290,6 +15444,8 @@
     }
     else if(li && (x === 'up' || x === 'down')){ moveActBy(li, x === 'up' ? -1 : 1); scheduleAutoSave(); scheduleUndoSnapshot(); }
     else if(li && x === 'delete'){ var c = li.closest('.cell'); closeFabAdd(); deleteActivityLi(li); scheduleAutoSave(); scheduleUndoSnapshot(); }
+    else if(li && x === 'duel'){ closeFabAdd(); setTimeout(function(){ openDuelForm(li, li); }, 0); }
+    else if(li && x === 'idea'){ closeFabAdd(); grpMoveToIdeas(li); }
   });
   // Click an activity (desktop): it behaves as one block and opens the
   // form to edit it. Its own icons (link, ticket, photo, wallet, currency)
@@ -15923,6 +16079,7 @@
       if(activePanel) openNewAltForm(mobileAddFab, activePanel);
     });
     menuRow('+ Plan', function(){ openNewPlanForm(mobileAddFab); });
+    menuRow('💡 Idea box', function(){ openIdeaBox(); });
     positionPopover(pop, mobileAddFab);
   });
   if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
@@ -16604,8 +16761,9 @@
     var planMirror = {};
     model.options.forEach(function(o){ if(o.pl) planMirror[o.id] = [o.pl, o.pn || '']; });
     var notesOut = {};
-    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans') notesOut[k] = MONTH_NOTES[k]; });
+    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group') notesOut[k] = MONTH_NOTES[k]; });
     if(Object.keys(planMirror).length) notesOut.__plans = planMirror;
+    if(grpHasData()) notesOut.__group = JSON.parse(JSON.stringify(GROUP));
     if(Object.keys(notesOut).length) model.notes = notesOut;
     return model;
   }
@@ -16724,7 +16882,8 @@
     // a month's notes — keep it out of MONTH_NOTES.
     var planMirror = (model.notes && model.notes.__plans && typeof model.notes.__plans === 'object') ? model.notes.__plans : {};
     MONTH_NOTES = {};
-    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans') MONTH_NOTES[k] = model.notes[k]; });
+    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group') MONTH_NOTES[k] = model.notes[k]; });
+    GROUP = grpNormalize(model.notes && model.notes.__group);
     var wrap = document.querySelector('.wrap');
     var pillsWrap = document.querySelector('.pills');
     var budgetList = document.querySelector('.budget ul');
@@ -16981,7 +17140,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('go-line') || n.classList.contains('spot-line') || n.classList.contains('map-num') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('go-line') || n.classList.contains('spot-line') || n.classList.contains('map-num') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab') || n.classList.contains('grp-ui')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
@@ -17368,6 +17527,664 @@
     });
   }
 
+
+  // ===================================================================
+  // Doing it together: shared stars, who's in, the idea box, "this or
+  // that" votes and the date poll a new trip can start with.
+  // All of it lives in one object, GROUP, saved inside model.notes as
+  // __group — the same side channel the plan links use (see
+  // extractContentModel), because notes is the one part of the model
+  // that copies of the app from before this shipped pass through
+  // untouched. Skipping an activity is the exception: it is the
+  // activity's own "didn't take part" list (data-pay-excluded), so the
+  // payment split already follows who's in.
+  //   stars: { optId: [memberKey] }
+  //   ideas: { optId: [{ id, a: activityModel, h: [memberKey], by }] }
+  //   duels: { optId: [{ id, d: dayNum, a: activityModel, b: activityModel, v: { memberKey: 'a'|'b' }, by }] }
+  //   polls: { planId: { len, from: 'YYYY-MM', to: 'YYYY-MM', dl: 'YYYY-MM-DD', av: { memberKey: ['YYYY-MM-DD'] }, lk: ['from','to'], by } }
+  //   plans: { planId: { kind, who: [memberKey] } }
+  // ===================================================================
+  if(!GROUP) GROUP = grpEmpty();
+  function grpEsc(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function grpEmpty(){ return { stars:{}, ideas:{}, duels:{}, polls:{}, plans:{} }; }
+  function grpNormalize(g){
+    var out = grpEmpty();
+    if(!g || typeof g !== 'object') return out;
+    ['stars', 'ideas', 'duels', 'polls', 'plans'].forEach(function(k){ if(g[k] && typeof g[k] === 'object') out[k] = g[k]; });
+    return out;
+  }
+  function grpHasData(){
+    if(!GROUP) return false;
+    return ['stars', 'ideas', 'duels', 'polls', 'plans'].some(function(k){
+      return Object.keys(GROUP[k]).some(function(id){ var v = GROUP[k][id]; return Array.isArray(v) ? v.length : !!v; });
+    });
+  }
+  // Who "you" are. Signed in: your member key. In local-file mode there is
+  // nobody signed in, so the demo switcher (bottom left) picks one of the
+  // sample people — that's how one browser can try the group features.
+  var GRP_DEMO_KEY = 'travelPlannerDemoMe';
+  function meKey(){
+    if(currentUserKey) return currentUserKey;
+    if(IS_HOSTED) return null;
+    var k = null; try { k = localStorage.getItem(GRP_DEMO_KEY); } catch(e){}
+    var ms = (window.__memberData && window.__memberData.members) || MOCK_PEOPLE.members;
+    if(!k || !ms.some(function(m){ return m.key === k; })) k = ms[0] ? ms[0].key : null;
+    return k;
+  }
+  function grpPeople(){ return (window.__memberData && window.__memberData.members) || cachedMembers || []; }
+  function grpName(k){ var n = memberNameOf(k); return n || String(k).split(',')[0]; }
+  function grpFace(k, cls){ return '<span class="grp-face' + (cls ? ' ' + cls : '') + '" title="' + grpEsc(grpName(k)) + '">' + memberFaceOf(k) + '</span>'; }
+  function grpFaces(keys, cls){ return '<span class="grp-faces">' + keys.map(function(k){ return grpFace(k, cls); }).join('') + '</span>'; }
+  function grpId(){ return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  var grpSaveTimer = null;
+  function grpChanged(){
+    clearTimeout(grpSaveTimer);
+    grpSaveTimer = setTimeout(function(){ scheduleAutoSave(); scheduleUndoSnapshot(); }, 30);
+    if(grpRendering) setTimeout(renderGroup, 0); else renderGroup();
+  }
+  function grpPanel(){ return document.querySelector('.panel.on'); }
+  function grpCellOf(panel, dn){
+    var hit = null;
+    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === dn) hit = c; });
+    return hit;
+  }
+  // Everyone who can see an alternative: its member list, or everybody.
+  function grpEligible(panel){
+    return membersEligibleForOption(panel, grpPeople()).map(function(m){ return m.key; });
+  }
+  function grpDayLabel(panel, dn){
+    var r = realDate(panel, dn), d = new Date(r.year, r.month - 1, r.day);
+    return WD_ABBR[(d.getDay() + 6) % 7] + ' ' + r.day + ' ' + MONTH_SHORT[r.month - 1];
+  }
+  function grpChipHtml(a){
+    if(!a || !(a.i || a.n)) return '';
+    var st = tagStyleFor(a.i || '', a.n || '');
+    return '<span class="grp-chip" style="background:' + st.bg + ';color:' + st.fg + '">' + grpEsc((a.i ? a.i + ' ' : '') + (a.n || '')) + '</span>';
+  }
+  function grpToast(msg){
+    var el = document.getElementById('grpToast');
+    if(!el){ el = document.createElement('div'); el.id = 'grpToast'; el.className = 'grp-ui grp-toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+  function grpPlaceActivity(panel, dn, a){
+    var cell = grpCellOf(panel, dn);
+    if(!cell) return null;
+    var li = buildActivityLi(a);
+    ensureActsList(cell).appendChild(li);
+    attachItemControls(li);
+    renderParticipants(li); renderPaySplit(li);
+    recomputeCell(cell);
+    if(typeof refreshHoliCell === 'function') refreshHoliCell(cell);
+    renderActivitySpans(panel);
+    return li;
+  }
+
+  // ---- shared stars -------------------------------------------------
+  function grpStarsOf(opt){ return (GROUP.stars[opt] || []).slice(); }
+  function grpToggleStar(opt){
+    var me = meKey(); if(!me || !opt) return false;
+    var list = grpStarsOf(opt), at = list.indexOf(me);
+    if(at === -1) list.push(me); else list.splice(at, 1);
+    if(list.length) GROUP.stars[opt] = list; else delete GROUP.stars[opt];
+    grpChanged();
+    return at === -1;
+  }
+  // Stars made before they were shared lived in this browser only: fold
+  // them in once, as yours, the first time the real plan is here.
+  function grpMigrateLocalStars(){
+    var me = meKey(); if(!me) return;
+    if(IS_HOSTED && !firstLoadDone) return;
+    var flag = 'travelPlannerStarsMoved:' + me;
+    try { if(localStorage.getItem(flag)) return; } catch(e){ return; }
+    var old = []; try { old = JSON.parse(localStorage.getItem('travelPlannerStars') || '[]') || []; } catch(e){}
+    var changed = false;
+    old.forEach(function(opt){ if(typeof opt === 'string' && document.getElementById('panel-' + opt)){ var l = grpStarsOf(opt); if(l.indexOf(me) === -1){ l.push(me); GROUP.stars[opt] = l; changed = true; } } });
+    try { localStorage.setItem(flag, '1'); } catch(e){}
+    if(changed) grpChanged();
+  }
+
+  // ---- who's in -------------------------------------------------------
+  // Everyone who can see the alternative is in, unless they skip.
+  function grpSkippers(li){ return getPaySplitExcluded(li); }
+  function grpToggleSkip(li){
+    var me = meKey(); if(!me) return;
+    var list = grpSkippers(li), at = list.indexOf(me);
+    if(at === -1) list.push(me); else list.splice(at, 1);
+    setPaySplitExcluded(li, list);
+    renderPaymentOverview();
+    var cell = li.closest('.cell'); if(cell) recomputeCell(cell);
+    if(at === -1) playCrumpleSound(); else playCheckSound();
+    renderWhosIn(li);
+  }
+  function renderWhosIn(li){
+    var row = li.querySelector(':scope > .grp-in');
+    var tagctl = li.querySelector('.tagctl');
+    var btn = tagctl ? tagctl.querySelector(':scope > .grp-skipbtn') : null;
+    var panel = li.closest('.panel');
+    if(!panel || li.classList.contains('act-span-ghost')){ if(row) row.remove(); if(btn) btn.remove(); return; }
+    var me = meKey(), skip = grpSkippers(li), people = grpEligible(panel);
+    var out = people.filter(function(k){ return skip.indexOf(k) !== -1; });
+    var mine = !!me && skip.indexOf(me) !== -1;
+    // The skip toggle sits with the activity's other hover controls.
+    if(me && tagctl && people.indexOf(me) !== -1){
+      if(!btn){
+        btn = document.createElement('button'); btn.type = 'button'; btn.className = 'grp-ui grp-skipbtn jsctl';
+        btn.addEventListener('click', function(e){ e.stopPropagation(); grpToggleSkip(li); });
+        tagctl.insertBefore(btn, tagctl.firstChild);
+      }
+      var label = mine ? 'Join again' : 'Skip';
+      if(btn.textContent !== label) btn.textContent = label;
+      btn.classList.toggle('on', mine);
+      btn.title = mine ? 'You\'re skipping this — click to join again' : 'I\'ll skip this one';
+    } else if(btn) btn.remove();
+    // Everyone is in by default, so the row only shows when someone isn't.
+    if(!out.length){ if(row) row.remove(); return; }
+    if(!row){ row = document.createElement('div'); row.className = 'grp-ui grp-in jsctl'; li.appendChild(row); }
+    else if(row !== li.lastElementChild) li.appendChild(row);
+    var inN = people.length - out.length;
+    var html = grpFaces(out, 'out') + '<span>' + (mine && out.length === 1 ? 'You skip' : out.length === 1 ? grpEsc(grpName(out[0])) + ' skips' : out.length + ' skip') + ' · ' + inN + ' in</span>';
+    if(row.innerHTML !== html) row.innerHTML = html;
+    row.title = out.map(grpName).join(', ') + ' skipping';
+    row.classList.toggle('me-out', mine);
+  }
+
+  // ---- idea box -------------------------------------------------------
+  function grpIdeas(opt){ return GROUP.ideas[opt] || (GROUP.ideas[opt] = []); }
+  function grpAddIdea(opt, a, hearts){
+    var me = meKey();
+    grpIdeas(opt).push({ id: grpId(), a: a, h: hearts || (me ? [me] : []), by: me || '' });
+  }
+  function grpMoveToIdeas(li){
+    var panel = li.closest('.panel'); if(!panel) return;
+    grpAddIdea(optOf(panel), extractActivity(li), []);
+    deleteActivityLi(li);
+    grpChanged(); grpToast('Moved to the idea box');
+  }
+  function openIdeaBox(){
+    var panel = grpPanel(); if(!panel) return;
+    var box = document.getElementById('grpIdeaBox');
+    if(!box){
+      box = document.createElement('aside'); box.id = 'grpIdeaBox'; box.className = 'grp-ui grp-drawer';
+      box.setAttribute('aria-label', 'Idea box');
+      document.body.appendChild(box);
+      box.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+    box.hidden = false; box.classList.add('open');
+    renderIdeaBox();
+  }
+  function closeIdeaBox(){ var box = document.getElementById('grpIdeaBox'); if(box){ box.classList.remove('open'); box.hidden = true; } }
+  function renderIdeaBox(){
+    var box = document.getElementById('grpIdeaBox');
+    if(!box || box.hidden) return;
+    var panel = grpPanel(); if(!panel){ closeIdeaBox(); return; }
+    var opt = optOf(panel), me = meKey();
+    var list = grpIdeas(opt).slice().sort(function(x, y){ return (y.h || []).length - (x.h || []).length; });
+    var top = list.length ? (list[0].h || []).length : 0;
+    var days = [], hol = altDates(panel);
+    panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ var dn = dayNumOfCell(c); if(dn !== null) days.push(dn); });
+    var first = hol.exact ? hol.from.day : days[0];
+    var tagOpts = TAGS.map(function(tg, i){ return '<option value="' + i + '">' + grpEsc(tg.icon + ' ' + tg.name) + '</option>'; }).join('');
+    var pill = pillOfPanel(panel), altName = pill && pill.querySelector('.pill-name') ? pill.querySelector('.pill-name').textContent.trim() : '';
+    var focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : '';
+    var draft = box.querySelector('#grpIdeaTitle'); draft = draft ? draft.value : '';
+    box.innerHTML = '<div class="grp-drawer-head"><div><h3>Idea box</h3><p>' + grpEsc(altName || planNameOf(panel)) + '</p></div>' +
+      '<button type="button" class="grp-x" aria-label="Close idea box">✕</button></div>' +
+      '<p class="grp-hint">Things you might do. Heart the ones you like; plan an idea onto a day when it\'s time.</p>' +
+      '<form class="grp-ideaform"><input id="grpIdeaTitle" placeholder="Add an idea, e.g. Kayak on the Vistula" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="grp-btn">Add</button></form>' +
+      '<div class="grp-ideas">' + (list.length ? list.map(function(it){
+        var hs = it.h || [], mine = !!me && hs.indexOf(me) !== -1;
+        return '<div class="grp-idea" data-id="' + it.id + '">' +
+          '<div class="grp-idea-main">' + (hs.length && hs.length === top && list.length > 1 ? '<span class="grp-fav">Group favourite</span>' : '') +
+          '<div class="grp-idea-t">' + grpChipHtml(it.a) + '<b>' + grpEsc(it.a.t || 'Untitled') + '</b></div>' +
+          '<div class="grp-idea-meta">' + (it.a.p ? grpEsc(it.a.p) + ' · ' : '') + (it.by ? 'added by ' + grpEsc(grpName(it.by)) : '') + (hs.length ? ' ' + grpFaces(hs) : '') + '</div></div>' +
+          '<div class="grp-idea-act"><button type="button" class="grp-heart' + (mine ? ' on' : '') + '" aria-pressed="' + mine + '" aria-label="Heart ' + grpEsc(it.a.t || '') + '">♥ ' + hs.length + '</button>' +
+          '<select class="grp-plan" aria-label="Plan on a day"><option value="">Plan it…</option>' + days.map(function(dn){ return '<option value="' + dn + '">' + grpEsc(grpDayLabel(panel, dn)) + '</option>'; }).join('') + '</select>' +
+          '<button type="button" class="grp-rm" aria-label="Remove idea" title="Remove idea">✕</button></div></div>';
+      }).join('') : '<p class="grp-empty">No ideas yet. Add the first one above, or open an activity and tap the light bulb.</p>') + '</div>';
+    var titleIn = box.querySelector('#grpIdeaTitle'); titleIn.value = draft;
+    var tagSel = box.querySelector('#grpIdeaTag');
+    var other = TAGS.findIndex(function(tg){ return tg.name === 'Other'; }); if(other >= 0) tagSel.value = String(other);
+    if(focused === 'grpIdeaTitle') titleIn.focus();
+    box.querySelector('.grp-x').addEventListener('click', closeIdeaBox);
+    box.querySelector('.grp-ideaform').addEventListener('submit', function(e){
+      e.preventDefault();
+      var v = titleIn.value.trim(); if(!v) return;
+      var tg = TAGS[+tagSel.value] || {};
+      grpAddIdea(opt, { i: tg.icon || '', n: tg.name || '', t: v });
+      titleIn.value = ''; playAddSound(); grpChanged(); titleIn.focus();
+    });
+    box.querySelectorAll('.grp-idea').forEach(function(row){
+      var it = grpIdeas(opt).filter(function(x){ return x.id === row.dataset.id; })[0]; if(!it) return;
+      row.querySelector('.grp-heart').addEventListener('click', function(){
+        if(!me) return; it.h = it.h || []; var k = it.h.indexOf(me);
+        if(k === -1){ it.h.push(me); playStarSound(); } else it.h.splice(k, 1);
+        grpChanged();
+      });
+      row.querySelector('.grp-plan').addEventListener('change', function(e){
+        var dn = parseInt(e.target.value, 10); if(isNaN(dn)) return;
+        var li = grpPlaceActivity(panel, dn, it.a);
+        if(!li) return;
+        GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== it; });
+        playStampSound(); grpChanged(); grpToast('Planned on ' + grpDayLabel(panel, dn));
+      });
+      row.querySelector('.grp-rm').addEventListener('click', function(){
+        GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== it; }); playCrumpleSound(); grpChanged();
+      });
+    });
+  }
+
+  // ---- this or that ---------------------------------------------------
+  function grpDuels(opt){ return GROUP.duels[opt] || (GROUP.duels[opt] = []); }
+  function openDuelForm(li, anchorEl){
+    closePop();
+    var panel = li.closest('.panel'), cell = li.closest('.cell'); if(!panel || !cell) return;
+    var opt = optOf(panel), a = extractActivity(li), ideas = grpIdeas(opt);
+    var pop = document.createElement('div'); pop.className = 'monthpop rangepop grp-ui grp-duelpop';
+    var tagOpts = TAGS.map(function(tg, i){ return '<option value="' + i + '">' + grpEsc(tg.icon + ' ' + tg.name) + '</option>'; }).join('');
+    pop.innerHTML = '<div class="rangepop-title">This or that?</div>' +
+      '<p class="grp-hint">Put <b>' + grpEsc(a.t || 'this activity') + '</b> to a vote against something else for ' + grpEsc(grpDayLabel(panel, dayNumOfCell(cell))) + '. The loser goes to the idea box.</p>' +
+      (ideas.length ? '<div class="whenpop-label">Pick from the idea box</div><div class="grp-duel-ideas">' + ideas.map(function(it){ return '<button type="button" class="grp-duel-idea" data-id="' + it.id + '">' + grpChipHtml(it.a) + ' ' + grpEsc(it.a.t || '') + '</button>'; }).join('') + '</div><div class="whenpop-label">or something new</div>' : '<div class="whenpop-label">Against</div>') +
+      '<div class="whenpop-row"><input type="text" class="grp-duel-t" placeholder="e.g. Salt mine tour"><select class="grp-duel-tag" aria-label="Type">' + tagOpts + '</select></div>' +
+      '<button type="button" class="addbtn">Start the vote</button>';
+    var input = pop.querySelector('.grp-duel-t'), tagSel = pop.querySelector('.grp-duel-tag');
+    var other = TAGS.findIndex(function(tg){ return tg.name === 'Other'; }); if(other >= 0) tagSel.value = String(other);
+    pop.addEventListener('click', function(e){ e.stopPropagation(); });
+    function start(b, fromIdea){
+      var me = meKey();
+      grpDuels(opt).push({ id: grpId(), d: dayNumOfCell(cell), a: a, b: b, v: {}, by: me || '' });
+      if(fromIdea) GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== fromIdea; });
+      li.remove(); recomputeCell(cell); renderActivitySpans(panel);
+      closePop(); playStampSound(); grpChanged();
+    }
+    pop.querySelectorAll('.grp-duel-idea').forEach(function(btn){
+      btn.addEventListener('click', function(){ var it = ideas.filter(function(x){ return x.id === btn.dataset.id; })[0]; if(it) start(it.a, it); });
+    });
+    pop.querySelector('.addbtn').addEventListener('click', function(){
+      var v = input.value.trim(); if(!v){ input.focus(); return; }
+      var tg = TAGS[+tagSel.value] || {};
+      start({ i: tg.icon || '', n: tg.name || '', t: v });
+    });
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); pop.querySelector('.addbtn').click(); } });
+    positionPopover(pop, anchorEl);
+    input.focus();
+  }
+  function grpResolveDuel(panel, duel, cancel){
+    var opt = optOf(panel);
+    var counts = { a: 0, b: 0 }; Object.keys(duel.v || {}).forEach(function(k){ counts[duel.v[k]]++; });
+    var win = cancel ? 'a' : (counts.b > counts.a ? 'b' : 'a'), lose = win === 'a' ? 'b' : 'a';
+    grpPlaceActivity(panel, duel.d, duel[win]);
+    var fans = Object.keys(duel.v || {}).filter(function(k){ return duel.v[k] === lose; });
+    grpAddIdea(opt, duel[lose], fans);
+    GROUP.duels[opt] = grpDuels(opt).filter(function(x){ return x !== duel; });
+    if(!cancel){ playStampSound(); grpToast((duel[win].t || 'It') + ' won. ' + (duel[lose].t || 'The other') + ' went to the idea box.'); }
+    grpChanged();
+  }
+  function renderDuels(panel){
+    panel.querySelectorAll('.grp-duel').forEach(function(n){ n.remove(); });
+    var opt = optOf(panel), me = meKey(), people = grpEligible(panel);
+    grpDuels(opt).slice().forEach(function(duel){
+      var cell = grpCellOf(panel, duel.d); if(!cell) return;
+      var v = duel.v || {}, voted = Object.keys(v).filter(function(k){ return people.indexOf(k) !== -1; });
+      if(people.length && voted.length >= people.length){ grpResolveDuel(panel, duel); return; }
+      var card = document.createElement('div'); card.className = 'grp-ui grp-duel jsctl';
+      function side(k){
+        var x = duel[k], fans = Object.keys(v).filter(function(p){ return v[p] === k; }), mine = me && v[me] === k;
+        var pct = people.length ? Math.round(fans.length / people.length * 100) : 0;
+        return '<button type="button" class="grp-side' + (mine ? ' on' : '') + '" data-k="' + k + '" aria-pressed="' + !!mine + '"><span class="grp-side-fill" style="width:' + pct + '%"></span>' +
+          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (fans.length ? grpFaces(fans) : '') + '</button>';
+      }
+      card.innerHTML = '<div class="grp-duel-head"><span>This or that?</span><span class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted</span></div>' +
+        side('a') + '<span class="grp-or">or</span>' + side('b') +
+        '<div class="grp-duel-foot">' + (voted.length ? '<button type="button" class="grp-link" data-do="decide">Decide now</button>' : '') + '<button type="button" class="grp-link" data-do="cancel">Cancel vote</button></div>';
+      card.addEventListener('click', function(e){ e.stopPropagation(); });
+      card.querySelectorAll('.grp-side').forEach(function(b){
+        b.addEventListener('click', function(){ if(!me) return; duel.v = duel.v || {}; if(duel.v[me] === b.dataset.k) delete duel.v[me]; else { duel.v[me] = b.dataset.k; playCheckSound(); } grpChanged(); });
+      });
+      card.querySelectorAll('[data-do]').forEach(function(b){
+        b.addEventListener('click', function(){ grpResolveDuel(panel, duel, b.dataset.do === 'cancel'); });
+      });
+      var acts = cell.querySelector(':scope > .acts');
+      if(acts) acts.insertAdjacentElement('afterend', card);
+      else { var head = cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead'); if(head) head.insertAdjacentElement('afterend', card); else cell.appendChild(card); }
+    });
+  }
+
+  // ---- date poll ------------------------------------------------------
+  function grpPollOf(panel){ return panel ? GROUP.polls[planIdOf(panel)] : null; }
+  function grpPollPeople(panel){
+    var pid = planIdOf(panel), mb = getOptionMembers(panel), plan = GROUP.plans[pid];
+    if(mb.length) return mb.slice();
+    if(plan && plan.who && plan.who.length) return plan.who.slice();
+    return grpPeople().map(function(m){ return m.key; });
+  }
+  function grpIso(y, m, d){ return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+  function grpPollDays(poll){
+    var a = poll.from.split('-').map(Number), b = poll.to.split('-').map(Number), out = [];
+    for(var y = a[0], m = a[1]; y < b[0] || (y === b[0] && m <= b[1]); m++){ if(m > 12){ m = 1; y++; if(y > b[0]) break; } for(var d = 1; d <= daysInMonth(y, m); d++) out.push(grpIso(y, m, d)); }
+    return out;
+  }
+  function grpPollWindows(poll, people){
+    var days = grpPollDays(poll), L = Math.max(1, poll.len || 1), av = poll.av || {}, sets = {};
+    people.forEach(function(k){ sets[k] = {}; (av[k] || []).forEach(function(d){ sets[k][d] = 1; }); });
+    var answered = people.filter(function(k){ return (av[k] || []).length; });
+    var all = [];
+    for(var i = 0; i + L <= days.length; i++){
+      var w = days.slice(i, i + L);
+      var ok = answered.filter(function(k){ return w.every(function(d){ return sets[k][d]; }); });
+      if(ok.length) all.push({ i: i, w: w, ok: ok });
+    }
+    all.sort(function(x, y){ return y.ok.length - x.ok.length || x.i - y.i; });
+    var pick = [];
+    all.forEach(function(o){ if(pick.length < 3 && pick.every(function(p){ return Math.abs(p.i - o.i) >= L; })) pick.push(o); });
+    return { pick: pick, answered: answered };
+  }
+  function grpRangeLabel(a, b){
+    var x = a.split('-').map(Number), y = b.split('-').map(Number);
+    if(x[1] === y[1]) return (x[2] === y[2] ? x[2] : x[2] + '–' + y[2]) + ' ' + MONTH_SHORT[x[1] - 1];
+    return x[2] + ' ' + MONTH_SHORT[x[1] - 1] + ' – ' + y[2] + ' ' + MONTH_SHORT[y[1] - 1];
+  }
+  function grpLockPoll(panel, poll, w){
+    var a = w[0].split('-').map(Number), b = w[w.length - 1].split('-').map(Number);
+    var dates = { from: { year: a[0], month: a[1], day: a[2] }, to: { year: b[0], month: b[1], day: b[2] }, exact: true };
+    poll.lk = [w[0], w[w.length - 1]];
+    panelsOfPlan(panel).forEach(function(p){ applyAltDates(p, dates); renderHoliday(p); renderActivitySpans(p); });
+    planChanged();
+    if(typeof renderPlans === 'function') renderPlans();
+    activatePillByOpt(optOf(panel));
+    playStampSound();
+    grpChanged();
+    grpToast('Dates set: ' + grpRangeLabel(poll.lk[0], poll.lk[1]));
+  }
+  function renderPollBanner(panel){
+    document.querySelectorAll('.grp-pollbar').forEach(function(n){ if(n.parentElement !== panel) n.remove(); });
+    var bar = panel.querySelector(':scope > .grp-pollbar');
+    var poll = grpPollOf(panel);
+    if(!poll || poll.lk){ if(bar) bar.remove(); return; }
+    var people = grpPollPeople(panel), av = poll.av || {}, me = meKey();
+    var answered = people.filter(function(k){ return (av[k] || []).length; });
+    var mineDone = me && (av[me] || []).length;
+    if(!bar){ bar = document.createElement('div'); bar.className = 'grp-ui grp-pollbar jsctl'; panel.insertBefore(bar, panel.firstChild); }
+    var dl = poll.dl ? poll.dl.split('-').map(Number) : null;
+    bar.innerHTML = '<span class="grp-pollbar-ic" aria-hidden="true">🗳️</span><div class="grp-pollbar-t"><b>When can everyone go?</b><span>' + poll.len + ' days · ' + answered.length + ' of ' + people.length + ' answered' +
+      (dl ? ' · answers by ' + WD_ABBR[(new Date(dl[0], dl[1] - 1, dl[2]).getDay() + 6) % 7] + ' ' + dl[2] + ' ' + MONTH_SHORT[dl[1] - 1] : '') + '</span></div>' +
+      grpFaces(answered) + '<button type="button" class="grp-btn">' + (mineDone ? 'See results' : 'Mark my days') + '</button>';
+    bar.querySelector('.grp-btn').addEventListener('click', function(e){ e.stopPropagation(); openPoll(panel); });
+  }
+  var grpPaint = null;
+  function openPoll(panel){
+    var ov = document.getElementById('grpPoll');
+    if(!ov){
+      ov = document.createElement('div'); ov.id = 'grpPoll'; ov.className = 'grp-ui grp-overlay';
+      ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
+      document.body.appendChild(ov);
+      ov.addEventListener('click', function(e){ e.stopPropagation(); if(e.target === ov) closePoll(); });
+      ov.addEventListener('pointerdown', function(e){
+        var c = e.target.closest('.grp-pday[data-d]'); if(!c) return;
+        e.preventDefault();
+        var panel = document.getElementById('panel-' + ov.dataset.opt), poll = grpPollOf(panel), me = meKey();
+        if(!poll || !me || grpPollPeople(panel).indexOf(me) === -1) return;
+        poll.av = poll.av || {}; var mine = poll.av[me] || (poll.av[me] = []);
+        // Dragging marks every day from where you started to where you
+        // are (a range, not just the cells the pointer crossed).
+        grpPaint = { add: mine.indexOf(c.dataset.d) === -1, from: c.dataset.d, base: mine.slice(), poll: poll, me: me };
+        grpPaintTo(c.dataset.d);
+      });
+      ov.addEventListener('pointermove', function(e){
+        if(!grpPaint) return;
+        var el = document.elementFromPoint(e.clientX, e.clientY); el = el && el.closest('.grp-pday[data-d]');
+        if(el) grpPaintTo(el.dataset.d);
+      });
+      window.addEventListener('pointerup', function(){ if(grpPaint){ grpPaint = null; grpChanged(); } });
+      document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !ov.hidden) closePoll(); });
+    }
+    ov.dataset.opt = optOf(panel);
+    ov.hidden = false;
+    renderPoll();
+  }
+  function grpPaintTo(d){
+    var g = grpPaint; if(!g) return;
+    var lo = g.from < d ? g.from : d, hi = g.from < d ? d : g.from, set = {};
+    g.base.forEach(function(x){ set[x] = 1; });
+    document.querySelectorAll('#grpPoll .grp-pday[data-d]').forEach(function(c){
+      var k = c.dataset.d;
+      if(k >= lo && k <= hi){ if(g.add) set[k] = 1; else delete set[k]; }
+      c.classList.toggle('mine', !!set[k]);
+    });
+    g.poll.av[g.me] = Object.keys(set).sort();
+  }
+  function closePoll(){ var ov = document.getElementById('grpPoll'); if(ov) ov.hidden = true; }
+  function renderPoll(){
+    var ov = document.getElementById('grpPoll');
+    if(!ov || ov.hidden || grpPaint) return;
+    var panel = document.getElementById('panel-' + ov.dataset.opt), poll = grpPollOf(panel);
+    if(!panel || !poll){ closePoll(); return; }
+    var me = meKey(), people = grpPollPeople(panel), av = poll.av || {}, n = people.length;
+    var res = grpPollWindows(poll, people), best = res.pick[0], bestSet = {};
+    if(best && !poll.lk) best.w.forEach(function(d){ bestSet[d] = 1; });
+    var lockSet = {}; if(poll.lk) grpPollDays({ from: poll.lk[0].slice(0, 7), to: poll.lk[1].slice(0, 7) }).forEach(function(d){ if(d >= poll.lk[0] && d <= poll.lk[1]) lockSet[d] = 1; });
+    var who = {}; people.forEach(function(k){ (av[k] || []).forEach(function(d){ (who[d] = who[d] || []).push(k); }); });
+    var months = [], days = grpPollDays(poll);
+    days.forEach(function(d){ var ym = d.slice(0, 7); if(months.indexOf(ym) === -1) months.push(ym); });
+    var mineSet = {}; (av[me] || []).forEach(function(d){ mineSet[d] = 1; });
+    var cal = months.map(function(ym){
+      var y = +ym.slice(0, 4), m = +ym.slice(5, 7), off = (new Date(y, m - 1, 1).getDay() + 6) % 7, h = '';
+      WD_ABBR.forEach(function(w){ h += '<span class="grp-pwd">' + w.charAt(0) + '</span>'; });
+      for(var i = 0; i < off; i++) h += '<span></span>';
+      for(var d = 1; d <= daysInMonth(y, m); d++){
+        var k = grpIso(y, m, d), ws = who[k] || [], pct = n ? ws.length / n : 0;
+        h += '<button type="button" class="grp-pday' + (mineSet[k] ? ' mine' : '') + (bestSet[k] ? ' best' : '') + (lockSet[k] ? ' locked' : '') + '" data-d="' + k + '" style="--free:' + Math.round(pct * 100) + '%" aria-pressed="' + !!mineSet[k] + '" aria-label="' + d + ' ' + MONTH_FULL[m - 1] + ': ' + ws.length + ' of ' + n + ' free">' +
+          '<span class="grp-pdn">' + d + '</span><span class="grp-pdots">' + ws.map(function(p){ return '<i style="background:' + grpColor(p) + '"></i>'; }).join('') + '</span></button>';
+      }
+      return '<div class="grp-pmonth"><h4>' + MONTH_FULL[m - 1] + ' ' + y + '</h4><div class="grp-pgrid">' + h + '</div></div>';
+    }).join('');
+    var wins = res.pick.map(function(o, i){
+      var miss = people.filter(function(k){ return o.ok.indexOf(k) === -1; });
+      var locked = poll.lk && poll.lk[0] === o.w[0] && poll.lk[1] === o.w[o.w.length - 1];
+      return '<div class="grp-win' + (i === 0 ? ' top' : '') + '"><div><b>' + grpRangeLabel(o.w[0], o.w[o.w.length - 1]) + '</b> ' + grpFaces(o.ok) + ' <span class="grp-muted">' + o.ok.length + ' of ' + n + ' free</span>' +
+        (miss.length ? '<div class="grp-miss">' + miss.map(function(k){ return grpEsc(grpName(k)) + ((av[k] || []).length ? ' can\'t' : ' hasn\'t answered'); }).join(' · ') + '</div>' : '') + '</div>' +
+        (me && people.indexOf(me) !== -1 ? '<button type="button" class="grp-btn' + (i ? ' ghost' : '') + '" data-lock="' + o.i + '">' + (locked ? 'Dates set ✓' : 'Set these dates') + '</button>' : '') + '</div>';
+    }).join('');
+    ov.innerHTML = '<div class="grp-sheet"><div class="grp-sheet-head"><div><h3>' + grpEsc(planNameOf(panel)) + ' · when can everyone go?</h3>' +
+      '<p class="grp-muted">' + poll.len + ' days between ' + MONTH_FULL[+poll.from.slice(5, 7) - 1] + ' and ' + MONTH_FULL[+poll.to.slice(5, 7) - 1] + (poll.lk ? ' · set to ' + grpRangeLabel(poll.lk[0], poll.lk[1]) : '') + '</p></div>' +
+      '<button type="button" class="grp-x" aria-label="Close">✕</button></div>' +
+      '<div class="grp-resp">' + people.map(function(k){ var done = (av[k] || []).length; return '<span class="grp-r' + (done ? '' : ' wait') + '">' + grpFace(k) + grpEsc(grpName(k)) + ' ' + (done ? '✓' : '· waiting') + '</span>'; }).join('') + '</div>' +
+      (me ? (people.indexOf(me) !== -1 ? '<p class="grp-hint">You\'re <b>' + grpEsc(grpName(me)) + '</b>. Tap a day, or drag from one day to another, to mark when you could travel.</p>' : '<p class="grp-hint">You\'re <b>' + grpEsc(grpName(me)) + '</b>, who isn\'t invited to this plan, so you can only look.</p>') : '') +
+      '<div class="grp-pmonths">' + cal + '</div>' +
+      '<div class="grp-legend"><span><i class="sw all"></i>everyone free</span><span><i class="sw some"></i>some free</span><span><i class="sw best"></i>best ' + poll.len + '-day window</span><span><i class="sw mine"></i>your days</span></div>' +
+      '<h4 class="grp-sub">Best windows</h4><div class="grp-wins">' + (wins || '<p class="grp-muted">Mark some days to see which dates work.</p>') + '</div>' +
+      '<div class="grp-sheet-foot"><button type="button" class="grp-btn ghost" data-do="clear">Clear my days</button><span class="grp-muted">Everything saves as you go.</span><button type="button" class="grp-btn" data-do="close">Done</button></div></div>';
+    ov.querySelector('.grp-x').addEventListener('click', closePoll);
+    ov.querySelector('[data-do="close"]').addEventListener('click', closePoll);
+    ov.querySelector('[data-do="clear"]').addEventListener('click', function(){ if(me && poll.av){ delete poll.av[me]; grpChanged(); } });
+    ov.querySelectorAll('[data-lock]').forEach(function(b){
+      b.addEventListener('click', function(){ var o = res.pick.filter(function(x){ return String(x.i) === b.dataset.lock; })[0]; if(o){ grpLockPoll(panel, poll, o.w); closePoll(); } });
+    });
+  }
+  var GRP_COLORS = ['#ec6a9c', '#8b74d8', '#f2884d', '#3fbf94', '#4f8fd6', '#c9962a', '#d65a5a', '#5aa9b8'];
+  function grpColor(k){ var ks = grpPeople().map(function(m){ return m.key; }), i = ks.indexOf(k); if(i < 0){ i = 0; for(var j = 0; j < k.length; j++) i = (i * 31 + k.charCodeAt(j)) >>> 0; } return GRP_COLORS[i % GRP_COLORS.length]; }
+
+  // ---- new trip: kind, people, and known dates or a date poll ---------
+  function openNewTripForm(){
+    closePop();
+    var old = document.getElementById('grpNew'); if(old) old.remove();
+    var d = todayOrPanelDate(document.querySelector('.panel.on'));
+    var me = meKey();
+    var ov = document.createElement('div'); ov.id = 'grpNew'; ov.className = 'grp-ui grp-overlay';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'grpNewTitle');
+    var m1 = d.month + 1 > 12 ? { y: d.year + 1, m: 1 } : { y: d.year, m: d.month + 1 };
+    var m2 = m1.m + 1 > 12 ? { y: m1.y + 1, m: 1 } : { y: m1.y, m: m1.m + 1 };
+    var dl = new Date(); dl.setDate(dl.getDate() + 7);
+    var state = { kind: 'trip', known: false, len: 5, who: {}, invited: [] };
+    function monthOptions(sel){ var h = '', ny = new Date().getFullYear(); for(var y = ny - 1; y <= ny + 3; y++) for(var m = 1; m <= 12; m++) h += '<option value="' + y + '-' + m + '"' + (y === sel.y && m === sel.m ? ' selected' : '') + '>' + MONTH_SHORT[m - 1] + ' ' + y + '</option>'; return h; }
+    var kinds = [['trip', '✈️', 'Trip'], ['weekend', '🧳', 'Weekend away'], ['event', '🎉', 'Event'], ['ideas', '💭', 'Just ideas']];
+    ov.innerHTML = '<form class="grp-sheet grp-newform" novalidate><div class="grp-sheet-head"><h3 id="grpNewTitle">New plan</h3><button type="button" class="grp-x" aria-label="Close">✕</button></div>' +
+      '<div class="grp-field"><span class="grp-label">What are you planning?</span><div class="grp-kinds">' + kinds.map(function(k){ return '<button type="button" class="grp-pick" data-kind="' + k[0] + '" aria-pressed="' + (k[0] === 'trip') + '">' + k[1] + ' ' + k[2] + '</button>'; }).join('') + '</div></div>' +
+      '<div class="grp-field"><label class="grp-label" for="grpNewName">Name <span class="grp-muted">· on the tab, up to ' + PLAN_NAME_MAX + ' letters</span></label><input id="grpNewName" maxlength="' + PLAN_NAME_MAX + '" placeholder="Poland" autocomplete="off"></div>' +
+      '<div class="grp-field"><span class="grp-label">Who\'s coming?</span><div class="grp-people"></div>' +
+      '<div class="grp-row"><input id="grpNewInvite" type="email" placeholder="Invite by email" aria-label="Invite by email" autocomplete="off"><button type="button" class="grp-btn ghost" data-do="invite">Invite</button></div><span class="grp-muted grp-invite-msg"></span></div>' +
+      '<div class="grp-field grp-dates"><span class="grp-label">Dates</span><div class="grp-modes">' +
+        '<button type="button" class="grp-mode" data-known="1" aria-pressed="false"><b>📅 We know the dates</b><span>Go straight to planning.</span></button>' +
+        '<button type="button" class="grp-mode" data-known="0" aria-pressed="true"><b>🗳️ Help us pick dates</b><span>Everyone marks when they\'re free.</span></button></div>' +
+        '<div class="grp-row grp-known" hidden><input type="date" id="grpNewFrom" value="' + grpIso(m1.y, m1.m, 1) + '"><span class="grp-muted">to</span><input type="date" id="grpNewTo" value="' + grpIso(m1.y, m1.m, 5) + '"></div>' +
+        '<div class="grp-row grp-pickdates"><span class="grp-muted">Between</span><select id="grpNewM1">' + monthOptions(m1) + '</select><span class="grp-muted">and</span><select id="grpNewM2">' + monthOptions(m2) + '</select>' +
+          '<span class="grp-muted">for</span><span class="grp-stepper"><button type="button" data-len="-1" aria-label="Fewer days">−</button><span class="grp-len">5 days</span><button type="button" data-len="1" aria-label="More days">+</button></span>' +
+          '</div><div class="grp-row grp-pickdates"><span class="grp-muted">Answers by</span><input type="date" id="grpNewDl" value="' + grpIso(dl.getFullYear(), dl.getMonth() + 1, dl.getDate()) + '"><span class="grp-muted">· everyone gets a link to mark their days</span></div></div>' +
+      '<div class="grp-sheet-foot"><span class="grp-muted grp-err"></span><button type="submit" class="grp-btn grp-create">Create plan</button></div></form>';
+    document.body.appendChild(ov);
+    var form = ov.querySelector('form');
+    ov.addEventListener('click', function(e){ e.stopPropagation(); if(e.target === ov) ov.remove(); });
+    ov.querySelector('.grp-x').addEventListener('click', function(){ ov.remove(); });
+    ov.addEventListener('keydown', function(e){ if(e.key === 'Escape') ov.remove(); });
+    function renderPeople(){
+      var ms = grpPeople().filter(function(m){ return m.key !== me; });
+      state.invited.forEach(function(k){ if(!ms.some(function(m){ return m.key === k; })) ms.push({ key: k, email: k.replace(/,/g, '.') }); });
+      ov.querySelector('.grp-people').innerHTML = (me ? '<span class="grp-person on">' + grpFace(me) + grpEsc(grpName(me)) + ' <span class="grp-muted">(you)</span></span>' : '') +
+        ms.map(function(m){ var on = !!state.who[m.key]; return '<button type="button" class="grp-person' + (on ? ' on' : '') + '" data-k="' + grpEsc(m.key) + '" aria-pressed="' + on + '">' + grpFace(m.key) + grpEsc(grpName(m.key)) + (on ? ' ✓' : '') + '</button>'; }).join('');
+      ov.querySelectorAll('.grp-person[data-k]').forEach(function(b){ b.addEventListener('click', function(){ state.who[b.dataset.k] = !state.who[b.dataset.k]; renderPeople(); }); });
+    }
+    function sync(){
+      ov.querySelectorAll('.grp-pick').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.kind === state.kind)); });
+      ov.querySelectorAll('.grp-mode').forEach(function(b){ b.setAttribute('aria-pressed', String((b.dataset.known === '1') === state.known)); });
+      ov.querySelector('.grp-dates').hidden = state.kind === 'ideas';
+      ov.querySelector('.grp-known').hidden = !state.known;
+      ov.querySelectorAll('.grp-pickdates').forEach(function(r){ r.hidden = state.known; });
+      ov.querySelector('.grp-len').textContent = state.len + (state.len === 1 ? ' day' : ' days');
+      var n = Object.keys(state.who).filter(function(k){ return state.who[k]; }).length;
+      ov.querySelector('.grp-create').textContent = state.kind === 'ideas' ? 'Create plan' : state.known ? 'Create plan' : 'Create & ask for dates';
+      ov.querySelector('.grp-create').textContent += n ? ' · ' + n + (n === 1 ? ' person' : ' people') + ' invited' : '';
+    }
+    ov.querySelectorAll('.grp-pick').forEach(function(b){ b.addEventListener('click', function(){ state.kind = b.dataset.kind; if(state.kind === 'weekend' && !state.known) state.len = 3; sync(); }); });
+    ov.querySelectorAll('.grp-mode').forEach(function(b){ b.addEventListener('click', function(){ state.known = b.dataset.known === '1'; sync(); }); });
+    ov.querySelectorAll('[data-len]').forEach(function(b){ b.addEventListener('click', function(){ state.len = Math.max(1, Math.min(30, state.len + +b.dataset.len)); sync(); }); });
+    ov.querySelector('[data-do="invite"]').addEventListener('click', inviteTyped);
+    ov.querySelector('#grpNewInvite').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); inviteTyped(); } });
+    function inviteTyped(){
+      var inp = ov.querySelector('#grpNewInvite'), email = inp.value.trim().toLowerCase(), msg = ov.querySelector('.grp-invite-msg');
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'That doesn\'t look like an email address.'; return; }
+      var key = sanitizeEmailKey(email);
+      if(IS_HOSTED){
+        // The same path as Participants → Invite, so they can sign in.
+        if(manageInput && manageForm){ manageInput.value = email; if(manageForm.requestSubmit) manageForm.requestSubmit(); else manageForm.dispatchEvent(new Event('submit', { cancelable: true })); }
+        memberAvatarDataPromise = null;
+      } else if(!MOCK_PEOPLE.members.some(function(m){ return m.key === key; })){
+        MOCK_PEOPLE.members.push({ key: key, email: email, role: 'member' });
+      }
+      if(state.invited.indexOf(key) === -1) state.invited.push(key);
+      state.who[key] = true; inp.value = '';
+      msg.textContent = (IS_HOSTED ? 'Invited ' : 'Added ') + email + (IS_HOSTED ? '. They\'ll get access to the planner.' : ' (local test, nobody is emailed).');
+      renderPeople(); sync();
+    }
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var err = ov.querySelector('.grp-err');
+      var name = ov.querySelector('#grpNewName').value.trim();
+      var who = Object.keys(state.who).filter(function(k){ return state.who[k]; });
+      var w, poll = null;
+      if(state.kind === 'ideas'){
+        w = { from: { year: m1.y, month: m1.m, day: 1 }, to: { year: m1.y, month: m1.m, day: daysInMonth(m1.y, m1.m) }, exact: false };
+      } else if(state.known){
+        var f = ov.querySelector('#grpNewFrom').value, tt = ov.querySelector('#grpNewTo').value;
+        if(!f || !tt || tt < f){ err.textContent = 'Pick a start and an end date.'; return; }
+        var a = f.split('-').map(Number), b = tt.split('-').map(Number);
+        w = { from: { year: a[0], month: a[1], day: a[2] }, to: { year: b[0], month: b[1], day: b[2] }, exact: true };
+      } else {
+        var s1 = ov.querySelector('#grpNewM1').value.split('-').map(Number), s2 = ov.querySelector('#grpNewM2').value.split('-').map(Number);
+        if(s2[0] * 12 + s2[1] < s1[0] * 12 + s1[1]){ var tmp = s1; s1 = s2; s2 = tmp; }
+        if((s2[0] * 12 + s2[1]) - (s1[0] * 12 + s1[1]) > 5){ err.textContent = 'Look in six months at most.'; return; }
+        w = { from: { year: s1[0], month: s1[1], day: 1 }, to: { year: s2[0], month: s2[1], day: daysInMonth(s2[0], s2[1]) }, exact: false };
+        poll = { len: state.len, from: s1[0] + '-' + String(s1[1]).padStart(2, '0'), to: s2[0] + '-' + String(s2[1]).padStart(2, '0'), dl: ov.querySelector('#grpNewDl').value, av: {}, by: me || '' };
+      }
+      var created = createOption(w.from.year, w.from.month);
+      if(!created) return;
+      applyAltDates(created, w);
+      renderHoliday(created);
+      var pid = optOf(created);
+      created.setAttribute('data-plan', pid);
+      created.setAttribute('data-plan-name', (name || t('default_plan_name')).toUpperCase());
+      setOptionName(created, t('default_alt_name') + ' 1');
+      if(currentUserKey){ var mb = [currentUserKey]; who.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
+      GROUP.plans[pid] = { kind: state.kind, who: (me ? [me] : []).concat(who.filter(function(k){ return k !== me; })) };
+      if(poll) GROUP.polls[pid] = poll;
+      ov.remove();
+      planChanged();
+      activatePillByOpt(pid);
+      playAddSound();
+      grpChanged();
+      if(poll) setTimeout(function(){ openPoll(created); }, 250);
+      else if(state.kind === 'ideas') setTimeout(openIdeaBox, 250);
+    });
+    ['#grpNewM1', '#grpNewM2'].forEach(function(q){ enhanceMonthSelect(ov.querySelector(q)); });
+    ['#grpNewFrom', '#grpNewTo', '#grpNewDl'].forEach(function(q){ enhanceDateInput(ov.querySelector(q)); });
+    renderPeople(); sync();
+    ov.querySelector('#grpNewName').focus();
+  }
+
+  // ---- the top-right buttons: idea box -------------------------------
+  function renderGroupHead(panel){
+    var btn = document.getElementById('grpIdeaBtn');
+    if(!btn){
+      btn = document.createElement('button'); btn.type = 'button'; btn.id = 'grpIdeaBtn'; btn.className = 'grp-ui grp-ideabtn';
+      btn.addEventListener('click', function(e){ e.stopPropagation(); var box = document.getElementById('grpIdeaBox'); if(box && !box.hidden) closeIdeaBox(); else openIdeaBox(); });
+    }
+    var head = document.getElementById('pageHead');
+    if(head && btn.parentElement !== head) head.insertBefore(btn, head.firstChild);
+    var n = panel ? grpIdeas(optOf(panel)).length : 0;
+    var html = '<span aria-hidden="true">💡</span> Ideas' + (n ? ' <b>' + n + '</b>' : '');
+    if(btn.innerHTML !== html) btn.innerHTML = html;
+    btn.title = 'Idea box'; btn.setAttribute('aria-label', 'Idea box, ' + n + ' ideas');
+    btn.hidden = !panel;
+  }
+
+  // ---- local test helper: who you are -------------------------------
+  function renderDemoSwitcher(){
+    if(IS_HOSTED || VIEW_ONLY) return;
+    var el = document.getElementById('grpDemo');
+    if(!el){ el = document.createElement('div'); el.id = 'grpDemo'; el.className = 'grp-ui grp-demo'; document.body.appendChild(el); el.addEventListener('click', function(e){ e.stopPropagation(); }); }
+    var me = meKey();
+    el.innerHTML = '<span>Testing as</span>' + grpPeople().map(function(m){ return '<button type="button" data-k="' + grpEsc(m.key) + '" aria-pressed="' + (m.key === me) + '" title="' + grpEsc(grpName(m.key)) + '">' + memberFaceOf(m.key) + '</button>'; }).join('') + '<b>' + grpEsc(grpName(me)) + '</b>';
+    el.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ try { localStorage.setItem(GRP_DEMO_KEY, b.dataset.k); } catch(e){} renderGroup(); }); });
+  }
+
+  // ---- one render for everything above ------------------------------
+  var grpRendering = false;
+  function renderGroup(){
+    if(!GROUP || grpRendering) return;
+    grpRendering = true;
+    try {
+      grpMigrateLocalStars();
+      var panel = grpPanel();
+      if(typeof renderPageBookmark === 'function') renderPageBookmark();
+      document.querySelectorAll('.panel').forEach(function(p){ if(p !== panel){ p.querySelectorAll('.grp-duel, .grp-pollbar').forEach(function(n){ n.remove(); }); } });
+      if(panel){
+        panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li').forEach(renderWhosIn);
+        renderDuels(panel);
+        renderPollBanner(panel);
+      }
+      renderGroupHead(panel);
+      renderIdeaBox();
+      renderPoll();
+      renderDemoSwitcher();
+    } finally { grpRendering = false; }
+  }
+  // Item menu rows (see openItemMenu).
+  grpItemMenuRows = function(li, row, icon, anchorEl){
+    var me = meKey(), panel = li.closest('.panel');
+    if(me && panel && grpEligible(panel).indexOf(me) !== -1){
+      var out = grpSkippers(li).indexOf(me) !== -1;
+      row(icon(out ? '✓' : '🙅') + (out ? 'Join again' : 'I\'ll skip this'), function(){ grpToggleSkip(li); });
+    }
+    row(icon('⚔️') + 'This or that…', function(){ openDuelForm(li, anchorEl); });
+    row(icon('💡') + 'Move to idea box', function(){ grpMoveToIdeas(li); });
+  };
+  // Re-render on switching alternatives (renderPageBookmark runs then) and
+  // once the member list (names, faces) has loaded.
+  (function(){
+    var prev = renderPageBookmark;
+    renderPageBookmark = function(){ prev(); if(!grpRendering) renderGroup(); };
+  })();
+  loadMemberAvatarData().then(function(){ renderGroup(); });
+  renderGroup();
 
   if(!IS_HOSTED){
     (async function initHandle(){
