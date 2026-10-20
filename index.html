@@ -3038,6 +3038,13 @@
   /* a place picked on the map */
   .dm-popup .maplibregl-popup-content { border-radius:14px; padding:12px 14px 12px; box-shadow:0 10px 26px -10px rgba(40,25,60,.45); font-family:Nunito, sans-serif; color:var(--ink); }
   .dm-popup .maplibregl-popup-close-button { font-size:16px; color:var(--muted); right:4px; top:2px; }
+  .dm-photo-slot { margin:-12px -14px 10px; height:128px; overflow:hidden; border-radius:14px 14px 0 0; background:var(--bg); opacity:0; transition:opacity .25s; }
+  .dm-photo-slot.in { opacity:1; }
+  .dm-photo-slot img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dm-about { margin:6px 0 0; font-size:12px; font-weight:600; line-height:1.4; color:var(--ink); opacity:.85; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .dm-credit { margin-top:5px; font-size:10.5px; font-weight:700; color:var(--muted); }
+  .dm-credit a { color:inherit; }
+  .dm-credit a:hover { color:var(--ink); }
   .dm-card b { display:block; font-size:14px; font-weight:800; padding-right:14px; line-height:1.25; }
   .dm-card small { display:block; margin-top:2px; font-size:11.5px; font-weight:700; color:var(--muted); }
   .dm-card-btns { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
@@ -14979,7 +14986,8 @@
       var k = kindOf(props.class, props.subclass), tg = tagNamed(k ? k[1] : 'Other');
       var type = String(props.subclass || props.class || '').replace(/_/g, ' ');
       var el = document.createElement('div'); el.className = 'dm-card';
-      el.innerHTML = '<b></b><small></small><div class="dm-card-btns"><button type="button" class="dm-add-day"></button><button type="button" class="dm-add-idea">Add to ideas</button></div>';
+      el.innerHTML = '<div class="dm-photo-slot" hidden><img alt=""></div><b></b><small></small><p class="dm-about" hidden></p><div class="dm-credit" hidden></div>' +
+        '<div class="dm-card-btns"><button type="button" class="dm-add-day"></button><button type="button" class="dm-add-idea">Add to ideas</button></div>';
       el.querySelector('b').textContent = props.name;
       el.querySelector('small').textContent = (tg.icon ? tg.icon + ' ' : '') + (type ? type.charAt(0).toUpperCase() + type.slice(1) : tg.name);
       el.querySelector('.dm-add-day').textContent = 'Add to ' + (day ? dayTitle(day) : 'this day');
@@ -15005,7 +15013,65 @@
         if(card){ card.remove(); card = null; }
         grpToast('Added ' + props.name + ' to the ideas');
       });
-      card = new maplibregl.Popup({ closeButton:true, closeOnClick:true, maxWidth:'240px', offset:10, className:'dm-popup' }).setLngLat([g.lon, g.lat]).setDOMContent(el).addTo(map);
+      card = new maplibregl.Popup({ closeButton:true, closeOnClick:true, maxWidth:'260px', offset:10, className:'dm-popup' }).setLngLat([g.lon, g.lat]).setDOMContent(el).addTo(map);
+      var mine = card;
+      placePhoto(g, props).then(function(r){
+        if(!r || card !== mine) return;
+        var slot = el.querySelector('.dm-photo-slot');
+        if(r.img){
+          var img = slot.querySelector('img');
+          img.onload = function(){ slot.hidden = false; slot.classList.add('in'); };
+          img.src = r.img; img.alt = props.name;
+        }
+        if(r.about){ var ab = el.querySelector('.dm-about'); ab.textContent = r.about; ab.hidden = false; }
+        var cr = el.querySelector('.dm-credit');
+        cr.innerHTML = (r.img ? '<a target="_blank" rel="noopener">Photo: Wikimedia Commons</a> · ' : '') + '<a target="_blank" rel="noopener">Wikipedia</a>';
+        var links = cr.querySelectorAll('a');
+        if(r.img){ links[0].href = r.file; links[1].href = r.page; } else links[0].href = r.page;
+        cr.hidden = false;
+      });
+    }
+    // A photo and a line about a place, from Wikipedia (free, no key): the
+    // articles about places right around that point, the one whose name
+    // matches, then its main photo and its first sentence. Remembered per
+    // place, so each one is only looked up once.
+    var photoCache = {};
+    function norm(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function sameName(a, b){
+      a = norm(a); b = norm(b); if(!a || !b) return false;
+      if(a === b || a.indexOf(b) !== -1 || b.indexOf(a) !== -1) return true;
+      var wa = a.split(' ').filter(function(w){ return w.length > 2; }), wb = b.split(' ').filter(function(w){ return w.length > 2; });
+      var shared = wa.filter(function(w){ return wb.indexOf(w) !== -1; }).length;
+      return shared >= Math.max(1, Math.min(wa.length, wb.length) - 1);
+    }
+    function wikiGet(host, params){
+      var q = Object.keys(params).map(function(k){ return k + '=' + encodeURIComponent(params[k]); }).join('&');
+      return fetch('https://' + host + '/w/api.php?' + q + '&format=json&origin=*').then(function(r){ return r.json(); });
+    }
+    function placePhoto(g, props){
+      var key = props.name + '@' + g.lat.toFixed(4) + ',' + g.lon.toFixed(4);
+      if(photoCache[key]) return photoCache[key];
+      var names = [props.name, props.name_en, props['name:en'], props.name_int].filter(Boolean);
+      var hosts = ['en.wikipedia.org'];
+      var lang = (navigator.language || 'en').slice(0, 2).toLowerCase(); if(lang !== 'en') hosts.push(lang + '.wikipedia.org');
+      function tryHost(i){
+        if(i >= hosts.length) return Promise.resolve(null);
+        var host = hosts[i];
+        return wikiGet(host, { action:'query', list:'geosearch', gscoord: g.lat + '|' + g.lon, gsradius:150, gslimit:15 }).then(function(d){
+          var hits = (d.query && d.query.geosearch) || [];
+          var hit = hits.filter(function(h){ return names.some(function(n){ return sameName(n, h.title); }); })[0];
+          if(!hit) return tryHost(i + 1);
+          return wikiGet(host, { action:'query', prop:'pageimages|extracts', piprop:'thumbnail|name', pithumbsize:480, exintro:1, explaintext:1, exsentences:1, redirects:1, titles: hit.title }).then(function(d2){
+            var pages = (d2.query && d2.query.pages) || {}, pg = pages[Object.keys(pages)[0]] || {};
+            var about = (pg.extract || '').replace(/\s*\([^)]*\)/g, '').trim();
+            if(about.length > 160) about = about.slice(0, 157).replace(/\s+\S*$/, '') + '…';
+            return { img: pg.thumbnail ? pg.thumbnail.source : '', file: pg.pageimage ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(pg.pageimage) : '',
+              about: about, page: 'https://' + host + '/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')) };
+          });
+        });
+      }
+      photoCache[key] = tryHost(0).catch(function(){ delete photoCache[key]; return null; });
+      return photoCache[key];
     }
     if(!IS_HOSTED) window.__dmPlaceCard = function(lat, lon, props){ placeCard({ lat:lat, lon:lon }, props); };   // local test hook
     function cells(){ var p = document.querySelector('.panel.on'); return p ? [].slice.call(p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)')) : []; }
