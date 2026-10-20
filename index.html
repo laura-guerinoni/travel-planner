@@ -2855,6 +2855,25 @@
   #printPanel input[type="radio"]:focus { outline:none; }
   #printPanel input[type="radio"]:focus-visible { box-shadow:0 0 0 3px rgba(var(--primary-rgb), .2); }
   .print-pay { display:none; }
+  .notes-page .np-mention { display:inline-block; padding:0 7px; margin:0 1px; border-radius:999px; background:rgba(var(--primary-rgb), .14); color:var(--primary); font-weight:700; line-height:24px; vertical-align:1px; user-select:all; }
+  #mentionDD { position:fixed; z-index:10003; min-width:200px; padding:6px 0; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
+  #mentionDD[hidden], #bellDD[hidden] { display:none; }
+  #mentionDD .md-opt { display:flex; align-items:center; gap:9px; padding:7px 14px; font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; }
+  #mentionDD .md-opt.act, #mentionDD .md-opt:hover { background:var(--bg); }
+  #mentionDD .md-face, #bellDD .bd-face { width:24px; height:24px; flex:none; } #mentionDD .md-face svg, #bellDD .bd-face svg { width:100%; height:100%; }
+  .page-bell { position:relative; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; margin-right:2px; border:none; border-radius:50%; background:none; color:var(--ink); cursor:pointer; opacity:.75; }
+  .page-bell:hover { background:rgba(255,255,255,.9); opacity:1; } .page-bell:focus { outline:none; }
+  .page-bell svg { width:17px; height:17px; }
+  .page-bell .bell-dot { display:none; position:absolute; top:1px; right:0; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px; background:#e5484d; color:#fff; font-size:10px; font-weight:800; line-height:16px; text-align:center; box-shadow:0 0 0 2px #fff; }
+  #bellDD { position:fixed; z-index:10002; width:320px; max-height:70vh; overflow-y:auto; padding:6px 0; background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  #bellDD .bd-head { display:flex; justify-content:space-between; align-items:center; padding:8px 14px 6px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #bellDD .bd-all { border:none; background:none; padding:0; font:inherit; font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; color:var(--primary); cursor:pointer; }
+  #bellDD .bd-item { display:flex; gap:10px; align-items:flex-start; padding:9px 14px; font-size:13.5px; line-height:1.35; cursor:pointer; }
+  #bellDD .bd-item:hover { background:var(--bg); }
+  #bellDD .bd-item.new { background:rgba(var(--primary-rgb), .07); }
+  #bellDD .bd-txt small { display:block; margin-top:2px; color:var(--muted); font-weight:700; font-size:11.5px; }
+  #bellDD .bd-empty { padding:10px 14px 14px; color:var(--muted); font-weight:600; font-size:13px; line-height:1.4; }
+  @media print { .page-bell, #bellDD, #mentionDD { display:none !important; } }
   /* ---- Notes: a tab after the alternatives; the page becomes a ruled
      notebook page (lines instead of the squares, same paper and colours) ---- */
   .notes-page { display:none; }
@@ -13159,7 +13178,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #bellDD, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13474,13 +13493,14 @@
   function npMakeLink(range, url){ var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.appendChild(range.extractContents()); if(!a.textContent) a.textContent = url; range.insertNode(a); return a; }
   function npFill(el, line){
     el.innerHTML = '';
-    var stack = [el], re = /<(\/?)(b|i|strong|em|a)(?:\s+href="([^"]*)")?>/gi, last = 0, m;
+    var stack = [el], re = /<(\/?)(b|i|strong|em|a|m)(?:\s+(?:href|k)="([^"]*)")?>/gi, last = 0, m;
     while((m = re.exec(line))){
       if(m.index > last) stack[stack.length - 1].appendChild(document.createTextNode(npUnesc(line.slice(last, m.index))));
       if(m[1]){ if(stack.length > 1) stack.pop(); }
       else {
         var tag = m[2].toLowerCase(), n;
         if(tag === 'a'){ n = document.createElement('a'); var href = npUnesc(m[3] || ''); if(/^https?:\/\//i.test(href)) n.href = href; n.target = '_blank'; n.rel = 'noopener'; }
+        else if(tag === 'm'){ n = document.createElement('span'); n.className = 'np-mention'; n.contentEditable = 'false'; n.setAttribute('data-key', npUnesc(m[3] || '')); n.appendChild(document.createTextNode('@')); }
         else n = document.createElement(/^(b|strong)$/.test(tag) ? 'b' : 'i');
         stack[stack.length - 1].appendChild(n); stack.push(n);
       }
@@ -13492,6 +13512,9 @@
     var out = '';
     el.childNodes.forEach(function(n){
       if(n.nodeType === 3) out += npEsc(n.nodeValue.replace(/\n/g, ' '));
+      else if(n.nodeType === 1 && n.classList && n.classList.contains('np-mention')){
+        out += '<m k="' + npEsc(n.getAttribute('data-key') || '').replace(/"/g, '&quot;') + '">' + npEsc(n.textContent.replace(/^@/, '')) + '</m>';
+      }
       else if(n.nodeType === 1){
         var inner = npHtml(n), tag = n.tagName, st = n.style || {};
         var bold = tag === 'B' || tag === 'STRONG' || parseInt(st.fontWeight, 10) >= 600, ital = tag === 'I' || tag === 'EM' || st.fontStyle === 'italic';
@@ -13680,8 +13703,10 @@
     if(!notesKey || !notesArea) return;
     var v = npSerialize();
     if((MONTH_NOTES[notesKey] || '') === v) return;
-    if((notesText(notesKey) || '') === v) return;
-    MONTH_NOTES[notesKey] = v;   // kept even when empty, so an emptied plan doesn't fall back to old month notes
+    var oldV = notesText(notesKey) || '';
+    if(oldV === v) return;
+    MONTH_NOTES[notesKey] = v;
+    try { notifyMentions(mentionKeys(v).filter(function(k){ return mentionKeys(oldV).indexOf(k) === -1; })); } catch(e){}   // kept even when empty, so an emptied plan doesn't fall back to old month notes
     scheduleAutoSave(); scheduleUndoSnapshot();
     var sv = notesPage.querySelector('.np-saved'); sv.classList.add('on'); clearTimeout(sv._t); sv._t = setTimeout(function(){ sv.classList.remove('on'); }, 1200);
   }
@@ -13689,6 +13714,123 @@
     notesKey = activeNotesKey();
     npRender(notesText(notesKey));
   }
+  // ---- Mentions (@name in Notes), the bell, and emails ----
+  // A mention notifies that person: a bell in the app, and an email through
+  // the Google Apps Script below (if its address is set). Emails are grouped
+  // per person and plan, with a catch-up of anything missed, and capped per
+  // sender — see the script.
+  var EMAIL_HOOK_URL = ''; // the Apps Script "Web app" URL, once deployed
+  function mentionKeys(text){ var out = [], re = /<m k="([^"]*)">/g, m; while((m = re.exec(text || ''))) if(out.indexOf(m[1]) === -1) out.push(npUnesc(m[1])); return out; }
+  function memberNameOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return displayNameFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
+  function memberFaceOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return avatarSvgFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
+  function mentionablePeople(){
+    var p = document.querySelector('.panel.on'), d = window.__memberData || { members:[] }, only = p ? getOptionMembers(p) : [];
+    return (d.members || []).filter(function(m){ return m.key !== currentUserKey && (!only.length || only.indexOf(m.key) !== -1); });
+  }
+  function planNameOf(p){ if(!p) return ''; var pill = document.querySelector('.pill[data-opt="' + optOf(p) + '"] .pill-name'); var n = p.getAttribute('data-plan-name') || (pill ? pill.textContent.trim() : ''); return n.charAt(0) + n.slice(1).toLowerCase(); }
+  function notifyMentions(keys){
+    keys = (keys || []).filter(function(k){ return k && k !== currentUserKey; });
+    if(!keys.length || !IS_HOSTED || !currentUserKey) return;
+    var p = document.querySelector('.panel.on'), plan = planNameOf(p), planId = p ? planIdOf(p) : '';
+    var me = memberNameOf(currentUserKey);
+    keys.forEach(function(k){
+      firebase.database().ref('notifications/' + k).push({ from: currentUserKey, fromName: me, plan: plan, planId: planId, at: firebase.database.ServerValue.TIMESTAMP, seen: false })
+        .catch(function(err){ console.warn('Notification not saved (database rules?)', err); });
+    });
+    if(!EMAIL_HOOK_URL) return;
+    var u = firebase.auth().currentUser; if(!u) return;
+    u.getIdToken().then(function(tok){
+      keys.forEach(function(k){
+        fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' },
+          body: JSON.stringify({ idToken: tok, to: k, from: me, plan: plan, url: location.origin + location.pathname }) }).catch(function(){});
+      });
+    }).catch(function(){});
+  }
+  // typing "@" in Notes: a little list of the plan's people
+  (function(){
+    var dd = document.createElement('div'); dd.id = 'mentionDD'; dd.hidden = true; document.body.appendChild(dd);
+    var list = [], act = 0, at = null;
+    function close(){ dd.hidden = true; at = null; }
+    function query(){
+      var sel = window.getSelection(); if(!notesArea || !sel.rangeCount || !sel.isCollapsed || document.activeElement !== notesArea) return null;
+      var n = sel.anchorNode; if(!n || n.nodeType !== 3) return null;
+      var before = n.nodeValue.slice(0, sel.anchorOffset), m = /(^|\s)@([^\s@]{0,24})$/.exec(before);
+      return m ? { node:n, start: sel.anchorOffset - m[2].length - 1, end: sel.anchorOffset, q: m[2].toLowerCase() } : null;
+    }
+    function draw(){
+      at = query(); if(!at){ close(); return; }
+      list = mentionablePeople().filter(function(m){ return memberNameOf(m.key).toLowerCase().indexOf(at.q) !== -1 || m.email.toLowerCase().indexOf(at.q) === 0; }).slice(0, 8);
+      if(!list.length){ close(); return; }
+      act = Math.min(act, list.length - 1);
+      dd.innerHTML = list.map(function(m, i){ return '<div class="md-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '"><span class="md-face">' + memberFaceOf(m.key) + '</span>' + npEsc(memberNameOf(m.key)) + '</div>'; }).join('');
+      var r = document.createRange(); r.setStart(at.node, at.start); r.setEnd(at.node, at.end); var b = r.getBoundingClientRect();
+      dd.hidden = false; dd.style.left = Math.round(b.left) + 'px'; dd.style.top = Math.round(b.bottom + 6) + 'px';
+    }
+    function pick(i){
+      var m = list[i]; if(!m || !at) return;
+      var r = document.createRange(); r.setStart(at.node, at.start); r.setEnd(at.node, at.end); r.deleteContents();
+      var sp = document.createElement('span'); sp.className = 'np-mention'; sp.contentEditable = 'false'; sp.setAttribute('data-key', m.key); sp.textContent = '@' + memberNameOf(m.key);
+      r.insertNode(sp); var space = document.createTextNode(' '); sp.after(space);
+      var c = document.createRange(); c.setStart(space, 1); c.collapse(true); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(c);
+      close(); npChanged();
+    }
+    document.addEventListener('input', function(e){ if(notesArea && e.target === notesArea){ loadMemberAvatarData(); draw(); } });
+    document.addEventListener('keydown', function(e){
+      if(dd.hidden || !notesArea || e.target !== notesArea) return;
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length; draw(); }
+      else if(e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); e.stopPropagation(); pick(act); }
+      else if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
+    }, true);
+    dd.addEventListener('mousedown', function(e){ e.preventDefault(); var o = e.target.closest('.md-opt'); if(o) pick(+o.dataset.i); });
+    document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target)) close(); });
+  })();
+  // the bell: your notifications (newest first), a red dot for unseen ones
+  (function(){
+    var items = [], listening = null;
+    var BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+    var pop = document.createElement('div'); pop.id = 'bellDD'; pop.hidden = true; document.body.appendChild(pop);
+    function ago(t){ var s = Math.max(1, Math.round((Date.now() - (t || Date.now())) / 1000)); if(s < 60) return 'just now'; var m = Math.round(s / 60); if(m < 60) return m + ' min ago'; var h = Math.round(m / 60); if(h < 24) return h + ' h ago'; var d = Math.round(h / 24); return d + (d === 1 ? ' day ago' : ' days ago'); }
+    function ensureBell(){
+      var head = document.getElementById('pageHead'); if(!head) return null;
+      var b = head.querySelector('.page-bell');
+      if(!b){ b = document.createElement('button'); b.type = 'button'; b.className = 'page-bell'; b.title = 'Notifications'; b.setAttribute('aria-label', 'Notifications'); b.innerHTML = BELL + '<span class="bell-dot"></span>';
+        var share = head.querySelector('.page-share'); head.insertBefore(b, share || null);
+        b.addEventListener('click', function(e){ e.stopPropagation(); if(pop.hidden) openList(b); else pop.hidden = true; }); }
+      return b;
+    }
+    function paint(){
+      var b = ensureBell(); if(!b) return;
+      var n = items.filter(function(x){ return !x.seen; }).length, dot = b.querySelector('.bell-dot');
+      dot.textContent = n > 9 ? '9+' : String(n); dot.style.display = n ? 'block' : 'none';
+      if(!pop.hidden) render();
+    }
+    function render(){
+      pop.innerHTML = '<div class="bd-head"><span>Notifications</span>' + (items.some(function(x){ return !x.seen; }) ? '<button type="button" class="bd-all">Mark all as read</button>' : '') + '</div>' +
+        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b> mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes<small>' + ago(x.at) + '</small></span></div>'; }).join('')
+          : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, it shows up here.</div>');
+    }
+    function markSeen(list){ list.forEach(function(x){ if(!x.seen && x.id && IS_HOSTED && currentUserKey) firebase.database().ref('notifications/' + currentUserKey + '/' + x.id + '/seen').set(true).catch(function(){}); x.seen = true; }); paint(); }
+    function openList(b){ render(); var r = b.getBoundingClientRect(); pop.hidden = false; pop.style.top = (r.bottom + 8) + 'px'; pop.style.right = Math.max(8, document.documentElement.clientWidth - r.right) + 'px'; }
+    pop.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(e.target.closest('.bd-all')){ markSeen(items); return; }
+      var it = e.target.closest('.bd-item'); if(!it) return; var x = items[+it.dataset.i]; markSeen([x]); pop.hidden = true;
+      var target = [].filter.call(document.querySelectorAll('.panel'), function(p){ return planIdOf(p) === x.planId; })[0];
+      if(target){ if(!target.classList.contains('on')) activatePillByOpt(optOf(target)); setTimeout(openNotesPage, 60); }
+    });
+    document.addEventListener('mousedown', function(e){ if(!pop.hidden && !pop.contains(e.target) && !e.target.closest('.page-bell')) pop.hidden = true; });
+    setInterval(function(){
+      ensureBell();
+      if(!IS_HOSTED || !currentUserKey || listening === currentUserKey) return;
+      listening = currentUserKey;
+      try {
+        firebase.database().ref('notifications/' + currentUserKey).limitToLast(40).on('value', function(snap){
+          var v = snap.val() || {}; items = Object.keys(v).map(function(id){ var x = v[id] || {}; x.id = id; return x; }).filter(function(x){ return x && x.from; }).sort(function(a, b){ return (b.at || 0) - (a.at || 0); });
+          paint();
+        }, function(err){ console.warn('Notifications not readable yet (database rules?)', err); });
+      } catch(e){}
+    }, 800);
+  })();
   function openNotesPage(){
     ensureNotesUI(); if(!notesPage) return;
     fillNotesPage();
