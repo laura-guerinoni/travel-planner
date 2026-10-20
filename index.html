@@ -2899,7 +2899,7 @@
   #bellDD .bd-txt small { display:block; margin-top:2px; color:var(--muted); font-weight:700; font-size:11.5px; }
   #bellDD .bd-empty { padding:10px 14px 14px; color:var(--muted); font-weight:600; font-size:13px; line-height:1.4; }
   @media print { .page-bell, #bellDD, #mentionDD { display:none !important; } }
-  /* "Request a feature": a labelled button in the top bar, easy to spot */
+  /* "Feedback": a labelled button floating bottom-left, easy to spot */
   .page-idea { position:fixed; left:12px; bottom:16px; z-index:900; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 13px 0 10px; border:none; border-radius:999px; background:#fff; color:var(--primary); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px -3px rgba(40,25,60,.25), 0 0 0 1px rgba(var(--primary-rgb), .25); white-space:nowrap; }
   .page-idea:hover { background:#fdf3f8; }
   .page-idea { box-shadow:0 6px 18px -6px rgba(40,25,60,.35), 0 0 0 1px rgba(var(--primary-rgb), .25) !important; }
@@ -2911,6 +2911,11 @@
   #ideaPop .ip-card { width:min(480px, calc(100vw - 32px)); background:#fff; border-radius:18px; padding:22px 24px 20px; box-shadow:0 24px 60px rgba(30,22,50,.3); color:var(--ink); font-family:inherit; }
   #ideaPop h3 { margin:0; font-size:19px; font-weight:800; display:flex; align-items:center; gap:8px; }
   #ideaPop h3 svg { width:20px; height:20px; color:var(--primary); }
+  #ideaPop .ip-kinds { display:flex; gap:6px; margin:14px 0 2px; }
+  #ideaPop .ip-kinds button { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 8px; border:none; border-radius:10px; background:var(--bg); font:inherit; font-size:13px; font-weight:800; color:var(--muted); cursor:pointer; white-space:nowrap; }
+  #ideaPop .ip-kinds button svg { width:16px; height:16px; }
+  #ideaPop .ip-kinds button:hover { color:var(--ink); }
+  #ideaPop .ip-kinds button.on { background:rgba(var(--primary-rgb), .12); color:var(--primary); box-shadow:inset 0 0 0 1.5px rgba(var(--primary-rgb), .5); }
   #ideaPop .ip-sub { margin:4px 0 14px; font-size:13.5px; font-weight:600; color:var(--muted); }
   #ideaPop textarea { display:block; width:100%; box-sizing:border-box; min-height:120px; resize:vertical; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font:inherit; font-size:14.5px; font-weight:600; color:var(--ink); background:var(--bg); outline:none; }
   #ideaPop textarea:focus { border-color:var(--primary); background:#fff; }
@@ -14003,31 +14008,48 @@
   mmText.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); closeMentionMsg(true); } else if(e.key === 'Escape'){ e.preventDefault(); closeMentionMsg(false); } });
   document.addEventListener('mousedown', function(e){ if(!mmCard.hidden && !mmCard.contains(e.target)) closeMentionMsg(true); }, true);
   document.addEventListener('click', function(e){ var sp = e.target.closest && e.target.closest('.notes-page .np-mention'); if(sp){ e.preventDefault(); openMentionMsg(sp, false); } });
-  // "Request a feature": a button in the top bar opens a short form (text +
-  // up to 4 images). It goes to the email script, which sends the request
-  // to the app's owner and a recap to whoever sent it.
+  // "Feedback": a button bottom-left opens a short form: an idea, a bug or
+  // a note, with text + up to 4 images. It goes to the email script, which
+  // sends it to the app's owner and a recap to whoever sent it.
   (function(){
     var BULB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>';
     var IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-    var MAX_IMGS = 4, imgs = [];
+    var CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    var BUG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2l1.9 1.9M16 2l-1.9 1.9"/><path d="M9 7.1V6a3 3 0 0 1 6 0v1.1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6z"/><path d="M12 20v-9M6.5 9H3M6 13H2M3 21c0-2.1 1.6-3.8 3.5-4M20.97 5c0 2.1-1.6 3.8-3.5 4M21 13h-4M17.5 9H21M17.5 17c1.9.2 3.5 1.9 3.5 4"/></svg>';
+    // what each kind asks, and how the thank-you answers
+    var KINDS = {
+      idea: { icon:BULB, label:'Idea', q:'What would make Travel Planner better for you? Screenshots help a lot.', ph:'e.g. Let me see the total cost of each city',
+        thanks:'Your idea{imgs} made it to us. We read every request ourselves, and we’ll write to you once we’ve had a proper look.' },
+      bug: { icon:BUG, label:'Something’s broken', q:'What happened, and what did you expect instead? A screenshot helps us find it fast.', ph:'e.g. When I add a stay, the nights don’t show on the next days',
+        thanks:'Your report{imgs} made it to us. We’ll look into it and let you know as soon as it’s fixed.' },
+      note: { icon:CHAT, label:'Just a note', q:'Anything you’d like to tell us: what you love, what confused you, anything.', ph:'e.g. Planning our trip with this was so much fun!',
+        thanks:'Your note{imgs} made it to us, and it means a lot. We read every message and reply when it needs an answer.' }
+    };
+    var MAX_IMGS = 4, imgs = [], kind = 'idea';
     var pop = document.createElement('div'); pop.id = 'ideaPop'; pop.hidden = true; document.body.appendChild(pop);
     function ensureBtn(){
       if(document.querySelector('.page-idea')) return;
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'page-idea'; b.innerHTML = BULB + '<span>Request a feature</span>';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'page-idea'; b.innerHTML = CHAT + '<span>Feedback</span>';
       document.body.appendChild(b);   // floats bottom-left, out of the busy top bar
       b.addEventListener('click', function(e){ e.stopPropagation(); openForm(); });
     }
     setInterval(ensureBtn, 500);
     function openForm(){
-      imgs = [];
-      pop.innerHTML = '<div class="ip-card" role="dialog" aria-label="Request a feature"><h3>' + BULB + 'Request a feature</h3>' +
-        '<p class="ip-sub">What would make Travel Planner better for you? Screenshots help a lot.</p>' +
-        '<textarea placeholder="e.g. Let me see the total cost of each city" aria-label="Your request"></textarea>' +
+      imgs = []; kind = 'idea';
+      pop.innerHTML = '<div class="ip-card" role="dialog" aria-label="Send feedback"><h3>' + CHAT + 'Send feedback</h3>' +
+        '<div class="ip-kinds" role="radiogroup">' + Object.keys(KINDS).map(function(k){ return '<button type="button" role="radio" data-k="' + k + '">' + KINDS[k].icon + KINDS[k].label + '</button>'; }).join('') + '</div>' +
+        '<p class="ip-sub"></p>' +
+        '<textarea aria-label="Your feedback"></textarea>' +
         '<button type="button" class="ip-add">' + IMG + '<span>Add images<small>or paste / drop them here · up to ' + MAX_IMGS + '</small></span></button><div class="ip-imgs"></div>' +
         '<input type="file" accept="image/*" multiple hidden>' +
         '<div class="ip-foot"><span class="ip-note">You’ll get a copy by email.</span><button type="button" class="ip-cancel">Cancel</button><button type="button" class="ip-send" disabled>Send</button></div></div>';
       pop.hidden = false;
       var ta = pop.querySelector('textarea'), send = pop.querySelector('.ip-send'), file = pop.querySelector('input[type=file]');
+      function setKind(k){ kind = k; var K = KINDS[k];
+        pop.querySelectorAll('.ip-kinds button').forEach(function(b){ var on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+        pop.querySelector('.ip-sub').textContent = K.q; ta.placeholder = K.ph; }
+      pop.querySelectorAll('.ip-kinds button').forEach(function(b){ b.addEventListener('click', function(){ setKind(b.dataset.k); ta.focus(); }); });
+      setKind('idea');
       ta.addEventListener('input', function(){ send.disabled = !ta.value.trim(); });
       pop.querySelector('.ip-add').addEventListener('click', function(){ file.click(); });
       file.addEventListener('change', function(){ addFiles(file.files); file.value = ''; });
@@ -14063,12 +14085,19 @@
     pop.addEventListener('dragover', function(e){ e.preventDefault(); pop.classList.add('drag'); });
     pop.addEventListener('dragleave', function(e){ if(e.target === pop) pop.classList.remove('drag'); });
     pop.addEventListener('drop', function(e){ e.preventDefault(); pop.classList.remove('drag'); addFiles(e.dataTransfer.files); });
+    function browserInfo(){
+      var ua = navigator.userAgent, b = (ua.match(/(Edg|OPR|Firefox|Chrome|Version)\/(\d+)/) || []), name = { Edg:'Edge', OPR:'Opera', Version:'Safari' }[b[1]] || b[1] || 'Browser';
+      var os = /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
+      return name + (b[2] ? ' ' + b[2] : '') + (os ? ' on ' + os : '') + ' · window ' + window.innerWidth + '×' + window.innerHeight;
+    }
     function submit(){
       var ta = pop.querySelector('textarea'), text = ta.value.trim(); if(!text) return;
-      var payload = { kind:'feature', from: currentUserKey ? memberNameOf(currentUserKey) : '', text: text.slice(0, 3000),
+      var payload = { kind:'feature', type:kind, from: currentUserKey ? memberNameOf(currentUserKey) : '', text: text.slice(0, 3000),
         url: location.origin + location.pathname,
+        // for a bug: just the browser and window size, to help reproduce it
+        env: kind === 'bug' ? browserInfo() : '',
         images: imgs.filter(function(x){ return x.data; }).map(function(x){ return { name:x.name.replace(/\.[^.]+$/, '') + '.jpg', data:x.data.split(',')[1] }; }) };
-      var card = pop.querySelector('.ip-card');
+      var card = pop.querySelector('.ip-card'), K = KINDS[kind];
       // A warm, personal thank-you: their name, their own words back, and
       // what happens next.
       function done(){
@@ -14076,9 +14105,9 @@
         var words = text.replace(/\s+/g, ' '), quote = words.length > 110 ? words.slice(0, 108).replace(/\s+\S*$/, '') + '…' : words;
         var n = payload.images.length;
         card.innerHTML = '<div class="ip-done"><div class="ip-env" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="8" y="18" width="48" height="34" rx="6" fill="#fff" stroke="currentColor" stroke-width="3"/><path d="M10 22l22 16 22-16" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path class="ip-heart" d="M32 15c-2.6-4.6-9-3.4-9 1.5 0 4 5.2 7.2 9 10 3.8-2.8 9-6 9-10 0-4.9-6.4-6.1-9-1.5z"/></svg></div>' +
-          '<b>Thank you' + (name ? ', ' + npEsc(name) : '') + '!</b>' +
+          '<b>' + (kind === 'bug' ? 'Thanks for letting us know' : 'Thank you') + (name ? ', ' + npEsc(name) : '') + '!</b>' +
           '<p class="ip-quote">“' + npEsc(quote) + '”</p>' +
-          '<p class="ip-msg">Your idea' + (n ? ' and ' + (n === 1 ? 'screenshot' : n + ' screenshots') : '') + ' made it to us. We read every request ourselves, and we’ll write to you once we’ve had a proper look.</p>' +
+          '<p class="ip-msg">' + K.thanks.replace('{imgs}', n ? ' and ' + (n === 1 ? 'the screenshot' : 'the ' + n + ' screenshots') : '') + '</p>' +
           '<p class="ip-small">A copy is waiting in your inbox.</p></div>' +
           '<div class="ip-foot ip-foot-done"><button type="button" class="ip-send">Close</button></div>';
         card.querySelector('.ip-send').addEventListener('click', close); try { playSettledSound(); } catch(e){} }
