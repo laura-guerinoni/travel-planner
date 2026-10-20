@@ -2874,7 +2874,7 @@
     body.notes-mode #ticketStitch, body.notes-mode .page-bookmark, body.notes-mode #ribbonStitch { display:none !important; }
     body.notes-mode .wrap { background-image:var(--ruled-fine) !important; }
     body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
-    body.notes-mode .notes-page { display:block; padding:2px 10px 24px; }
+    body.notes-mode .notes-page { display:block; margin-top:-8px; padding:0 10px 24px; }
     .notes-page .np-head { display:flex; align-items:center; gap:10px; margin:0 0 12px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
     .notes-page .np-head .np-saved { margin-left:auto; letter-spacing:0; text-transform:none; font-weight:700; opacity:0; transition:opacity .3s; }
     .notes-page .np-head .np-saved.on { opacity:1; }
@@ -2901,6 +2901,9 @@
     .notes-page .np-head .np-tool b, .notes-page .np-head .np-tool i { font-size:14px; font-family:inherit; }
     .notes-page .np-head .np-tool svg { width:15px; height:15px; color:var(--primary); }
     .notes-page .np-text b { font-weight:800; }
+    .notes-page .np-text a { color:var(--primary); text-decoration:underline; text-decoration-color:rgba(var(--primary-rgb), .45); text-underline-offset:3px; cursor:pointer; }
+    .notes-page .np-linkbox input { height:28px; width:260px; margin-right:6px; padding:0 10px; border:1px solid var(--primary); border-radius:999px; font:inherit; font-size:12.5px; font-weight:600; color:var(--ink); background:#fff; outline:none; letter-spacing:0; text-transform:none; }
+    .notes-page .np-linkbox[hidden] { display:none; }
     .notes-page .np-head .np-box { width:12px; height:12px; border:2px solid #d9c8ec; border-radius:3px; }
   }
   :root { --ruled-fine: repeating-linear-gradient(0deg, rgba(61,53,104,.022) 0 1px, transparent 1px 5px); }
@@ -13466,14 +13469,21 @@
   }
   // A line keeps bold / italic: saved as text with only <b> and <i> in it.
   function npEsc(t){ return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  function npUnesc(t){ return t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+  function npUnesc(t){ return t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&'); }
+  function npUrl(t){ t = String(t || '').trim(); if(/^www\.[^\s]+\.[^\s]+$/i.test(t)) t = 'https://' + t; return /^https?:\/\/[^\s]+$/i.test(t) ? t : null; }
+  function npMakeLink(range, url){ var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.appendChild(range.extractContents()); if(!a.textContent) a.textContent = url; range.insertNode(a); return a; }
   function npFill(el, line){
     el.innerHTML = '';
-    var stack = [el], re = /<(\/?)(b|i|strong|em)>/gi, last = 0, m;
+    var stack = [el], re = /<(\/?)(b|i|strong|em|a)(?:\s+href="([^"]*)")?>/gi, last = 0, m;
     while((m = re.exec(line))){
       if(m.index > last) stack[stack.length - 1].appendChild(document.createTextNode(npUnesc(line.slice(last, m.index))));
       if(m[1]){ if(stack.length > 1) stack.pop(); }
-      else { var n = document.createElement(/^(b|strong)$/i.test(m[2]) ? 'b' : 'i'); stack[stack.length - 1].appendChild(n); stack.push(n); }
+      else {
+        var tag = m[2].toLowerCase(), n;
+        if(tag === 'a'){ n = document.createElement('a'); var href = npUnesc(m[3] || ''); if(/^https?:\/\//i.test(href)) n.href = href; n.target = '_blank'; n.rel = 'noopener'; }
+        else n = document.createElement(/^(b|strong)$/.test(tag) ? 'b' : 'i');
+        stack[stack.length - 1].appendChild(n); stack.push(n);
+      }
       last = re.lastIndex;
     }
     if(last < line.length) stack[stack.length - 1].appendChild(document.createTextNode(npUnesc(line.slice(last))));
@@ -13487,6 +13497,7 @@
         var bold = tag === 'B' || tag === 'STRONG' || parseInt(st.fontWeight, 10) >= 600, ital = tag === 'I' || tag === 'EM' || st.fontStyle === 'italic';
         if(!inner) return;
         if(bold) inner = '<b>' + inner + '</b>'; if(ital) inner = '<i>' + inner + '</i>';
+        if(tag === 'A' && /^https?:\/\//i.test(n.getAttribute('href') || '')) inner = '<a href="' + npEsc(n.getAttribute('href')).replace(/"/g, '&quot;') + '">' + inner + '</a>';
         out += inner;
       }
     });
@@ -13561,6 +13572,7 @@
     if(wrap && !notesPage){
       notesPage = document.createElement('section'); notesPage.className = 'notes-page jsctl';
       notesPage.innerHTML = '<div class="np-head"><button type="button" class="np-tool" data-cmd="bold" title="Bold (⌘B)"><b>B</b></button><button type="button" class="np-tool" data-cmd="italic" title="Italic (⌘I)"><i>I</i></button>' +
+        '<button type="button" class="np-tool np-link-btn" title="Link (paste a link over selected text works too)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>Link</button><span class="np-linkbox" hidden><input type="text" placeholder="Paste a link and press Enter" autocomplete="off"></span>' +
         '<button type="button" class="np-tool np-todo-btn" title="Make this line a to-do"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/></svg>To-do</button><span class="np-saved">Saved</span></div><div class="np-lines"></div>';
       notesArea = notesPage.querySelector('.np-lines');
       notesArea.contentEditable = 'true'; notesArea.spellcheck = true;
@@ -13574,11 +13586,27 @@
         document.execCommand('styleWithCSS', false, false); document.execCommand(b.dataset.cmd, false, null); npChanged(); npTools(); }); });
       function npTools(){ notesPage.querySelectorAll('.np-tool[data-cmd]').forEach(function(b){ var on = false; try { on = document.activeElement === notesArea && document.queryCommandState(b.dataset.cmd); } catch(e){} b.classList.toggle('on', on); }); }
       document.addEventListener('selectionchange', function(){ if(document.body.classList.contains('notes-mode')) npTools(); });
+      // Link: keep the selection, ask for the address in a small field, then link it
+      var linkRange = null, linkBox = notesPage.querySelector('.np-linkbox'), linkInp = linkBox.querySelector('input');
+      notesPage.querySelector('.np-link-btn').addEventListener('click', function(){
+        var sel = window.getSelection(); linkRange = sel.rangeCount && notesArea.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+        linkBox.hidden = !linkBox.hidden; if(!linkBox.hidden){ linkInp.value = ''; linkInp.focus(); }
+      });
+      linkInp.addEventListener('keydown', function(e){
+        if(e.key === 'Escape'){ linkBox.hidden = true; return; }
+        if(e.key !== 'Enter') return; e.preventDefault();
+        var url = npUrl(linkInp.value); linkBox.hidden = true; if(!url) return;
+        var r = linkRange; if(!r){ var last = notesArea.lastElementChild.querySelector('.np-text'); r = document.createRange(); r.selectNodeContents(last); r.collapse(false); }
+        notesArea.focus({ preventScroll:true }); var a = npMakeLink(r, url);
+        var after = document.createRange(); after.setStartAfter(a); after.collapse(true); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(after);
+        npNormalize(); npChanged();
+      });
       notesPage.querySelector('.np-todo-btn').addEventListener('click', function(){
         var row = lastRow && lastRow.isConnected ? lastRow : notesArea.lastElementChild;
         npSetTodo(row, !row.hasAttribute('data-todo')); var tx = row.querySelector('.np-text'); npFocus(tx);
       });
       notesArea.addEventListener('click', function(e){
+        var lk = e.target.closest('a[href]'); if(lk && window.getSelection().isCollapsed){ e.preventDefault(); window.open(lk.href, '_blank', 'noopener'); return; }
         var cb = e.target.closest('.np-check'); if(cb){ var row = cb.closest('.np-row'), done = row.getAttribute('data-todo') !== 'done';
           row.setAttribute('data-todo', done ? 'done' : 'open'); if(done) playCheckSound(); npChanged(); return; }
         // a click on the empty paper below the last line writes there
@@ -13586,6 +13614,15 @@
       });
       notesArea.addEventListener('input', function(e){
         npNormalize();
+        // a web address followed by a space becomes a link
+        var si = window.getSelection();
+        if(si.rangeCount && si.isCollapsed && si.anchorNode && si.anchorNode.nodeType === 3 && !(si.anchorNode.parentNode.closest && si.anchorNode.parentNode.closest('a'))){
+          var tnode = si.anchorNode, upto2 = tnode.nodeValue.slice(0, si.anchorOffset), mm = /(\S+)(\s+)$/.exec(upto2), uu = mm && npUrl(mm[1]);
+          if(uu){ var startAt = si.anchorOffset - mm[0].length, lr = document.createRange(); lr.setStart(tnode, startAt); lr.setEnd(tnode, startAt + mm[1].length);
+            var la3 = npMakeLink(lr, uu), after3 = la3.nextSibling, cr3 = document.createRange();
+            if(after3 && after3.nodeType === 3) cr3.setStart(after3, Math.min(mm[2].length, after3.length)); else cr3.setStartAfter(la3);
+            cr3.collapse(true); si.removeAllRanges(); si.addRange(cr3); }
+        }
         var tx = npCurText(); if(!tx){ npChanged(); return; } var row = tx.closest('.np-row');
         // "[ ] " or "[] " at the start makes it a to-do
         var m = /^\s*(?:-\s*)?\[\s?\]\s/.exec(tx.textContent);
@@ -13595,6 +13632,8 @@
       notesArea.addEventListener('paste', function(e){
         e.preventDefault();
         var sel = window.getSelection(); if(!sel.rangeCount) return;
+        var pastedUrl = npUrl(e.clipboardData.getData('text/plain'));
+        if(pastedUrl){ var pr = sel.getRangeAt(0), la = npMakeLink(pr, pastedUrl); var ar = document.createRange(); ar.setStartAfter(la); ar.collapse(true); sel.removeAllRanges(); sel.addRange(ar); npNormalize(); npChanged(); return; }
         if(!sel.isCollapsed){ sel.getRangeAt(0).deleteContents(); npNormalize(); }
         var tx = npCurText(); if(!tx) return;
         var lines = (e.clipboardData.getData('text/plain') || '').replace(/\r/g, '').split('\n'), row = tx.closest('.np-row');
@@ -13608,6 +13647,11 @@
       });
       notesArea.addEventListener('keydown', function(e){
         var selK = window.getSelection();
+        if(e.key === 'Enter' && selK.rangeCount && selK.isCollapsed && selK.anchorNode && selK.anchorNode.nodeType === 3 && !(selK.anchorNode.parentNode.closest && selK.anchorNode.parentNode.closest('a'))){
+          var tn = selK.anchorNode, upto = tn.nodeValue.slice(0, selK.anchorOffset), mw = /(\S+)$/.exec(upto), u = mw && npUrl(mw[1]);
+          if(u){ var wr = document.createRange(); wr.setStart(tn, selK.anchorOffset - mw[1].length); wr.setEnd(tn, selK.anchorOffset); var la2 = npMakeLink(wr, u);
+            var ar2 = document.createRange(); ar2.setStartAfter(la2); ar2.collapse(true); selK.removeAllRanges(); selK.addRange(ar2); npChanged(); }
+        }
         // a selection over several lines: let the browser delete it, then tidy the rows
         if(selK.rangeCount && !selK.isCollapsed && (e.key === 'Backspace' || e.key === 'Delete')){ setTimeout(function(){ npNormalize(); npChanged(); }, 0); return; }
         if(e.key === 'Enter' && !e.shiftKey && !e.isComposing && selK.rangeCount && !selK.isCollapsed){ selK.getRangeAt(0).deleteContents(); npNormalize(); }
