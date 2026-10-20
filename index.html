@@ -2953,6 +2953,42 @@
   #staleBar { position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:10050; display:flex; align-items:center; gap:14px; max-width:calc(100vw - 32px); padding:10px 12px 10px 18px; border-radius:14px; background:var(--ink); color:#fff; font-size:13.5px; font-weight:700; box-shadow:0 12px 30px rgba(30,22,50,.3); }
   #staleBar button { flex:none; border:none; border-radius:999px; padding:7px 16px; background:var(--primary); color:#fff; font:inherit; font-weight:800; cursor:pointer; }
   @media print { #staleBar { display:none !important; } }
+  /* the day on a map (right of the calendar) */
+  .page-map { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; margin-right:2px; border:none; border-radius:50%; background:none; color:var(--ink); cursor:pointer; opacity:.75; }
+  .page-map:hover, .page-map.on { background:rgba(255,255,255,.9); opacity:1; } .page-map.on { color:var(--primary); }
+  .page-map:focus { outline:none; } .page-map svg { width:17px; height:17px; }
+  @media screen and (min-width: 721px) { :root.map-open body { padding-right:430px; } }
+  #dayMap { display:none; }
+  @media screen and (min-width: 721px) {
+    :root.map-open #dayMap { display:flex; flex-direction:column; position:fixed; z-index:30; right:18px; width:396px; top:calc(var(--pills-height, 96px) + 0px); bottom:18px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px -14px rgba(61,53,104,.35), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  }
+  #dayMap .dm-head { display:flex; align-items:center; gap:8px; padding:10px 12px; }
+  #dayMap .dm-title { flex:1; min-width:0; font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dayMap .dm-nav, #dayMap .dm-x { width:28px; height:28px; flex:none; border:none; border-radius:50%; background:var(--bg); color:var(--ink); font:inherit; font-weight:800; cursor:pointer; }
+  #dayMap .dm-x { background:none; color:var(--muted); }
+  #dayMap .dm-nav:hover, #dayMap .dm-x:hover { background:#ebe3f6; }
+  #dayMap .dm-canvas { flex:0 0 46%; min-height:220px; }
+  #dayMap .dm-empty:empty { display:none; }
+  #dayMap .dm-empty { padding:10px 14px; font-size:12.5px; font-weight:600; color:var(--muted); border-top:1px solid var(--line); }
+  #dayMap .dm-stops { flex:1; overflow:auto; border-top:1px solid var(--line); padding:4px 0 8px; }
+  #dayMap .dm-stop { display:flex; gap:10px; align-items:center; padding:7px 14px; font-size:13px; cursor:default; }
+  #dayMap .dm-stop.hl { background:var(--bg); }
+  #dayMap .dm-stop b { display:block; font-weight:800; } #dayMap .dm-stop small { display:block; color:var(--muted); font-weight:600; font-size:11.5px; }
+  #dayMap .dm-n, .acts > li > .map-num { width:20px; height:20px; flex:none; border-radius:50%; background:var(--primary); color:#fff; font-size:11px; font-weight:800; display:grid; place-items:center; }
+  #dayMap .dm-n.stay { background:#8a6fd1; }
+  #dayMap .dm-leg { display:flex; align-items:center; gap:5px; padding:0 14px 0 44px; font-size:11.5px; font-weight:700; color:var(--muted); }
+  #dayMap .dm-leg svg { width:13px; height:13px; }
+  #dayMap .dm-none { padding:6px 14px; font-size:12px; font-weight:600; color:var(--muted); }
+  .acts > li > .map-num { position:absolute; left:-9px; top:-7px; width:18px; height:18px; font-size:10.5px; z-index:2; box-shadow:0 0 0 2px #fff; }
+  .acts > li[data-map-hl] { background:rgba(var(--primary-rgb), .1) !important; }
+  .cell[data-map-day] { box-shadow:0 0 0 2px rgba(var(--primary-rgb), .35); }
+  :root.map-open .cell:not(.empty) > .cellhead { cursor:pointer; }
+  .dm-pinwrap { width:28px; height:28px; cursor:default; }
+  .dm-pin { width:28px; height:28px; border-radius:50% 50% 50% 4px; transform:rotate(-45deg); background:var(--primary); border:2px solid #fff; box-shadow:0 3px 8px rgba(40,25,60,.35); display:grid; place-items:center; transition:transform .15s; }
+  .dm-pin.stay { background:#8a6fd1; } .dm-pin.arr { background:#fff; border-color:var(--primary); }
+  .dm-pin span { transform:rotate(45deg); color:#fff; font-size:12px; font-weight:800; font-family:Nunito, sans-serif; } .dm-pin.arr span { color:var(--primary); }
+  .dm-pinwrap.hl .dm-pin { transform:rotate(-45deg) scale(1.25); }
+  @media print { #dayMap, .page-map, .acts > li > .map-num { display:none !important; } :root.map-open body { padding-right:0 !important; } }
   /* places on the map, and the travel lines between activities */
   #placeDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #placeDD[hidden] { display:none; }
@@ -13335,7 +13371,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #dayMap, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -14549,6 +14585,157 @@
     renderGoLines(cell, seq);
   }
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
+
+  // ---------- The day on a map ----------
+  // A 🗺 button in the top bar opens a map on the right of the calendar
+  // (MapLibre + OpenFreeMap tiles: free, no key). It shows one day: its
+  // stops in order, numbered like on the cards, joined by a line, with the
+  // travel times below. Click a day's date to show it there; ‹ › move
+  // between days; editing an activity shows its day.
+  (function(){
+    var MAP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.1 6.3 9.9 3.7A2 2 0 0 0 8 3.6L3.7 5.5A1.2 1.2 0 0 0 3 6.6v12.8a1 1 0 0 0 1.4.9l4.2-1.9a2 2 0 0 1 1.8.1l4.2 2.6a2 2 0 0 0 1.9.1l4.3-1.9a1.2 1.2 0 0 0 .7-1.1V4.6a1 1 0 0 0-1.4-.9l-4.2 1.9a2 2 0 0 1-1.8-.1z"/><path d="M15 5.8v15M9 3.2v15"/></svg>';
+    var panel = null, map = null, markers = [], day = null, sig = '', loading = null;
+    function isOpen(){ return document.documentElement.classList.contains('map-open'); }
+    function loadLib(){
+      if(window.maplibregl) return Promise.resolve();
+      if(loading) return loading;
+      loading = new Promise(function(res, rej){
+        var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css'; document.head.appendChild(l);
+        var sc = document.createElement('script'); sc.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc);
+      });
+      return loading;
+    }
+    function ensureBtn(){
+      var head = document.getElementById('pageHead'); if(!head || head.querySelector('.page-map')) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'page-map'; b.title = 'Map of the day'; b.setAttribute('aria-label', 'Map of the day'); b.innerHTML = MAP_ICON;
+      var bell = head.querySelector('.page-bell'), share = head.querySelector('.page-share'); head.insertBefore(b, bell || share || null);
+      b.addEventListener('click', function(e){ e.stopPropagation(); toggle(!isOpen()); });
+    }
+    function toggle(on){
+      document.documentElement.classList.toggle('map-open', on);
+      try { localStorage.setItem('tp-map', on ? '1' : ''); } catch(e){}
+      var b = document.querySelector('.page-map'); if(b) b.classList.toggle('on', on);
+      if(on){ build(); loadLib().then(function(){ initMap(); draw(true); }).catch(function(){ panel.querySelector('.dm-empty').textContent = 'The map couldn’t load. Check your connection.'; }); }
+      else clearNums();
+      setTimeout(function(){ window.dispatchEvent(new Event('resize')); if(map) map.resize(); }, 60);
+    }
+    function build(){
+      if(panel) return;
+      panel = document.createElement('div'); panel.id = 'dayMap';
+      panel.innerHTML = '<div class="dm-head"><button type="button" class="dm-nav" data-d="-1" aria-label="Previous day">‹</button><b class="dm-title"></b><button type="button" class="dm-nav" data-d="1" aria-label="Next day">›</button><button type="button" class="dm-x" aria-label="Close the map">✕</button></div>' +
+        '<div class="dm-canvas"></div><div class="dm-empty"></div><div class="dm-stops"></div>';
+      document.body.appendChild(panel);
+      panel.querySelector('.dm-x').addEventListener('click', function(){ toggle(false); });
+      panel.querySelectorAll('.dm-nav').forEach(function(b){ b.addEventListener('click', function(){ step(+b.dataset.d); }); });
+      panel.querySelector('.dm-stops').addEventListener('mouseover', function(e){ var x = e.target.closest('[data-i]'); hl(x ? +x.dataset.i : -1); });
+      panel.querySelector('.dm-stops').addEventListener('mouseleave', function(){ hl(-1); });
+    }
+    function initMap(){
+      if(map) return;
+      map = new maplibregl.Map({ container: panel.querySelector('.dm-canvas'), style:'https://tiles.openfreemap.org/styles/positron', center:[12.5, 45], zoom:4, attributionControl:{ compact:true } });
+      map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
+      map.on('load', function(){
+        map.addSource('dm-route', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+        map.addLayer({ id:'dm-route-casing', type:'line', source:'dm-route', paint:{ 'line-color':'#fff', 'line-width':7, 'line-opacity':.9 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
+        map.addLayer({ id:'dm-route', type:'line', source:'dm-route', paint:{ 'line-color': getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ec6a9c', 'line-width':3.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
+        sig = ''; draw(true);
+      });
+    }
+    function cells(){ var p = document.querySelector('.panel.on'); return p ? [].slice.call(p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)')) : []; }
+    function itemsOf(cell){   // the day's activities in the order they're shown
+      var acts = cell.querySelector(':scope > .acts'); if(!acts) return [];
+      return [].slice.call(acts.querySelectorAll(':scope > li:not(.act-span-ghost), :scope > li.stay-ghost'))
+        .sort(function(a, b){ return (parseInt(a.getAttribute('data-ord'), 10) || 0) - (parseInt(b.getAttribute('data-ord'), 10) || 0); });
+    }
+    function stopsOf(cell){
+      var out = [], n = 0;
+      itemsOf(cell).forEach(function(li){
+        var o = li.__origin || li, g = parseGeo(o.getAttribute('data-geo')), t = (o.querySelector(':scope > .title') || {}).textContent || '';
+        if(!g){ out.push({ li:li, none:true, name:t.trim() }); return; }
+        out.push({ li:li, n:++n, g:g, name:t.trim(), sub:o.getAttribute('data-spot') || o.getAttribute('data-place') || '', stay:/stay/i.test((o.querySelector('.chip') || {}).textContent || '') });
+        var gt = parseGeo(o.getAttribute('data-geo-to'));
+        if(gt) out.push({ li:li, arrival:true, g:gt, name:o.getAttribute('data-spot-to') || o.getAttribute('data-place-to') || 'Arrival', sub:'arrival' });
+      });
+      return out;
+    }
+    function pickDefault(){ var cs = cells(); return cs.filter(function(c){ return stopsOf(c).some(function(s){ return s.g; }); })[0] || cs[0] || null; }
+    function step(d){ var cs = cells(), i = cs.indexOf(day); if(i === -1) i = 0; var j = Math.max(0, Math.min(cs.length - 1, i + d)); day = cs[j]; sig = ''; draw(true); }
+    function dayTitle(cell){
+      var dn = cell.querySelector(':scope > .cellhead > .daynum'), wd = cell.querySelector(':scope > .cellhead > .wd'), p = cell.closest('.panel'), real = null;
+      try { real = realDate(p, parseInt(dn.textContent, 10)); } catch(e){}
+      var loc = (cell.querySelector(':scope > .loc .loc-text') || {}).textContent || '';
+      return (wd ? wd.textContent + ' ' : '') + (real ? real.day + ' ' + MONTH_FULL[real.month - 1] : dn.textContent) + (loc ? ' · ' + loc : '');
+    }
+    function clearNums(){ document.querySelectorAll('.acts > li > .map-num').forEach(function(x){ x.remove(); }); }
+    function legOf(s, prev){
+      if(!prev) return '';
+      var ends = goEnds(prev.li, s.li); if(!ends) return '';
+      var d = goData(ends.li); if(d.k !== ends.key) return '';
+      var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
+      return v ? GO_ICONS[m === 'transit' ? 'bus' : m] + fmtMin(v[0]) + (m === 'transit' && d.transit ? ' · ' + d.transit[1] : '') : '';
+    }
+    function draw(fit){
+      if(!isOpen() || !panel) return;
+      if(!day || !day.isConnected || day.closest('.panel') !== document.querySelector('.panel.on')) day = pickDefault();
+      if(!day) return;
+      var stops = stopsOf(day), placed = stops.filter(function(s){ return s.g; });
+      var nsig = dayTitle(day) + '|' + stops.map(function(s){ return (s.g ? fmtGeo(s.g) : '-') + s.name + (s.li.getAttribute('data-go') || ''); }).join('|');
+      if(nsig === sig && !fit) return; sig = nsig;
+      panel.querySelector('.dm-title').textContent = dayTitle(day);
+      document.querySelectorAll('.cell[data-map-day]').forEach(function(c){ if(c !== day) c.removeAttribute('data-map-day'); }); day.setAttribute('data-map-day', '');
+      // the numbers on the day's cards
+      clearNums();
+      stops.forEach(function(s){ if(s.n && !s.arrival){ var t = s.li.querySelector(':scope > .title'); if(t){ var b = document.createElement('span'); b.className = 'map-num'; b.contentEditable = 'false'; b.textContent = s.n; s.li.insertBefore(b, s.li.firstChild); } } });
+      panel.querySelector('.dm-empty').textContent = placed.length ? '' : 'No places on the map for this day yet. Pick a place from the suggestions when you edit an activity.';
+      var list = '', prev = null;
+      stops.forEach(function(s, i){
+        if(s.none){ list += '<div class="dm-none">· ' + npEsc(s.name || 'Activity') + ': no place on the map yet</div>'; return; }
+        if(!s.arrival){ var leg = legOf(s, prev); if(leg) list += '<div class="dm-leg">' + leg + '</div>'; }
+        list += '<div class="dm-stop" data-i="' + i + '"><span class="dm-n' + (s.stay ? ' stay' : '') + '">' + (s.arrival ? '↳' : s.n) + '</span><span><b></b><small></small></span></div>';
+        if(!s.arrival) prev = s;
+      });
+      var st = panel.querySelector('.dm-stops'); st.innerHTML = list;
+      st.querySelectorAll('.dm-stop').forEach(function(el){ var s = stops[+el.dataset.i]; el.querySelector('b').textContent = s.name || 'Activity'; el.querySelector('small').textContent = s.sub; });
+      if(!map || !map.getSource('dm-route')) return;
+      markers.forEach(function(m){ m.remove(); }); markers = [];
+      stops.forEach(function(s, i){
+        if(!s.g) return;
+        var el = document.createElement('div'); el.className = 'dm-pinwrap'; el.dataset.i = i;
+        el.innerHTML = '<div class="dm-pin' + (s.stay ? ' stay' : '') + (s.arrival ? ' arr' : '') + '"><span>' + (s.arrival ? '↳' : s.n) + '</span></div>';
+        el.addEventListener('mouseenter', function(){ hl(i); }); el.addEventListener('mouseleave', function(){ hl(-1); });
+        markers.push(new maplibregl.Marker({ element:el, anchor:'bottom-left', offset:[-1, 5] }).setLngLat([s.g.lon, s.g.lat]).addTo(map));
+      });
+      var coords = placed.map(function(s){ return [s.g.lon, s.g.lat]; });
+      map.getSource('dm-route').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords.length > 1 ? coords : [] } });
+      if(fit && coords.length){ var b = coords.reduce(function(bb, c){ return bb.extend(c); }, new maplibregl.LngLatBounds(coords[0], coords[0]));
+        map.fitBounds(b, { padding:60, maxZoom:15, duration:500 }); }
+    }
+    function hl(i){
+      var stops = day ? stopsOf(day) : [];
+      document.querySelectorAll('.acts > li[data-map-hl]').forEach(function(x){ x.removeAttribute('data-map-hl'); });
+      markers.forEach(function(m){ var el = m.getElement(); el.classList.toggle('hl', +el.dataset.i === i); });
+      if(panel) panel.querySelectorAll('.dm-stop').forEach(function(el){ el.classList.toggle('hl', +el.dataset.i === i); });
+      if(i >= 0 && stops[i]) stops[i].li.setAttribute('data-map-hl', '');
+    }
+    // the cards ↔ the map
+    document.addEventListener('mouseover', function(e){
+      if(!isOpen() || !day) return; var li = e.target.closest && e.target.closest('.acts > li'); if(!li || li.closest('.cell') !== day) return;
+      var i = stopsOf(day).findIndex(function(s){ return s.li === li && !s.arrival; }); if(i >= 0) hl(i);
+    });
+    document.addEventListener('mouseout', function(e){ if(isOpen() && e.target.closest && e.target.closest('.acts > li')) hl(-1); });
+    // clicking a day's date shows that day on the map (not "add activity")
+    document.addEventListener('click', function(e){
+      if(!isOpen()) return; var h = e.target.closest && e.target.closest('.panel.on .cell:not(.empty) > .cellhead'); if(!h) return;
+      e.preventDefault(); e.stopPropagation(); day = h.closest('.cell'); sig = ''; draw(true);
+    }, true);
+    // editing an activity shows its day
+    document.addEventListener('click', function(e){
+      if(!isOpen()) return; var li = e.target.closest && e.target.closest('.panel.on .acts > li'); if(!li) return;
+      var c = li.closest('.cell'); if(c && c !== day){ day = c; sig = ''; setTimeout(function(){ draw(true); }, 0); }
+    }, true);
+    setInterval(function(){ ensureBtn(); if(isOpen()) draw(false); }, 900);
+    try { if(localStorage.getItem('tp-map') === '1' && window.matchMedia('(min-width:721px)').matches) setTimeout(function(){ toggle(true); }, 600); } catch(e){}
+  })();
 
   // ---------- An older copy left open ----------
   // Every few minutes, check whether a newer version of the app has been
@@ -16657,7 +16844,7 @@
       // shouldn't schedule a save or hold off an incoming update.
       if(m.type === 'childList'){
         var ch = [].slice.call(m.addedNodes).concat([].slice.call(m.removedNodes));
-        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('go-line') || n.classList.contains('spot-line') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
+        if(ch.length && ch.every(function(n){ return n.nodeType === 1 && (n.classList.contains('day-ghost-slot') || n.classList.contains('go-line') || n.classList.contains('spot-line') || n.classList.contains('map-num') || n.classList.contains('print-pay') || n.classList.contains('notes-page') || n.classList.contains('notes-tab')); })) return false;
       }
       if(m.type === 'attributes' && m.attributeName === 'style' &&
          (node.classList.contains('wrap') || node.classList.contains('pills'))) return false;
