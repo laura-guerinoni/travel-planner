@@ -14611,7 +14611,18 @@
       var bell = head.querySelector('.page-bell'), share = head.querySelector('.page-share'); head.insertBefore(b, bell || share || null);
       b.addEventListener('click', function(e){ e.stopPropagation(); toggle(!isOpen()); });
     }
+    // The map and the plans column never show together: opening the map
+    // closes the column (and closing the map brings it back if it was us
+    // who closed it); opening the column closes the map.
+    var closedSide = false;
+    function sideOpen(){ return !document.documentElement.classList.contains('side-closed'); }
+    function clickSide(){ var t = document.getElementById('sideToggle'); if(t) t.click(); }
+    document.addEventListener('click', function(e){
+      if(isOpen() && e.isTrusted && e.target.closest && e.target.closest('#sideToggle') && !sideOpen()){ closedSide = false; toggle(false); }
+    }, true);
     function toggle(on){
+      if(on && sideOpen()){ closedSide = true; clickSide(); }
+      if(!on && closedSide){ closedSide = false; if(!sideOpen()) clickSide(); }
       document.documentElement.classList.toggle('map-open', on);
       try { localStorage.setItem('tp-map', on ? '1' : ''); } catch(e){}
       var b = document.querySelector('.page-map'); if(b) b.classList.toggle('on', on);
