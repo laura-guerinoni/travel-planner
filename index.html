@@ -3166,10 +3166,13 @@
   .fs-row .fs-name:hover { text-decoration:none; }
   .fs-who { flex:1; min-width:0; display:flex; flex-direction:column; }
   .fs-who .fs-name { flex:none; }
-  .fs-sub { display:none; font-size:11.5px; font-weight:700; color:var(--muted); line-height:1.3; }
+  .fs-row { flex-wrap:wrap; }
+  /* left out: the name stays on its line, the explanation runs full width under it */
+  .fs-sub { display:none; flex-basis:100%; padding-left:70px; margin-top:-3px; font-size:12px; font-weight:700; color:var(--muted); line-height:1.3; }
   .fs-row.off .fs-sub { display:block; }
   .fs-row.off .fs-name { text-decoration:none; opacity:.55; }
-  .fs-row.off .fs-name::after { content:' is left out'; }
+  .fs-row .fs-sw:focus { outline:none; }
+  .fs-row .fs-sw:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
   .fs-row.off .fs-sh, .fs-row.off .fs-amt { background:transparent; border-color:transparent; color:#c9c0dd; opacity:1; -webkit-text-fill-color:#c9c0dd; }
   /* room for the italic numbers so they're never cut */
   .fs-row .fs-sh, .fs-row .fs-amt { padding:0 11px 0 6px !important; }
@@ -14747,7 +14750,7 @@
         // Two questions, two columns: their Share (equal unless typed; 0 =
         // wasn't part of it) and what they Paid.
         return '<div class="fs-row" data-i="' + i + '"><button type="button" class="fs-sw on" role="switch" aria-checked="true" title="Pays · switch off to leave out"></button><span class="fs-face">' + avatarSvgFor(m.email, (data.avatars || {})[m.key]) + '</span>' +
-          '<span class="fs-who"><span class="fs-name"></span><span class="fs-sub">pays nothing, owes nothing</span></span><input type="number" class="fs-sh" min="0" step="0.01" inputmode="decimal" aria-label="Share"><input type="number" class="fs-amt" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="Paid"></div>';
+          '<span class="fs-who"><span class="fs-name"></span></span><input type="number" class="fs-sh" min="0" step="0.01" inputmode="decimal" aria-label="Share"><input type="number" class="fs-amt" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="Paid"><span class="fs-sub">is left out: pays nothing, owes nothing</span></div>';
       }).join('');
       list.querySelectorAll('.fs-name').forEach(function(n, i){ n.textContent = displayNameFor(people[i].email, (data.avatars || {})[people[i].key]).split('@')[0];
         n.closest('.fs-row').querySelector('.fs-sw').setAttribute('aria-label', n.textContent + ' pays'); });
