@@ -2972,6 +2972,16 @@
   :root.map-open .acts > li[data-city] { margin-left:0; }
   :root.map-open .acts > li .tagrow { flex-wrap:nowrap; min-width:0; }
   :root.map-open .acts > li .chip { min-width:0; flex-shrink:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* the card's hover controls float over its top-right corner instead of
+     taking room from the tag in the row */
+  :root.map-open .panel .acts > li:not(.act-span-ghost) { position:relative; }
+  :root.map-open .acts > li .tagctl { position:absolute; top:4px; right:4px; z-index:3; margin:0; }
+  :root.map-open .acts > li .tagctl { pointer-events:none; }
+  /* a tag too wide for its day shows just its icon (the name is in its tooltip) */
+  :root.map-open .acts > li .chip[data-iconly] { font-size:0 !important; padding-left:6px; padding-right:6px; }
+  :root.map-open .acts > li .chip[data-iconly] > * { display:none; }
+  :root.map-open .acts > li .chip[data-iconly]::before { content:attr(data-icon); font-size:12px; line-height:1; }
+  :root.map-open .acts > li:hover .tagctl, :root.map-open .acts > li .tagctl:has(.on) { pointer-events:auto; }
   :root.map-open .acts > li > .title, :root.map-open .acts > li > .line, :root.map-open .acts > li > .price, :root.map-open .cell > .loc { overflow-wrap:break-word; hyphens:auto; -webkit-hyphens:auto; }
   /* on a narrower window, a touch smaller text in the days */
   @media screen and (max-width:1300px) {
@@ -2988,7 +2998,7 @@
   }
   :root.map-open .acts > .go-line { overflow:hidden; white-space:nowrap; -webkit-mask-image:linear-gradient(90deg, #000 78%, transparent); mask-image:linear-gradient(90deg, #000 78%, transparent); }
   @media screen and (min-width: 721px) {
-    :root.map-open #dayMap { display:block; position:fixed; z-index:30; top:var(--map-top, 96px); bottom:18px; left:var(--map-left, 50%); right:var(--map-right, 18px);
+    :root.map-open #dayMap { display:block; position:fixed; z-index:30; top:var(--map-top, 96px); bottom:var(--map-bottom, 0px); left:var(--map-left, 50%); right:var(--map-right, 18px);
       background-color:var(--bg); background-image:var(--texture); border:1px solid var(--line); border-left:none; border-radius:0 14px 14px 0;
       box-shadow:12px 26px 44px -18px rgba(61,53,104,.38);
       font-family:inherit; color:var(--ink); }
@@ -14838,6 +14848,7 @@
       var b = document.querySelector('.page-map'); if(b) b.classList.toggle('on', on);
       if(on){ build(); place(); loadLib().then(function(){ initMap(); draw(true); }).catch(function(){ panel.querySelector('.dm-note').textContent = 'The map couldn’t load. Check your connection.'; }); }
       else clearNums();
+      setTimeout(fitChips, 120);
       setTimeout(function(){ window.dispatchEvent(new Event('resize')); if(map) map.resize(); if(typeof renderPageBookmark === 'function') renderPageBookmark(); }, 60);
     }
     var ICO = {
@@ -14885,6 +14896,11 @@
         var pad = (w + Math.max(12, Math.round(r.left))) + 'px';
         if(root.style.getPropertyValue('--map-w') !== pad) root.style.setProperty('--map-w', pad);
         root.style.setProperty('--map-left', Math.round(r.right - 1) + 'px');
+        // Like a book: both pages end together. While the calendar runs past
+        // the bottom of the window, so does the map page; at the end of the
+        // calendar, the map page ends with it.
+        var bottom = Math.max(0, Math.round(window.innerHeight - r.bottom)) + 'px';
+        if(root.style.getPropertyValue('--map-bottom') !== bottom) root.style.setProperty('--map-bottom', bottom);
         root.style.setProperty('--map-top', Math.round(top) + 'px');
       }
       var tag = panel.querySelector('.dm-tag');
@@ -14928,6 +14944,17 @@
       return (wd ? wd.textContent + ' ' : '') + (real ? real.day + ' ' + MONTH_FULL[real.month - 1] : dn.textContent);
     }
     function clearNums(){ document.querySelectorAll('.acts > li .map-num').forEach(function(x){ x.remove(); }); }
+    // With the map open, a tag too wide for its day shows only its icon.
+    // (data-iconly isn't a saved attribute, so this never counts as an edit.)
+    function fitChips(){
+      var on = isOpen();
+      document.querySelectorAll('.panel .acts > li .chip').forEach(function(ch){
+        if(!on){ if(ch.hasAttribute('data-iconly')) ch.removeAttribute('data-iconly'); return; }
+        if(!ch.closest('.panel.on')) return;
+        ch.removeAttribute('data-iconly');
+        if(ch.scrollWidth > ch.clientWidth + 1){ ch.setAttribute('data-iconly', ''); ch.title = ch.getAttribute('data-name') || ''; }
+      });
+    }
     function legMin(s, prev){
       if(!prev) return 0;
       var ends = goEnds(prev.li, s.li); if(!ends) return 0;
@@ -15027,7 +15054,8 @@
       if(!isOpen()) return; var li = e.target.closest && e.target.closest('.panel.on .acts > li'); if(!li) return;
       var c = li.closest('.cell'); if(c && c !== day){ day = c; sig = ''; setTimeout(function(){ draw(true); }, 0); }
     }, true);
-    setInterval(function(){ ensureBtn(); if(isOpen()) draw(false); }, 900);
+    setInterval(function(){ ensureBtn(); if(isOpen()) draw(false); fitChips(); }, 900);
+    window.addEventListener('resize', function(){ setTimeout(fitChips, 80); });
     try { if(localStorage.getItem('tp-map') === '1' && window.matchMedia('(min-width:721px)').matches) setTimeout(function(){ toggle(true); }, 600); } catch(e){}
   })();
 
