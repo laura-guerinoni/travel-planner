@@ -13779,7 +13779,8 @@
   // sender — see the script.
   var EMAIL_HOOK_URL = 'https://script.google.com/macros/s/AKfycbzttnW80EB51C7vp4r0Lwq2vmyNmKuw-P2kHX7MkP0d_MpO8pkxYs-hrlqM5NwEx2cEKQ/exec'; // the Apps Script "Web app" (mention emails)
   function mentionKeys(text){ var out = [], re = /<m k="([^"]*)">/g, m; while((m = re.exec(text || ''))) if(out.indexOf(m[1]) === -1) out.push(npUnesc(m[1])); return out; }
-  function memberNameOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return displayNameFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
+  function memberNameOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; var n = displayNameFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]) || '';
+    if(n.indexOf('@') !== -1){ n = n.split('@')[0].split(/[._-]/)[0]; n = n.charAt(0).toUpperCase() + n.slice(1); } return n; }
   function memberFaceOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return avatarSvgFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
   function mentionablePeople(){
     var p = document.querySelector('.panel.on'), d = window.__memberData || { members:[] }, only = p ? getOptionMembers(p) : [];
@@ -13790,9 +13791,13 @@
     keys = (keys || []).filter(function(k){ return k && k !== currentUserKey; });
     if(!keys.length || !IS_HOSTED || !currentUserKey) return;
     var p = document.querySelector('.panel.on'), plan = planNameOf(p), planId = p ? planIdOf(p) : '';
+    var altEl = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"] .pill-name'), alt = altEl ? altEl.textContent.trim() : '';
+    var where = p && p.getAttribute('data-plan-name') && alt && alt.toLowerCase() !== plan.toLowerCase() ? plan + ' · ' + alt : (plan || alt);
     var me = memberNameOf(currentUserKey);
+    function lineFor(k){ var sp = notesArea && notesArea.querySelector('.np-mention[data-key="' + k.replace(/"/g, '') + '"]'); var row = sp && sp.closest('.np-row'); return row ? row.querySelector('.np-text').textContent.replace(/\s+/g, ' ').trim().slice(0, 220) : ''; }
+    var link = location.origin + location.pathname + '?notes=' + encodeURIComponent(planId);
     keys.forEach(function(k){
-      firebase.database().ref('notifications/' + k).push({ from: currentUserKey, fromName: me, plan: plan, planId: planId, at: firebase.database.ServerValue.TIMESTAMP, seen: false })
+      firebase.database().ref('notifications/' + k).push({ from: currentUserKey, fromName: me, plan: where, planId: planId, at: firebase.database.ServerValue.TIMESTAMP, seen: false })
         .catch(function(err){ console.warn('Notification not saved (database rules?)', err); });
     });
     if(!EMAIL_HOOK_URL) return;
@@ -13800,7 +13805,7 @@
     u.getIdToken().then(function(tok){
       keys.forEach(function(k){
         fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' },
-          body: JSON.stringify({ idToken: tok, to: k, from: me, plan: plan, url: location.origin + location.pathname }) }).catch(function(){});
+          body: JSON.stringify({ idToken: tok, to: k, from: me, plan: where, line: lineFor(k), url: link }) }).catch(function(){});
       });
     }).catch(function(){});
   }
@@ -13888,6 +13893,15 @@
         }, function(err){ console.warn('Notifications not readable yet (database rules?)', err); });
       } catch(e){}
     }, 800);
+  })();
+  (function(){
+    var want = (location.search.match(/[?&]notes=([^&]+)/) || [])[1]; if(!want) return; want = decodeURIComponent(want);
+    var tries = 0, t = setInterval(function(){
+      tries++; var target = [].filter.call(document.querySelectorAll('.panel'), function(p){ return planIdOf(p) === want; })[0];
+      if(target && document.querySelector('.panel.on')){ clearInterval(t); if(!target.classList.contains('on')) activatePillByOpt(optOf(target)); setTimeout(openNotesPage, 120);
+        try { history.replaceState(null, '', location.pathname); } catch(e){} }
+      else if(tries > 40) clearInterval(t);
+    }, 250);
   })();
   function openNotesPage(){
     ensureNotesUI(); if(!notesPage) return;
