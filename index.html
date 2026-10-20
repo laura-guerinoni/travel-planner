@@ -2971,6 +2971,7 @@
   .go-line .go-b svg { width:14px; height:14px; flex:none; }
   .go-line .go-b svg:last-child { width:12px; height:12px; }
   .go-line .go-off { letter-spacing:2px; opacity:.5; }
+  .go-guess { opacity:.6; font-style:italic; }
   #goMenu { position:fixed; z-index:10020; width:250px; background:#fff; border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
   #goMenu[hidden] { display:none; }
   #goMenu .gm-opt { display:flex; align-items:center; gap:10px; width:100%; padding:8px 14px; border:none; background:none; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink); cursor:pointer; text-decoration:none; text-align:left; }
@@ -14730,15 +14731,26 @@
     return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b, km:d };
   }
   var goQueue = [], goBusy = false, goAsked = {};
-  function goFetch(ends, mode){
-    var k = ends.key + '|' + mode; if(goAsked[k] || VIEW_ONLY) return; goAsked[k] = 1;
+  // One request per stretch: the script asks for walk, bike and car at
+  // the same time and answers with all three (just car when it's far).
+  function goFetch(ends){
+    var k = ends.key; if(goAsked[k] || VIEW_ONLY) return; goAsked[k] = 1;
+    var long = ends.km > 150;
     goQueue.push(function(done){
-      travelCall({ kind:'route', mode:mode, from:{ lon:ends.from.lon, lat:ends.from.lat }, to:{ lon:ends.to.lon, lat:ends.to.lat } }).then(function(res){
-        if(res && !res.error && ends.li.isConnected){ var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key }; d[mode] = [res.min, res.km]; ends.li.setAttribute('data-go', JSON.stringify(d)); }
-      }).catch(function(){}).then(function(){ setTimeout(done, 1600); });   // the free plan allows ~40 a minute
+      var req = { kind:'route', mode:'all', long:long, from:{ lon:ends.from.lon, lat:ends.from.lat }, to:{ lon:ends.to.lon, lat:ends.to.lat } };
+      var p = IS_HOSTED ? travelCall(req) : Promise.resolve(['walk', 'bike', 'car'].reduce(function(o, m){ o[m] = travelMock({ kind:'route', mode:m, from:ends.from, to:ends.to }); return o; }, {}));
+      p.then(function(res){
+        if(!res || res.error || !ends.li.isConnected) return;
+        if(res.min != null) res = { car: res };   // an older script: one mode only
+        var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+        ['walk', 'bike', 'car'].forEach(function(m){ var v = res[m]; if(v && !v.error && v.min != null) d[m] = [v.min, v.km]; });
+        ends.li.setAttribute('data-go', JSON.stringify(d));
+      }).catch(function(){}).then(function(){ setTimeout(done, 400); });
     });
     goPump();
   }
+  // a quick estimate from the straight line, shown until the real time arrives
+  function goGuess(ends, mode){ var d = ends.km * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[mode]; return [Math.max(1, Math.round(d / sp * 60) + (mode === 'car' ? 3 : 0)), d]; }
   function goPump(){ if(goBusy || !goQueue.length) return; goBusy = true; goQueue.shift()(function(){ goBusy = false; goPump(); }); }
   function renderGoLines(cell, seq){
     var acts = cell.querySelector(':scope > .acts'); if(!acts) return;
@@ -14747,13 +14759,13 @@
       if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
       var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
       var mode = goModeOf(d, ends);
-      if(!d.walk && ends.km <= 5) goFetch(ends, 'walk'); if(!d[mode]) goFetch(ends, mode);
+      if(!d[mode] || (!d.walk && ends.km <= 150)) goFetch(ends);
       var el = acts.querySelector(':scope > .go-line[data-k="' + ends.key + '"]');
       if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
       el.__ends = ends; keep.push(el);
       var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
       var v = d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
-        : '<button type="button" class="go-b" aria-label="Travel time">' + GO_ICONS[mode] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '…') + GO_ICONS.caret + '</button>';
+        : '<button type="button" class="go-b" aria-label="Travel time">' + GO_ICONS[mode] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + GO_ICONS.caret + '</button>';
       if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
     });
     acts.querySelectorAll(':scope > .go-line').forEach(function(el){ if(keep.indexOf(el) === -1) el.remove(); });
@@ -14767,9 +14779,9 @@
       var ends = b.parentNode.__ends; if(!ends) return;
       if(b.classList.contains('go-off')){ setGo(ends.li, function(d){ delete d.h; }); return; }
       var d = goData(ends.li), cur = goModeOf(d, ends);
-      Object.keys(GO_MODES).forEach(function(m){ if(!d[m] && (m === 'car' || ends.km <= 150)) goFetch(ends, m); });
+      goFetch(ends);
       var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
-      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || ends.km <= 150; }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : GO_MODES[m] + ' …') + '</button>'; }).join('') +
+      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || ends.km <= 150; }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</button>'; }).join('') +
         '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + 'Public transport<span class="gm-ext">Google Maps ↗</span></a>' +
         '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
         '<button type="button" class="gm-opt" data-x="def">Use ' + GO_MODES[cur].toLowerCase() + ' for every line</button>' +
