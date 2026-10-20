@@ -3473,29 +3473,17 @@
   .grp-win b { font-size:15px; margin-right:4px; }
   .grp-miss { color:#d0543f; font-size:12px; font-weight:800; margin-top:2px; }
   /* new plan */
-  .grp-newform { width:min(620px, 100%); }
-  .grp-field { display:grid; gap:7px; }
-  .grp-field[hidden] { display:none; }
-  .grp-label { font-weight:900; font-size:14px; }
-  .grp-kinds, .grp-people { display:flex; flex-wrap:wrap; gap:7px; }
-  .grp-pick, .grp-person { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:6px 13px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+  .grp-person { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:6px 13px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
   .grp-person { padding:3px 11px 3px 3px; }
-  .grp-pick[aria-pressed="true"] { background:var(--primary); border-color:var(--primary); color:#fff; }
   .grp-person.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .08); }
   span.grp-person { cursor:default; }
   .grp-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .grp-row[hidden] { display:none; }
   .grp-row .mp-btn { white-space:nowrap; }
   .grp-row input[type=email] { flex:1 1 220px; }
-  .grp-modes { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
-  .grp-mode { display:grid; gap:2px; text-align:left; border:2px solid var(--line); background:var(--card); color:var(--ink); border-radius:14px; padding:12px 14px; font:inherit; cursor:pointer; }
-  .grp-mode b { font-size:14px; }
-  .grp-mode span { color:var(--muted); font-size:12.5px; font-weight:600; }
-  .grp-mode[aria-pressed="true"] { border-color:var(--primary); background:rgba(var(--primary-rgb), .06); }
   .grp-stepper { display:inline-flex; align-items:center; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; }
   .grp-stepper button { border:0; background:var(--bg); width:30px; height:32px; font:inherit; font-weight:900; color:var(--ink); cursor:pointer; }
   .grp-stepper .grp-len { min-width:64px; text-align:center; font-weight:900; font-size:13px; }
-  .grp-err { color:#d0543f; }
   /* local test helper */
   .grp-demo { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:10030; display:flex; align-items:center; gap:6px; background:var(--ink); color:var(--card);
     border-radius:999px; padding:5px 12px 5px 12px; font-size:12px; font-weight:800; box-shadow:0 8px 24px -10px rgba(0,0,0,.5); }
@@ -3503,6 +3491,19 @@
   .grp-demo button svg { width:100%; height:100%; display:block; }
   .grp-demo button[aria-pressed="true"] { border-color:var(--primary); }
   .mp-dd { z-index:10015; }
+  #niceDD { z-index:10016; }
+  #fabAddPanel .gc-edit-tools button.grp-tool { width:auto; padding:0 10px; font:inherit; font-size:12.5px; font-weight:800; white-space:nowrap; gap:4px; }
+  #fabAddPanel .gc-edit-tools { flex-wrap:wrap; }
+  .grp-newpop .grp-people { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px; }
+  .grp-newpop .grp-person { padding:2px 9px 2px 2px; font-size:12px; }
+  .grp-newpop .grp-person .grp-face { width:20px; height:20px; }
+  .grp-newpop .grp-inv { box-sizing:border-box; font:inherit; font-size:12px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; color:var(--ink); }
+  .grp-newpop .grp-invbtn { padding:5px 10px; font-size:12px; flex:none; }
+  .grp-newpop .grp-invmsg { font-size:11.5px; font-weight:600; color:var(--muted); margin:-4px 0 8px; }
+  .grp-newpop .whenpop-check[hidden] { display:none; }
+  .grp-newpop .grp-stepper { flex:none; }
+  .grp-newpop .grp-stepper button { width:26px; height:28px; }
+  .grp-newpop .grp-stepper .grp-len { min-width:52px; font-size:12px; }
   @media (max-width:720px) { .grp-demo { bottom:84px; } .grp-ideabtn { display:none; } }
   @media print { .grp-ui { display:none !important; } }
 </style>
@@ -3806,7 +3807,7 @@
         <button type="button" data-x="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Notes</button><button type="button" data-x="link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>Link</button><button type="button" data-x="ticket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12" stroke-dasharray="2 2"/></svg><span>Ticket</span></button><button type="button" data-x="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><span>Photo</span></button>
       </div>
       <div class="gc-foot">
-        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="duel" aria-label="This or that: put it to a vote" title="This or that: put it to a vote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M8 3H3v5M21 3l-7 7M3 3l7 7M12 14v7"/></svg></button><button type="button" data-x="idea" aria-label="Move to the idea box" title="Move to the idea box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
+        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="duel" class="grp-tool" title="Put this to a vote against something else">⚔️ This or that</button><button type="button" data-x="idea" class="grp-tool" title="Take it off the day and keep it as an idea">💡 To ideas</button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
         <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
       </div>
     </div>
@@ -6503,7 +6504,7 @@
   }
   // A new plan asks what kind, who's coming, and whether the dates are
   // known — or starts a date poll (see openNewTripForm).
-  function openNewPlanForm(anchorEl){ openNewTripForm(); }
+  function openNewPlanForm(anchorEl){ openNewTripForm(anchorEl); }
   function openNewAltForm(anchorEl, panel){
     var r = altDates(panel);
     openWhenForm(anchorEl, { title: t('add_new_alt'), nameLabel: 'Name', name: t('default_alt_name') + ' ' + (panelsOfPlan(panel).length + 1),
@@ -18004,63 +18005,63 @@
   var GRP_COLORS = ['#ec6a9c', '#8b74d8', '#f2884d', '#3fbf94', '#4f8fd6', '#c9962a', '#d65a5a', '#5aa9b8'];
   function grpColor(k){ var ks = grpPeople().map(function(m){ return m.key; }), i = ks.indexOf(k); if(i < 0){ i = 0; for(var j = 0; j < k.length; j++) i = (i * 31 + k.charCodeAt(j)) >>> 0; } return GRP_COLORS[i % GRP_COLORS.length]; }
 
-  // ---- new trip: kind, people, and known dates or a date poll ---------
-  function openNewTripForm(){
+  // ---- new plan: the usual name + when, plus who's coming and, when
+  // the exact dates aren't known, the option to ask everyone ----------
+  function openNewTripForm(anchorEl){
     closePop();
-    var old = document.getElementById('grpNew'); if(old) old.remove();
     var d = todayOrPanelDate(document.querySelector('.panel.on'));
-    var me = meKey();
-    var ov = document.createElement('div'); ov.id = 'grpNew'; ov.className = 'grp-ui grp-overlay';
-    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'grpNewTitle');
-    var m1 = d.month + 1 > 12 ? { y: d.year + 1, m: 1 } : { y: d.year, m: d.month + 1 };
-    var m2 = m1.m + 1 > 12 ? { y: m1.y + 1, m: 1 } : { y: m1.y, m: m1.m + 1 };
+    var me = meKey(), who = {}, invited = [], len = 5;
+    var pop = document.createElement('div');
+    pop.className = 'monthpop rangepop whenpop grp-newpop';
+    var nowY = new Date().getFullYear();
+    function monthOpts(selY, selM){
+      var h = '';
+      for(var y = nowY - 1; y <= nowY + 3; y++) for(var m = 1; m <= 12; m++)
+        h += '<option value="' + y + '-' + m + '"' + (y === selY && m === selM ? ' selected' : '') + '>' + MONTH_SHORT[m - 1] + ' ' + y + '</option>';
+      return h;
+    }
     var dl = new Date(); dl.setDate(dl.getDate() + 7);
-    var state = { kind: 'trip', known: false, len: 5, who: {}, invited: [] };
-    function monthOptions(sel){ var h = '', ny = new Date().getFullYear(); for(var y = ny - 1; y <= ny + 3; y++) for(var m = 1; m <= 12; m++) h += '<option value="' + y + '-' + m + '"' + (y === sel.y && m === sel.m ? ' selected' : '') + '>' + MONTH_SHORT[m - 1] + ' ' + y + '</option>'; return h; }
-    var kinds = [['trip', '✈️', 'Trip'], ['weekend', '🧳', 'Weekend away'], ['event', '🎉', 'Event'], ['ideas', '💭', 'Just ideas']];
-    ov.innerHTML = '<form class="grp-sheet grp-newform" novalidate><div class="grp-sheet-head"><h3 id="grpNewTitle">New plan</h3><button type="button" class="grp-x" aria-label="Close">✕</button></div>' +
-      '<div class="grp-field"><span class="grp-label">What are you planning?</span><div class="grp-kinds">' + kinds.map(function(k){ return '<button type="button" class="grp-pick" data-kind="' + k[0] + '" aria-pressed="' + (k[0] === 'trip') + '">' + k[1] + ' ' + k[2] + '</button>'; }).join('') + '</div></div>' +
-      '<div class="grp-field"><label class="grp-label" for="grpNewName">Name <span class="grp-muted">· on the tab, up to ' + PLAN_NAME_MAX + ' letters</span></label><input id="grpNewName" maxlength="' + PLAN_NAME_MAX + '" placeholder="Poland" autocomplete="off"></div>' +
-      '<div class="grp-field"><span class="grp-label">Who\'s coming?</span><div class="grp-people"></div>' +
-      '<div class="grp-row"><input id="grpNewInvite" type="email" placeholder="Invite by email" aria-label="Invite by email" autocomplete="off"><button type="button" class="grp-btn ghost" data-do="invite">Invite</button></div><span class="grp-muted grp-invite-msg"></span></div>' +
-      '<div class="grp-field grp-dates"><span class="grp-label">Dates</span><div class="grp-modes">' +
-        '<button type="button" class="grp-mode" data-known="1" aria-pressed="false"><b>📅 We know the dates</b><span>Go straight to planning.</span></button>' +
-        '<button type="button" class="grp-mode" data-known="0" aria-pressed="true"><b>🗳️ Help us pick dates</b><span>Everyone marks when they\'re free.</span></button></div>' +
-        '<div class="grp-row grp-known" hidden><input type="date" id="grpNewFrom" value="' + grpIso(m1.y, m1.m, 1) + '"><span class="grp-muted">to</span><input type="date" id="grpNewTo" value="' + grpIso(m1.y, m1.m, 5) + '"></div>' +
-        '<div class="grp-row grp-pickdates"><span class="grp-muted">Between</span><select id="grpNewM1">' + monthOptions(m1) + '</select><span class="grp-muted">and</span><select id="grpNewM2">' + monthOptions(m2) + '</select>' +
-          '<span class="grp-muted">for</span><span class="grp-stepper"><button type="button" data-len="-1" aria-label="Fewer days">−</button><span class="grp-len">5 days</span><button type="button" data-len="1" aria-label="More days">+</button></span>' +
-          '</div><div class="grp-row grp-pickdates"><span class="grp-muted">Answers by</span><input type="date" id="grpNewDl" value="' + grpIso(dl.getFullYear(), dl.getMonth() + 1, dl.getDate()) + '"><span class="grp-muted">· everyone gets a link to mark their days</span></div></div>' +
-      '<div class="grp-sheet-foot"><span class="grp-muted grp-err"></span><button type="submit" class="grp-btn grp-create">Create plan</button></div></form>';
-    document.body.appendChild(ov);
-    var form = ov.querySelector('form');
-    ov.addEventListener('click', function(e){ e.stopPropagation(); if(e.target === ov) ov.remove(); });
-    ov.querySelector('.grp-x').addEventListener('click', function(){ ov.remove(); });
-    ov.addEventListener('keydown', function(e){ if(e.key === 'Escape') ov.remove(); });
-    function renderPeople(){
+    pop.innerHTML = '<div class="rangepop-title">' + grpEsc(t('add_new_plan')) + '</div>' +
+      '<label class="whenpop-label">Name <span class="whenpop-hint">· on the tab, up to ' + PLAN_NAME_MAX + ' letters</span></label><input type="text" class="whenpop-name" maxlength="' + PLAN_NAME_MAX + '">' +
+      '<label class="whenpop-label">Who\'s coming</label><div class="grp-people"></div>' +
+      '<div class="whenpop-row"><input type="email" class="grp-inv" placeholder="Invite by email" aria-label="Invite by email"><button type="button" class="grp-btn ghost grp-invbtn">Invite</button></div>' +
+      '<div class="grp-invmsg" hidden></div>' +
+      '<label class="whenpop-label">When</label>' +
+      '<div class="whenpop-row"><select class="whenpop-m1">' + monthOpts(d.year, d.month) + '</select><span class="whenpop-to">to</span><select class="whenpop-m2">' + monthOpts(d.year, d.month) + '</select></div>' +
+      '<label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label>' +
+      '<div class="whenpop-row whenpop-dates" hidden><input type="date" class="whenpop-from"><span class="whenpop-to">to</span><input type="date" class="whenpop-until"></div>' +
+      '<label class="whenpop-check grp-askrow"><input type="checkbox" class="grp-ask"> Ask everyone when they\'re free</label>' +
+      '<div class="whenpop-row grp-askopts" hidden><span class="grp-stepper"><button type="button" data-len="-1" aria-label="Fewer days">−</button><span class="grp-len">5 days</span><button type="button" data-len="1" aria-label="More days">+</button></span><span class="whenpop-to">answers by</span><input type="date" class="grp-dl"></div>' +
+      '<button type="button" class="addbtn">Add plan</button>';
+    var nameIn = pop.querySelector('.whenpop-name');
+    var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
+    var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
+    var ask = pop.querySelector('.grp-ask'), askRow = pop.querySelector('.grp-askrow'), askOpts = pop.querySelector('.grp-askopts'), dlIn = pop.querySelector('.grp-dl');
+    var btn = pop.querySelector('.addbtn');
+    fromIn.value = grpIso(d.year, d.month, 1); toIn.value = grpIso(d.year, d.month, Math.min(5, daysInMonth(d.year, d.month)));
+    dlIn.value = grpIso(dl.getFullYear(), dl.getMonth() + 1, dl.getDate());
+    function people(){
       var ms = grpPeople().filter(function(m){ return m.key !== me; });
-      state.invited.forEach(function(k){ if(!ms.some(function(m){ return m.key === k; })) ms.push({ key: k, email: k.replace(/,/g, '.') }); });
-      ov.querySelector('.grp-people').innerHTML = (me ? '<span class="grp-person on">' + grpFace(me) + grpEsc(grpName(me)) + ' <span class="grp-muted">(you)</span></span>' : '') +
-        ms.map(function(m){ var on = !!state.who[m.key]; return '<button type="button" class="grp-person' + (on ? ' on' : '') + '" data-k="' + grpEsc(m.key) + '" aria-pressed="' + on + '">' + grpFace(m.key) + grpEsc(grpName(m.key)) + (on ? ' ✓' : '') + '</button>'; }).join('');
-      ov.querySelectorAll('.grp-person[data-k]').forEach(function(b){ b.addEventListener('click', function(){ state.who[b.dataset.k] = !state.who[b.dataset.k]; renderPeople(); }); });
+      invited.forEach(function(k){ if(!ms.some(function(m){ return m.key === k; })) ms.push({ key: k }); });
+      var box = pop.querySelector('.grp-people');
+      box.innerHTML = (me ? '<span class="grp-person on">' + grpFace(me) + grpEsc(grpName(me)) + ' <span class="grp-muted">(you)</span></span>' : '') +
+        ms.map(function(m){ var on = !!who[m.key]; return '<button type="button" class="grp-person' + (on ? ' on' : '') + '" data-k="' + grpEsc(m.key) + '" aria-pressed="' + on + '">' + grpFace(m.key) + grpEsc(grpName(m.key)) + (on ? ' ✓' : '') + '</button>'; }).join('');
+      box.querySelectorAll('.grp-person[data-k]').forEach(function(b){ b.addEventListener('click', function(){ who[b.dataset.k] = !who[b.dataset.k]; people(); }); });
     }
     function sync(){
-      ov.querySelectorAll('.grp-pick').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.kind === state.kind)); });
-      ov.querySelectorAll('.grp-mode').forEach(function(b){ b.setAttribute('aria-pressed', String((b.dataset.known === '1') === state.known)); });
-      ov.querySelector('.grp-dates').hidden = state.kind === 'ideas';
-      ov.querySelector('.grp-known').hidden = !state.known;
-      ov.querySelectorAll('.grp-pickdates').forEach(function(r){ r.hidden = state.known; });
-      ov.querySelector('.grp-len').textContent = state.len + (state.len === 1 ? ' day' : ' days');
-      var n = Object.keys(state.who).filter(function(k){ return state.who[k]; }).length;
-      ov.querySelector('.grp-create').textContent = state.kind === 'ideas' ? 'Create plan' : state.known ? 'Create plan' : 'Create & ask for dates';
-      ov.querySelector('.grp-create').textContent += n ? ' · ' + n + (n === 1 ? ' person' : ' people') + ' invited' : '';
+      dates.hidden = !exact.checked;
+      askRow.hidden = exact.checked;
+      askOpts.hidden = exact.checked || !ask.checked;
+      pop.querySelector('.grp-len').textContent = len + (len === 1 ? ' day' : ' days');
+      btn.textContent = !exact.checked && ask.checked ? 'Add plan & ask for dates' : 'Add plan';
     }
-    ov.querySelectorAll('.grp-pick').forEach(function(b){ b.addEventListener('click', function(){ state.kind = b.dataset.kind; if(state.kind === 'weekend' && !state.known) state.len = 3; sync(); }); });
-    ov.querySelectorAll('.grp-mode').forEach(function(b){ b.addEventListener('click', function(){ state.known = b.dataset.known === '1'; sync(); }); });
-    ov.querySelectorAll('[data-len]').forEach(function(b){ b.addEventListener('click', function(){ state.len = Math.max(1, Math.min(30, state.len + +b.dataset.len)); sync(); }); });
-    ov.querySelector('[data-do="invite"]').addEventListener('click', inviteTyped);
-    ov.querySelector('#grpNewInvite').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); inviteTyped(); } });
-    function inviteTyped(){
-      var inp = ov.querySelector('#grpNewInvite'), email = inp.value.trim().toLowerCase(), msg = ov.querySelector('.grp-invite-msg');
+    m1.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m2.selectedIndex = m1.selectedIndex; });
+    m2.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m1.selectedIndex = m2.selectedIndex; });
+    exact.addEventListener('change', sync); ask.addEventListener('change', sync);
+    pop.querySelectorAll('[data-len]').forEach(function(b){ b.addEventListener('click', function(){ len = Math.max(1, Math.min(30, len + +b.dataset.len)); sync(); }); });
+    function invite(){
+      var inp = pop.querySelector('.grp-inv'), email = inp.value.trim().toLowerCase(), msg = pop.querySelector('.grp-invmsg');
+      msg.hidden = false;
       if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'That doesn\'t look like an email address.'; return; }
       var key = sanitizeEmailKey(email);
       if(IS_HOSTED){
@@ -18070,31 +18071,29 @@
       } else if(!MOCK_PEOPLE.members.some(function(m){ return m.key === key; })){
         MOCK_PEOPLE.members.push({ key: key, email: email, role: 'member' });
       }
-      if(state.invited.indexOf(key) === -1) state.invited.push(key);
-      state.who[key] = true; inp.value = '';
-      msg.textContent = (IS_HOSTED ? 'Invited ' : 'Added ') + email + (IS_HOSTED ? '. They\'ll get access to the planner.' : ' (local test, nobody is emailed).');
-      renderPeople(); sync();
+      if(invited.indexOf(key) === -1) invited.push(key);
+      who[key] = true; inp.value = '';
+      msg.textContent = IS_HOSTED ? 'Invited ' + email + '.' : 'Added ' + email + ' (local test, nobody is emailed).';
+      people();
     }
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var err = ov.querySelector('.grp-err');
-      var name = ov.querySelector('#grpNewName').value.trim();
-      var who = Object.keys(state.who).filter(function(k){ return state.who[k]; });
+    pop.querySelector('.grp-invbtn').addEventListener('click', function(e){ e.stopPropagation(); invite(); });
+    pop.querySelector('.grp-inv').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); invite(); } });
+    enhanceMonthSelect(m1); enhanceMonthSelect(m2); enhanceDateInput(fromIn); enhanceDateInput(toIn); enhanceDateInput(dlIn);
+    pop.addEventListener('click', function(e){ e.stopPropagation(); });
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
       var w, poll = null;
-      if(state.kind === 'ideas'){
-        w = { from: { year: m1.y, month: m1.m, day: 1 }, to: { year: m1.y, month: m1.m, day: daysInMonth(m1.y, m1.m) }, exact: false };
-      } else if(state.known){
-        var f = ov.querySelector('#grpNewFrom').value, tt = ov.querySelector('#grpNewTo').value;
-        if(!f || !tt || tt < f){ err.textContent = 'Pick a start and an end date.'; return; }
-        var a = f.split('-').map(Number), b = tt.split('-').map(Number);
+      if(exact.checked){
+        if(!fromIn.value || !toIn.value || toIn.value < fromIn.value) return;
+        var a = fromIn.value.split('-').map(Number), b = toIn.value.split('-').map(Number);
         w = { from: { year: a[0], month: a[1], day: a[2] }, to: { year: b[0], month: b[1], day: b[2] }, exact: true };
       } else {
-        var s1 = ov.querySelector('#grpNewM1').value.split('-').map(Number), s2 = ov.querySelector('#grpNewM2').value.split('-').map(Number);
-        if(s2[0] * 12 + s2[1] < s1[0] * 12 + s1[1]){ var tmp = s1; s1 = s2; s2 = tmp; }
-        if((s2[0] * 12 + s2[1]) - (s1[0] * 12 + s1[1]) > 5){ err.textContent = 'Look in six months at most.'; return; }
-        w = { from: { year: s1[0], month: s1[1], day: 1 }, to: { year: s2[0], month: s2[1], day: daysInMonth(s2[0], s2[1]) }, exact: false };
-        poll = { len: state.len, from: s1[0] + '-' + String(s1[1]).padStart(2, '0'), to: s2[0] + '-' + String(s2[1]).padStart(2, '0'), dl: ov.querySelector('#grpNewDl').value, av: {}, by: me || '' };
+        var a1 = m1.value.split('-').map(Number), a2 = m2.value.split('-').map(Number);
+        w = { from: { year: a1[0], month: a1[1], day: 1 }, to: { year: a2[0], month: a2[1], day: daysInMonth(a2[0], a2[1]) }, exact: false };
+        if(ask.checked) poll = { len: len, from: a1[0] + '-' + String(a1[1]).padStart(2, '0'), to: a2[0] + '-' + String(a2[1]).padStart(2, '0'), dl: dlIn.value, av: {}, by: me || '' };
       }
+      var name = nameIn.value.trim(), picked = Object.keys(who).filter(function(k){ return who[k]; });
+      closePop();
       var created = createOption(w.from.year, w.from.month);
       if(!created) return;
       applyAltDates(created, w);
@@ -18103,21 +18102,18 @@
       created.setAttribute('data-plan', pid);
       created.setAttribute('data-plan-name', (name || t('default_plan_name')).toUpperCase());
       setOptionName(created, t('default_alt_name') + ' 1');
-      if(currentUserKey){ var mb = [currentUserKey]; who.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
-      GROUP.plans[pid] = { kind: state.kind, who: (me ? [me] : []).concat(who.filter(function(k){ return k !== me; })) };
+      if(currentUserKey){ var mb = [currentUserKey]; picked.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
+      if(picked.length) GROUP.plans[pid] = { who: (me ? [me] : []).concat(picked.filter(function(k){ return k !== me; })) };
       if(poll) GROUP.polls[pid] = poll;
-      ov.remove();
       planChanged();
       activatePillByOpt(pid);
-      playAddSound();
       grpChanged();
       if(poll) setTimeout(function(){ openPoll(created); }, 250);
-      else if(state.kind === 'ideas') setTimeout(openIdeaBox, 250);
     });
-    ['#grpNewM1', '#grpNewM2'].forEach(function(q){ enhanceMonthSelect(ov.querySelector(q)); });
-    ['#grpNewFrom', '#grpNewTo', '#grpNewDl'].forEach(function(q){ enhanceDateInput(ov.querySelector(q)); });
-    renderPeople(); sync();
-    ov.querySelector('#grpNewName').focus();
+    nameIn.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); btn.click(); } });
+    people(); sync();
+    positionPopover(pop, anchorEl || document.querySelector('.month-add') || document.body);
+    nameIn.focus();
   }
 
   // ---- the top-right buttons: idea box -------------------------------
@@ -18183,6 +18179,9 @@
     var prev = renderPageBookmark;
     renderPageBookmark = function(){ prev(); if(!grpRendering) renderGroup(); };
   })();
+  new MutationObserver(function(ms){
+    ms.forEach(function(m){ var li = m.target; if(li.matches && li.matches('.panel.on .acts > li')) renderWhosIn(li); });
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-pay-excluded'] });
   loadMemberAvatarData().then(function(){ renderGroup(); });
   renderGroup();
 
