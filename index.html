@@ -15452,6 +15452,8 @@
       });
       var newOpt = document.createElement('option'); newOpt.value = 'new'; newOpt.textContent = '＋ New type…';
       fabAddTagSelect.appendChild(newOpt);
+      // a new activity starts as City (not whatever type comes first)
+      TAGS.forEach(function(tg, idx){ if(String(tg.name || '').trim().toLowerCase() === 'city') fabAddTagSelect.value = String(idx); });
       fabAddTagSelect.dataset.prev = fabAddTagSelect.value;
       var nt = document.getElementById('fabAddNewTag'); if(nt) nt.hidden = true;
     }
