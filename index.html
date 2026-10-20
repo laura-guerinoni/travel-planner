@@ -14615,7 +14615,10 @@
     if(!IS_HOSTED) return Promise.resolve(travelMock({ kind:'geo', text:text }));
     var url = 'https://photon.komoot.io/api/?limit=6&lang=en&q=' + encodeURIComponent(text) + (near ? '&lat=' + near.lat.toFixed(3) + '&lon=' + near.lon.toFixed(3) : '');
     if(geoMemo[url]) return Promise.resolve(geoMemo[url]);
-    return fetch(url).then(function(r){ if(!r.ok) throw new Error('photon ' + r.status); return r.json(); }).then(function(j){
+    // ask Photon and the script (OpenRouteService) at the same time; the first useful answer wins
+    var viaScript = travelCall({ kind:'geo', text:text, near: near ? { lon:near.lon, lat:near.lat } : null }).then(function(res){
+      if(!res || !res.places || !res.places.length) throw new Error('none'); return res; });
+    var viaPhoton = fetch(url).then(function(r){ if(!r.ok) throw new Error('photon ' + r.status); return r.json(); }).then(function(j){
       var seen = {}, places = (j.features || []).map(function(f){
         var p = f.properties || {}, c = f.geometry && f.geometry.coordinates; if(!c) return null;
         var area = !!PHOTON_AREA[p.type], street = p.street ? p.street + (p.housenumber ? ' ' + p.housenumber : '') : '';
@@ -14624,8 +14627,14 @@
         var key = name + '|' + label; if(seen[key]) return null; seen[key] = 1;
         return { name:name, label:label, lat:c[1], lon:c[0], city:city, spot:!area };
       }).filter(Boolean).slice(0, 5);
-      var res = places.length ? { places:places } : { error:'not found' }; geoMemo[url] = res; return res;
-    }).catch(function(){ return travelCall({ kind:'geo', text:text, near: near ? { lon:near.lon, lat:near.lat } : null }); });
+      if(!places.length) throw new Error('none'); return { places:places };
+    });
+    return new Promise(function(resolve){
+      var left = 2, done = false;
+      function win(res){ if(done) return; done = true; geoMemo[url] = res; resolve(res); }
+      function lose(){ if(--left === 0 && !done){ done = true; resolve({ error:'not found' }); } }
+      viaPhoton.then(win, lose); viaScript.then(win, lose);
+    });
   }
   function parseGeo(v){ var m = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(v || ''); return m ? { lat: +m[1], lon: +m[2] } : null; }
   function fmtGeo(g){ return (Math.round(g.lat * 1e5) / 1e5) + ',' + (Math.round(g.lon * 1e5) / 1e5); }
