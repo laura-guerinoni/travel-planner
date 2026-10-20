@@ -3035,20 +3035,18 @@
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
   #dayMap .dm-note:empty { display:none; }
   #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:Nunito, sans-serif; }
-  /* a place picked on the map */
-  .dm-popup .maplibregl-popup-content { border-radius:14px; padding:12px 14px 12px; box-shadow:0 10px 26px -10px rgba(40,25,60,.45); font-family:Nunito, sans-serif; color:var(--ink); }
-  .dm-popup .maplibregl-popup-close-button { font-size:16px; color:var(--muted); right:4px; top:2px; }
-  .dm-photo-slot { margin:-12px -14px 10px; height:128px; overflow:hidden; border-radius:14px 14px 0 0; background:var(--bg); opacity:0; transition:opacity .25s; }
+  /* a place picked on the map: our own card, always wholly on the map */
+  #dayMap .dm-card { position:absolute; z-index:6; width:252px; max-width:calc(100% - 20px); max-height:calc(100% - 20px); overflow:auto; background:#fff; border-radius:16px;
+    padding:12px 14px; box-shadow:0 14px 30px -12px rgba(40,25,60,.5), 0 0 0 1px rgba(61,53,104,.06); font-family:Nunito, sans-serif; color:var(--ink); }
+  .dm-card-x { position:absolute; top:8px; right:8px; z-index:2; width:26px; height:26px; border:none; border-radius:50%; background:rgba(255,255,255,.92); color:var(--muted); font-size:13px; cursor:pointer; display:grid; place-items:center; }
+  .dm-card-x:hover { color:var(--ink); }
+  .dm-photo-slot { position:relative; margin:-12px -14px 10px; height:132px; overflow:hidden; border-radius:16px 16px 0 0; background:var(--bg); opacity:0; transition:opacity .25s; }
   .dm-photo-slot.in { opacity:1; }
-  .dm-photo-slot.looking { opacity:1; height:auto; padding:9px 14px; border-radius:14px 14px 0 0; font-size:11px; font-weight:700; color:var(--muted); }
-  .dm-photo-slot.looking::before { content:'Looking for a photo…'; }
-  .dm-photo-slot.looking img { display:none; }
   .dm-photo-slot img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dm-pinfo { position:absolute; right:7px; bottom:7px; width:18px; height:18px; border-radius:50%; background:rgba(0,0,0,.38); color:#fff; font:italic 700 11px/18px Georgia, serif; text-align:center; text-decoration:none; opacity:.75; }
+  .dm-pinfo:hover { opacity:1; background:rgba(0,0,0,.6); }
   .dm-about { margin:6px 0 0; font-size:12px; font-weight:600; line-height:1.4; color:var(--ink); opacity:.85; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-  .dm-credit { margin-top:5px; font-size:10.5px; font-weight:700; color:var(--muted); }
-  .dm-credit a { color:inherit; }
-  .dm-credit a:hover { color:var(--ink); }
-  .dm-card b { display:block; font-size:14px; font-weight:800; padding-right:14px; line-height:1.25; }
+  .dm-card b { display:block; font-size:14px; font-weight:800; padding-right:22px; line-height:1.25; }
   .dm-card small { display:block; margin-top:2px; font-size:11.5px; font-weight:700; color:var(--muted); }
   .dm-card-btns { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
   .dm-card-btns button { border:none; border-radius:10px; padding:7px 10px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; text-align:left; }
@@ -14937,63 +14935,125 @@
         addPlaces();
         sig = ''; draw(true);
       });
-      map.on('moveend', fitSegs); map.on('zoom', fitSegs);
+      map.on('moveend', fitSegs); map.on('zoom', fitSegs); map.on('move', positionCard);
     }
     // ---- Places on the map: the tiles already carry shops, restaurants,
     // sights and stations (OpenMapTiles "poi" layer). They're drawn as soft
     // dots with their names, under the route and the pins; clicking one
     // opens a small card to add it to the day shown, or to the ideas.
-    var PLACE_KIND = [   // [tile classes, the tag to use, dot colour]
-      [['restaurant', 'fast_food', 'cafe', 'bar', 'beer', 'ice_cream', 'bakery'], 'Food', '#f2884d'],
-      [['museum', 'art_gallery', 'gallery'], 'Museum', '#4a86c5'],
-      [['attraction', 'monument', 'castle', 'place_of_worship', 'viewpoint', 'theatre', 'cinema', 'music'], 'City', '#8a6fd1'],
-      [['lodging', 'hotel', 'hostel', 'campsite'], 'Stay', '#3fbf94'],
-      [['railway', 'train'], 'Train', '#4a86c5'],
-      [['bus'], 'Bus', '#3fbf94'],
-      [['beach', 'swimming'], 'Beach', '#3fa7d6'],
-      [['shop', 'grocery', 'clothing_store', 'gift', 'jewelry', 'books', 'mall'], 'Shopping', '#d6619a'],
-      [['park', 'garden', 'zoo', 'stadium', 'sports', 'golf'], 'Sport', '#5fa043'] ];
-    function kindOf(cls, sub){ for(var i = 0; i < PLACE_KIND.length; i++){ if(PLACE_KIND[i][0].indexOf(cls) !== -1 || PLACE_KIND[i][0].indexOf(sub) !== -1) return PLACE_KIND[i]; } return null; }
+    // [tile classes, the tag to use, colour, icon]
+    var PLACE_KIND = [
+      [['restaurant', 'fast_food', 'bakery', 'ice_cream'], 'Food', '#e8793a', 'food'],
+      [['cafe'], 'Food', '#c9803d', 'cafe'],
+      [['bar', 'beer', 'pub', 'nightclub'], 'Food', '#c96a3d', 'bar'],
+      [['museum', 'art_gallery', 'gallery'], 'Museum', '#8a6fd1', 'museum'],
+      [['place_of_worship'], 'City', '#7d8494', 'church'],
+      [['attraction', 'monument', 'castle', 'viewpoint', 'memorial'], 'City', '#6f7fa8', 'sight'],
+      [['theatre', 'cinema', 'music', 'arts_centre'], 'Show', '#c75b9b', 'show'],
+      [['lodging', 'hotel', 'hostel', 'campsite', 'guest_house'], 'Stay', '#2fa58a', 'stay'],
+      [['railway', 'train', 'station'], 'Train', '#4a86c5', 'train'],
+      [['bus'], 'Bus', '#3d97b8', 'bus'],
+      [['beach', 'swimming', 'swimming_pool'], 'Beach', '#3fa7d6', 'beach'],
+      [['shop', 'grocery', 'supermarket', 'clothing_store', 'gift', 'jewelry', 'books', 'mall', 'department_store'], 'Shopping', '#d6619a', 'shop'],
+      [['park', 'garden', 'zoo'], 'Hike', '#5fa043', 'park'],
+      [['stadium', 'sports', 'golf', 'pitch'], 'Sport', '#5fa043', 'sport'] ];
+    // Lucide-style line icons (24×24), drawn white on a round coloured badge.
+    var PLACE_ICONS = {
+      food:['M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2', 'M7 2v20', 'M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7'],
+      cafe:['M10 2v2', 'M14 2v2', 'M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1', 'M6 2v2'],
+      bar:['M8 22h8', 'M12 11v11', 'M19 3l-7 8-7-8Z'],
+      museum:['M3 22h18', 'M6 18v-7', 'M10 18v-7', 'M14 18v-7', 'M18 18v-7', 'M12 2l8 5H4Z'],
+      church:['M12 2v20', 'M6 8h12'],
+      sight:['M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01Z'],
+      show:['M2 10s3-3 3-8', 'M22 10s-3-3-3-8', 'M10 2c0 4.4-3.6 8-8 8', 'M14 2c0 4.4 3.6 8 8 8', 'M2 10s2 2 2 5', 'M22 10s-2 2-2 5', 'M8 15h8', 'M2 22v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1', 'M14 22v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1'],
+      stay:['M2 4v16', 'M2 8h18a2 2 0 0 1 2 2v10', 'M2 17h20', 'M6 8v9'],
+      train:['M6 3h12a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z', 'M4 11h16', 'M8 21l2-4', 'M16 21l-2-4'],
+      bus:['M8 6v6', 'M15 6v6', 'M2 12h19.6', 'M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3', 'M7 18h10'],
+      beach:['M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1', 'M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1', 'M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'],
+      shop:['M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z', 'M3 6h18', 'M16 10a4 4 0 0 1-8 0'],
+      park:['M12 22v-7', 'M12 2 5 12h4l-3 4h12l-3-4h4Z'],
+      sport:['M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0', 'M4.93 4.93c4.08 2.38 8.07 6.37 10.45 10.45', 'M19.07 4.93c-4.08 2.38-8.07 6.37-10.45 10.45'],
+      other:['M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0'] };
+    function kindOf(cls, sub){ for(var i = 0; i < PLACE_KIND.length; i++){ if(PLACE_KIND[i][0].indexOf(sub) !== -1) return PLACE_KIND[i]; } for(var j = 0; j < PLACE_KIND.length; j++){ if(PLACE_KIND[j][0].indexOf(cls) !== -1) return PLACE_KIND[j]; } return null; }
     function tagNamed(n){ for(var i = 0; i < TAGS.length; i++){ if(TAGS[i].name === n) return TAGS[i]; } for(var j = 0; j < TAGS.length; j++){ if(TAGS[j].name === 'Other') return TAGS[j]; } return { icon:'', name:n }; }
+    // One badge image per kind: a round coloured badge with a white border and
+    // the white line icon in it, drawn at twice the size for sharp screens.
+    function badge(colour, icon){
+      var S = 52, c = document.createElement('canvas'); c.width = c.height = S;
+      var x = c.getContext('2d');
+      x.shadowColor = 'rgba(40,25,60,.28)'; x.shadowBlur = 4; x.shadowOffsetY = 1.5;
+      x.beginPath(); x.arc(S / 2, S / 2 - 1, 20, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill();
+      x.shadowColor = 'transparent';
+      x.beginPath(); x.arc(S / 2, S / 2 - 1, 17, 0, Math.PI * 2); x.fillStyle = colour; x.fill();
+      x.save(); var k = 20 / 24; x.translate(S / 2 - 12 * k, S / 2 - 1 - 12 * k); x.scale(k, k);
+      x.strokeStyle = '#fff'; x.lineWidth = 2.3; x.lineCap = 'round'; x.lineJoin = 'round';
+      (PLACE_ICONS[icon] || PLACE_ICONS.other).forEach(function(d){ x.stroke(new Path2D(d)); });
+      x.restore();
+      return x.getImageData(0, 0, S, S);
+    }
     function addPlaces(){
       var st = map.getStyle(), src = null, font = null;
       Object.keys(st.sources || {}).forEach(function(k){ if(!src && st.sources[k].type === 'vector') src = k; });
       if(!src) return;
       (st.layers || []).forEach(function(l){ if(!font && l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font'])) font = l.layout['text-font']; });
-      var colour = ['match', ['get', 'class']];
-      PLACE_KIND.forEach(function(k){ colour.push(k[0], k[2]); });
-      colour.push('#9b8fc0');
-      // Dots from zoom 13, names from 14; where they crowd, the better-known
-      // places (lower rank) win.
-      var filter = ['has', 'name'];
       try {
-        map.addLayer({ id:'dm-place-dot', type:'circle', source:src, 'source-layer':'poi', minzoom:13, filter:filter,
-          paint:{ 'circle-radius':['interpolate', ['linear'], ['zoom'], 13, 3, 17, 5], 'circle-color':colour, 'circle-opacity':.85, 'circle-stroke-color':'#fff', 'circle-stroke-width':1.5 } }, 'dm-route-casing');
-        map.addLayer({ id:'dm-place-label', type:'symbol', source:src, 'source-layer':'poi', minzoom:14, filter:filter,
-          layout:{ 'symbol-sort-key':['coalesce', ['get', 'rank'], 99], 'text-field':['get', 'name'], 'text-font':font || ['Noto Sans Regular'], 'text-size':11, 'text-anchor':'top', 'text-offset':[0, .6], 'text-max-width':8, 'text-optional':true },
-          paint:{ 'text-color':'#6a5f92', 'text-halo-color':'rgba(255,255,255,.95)', 'text-halo-width':1.4 } }, 'dm-route-casing');
+        PLACE_KIND.forEach(function(k){ if(!map.hasImage('dm-pi-' + k[3])) map.addImage('dm-pi-' + k[3], badge(k[2], k[3]), { pixelRatio:2 }); });
+        if(!map.hasImage('dm-pi-other')) map.addImage('dm-pi-other', badge('#9b8fc0', 'other'), { pixelRatio:2 });
       } catch(e){ return; }
-      ['dm-place-dot', 'dm-place-label'].forEach(function(id){
-        map.on('mouseenter', id, function(){ map.getCanvas().style.cursor = 'pointer'; });
-        map.on('mouseleave', id, function(){ map.getCanvas().style.cursor = ''; });
-        map.on('click', id, function(e){
-          var f = e.features && e.features[0]; if(!f || !f.properties || !f.properties.name) return;
-          var c = f.geometry && f.geometry.type === 'Point' ? f.geometry.coordinates : [e.lngLat.lng, e.lngLat.lat];
-          placeCard({ lon:c[0], lat:c[1] }, f.properties);
-        });
+      // the subclass picks first (a cafe is a cafe), then the class
+      function pick(field){ var m = ['match', ['get', 'subclass']]; PLACE_KIND.forEach(function(k){ m.push(k[0], field(k)); }); var n = ['match', ['get', 'class']]; PLACE_KIND.forEach(function(k){ n.push(k[0], field(k)); }); n.push(field(null)); m.push(n); return m; }
+      var icon = pick(function(k){ return k ? 'dm-pi-' + k[3] : 'dm-pi-other'; });
+      var colour = pick(function(k){ return k ? k[2] : '#8a7fae'; });
+      // Only places worth a visit or useful on a trip; no offices or companies.
+      var useful = ['any']; PLACE_KIND.forEach(function(k){ useful.push(['in', ['get', 'class'], ['literal', k[0]]], ['in', ['get', 'subclass'], ['literal', k[0]]]); });
+      try {
+        map.addLayer({ id:'dm-place', type:'symbol', source:src, 'source-layer':'poi', minzoom:13, filter:['all', ['has', 'name'], useful],
+          layout:{ 'symbol-sort-key':['coalesce', ['get', 'rank'], 99], 'icon-image':icon, 'icon-size':['interpolate', ['linear'], ['zoom'], 13, .7, 16, 1],
+            'text-field':['step', ['zoom'], '', 14, ['get', 'name']], 'text-font':font || ['Noto Sans Regular'], 'text-size':11.5, 'text-anchor':'top', 'text-offset':[0, 1.05],
+            'text-max-width':8, 'text-optional':true, 'icon-padding':2 },
+          paint:{ 'text-color':colour, 'text-halo-color':'rgba(255,255,255,.95)', 'text-halo-width':1.5 } }, 'dm-route-casing');
+      } catch(e){ return; }
+      map.on('mouseenter', 'dm-place', function(){ map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'dm-place', function(){ map.getCanvas().style.cursor = ''; });
+      map.on('click', 'dm-place', function(e){
+        var f = e.features && e.features[0]; if(!f || !f.properties || !f.properties.name) return;
+        e.originalEvent && (e.originalEvent.__dmPlace = true);
+        var c = f.geometry && f.geometry.type === 'Point' ? f.geometry.coordinates : [e.lngLat.lng, e.lngLat.lat];
+        placeCard({ lon:c[0], lat:c[1] }, f.properties);
       });
+      // clicking anywhere else on the map closes the card
+      map.on('click', function(e){ if(!(e.originalEvent && e.originalEvent.__dmPlace)) closeCard(); });
     }
+    // ---- The card for a place picked on the map: our own little card, not a
+    // map popup, so it has no pointer and always sits wholly on the map:
+    // centred above the place when there's room, else below it, and pushed
+    // in from the edges when the place is near one.
     var card = null;
+    function closeCard(){ if(card){ card.el.remove(); card = null; } }
+    function positionCard(){
+      if(!card || !map) return;
+      var host = card.el.parentElement; if(!host) return;
+      var W = host.clientWidth, H = host.clientHeight, w = card.el.offsetWidth, h = card.el.offsetHeight, m = 10;
+      var p = map.project([card.g.lon, card.g.lat]);
+      var left = Math.max(m, Math.min(W - w - m, p.x - w / 2));
+      var top = p.y - h - 16 >= m ? p.y - h - 16 : (p.y + 16 + h <= H - m ? p.y + 16 : (H - h) / 2);
+      top = Math.max(m, Math.min(H - h - m, top));
+      card.el.style.left = Math.round(left) + 'px'; card.el.style.top = Math.round(top) + 'px';
+    }
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeCard(); });
     function placeCard(g, props){
-      if(card){ card.remove(); card = null; }
+      closeCard();
+      var host = panel && panel.querySelector('.dm-photo'); if(!host) return;
       var k = kindOf(props.class, props.subclass), tg = tagNamed(k ? k[1] : 'Other');
       var type = String(props.subclass || props.class || '').replace(/_/g, ' ');
       var el = document.createElement('div'); el.className = 'dm-card';
-      el.innerHTML = '<div class="dm-photo-slot" hidden><img alt=""></div><b></b><small></small><p class="dm-about" hidden></p><div class="dm-credit" hidden></div>' +
+      el.innerHTML = '<div class="dm-photo-slot" hidden><img alt=""><a class="dm-pinfo" target="_blank" rel="noopener" aria-label="Photo credit">i</a></div>' +
+        '<button type="button" class="dm-card-x" aria-label="Close">✕</button><b></b><small></small><p class="dm-about" hidden></p>' +
         '<div class="dm-card-btns"><button type="button" class="dm-add-day"></button><button type="button" class="dm-add-idea">Add to ideas</button></div>';
       el.querySelector('b').textContent = props.name;
       el.querySelector('small').textContent = (tg.icon ? tg.icon + ' ' : '') + (type ? type.charAt(0).toUpperCase() + type.slice(1) : tg.name);
       el.querySelector('.dm-add-day').textContent = 'Add to ' + (day ? dayTitle(day) : 'this day');
+      el.querySelector('.dm-card-x').addEventListener('click', closeCard);
       var activity = { i: tg.icon || '', n: tg.name || '', t: props.name, gp: g.lat.toFixed(5) + ',' + g.lon.toFixed(5), sp: props.name };
       var town = day ? ((day.querySelector(':scope > .loc .loc-text') || {}).textContent || '').trim() : '';
       if(town) activity.pl = town;
@@ -15004,39 +15064,34 @@
         attachItemControls(li); renderParticipants(li); renderPaySplit(li);
         recomputeCell(day); if(typeof refreshHoliCell === 'function') refreshHoliCell(day);
         var pnl = day.closest('.panel'); if(pnl) renderActivitySpans(pnl);
-        playAddSound();
-        if(card){ card.remove(); card = null; }
+        playAddSound(); closeCard();
         sig = ''; setTimeout(function(){ draw(false); }, 50);
         if(typeof grpToast === 'function') grpToast('Added ' + props.name + ' to ' + dayTitle(day));
       });
       el.querySelector('.dm-add-idea').addEventListener('click', function(){
         var pnl = document.querySelector('.panel.on'); if(!pnl || typeof grpAddIdea !== 'function') return;
         grpAddIdea(optOf(pnl), activity); grpChanged();
-        playAddSound();
-        if(card){ card.remove(); card = null; }
+        playAddSound(); closeCard();
         grpToast('Added ' + props.name + ' to the ideas');
       });
-      card = new maplibregl.Popup({ closeButton:true, closeOnClick:true, maxWidth:'260px', offset:10, className:'dm-popup' }).setLngLat([g.lon, g.lat]).setDOMContent(el).addTo(map);
-      var mine = card, slot0 = el.querySelector('.dm-photo-slot');
-      slot0.hidden = false; slot0.classList.add('looking');
+      ['mousedown', 'wheel', 'dblclick', 'touchstart'].forEach(function(t){ el.addEventListener(t, function(e){ e.stopPropagation(); }, { passive:true }); });
+      host.appendChild(el);
+      card = { el: el, g: g };
+      positionCard();
+      var mine = card;
+      // The photo and the line only appear once they're here; nothing found,
+      // the card simply stays as it is.
       placePhoto(g, props).then(function(r){
-        if(card !== mine) return;
-        slot0.classList.remove('looking');
-        if(!r || (!r.img && !r.about)){ slot0.hidden = true; return; }
-        if(!r.img) slot0.hidden = true;
-        var slot = el.querySelector('.dm-photo-slot');
+        if(card !== mine || !r) return;
+        if(r.about){ var ab = el.querySelector('.dm-about'); ab.textContent = r.about; ab.hidden = false; }
         if(r.img){
-          var img = slot.querySelector('img');
-          img.onload = function(){ slot.hidden = false; slot.classList.add('in'); };
+          var slot = el.querySelector('.dm-photo-slot'), img = slot.querySelector('img'), info = slot.querySelector('.dm-pinfo');
+          info.href = r.file || r.page || '#';
+          info.title = (r.credit ? 'Photo: ' + r.credit : 'Photo: Wikimedia Commons') + (r.page ? ' · Text: Wikipedia' : '');
+          img.onload = function(){ if(card !== mine) return; slot.hidden = false; requestAnimationFrame(function(){ slot.classList.add('in'); }); positionCard(); };
           img.src = r.img; img.alt = props.name;
         }
-        if(r.about){ var ab = el.querySelector('.dm-about'); ab.textContent = r.about; ab.hidden = false; }
-        var cr = el.querySelector('.dm-credit');
-        cr.innerHTML = (r.img ? '<a target="_blank" rel="noopener">Photo: Wikimedia Commons</a>' : '') + (r.img && r.page ? ' · ' : '') + (r.page ? '<a target="_blank" rel="noopener">Wikipedia</a>' : '');
-        var links = cr.querySelectorAll('a'), li = 0;
-        if(r.img) links[li++].href = r.file;
-        if(r.page) links[li].href = r.page;
-        cr.hidden = false;
+        positionCard();
       });
     }
     // A photo and a line about a place, from Wikipedia (free, no key): the
@@ -15056,6 +15111,34 @@
       var q = Object.keys(params).map(function(k){ return k + '=' + encodeURIComponent(params[k]); }).join('&');
       return fetch('https://' + host + '/w/api.php?' + q + '&format=json&origin=*').then(function(r){ return r.json(); });
     }
+    // The first sentence of an article, without the pronunciation, the other
+    // names in brackets, or a cut at an abbreviation like "lit." or "St.".
+    function firstSentence(t){
+      t = String(t || '');
+      for(var i = 0; i < 4; i++) t = t.replace(/\s*[\(\[][^\(\)\[\]]*[\)\]]/g, '');
+      t = t.replace(/\s+([,.;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+      var re = /[.!?](\s|$)/g, m, out = t;
+      while((m = re.exec(t))){
+        var before = t.slice(0, m.index), word = (before.match(/(\S+)$/) || ['', ''])[1];
+        if(/^(lit|St|Dr|Mr|Mrs|Ms|Mt|ca|c|e\.g|i\.e|approx|no|vs)$/i.test(word) || /^[A-Z]$/.test(word)) continue;
+        out = t.slice(0, m.index + 1); break;
+      }
+      if(out.length > 170) out = out.slice(0, 167).replace(/\s+\S*$/, '') + '…';
+      return out;
+    }
+    function creditOf(meta){
+      if(!meta) return '';
+      var who = meta.Artist ? String(meta.Artist.value || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
+      var lic = meta.LicenseShortName ? String(meta.LicenseShortName.value || '').trim() : '';
+      return [who, lic].filter(Boolean).join(', ');
+    }
+    function credit(fileName){
+      if(!fileName) return Promise.resolve('');
+      return wikiGet('commons.wikimedia.org', { action:'query', prop:'imageinfo', iiprop:'extmetadata', iiextmetadatafilter:'Artist|LicenseShortName', titles:'File:' + fileName }).then(function(d){
+        var pages = (d.query && d.query.pages) || {}, pg = pages[Object.keys(pages)[0]] || {};
+        return creditOf(pg.imageinfo && pg.imageinfo[0] && pg.imageinfo[0].extmetadata);
+      }).catch(function(){ return ''; });
+    }
     function placePhoto(g, props){
       var key = props.name + '@' + g.lat.toFixed(4) + ',' + g.lon.toFixed(4);
       if(photoCache[key]) return photoCache[key];
@@ -15068,7 +15151,7 @@
         var words = [];
         names.forEach(function(n){ norm(n).split(' ').forEach(function(w){ if(w.length > 3 && words.indexOf(w) === -1) words.push(w); }); });
         if(!words.length) return Promise.resolve(null);
-        return wikiGet('commons.wikimedia.org', { action:'query', generator:'geosearch', ggscoord: g.lat + '|' + g.lon, ggsradius:100, ggsnamespace:6, ggslimit:40, prop:'imageinfo', iiprop:'url', iiurlwidth:480 }).then(function(d){
+        return wikiGet('commons.wikimedia.org', { action:'query', generator:'geosearch', ggscoord: g.lat + '|' + g.lon, ggsradius:100, ggsnamespace:6, ggslimit:40, prop:'imageinfo', iiprop:'url|extmetadata', iiextmetadatafilter:'Artist|LicenseShortName', iiurlwidth:480 }).then(function(d){
           var pages = (d.query && d.query.pages) || {}, best = null, bestScore = 0;
           Object.keys(pages).forEach(function(k){
             var pg = pages[k], t = norm(String(pg.title || '').replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, ''));
@@ -15076,7 +15159,7 @@
             if(score > bestScore && pg.imageinfo && pg.imageinfo[0] && pg.imageinfo[0].thumburl){ best = pg; bestScore = score; }
           });
           if(!best) return null;
-          return { img: best.imageinfo[0].thumburl, file: best.imageinfo[0].descriptionurl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(best.title.replace(/ /g, '_'))), about:'', page:'' };
+          return { img: best.imageinfo[0].thumburl, file: best.imageinfo[0].descriptionurl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(best.title.replace(/ /g, '_'))), about:'', page:'', credit: creditOf(best.imageinfo[0].extmetadata) };
         });
       }
       function tryHost(i){
@@ -15086,14 +15169,12 @@
           var hits = (d.query && d.query.geosearch) || [];
           var hit = hits.filter(function(h){ return names.some(function(n){ return sameName(n, h.title); }); })[0];
           if(!hit) return tryHost(i + 1);
-          return wikiGet(host, { action:'query', prop:'pageimages|extracts', piprop:'thumbnail|name', pithumbsize:480, exintro:1, explaintext:1, exsentences:1, redirects:1, titles: hit.title }).then(function(d2){
+          return wikiGet(host, { action:'query', prop:'pageimages|extracts', piprop:'thumbnail|name', pithumbsize:480, exintro:1, explaintext:1, exchars:600, redirects:1, titles: hit.title }).then(function(d2){
             var pages = (d2.query && d2.query.pages) || {}, pg = pages[Object.keys(pages)[0]] || {};
-            var about = (pg.extract || '').replace(/\s*\([^)]*\)/g, '').trim();
-            if(about.length > 160) about = about.slice(0, 157).replace(/\s+\S*$/, '') + '…';
             var res = { img: pg.thumbnail ? pg.thumbnail.source : '', file: pg.pageimage ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(pg.pageimage) : '',
-              about: about, page: 'https://' + host + '/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')) };
-            if(res.img) return res;
-            return tryCommons().then(function(c){ if(c){ res.img = c.img; res.file = c.file; } return res; });
+              about: firstSentence(pg.extract), page: 'https://' + host + '/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')) };
+            if(res.img) return credit(pg.pageimage).then(function(cr){ res.credit = cr; return res; });
+            return tryCommons().then(function(c){ if(c){ res.img = c.img; res.file = c.file; res.credit = c.credit; } return res; });
           });
         });
       }
@@ -15119,7 +15200,7 @@
       return out;
     }
     function pickDefault(){ var cs = cells(); return cs.filter(function(c){ return stopsOf(c).some(function(s){ return s.g; }); })[0] || cs[0] || null; }
-    function step(d){ var cs = cells(), i = cs.indexOf(day); if(i === -1) i = 0; var j = Math.max(0, Math.min(cs.length - 1, i + d)); day = cs[j]; sig = ''; draw(true); }
+    function step(d){ closeCard(); var cs = cells(), i = cs.indexOf(day); if(i === -1) i = 0; var j = Math.max(0, Math.min(cs.length - 1, i + d)); day = cs[j]; sig = ''; draw(true); }
     function dayTitle(cell){
       var dn = cell.querySelector(':scope > .cellhead > .daynum'), wd = cell.querySelector(':scope > .cellhead > .wd'), p = cell.closest('.panel'), real = null;
       try { real = realDate(p, parseInt(dn.textContent, 10)); } catch(e){}
