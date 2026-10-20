@@ -14035,8 +14035,8 @@
     pop.addEventListener('drop', function(e){ e.preventDefault(); pop.classList.remove('drag'); addFiles(e.dataTransfer.files); });
     function submit(){
       var ta = pop.querySelector('textarea'), text = ta.value.trim(); if(!text) return;
-      var p = document.querySelector('.panel.on'), payload = { kind:'feature', from: currentUserKey ? memberNameOf(currentUserKey) : '', text: text.slice(0, 3000),
-        plan: p ? planNameOf(p) : '', url: location.origin + location.pathname,
+      var payload = { kind:'feature', from: currentUserKey ? memberNameOf(currentUserKey) : '', text: text.slice(0, 3000),
+        url: location.origin + location.pathname,
         images: imgs.filter(function(x){ return x.data; }).map(function(x){ return { name:x.name.replace(/\.[^.]+$/, '') + '.jpg', data:x.data.split(',')[1] }; }) };
       var card = pop.querySelector('.ip-card');
       function done(){ card.innerHTML = '<div class="ip-done"><div class="ip-ok">✓</div><b>Thanks, we got it!</b><span>A copy is on its way to your inbox.</span></div><div class="ip-foot"><span class="ip-note"></span><button type="button" class="ip-send">Close</button></div>';
