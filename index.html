@@ -13777,7 +13777,7 @@
   // the Google Apps Script below (if its address is set). Emails are grouped
   // per person and plan, with a catch-up of anything missed, and capped per
   // sender — see the script.
-  var EMAIL_HOOK_URL = ''; // the Apps Script "Web app" URL, once deployed
+  var EMAIL_HOOK_URL = 'https://script.google.com/macros/s/AKfycbzttnW80EB51C7vp4r0Lwq2vmyNmKuw-P2kHX7MkP0d_MpO8pkxYs-hrlqM5NwEx2cEKQ/exec'; // the Apps Script "Web app" (mention emails)
   function mentionKeys(text){ var out = [], re = /<m k="([^"]*)">/g, m; while((m = re.exec(text || ''))) if(out.indexOf(m[1]) === -1) out.push(npUnesc(m[1])); return out; }
   function memberNameOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return displayNameFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
   function memberFaceOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return avatarSvgFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
