@@ -2958,6 +2958,7 @@
   #placeDD .pd-opt svg { width:16px; height:16px; color:var(--muted); flex:none; margin-top:2px; }
   #placeDD .pd-opt b { display:block; font-size:13.5px; font-weight:800; }
   #placeDD .pd-opt small { display:block; font-size:12px; font-weight:600; color:var(--muted); }
+  #placeDD .pd-note { padding:8px 12px 6px; font-size:12.5px; font-weight:700; color:var(--muted); }
   #placeDD .pd-keep { border-top:1px solid var(--line); margin-top:4px; padding-top:9px; } #placeDD .pd-keep b { font-weight:700; }
   #placeDD .pd-src, #goMenu .gm-src { padding:4px 12px 2px; font-size:10.5px; font-weight:700; color:#b9b0d4; }
   .acts > li > .spot-line { display:block; margin-top:1px; font-size:12px; font-weight:600; color:var(--muted); }
@@ -14599,7 +14600,7 @@
   // the suggestions list under the place fields
   (function(){
     var dd = document.createElement('div'); dd.id = 'placeDD'; dd.hidden = true; document.body.appendChild(dd);
-    var forInp = null, list = [], act = 0, timer = null, seq = 0;
+    var forInp = null, list = [], act = 0, timer = null, seq = 0, note = '';
     var PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
     var TXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></svg>';
     function close(){ dd.hidden = true; forInp = null; }
@@ -14614,6 +14615,7 @@
     function draw(){
       var r = forInp.getBoundingClientRect(), v = forInp.value.trim();
       dd.innerHTML = list.map(function(p, i){ return '<div class="pd-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '">' + PIN + '<span><b></b><small></small></span></div>'; }).join('') +
+        (note ? '<div class="pd-note">' + note + '</div>' : '') +
         '<div class="pd-opt pd-keep' + (act === list.length ? ' act' : '') + '" data-i="keep">' + TXT + '<span><b></b><small>without travel times</small></span></div><div class="pd-src">Places © OpenStreetMap</div>';
       dd.querySelectorAll('.pd-opt[data-i]').forEach(function(o){ var i = o.dataset.i;
         if(i === 'keep') o.querySelector('b').textContent = 'Use “' + v + '” as written';
@@ -14622,14 +14624,17 @@
     }
     function search(inp){
       var v = inp.value.trim(); clearTimeout(timer);
-      if(v.length < 3 || (inp._geo && v === inp._geo.name)){ if(forInp === inp) close(); return; }
+      if(v.length < 2 || (inp._geo && v === inp._geo.name)){ if(forInp === inp) close(); return; }
+      // the list shows straight away ("Searching…"), so it never feels dead
+      forInp = inp; list = []; act = 0; note = 'Searching…'; draw();
       timer = setTimeout(function(){
         var my = ++seq, n = near();
         travelCall({ kind:'geo', text:v, near: n ? { lon:n.lon, lat:n.lat } : null }).then(function(res){
           if(my !== seq || document.activeElement !== inp) return;
-          forInp = inp; list = (res && res.places) || []; act = 0; draw();
-        }).catch(function(){});
-      }, 350);
+          forInp = inp; list = (res && res.places) || []; act = 0;
+          note = list.length ? '' : (res && res.error && res.error !== 'not found' ? 'Place search isn’t available right now' : 'No places found'); draw();
+        }).catch(function(){ if(my !== seq || document.activeElement !== inp) return; list = []; act = 0; note = 'Place search isn’t available right now'; draw(); });
+      }, 300);
     }
     function pick(i){
       var inp = forInp; if(!inp) return;
