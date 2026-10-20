@@ -2860,7 +2860,22 @@
   #printPanel input[type="radio"]:focus { outline:none; }
   #printPanel input[type="radio"]:focus-visible { box-shadow:0 0 0 3px rgba(var(--primary-rgb), .2); }
   .print-pay { display:none; }
-  .notes-page .np-mention { display:inline-block; padding:0 7px; margin:0 1px; border-radius:999px; background:rgba(var(--primary-rgb), .14); color:var(--primary); font-weight:700; line-height:24px; vertical-align:1px; user-select:all; }
+  .notes-page .np-mention { display:inline-flex; align-items:center; max-width:100%; margin:0 1px; border-radius:999px; background:rgba(var(--primary-rgb), .14); color:var(--primary); font-weight:700; line-height:24px; vertical-align:1px; user-select:all; cursor:pointer; overflow:hidden; }
+  .notes-page .np-mention .np-who { padding:0 8px; white-space:nowrap; }
+  .notes-page .np-mention .np-msg { padding:0 11px 0 9px; margin:2px 2px 2px 0; border-radius:0 999px 999px 0; background:#fff; color:var(--ink); font-weight:600; line-height:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .notes-page .np-mention:hover { box-shadow:0 0 0 1.5px rgba(var(--primary-rgb), .45); }
+  #mentionMsg { position:fixed; z-index:10005; width:320px; padding:12px 14px; background:#fff; border-radius:12px; box-shadow:0 10px 26px rgba(30,22,50,.24), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  #mentionMsg[hidden] { display:none; }
+  #mentionMsg .mm-title { font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); margin-bottom:8px; }
+  #mentionMsg textarea { display:block; width:100%; box-sizing:border-box; resize:none; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; font-weight:600; color:var(--ink); background:var(--bg); outline:none; }
+  #mentionMsg textarea:focus { border-color:var(--primary); background:#fff; }
+  #mentionMsg .mm-foot { display:flex; align-items:center; gap:10px; margin-top:8px; }
+  #mentionMsg .mm-hint { flex:1; font-size:11px; font-weight:700; color:var(--muted); text-align:right; }
+  #mentionMsg .mm-ok { border:none; border-radius:8px; padding:7px 14px; background:var(--primary); color:#fff; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+  #mentionMsg .mm-remove { border:none; background:none; padding:0; font:inherit; font-size:12px; font-weight:800; color:#d6455d; cursor:pointer; }
+  #mentionMsg .mm-remove[hidden] { display:none; }
+  #bellDD .bd-msg { display:block; margin-top:5px; padding:6px 10px; border-left:3px solid var(--primary); border-radius:0 8px 8px 0; background:var(--bg); font-weight:600; }
+  @media print { #mentionMsg { display:none !important; } }
   #mentionDD { position:fixed; z-index:10003; min-width:200px; padding:6px 0; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
   #mentionDD[hidden], #bellDD[hidden] { display:none; }
   #mentionDD .md-opt { display:flex; align-items:center; gap:9px; padding:7px 14px; font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; }
@@ -13196,7 +13211,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #bellDD, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #npLinkPop, #npLinkBubble, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -13511,14 +13526,21 @@
   function npMakeLink(range, url){ var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.appendChild(range.extractContents()); if(!a.textContent) a.textContent = url; range.insertNode(a); return a; }
   function npFill(el, line){
     el.innerHTML = '';
-    var stack = [el], re = /<(\/?)(b|i|strong|em|a|m)(?:\s+(?:href|k)="([^"]*)")?>/gi, last = 0, m;
+    var stack = [el], re = /<(\/?)(b|i|strong|em|a|m)((?:\s+[a-z]+="[^"]*")*)>/gi, last = 0, m;
+    function attrs(str){ var o = {}, r = /([a-z]+)="([^"]*)"/g, x; while((x = r.exec(str || ''))) o[x[1]] = npUnesc(x[2]); return o; }
     while((m = re.exec(line))){
       if(m.index > last) stack[stack.length - 1].appendChild(document.createTextNode(npUnesc(line.slice(last, m.index))));
       if(m[1]){ if(stack.length > 1) stack.pop(); }
       else {
         var tag = m[2].toLowerCase(), n;
-        if(tag === 'a'){ n = document.createElement('a'); var href = npUnesc(m[3] || ''); if(/^https?:\/\//i.test(href)) n.href = href; n.target = '_blank'; n.rel = 'noopener'; }
-        else if(tag === 'm'){ n = document.createElement('span'); n.className = 'np-mention'; n.contentEditable = 'false'; n.setAttribute('data-key', npUnesc(m[3] || '')); n.appendChild(document.createTextNode('@')); }
+        var at = attrs(m[3]);
+        if(tag === 'a'){ n = document.createElement('a'); var href = at.href || ''; if(/^https?:\/\//i.test(href)) n.href = href; n.target = '_blank'; n.rel = 'noopener'; }
+        else if(tag === 'm'){
+          // a mention: "@Name", with its message for that person (if any)
+          var close = line.indexOf('</m>', re.lastIndex), nm = npUnesc(line.slice(re.lastIndex, close < 0 ? line.length : close));
+          stack[stack.length - 1].appendChild(npMentionEl(at.k || '', nm, at.msg || ''));
+          last = close < 0 ? line.length : close + 4; re.lastIndex = last; continue;
+        }
         else n = document.createElement(/^(b|strong)$/.test(tag) ? 'b' : 'i');
         stack[stack.length - 1].appendChild(n); stack.push(n);
       }
@@ -13531,7 +13553,8 @@
     el.childNodes.forEach(function(n){
       if(n.nodeType === 3) out += npEsc(n.nodeValue.replace(/\n/g, ' '));
       else if(n.nodeType === 1 && n.classList && n.classList.contains('np-mention')){
-        out += '<m k="' + npEsc(n.getAttribute('data-key') || '').replace(/"/g, '&quot;') + '">' + npEsc(n.textContent.replace(/^@/, '')) + '</m>';
+        var q = function(v){ return npEsc(v || '').replace(/"/g, '&quot;'); }, msg = n.getAttribute('data-msg') || '';
+        out += '<m k="' + q(n.getAttribute('data-key')) + '"' + (msg ? ' msg="' + q(msg) + '"' : '') + '>' + npEsc(n.getAttribute('data-name') || n.textContent.replace(/^@/, '')) + '</m>';
       }
       else if(n.nodeType === 1){
         var inner = npHtml(n), tag = n.tagName, st = n.style || {};
@@ -13543,6 +13566,19 @@
       }
     });
     return out;
+  }
+  function npMentionEl(key, name, msg){
+    var sp = document.createElement('span'); sp.className = 'np-mention'; sp.contentEditable = 'false';
+    sp.setAttribute('data-key', key); sp.setAttribute('data-name', name);
+    var who = document.createElement('span'); who.className = 'np-who'; who.textContent = '@' + name; sp.appendChild(who);
+    npSetMsg(sp, msg); return sp;
+  }
+  function npSetMsg(sp, msg){
+    msg = String(msg || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if(msg) sp.setAttribute('data-msg', msg); else sp.removeAttribute('data-msg');
+    var box = sp.querySelector('.np-msg'); if(!msg){ if(box) box.remove(); return; }
+    if(!box){ box = document.createElement('span'); box.className = 'np-msg'; sp.appendChild(box); }
+    box.textContent = msg;
   }
   function npRow(text, todo){
     var row = document.createElement('div'); row.className = 'np-row';
@@ -13764,7 +13800,8 @@
     var oldV = notesText(notesKey) || '';
     if(oldV === v) return;
     MONTH_NOTES[notesKey] = v;
-    try { notifyMentions(mentionKeys(v).filter(function(k){ return mentionKeys(oldV).indexOf(k) === -1; })); } catch(e){}   // kept even when empty, so an emptied plan doesn't fall back to old month notes
+    // newly mentioned, or given a new message: they get a notification
+    try { var before = mentionItems(oldV).map(function(x){ return x.k + '|' + x.msg; }); notifyMentions(mentionItems(v).filter(function(x){ return before.indexOf(x.k + '|' + x.msg) === -1; })); } catch(e){}   // kept even when empty, so an emptied plan doesn't fall back to old month notes
     scheduleAutoSave(); scheduleUndoSnapshot();
     var sv = notesPage.querySelector('.np-saved'); sv.classList.add('on'); clearTimeout(sv._t); sv._t = setTimeout(function(){ sv.classList.remove('on'); }, 1200);
   }
@@ -13778,7 +13815,7 @@
   // per person and plan, with a catch-up of anything missed, and capped per
   // sender — see the script.
   var EMAIL_HOOK_URL = 'https://script.google.com/macros/s/AKfycbzttnW80EB51C7vp4r0Lwq2vmyNmKuw-P2kHX7MkP0d_MpO8pkxYs-hrlqM5NwEx2cEKQ/exec'; // the Apps Script "Web app" (mention emails)
-  function mentionKeys(text){ var out = [], re = /<m k="([^"]*)">/g, m; while((m = re.exec(text || ''))) if(out.indexOf(m[1]) === -1) out.push(npUnesc(m[1])); return out; }
+  function mentionItems(text){ var out = [], re = /<m k="([^"]*)"(?: msg="([^"]*)")?>/g, m; while((m = re.exec(text || ''))) out.push({ k: npUnesc(m[1]), msg: npUnesc(m[2] || '') }); return out; }
   function memberNameOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; var n = displayNameFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]) || '';
     if(n.indexOf('@') !== -1){ n = n.split('@')[0].split(/[._-]/)[0]; n = n.charAt(0).toUpperCase() + n.slice(1); } return n; }
   function memberFaceOf(key){ var d = window.__memberData || { members:[], avatars:{} }; var m = (d.members || []).filter(function(x){ return x.key === key; })[0]; return avatarSvgFor(m ? m.email : key.replace(/,/g, '.'), (d.avatars || {})[key]); }
@@ -13787,17 +13824,20 @@
     return (d.members || []).filter(function(m){ return m.key !== currentUserKey && (!only.length || only.indexOf(m.key) !== -1); });
   }
   function planNameOf(p){ if(!p) return ''; var pill = document.querySelector('.pill[data-opt="' + optOf(p) + '"] .pill-name'); var n = p.getAttribute('data-plan-name') || (pill ? pill.textContent.trim() : ''); return n.charAt(0) + n.slice(1).toLowerCase(); }
-  function notifyMentions(keys){
-    keys = (keys || []).filter(function(k){ return k && k !== currentUserKey; });
+  function notifyMentions(items){
+    var seen = {}; items = (items || []).filter(function(x){ if(!x.k || x.k === currentUserKey || seen[x.k]) return false; seen[x.k] = 1; return true; });
+    var keys = items.map(function(x){ return x.k; }), msgOf = {}; items.forEach(function(x){ msgOf[x.k] = x.msg; });
     if(!keys.length || !IS_HOSTED || !currentUserKey) return;
     var p = document.querySelector('.panel.on'), plan = planNameOf(p), planId = p ? planIdOf(p) : '';
     var altEl = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"] .pill-name'), alt = altEl ? altEl.textContent.trim() : '';
     var where = p && p.getAttribute('data-plan-name') && alt && alt.toLowerCase() !== plan.toLowerCase() ? plan + ' · ' + alt : (plan || alt);
     var me = memberNameOf(currentUserKey);
-    function lineFor(k){ var sp = notesArea && notesArea.querySelector('.np-mention[data-key="' + k.replace(/"/g, '') + '"]'); var row = sp && sp.closest('.np-row'); return row ? row.querySelector('.np-text').textContent.replace(/\s+/g, ' ').trim().slice(0, 220) : ''; }
+    function lineFor(k){ var sp = notesArea && notesArea.querySelector('.np-mention[data-key="' + k.replace(/"/g, '') + '"]'); var row = sp && sp.closest('.np-row'); if(!row) return '';
+      var c = row.querySelector('.np-text').cloneNode(true); c.querySelectorAll('.np-msg').forEach(function(x){ x.remove(); }); return c.textContent.replace(/\s+/g, ' ').trim().slice(0, 220); }
     var link = location.origin + location.pathname + '?notes=' + encodeURIComponent(planId);
     keys.forEach(function(k){
-      firebase.database().ref('notifications/' + k).push({ from: currentUserKey, fromName: me, plan: where, planId: planId, at: firebase.database.ServerValue.TIMESTAMP, seen: false })
+      var note = { from: currentUserKey, fromName: me, plan: where, planId: planId, at: firebase.database.ServerValue.TIMESTAMP, seen: false }; if(msgOf[k]) note.msg = msgOf[k];
+      firebase.database().ref('notifications/' + k).push(note)
         .catch(function(err){ console.warn('Notification not saved (database rules?)', err); });
     });
     if(!EMAIL_HOOK_URL) return;
@@ -13805,7 +13845,7 @@
     u.getIdToken().then(function(tok){
       keys.forEach(function(k){
         fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' },
-          body: JSON.stringify({ idToken: tok, to: k, from: me, plan: where, line: lineFor(k), url: link }) }).catch(function(){});
+          body: JSON.stringify({ idToken: tok, to: k, from: me, plan: where, msg: msgOf[k] || '', line: lineFor(k), url: link }) }).catch(function(){});
       });
     }).catch(function(){});
   }
@@ -13832,10 +13872,10 @@
     function pick(i){
       var m = list[i]; if(!m || !at) return;
       var r = document.createRange(); r.setStart(at.node, at.start); r.setEnd(at.node, at.end); r.deleteContents();
-      var sp = document.createElement('span'); sp.className = 'np-mention'; sp.contentEditable = 'false'; sp.setAttribute('data-key', m.key); sp.textContent = '@' + memberNameOf(m.key);
+      var sp = npMentionEl(m.key, memberNameOf(m.key), '');
       r.insertNode(sp); var space = document.createTextNode(' '); sp.after(space);
       var c = document.createRange(); c.setStart(space, 1); c.collapse(true); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(c);
-      close(); npChanged();
+      close(); npChanged(); openMentionMsg(sp, true);
     }
     document.addEventListener('input', function(e){ if(notesArea && e.target === notesArea){ loadMemberAvatarData(); draw(); } });
     document.addEventListener('keydown', function(e){
@@ -13847,6 +13887,36 @@
     dd.addEventListener('mousedown', function(e){ e.preventDefault(); var o = e.target.closest('.md-opt'); if(o) pick(+o.dataset.i); });
     document.addEventListener('mousedown', function(e){ if(!dd.hidden && !dd.contains(e.target)) close(); });
   })();
+  // A mention's message: a small card under it ("Message for Lau"). Opens
+  // right after picking someone, and when the mention is clicked.
+  var mmCard = document.createElement('div'); mmCard.id = 'mentionMsg'; mmCard.hidden = true;
+  mmCard.innerHTML = '<div class="mm-title"></div><textarea rows="2"></textarea><div class="mm-foot"><button type="button" class="mm-remove">Remove mention</button><span class="mm-hint">Enter to add · Esc to skip</span><button type="button" class="mm-ok">Add</button></div>';
+  document.body.appendChild(mmCard);
+  var mmFor = null, mmText = mmCard.querySelector('textarea');
+  function openMentionMsg(sp, fresh){
+    mmFor = sp; var name = sp.getAttribute('data-name') || '';
+    mmCard.querySelector('.mm-title').textContent = 'Message for ' + name;
+    mmText.placeholder = 'What should ' + name + ' do or know?';
+    mmText.value = sp.getAttribute('data-msg') || '';
+    mmCard.querySelector('.mm-ok').textContent = fresh || !mmText.value ? 'Add' : 'Save';
+    mmCard.querySelector('.mm-hint').textContent = fresh ? 'Enter to add · Esc to skip' : 'Enter to save';
+    mmCard.querySelector('.mm-remove').hidden = !!fresh;
+    mmCard.hidden = false; var r = sp.getBoundingClientRect();
+    mmCard.style.left = Math.max(8, Math.min(r.left, window.innerWidth - mmCard.offsetWidth - 8)) + 'px'; mmCard.style.top = (r.bottom + 8) + 'px';
+    setTimeout(function(){ mmText.focus(); }, 0);
+  }
+  function closeMentionMsg(save){
+    if(!mmFor) return;
+    if(save){ npSetMsg(mmFor, mmText.value); npChanged(); }
+    var sp = mmFor; mmFor = null; mmCard.hidden = true;
+    if(sp.isConnected && notesArea){ notesArea.focus({ preventScroll:true }); var nx = sp.nextSibling, c = document.createRange();
+      if(nx && nx.nodeType === 3) c.setStart(nx, Math.min(1, nx.length)); else c.setStartAfter(sp); c.collapse(true); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(c); }
+  }
+  mmCard.querySelector('.mm-ok').addEventListener('click', function(){ closeMentionMsg(true); });
+  mmCard.querySelector('.mm-remove').addEventListener('click', function(){ if(!mmFor) return; var sp = mmFor; mmFor = null; mmCard.hidden = true; var nx = sp.nextSibling; if(nx && nx.nodeType === 3 && /^ /.test(nx.nodeValue)) nx.nodeValue = nx.nodeValue.slice(1); sp.remove(); npChanged(); });
+  mmText.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); closeMentionMsg(true); } else if(e.key === 'Escape'){ e.preventDefault(); closeMentionMsg(false); } });
+  document.addEventListener('mousedown', function(e){ if(!mmCard.hidden && !mmCard.contains(e.target)) closeMentionMsg(true); }, true);
+  document.addEventListener('click', function(e){ var sp = e.target.closest && e.target.closest('.notes-page .np-mention'); if(sp){ e.preventDefault(); openMentionMsg(sp, false); } });
   // the bell: your notifications (newest first), a red dot for unseen ones
   (function(){
     var items = [], listening = null;
@@ -13869,7 +13939,7 @@
     }
     function render(){
       pop.innerHTML = '<div class="bd-head"><span>Notifications</span>' + (items.some(function(x){ return !x.seen; }) ? '<button type="button" class="bd-all">Mark all as read</button>' : '') + '</div>' +
-        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b> mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes<small>' + ago(x.at) + '</small></span></div>'; }).join('')
+        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b> mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes' + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
           : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, it shows up here.</div>');
     }
     function markSeen(list){ list.forEach(function(x){ if(!x.seen && x.id && IS_HOSTED && currentUserKey) firebase.database().ref('notifications/' + currentUserKey + '/' + x.id + '/seen').set(true).catch(function(){}); x.seen = true; }); paint(); }
