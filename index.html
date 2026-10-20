@@ -2860,10 +2860,14 @@
   #printPanel input[type="radio"]:focus { outline:none; }
   #printPanel input[type="radio"]:focus-visible { box-shadow:0 0 0 3px rgba(var(--primary-rgb), .2); }
   .print-pay { display:none; }
-  .notes-page .np-mention { display:inline-flex; align-items:center; max-width:100%; margin:0 1px; border-radius:999px; background:rgba(var(--primary-rgb), .14); color:var(--primary); font-weight:700; line-height:24px; vertical-align:1px; user-select:all; cursor:pointer; overflow:hidden; }
-  .notes-page .np-mention .np-who { padding:0 8px; white-space:nowrap; }
-  .notes-page .np-mention .np-msg { padding:0 11px 0 9px; margin:2px 2px 2px 0; border-radius:0 999px 999px 0; background:#fff; color:var(--ink); font-weight:600; line-height:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .notes-page .np-mention:hover { box-shadow:0 0 0 1.5px rgba(var(--primary-rgb), .45); }
+  /* mentions look like Jira's: a grey "@Name" lozenge (blue when it's you), the message as plain text after it */
+  .notes-page .np-mention { display:inline; cursor:pointer; user-select:all; }
+  .notes-page .np-mention .np-who { display:inline-block; padding:0 8px; margin:0 1px; border-radius:20px; background:#dfe1e6; color:#42526e; font-weight:600; line-height:22px; white-space:nowrap; }
+  .notes-page .np-mention.me .np-who { background:#0052cc; color:#fff; }
+  .notes-page .np-mention:hover .np-who { background:#c1c7d0; }
+  .notes-page .np-mention.me:hover .np-who { background:#0747a6; }
+  .notes-page .np-mention .np-msg { margin-left:4px; color:var(--ink); }
+  .notes-page .np-mention:hover .np-msg { text-decoration:underline; text-decoration-color:rgba(66,82,110,.35); text-underline-offset:3px; }
   #mentionMsg { position:fixed; z-index:10005; width:320px; padding:12px 14px; background:#fff; border-radius:12px; box-shadow:0 10px 26px rgba(30,22,50,.24), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #mentionMsg[hidden] { display:none; }
   #mentionMsg .mm-title { font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); margin-bottom:8px; }
@@ -13571,6 +13575,7 @@
     var sp = document.createElement('span'); sp.className = 'np-mention'; sp.contentEditable = 'false';
     sp.setAttribute('data-key', key); sp.setAttribute('data-name', name);
     var who = document.createElement('span'); who.className = 'np-who'; who.textContent = '@' + name; sp.appendChild(who);
+    if(typeof currentUserKey !== 'undefined' && key && key === currentUserKey) sp.classList.add('me');
     npSetMsg(sp, msg); return sp;
   }
   function npSetMsg(sp, msg){
