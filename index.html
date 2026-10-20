@@ -3157,6 +3157,22 @@
   .fs-row .fs-sh::-webkit-outer-spin-button, .fs-row .fs-sh::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
   .fs-colrow { gap:8px; }
   .fs-colrow .fs-col { width:76px !important; text-align:center; }
+  /* the "pays" switch; off = left out */
+  .fs-row .fs-sw { width:30px; height:18px; flex:none; border:none; padding:0; border-radius:999px; background:#d7cfe6; position:relative; cursor:pointer; transition:background .15s; }
+  .fs-row .fs-sw::after { content:''; position:absolute; left:2px; top:2px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:left .15s; }
+  .fs-row .fs-sw.on { background:var(--primary); }
+  .fs-row .fs-sw.on::after { left:14px; }
+  .fs-row, .fs-row .fs-face, .fs-row .fs-name { cursor:default; }
+  .fs-row .fs-name:hover { text-decoration:none; }
+  .fs-who { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .fs-who .fs-name { flex:none; }
+  .fs-sub { display:none; font-size:11.5px; font-weight:700; color:var(--muted); line-height:1.3; }
+  .fs-row.off .fs-sub { display:block; }
+  .fs-row.off .fs-name { text-decoration:none; opacity:.55; }
+  .fs-row.off .fs-name::after { content:' is left out'; }
+  .fs-row.off .fs-sh, .fs-row.off .fs-amt { background:transparent; border-color:transparent; color:#c9c0dd; opacity:1; -webkit-text-fill-color:#c9c0dd; }
+  /* room for the italic numbers so they're never cut */
+  .fs-row .fs-sh, .fs-row .fs-amt { padding:0 11px 0 6px !important; }
   .fabadd-split.own .fs-sh, .fabadd-split.own .fs-col-sh { visibility:hidden; }
   .fs-left { text-align:left !important; display:flex; flex-direction:column; gap:2px; margin-top:6px !important; padding-top:6px; border-top:1px dashed var(--line); font-weight:700 !important; }
   .fs-left b { color:var(--ink); }
@@ -3452,7 +3468,7 @@
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
         <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Split the bill</button><button type="button" data-mode="own">Each pays their own</button></div>
-        <div class="fs-colrow"><span class="fs-hint">Click a name to leave them out</span><span class="fs-col fs-col-sh">Share</span><span class="fs-col">Paid</span></div>
+        <div class="fs-colrow"><span class="fs-hint">Off = not paying (not coming, or someone’s paying for them)</span><span class="fs-col fs-col-sh">Share</span><span class="fs-col">Paid</span></div>
         <div class="fs-list"></div>
         <div class="fs-left"></div>
       </div>
@@ -14361,8 +14377,12 @@
       var typedSh = getPaySplits(li);
       box.querySelectorAll('.fs-row').forEach(function(row){ var m = addSplitPeople[+row.dataset.i];
         var t = typedSh.filter(function(x){ return x.k === m.key; })[0];
-        row.querySelector('.fs-sh').value = ex.indexOf(m.key) !== -1 ? '0' : (t ? t.a : '');
-        var p = paid.filter(function(x){ return x.k === m.key; })[0]; row.querySelector('.fs-amt').value = p ? p.a : ''; });
+        var p = paid.filter(function(x){ return x.k === m.key; })[0];
+        // left out: excluded, or (older activities) a share of 0 with nothing paid
+        if(ex.indexOf(m.key) !== -1 || (t && +t.a === 0 && !p)){ setSplitOut(row, true); return; }
+        setSplitOut(row, false);
+        row.querySelector('.fs-sh').value = t ? t.a : '';
+        row.querySelector('.fs-amt').value = p ? p.a : ''; });
       var mb = box.querySelector('.fs-mode [data-mode="' + (own ? 'own' : 'split') + '"]'); if(mb) mb.click();
       updateLeft();
     };
@@ -14726,28 +14746,34 @@
       list.innerHTML = people.map(function(m, i){
         // Two questions, two columns: their Share (equal unless typed; 0 =
         // wasn't part of it) and what they Paid.
-        return '<label class="fs-row" data-i="' + i + '"><span class="fs-face" title="Took part · click to leave out">' + avatarSvgFor(m.email, (data.avatars || {})[m.key]) + '</span>' +
-          '<span class="fs-name"></span><input type="number" class="fs-sh" min="0" step="0.01" inputmode="decimal" aria-label="Share"><input type="number" class="fs-amt" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="Paid"></label>';
+        return '<div class="fs-row" data-i="' + i + '"><button type="button" class="fs-sw on" role="switch" aria-checked="true" title="Pays · switch off to leave out"></button><span class="fs-face">' + avatarSvgFor(m.email, (data.avatars || {})[m.key]) + '</span>' +
+          '<span class="fs-who"><span class="fs-name"></span><span class="fs-sub">pays nothing, owes nothing</span></span><input type="number" class="fs-sh" min="0" step="0.01" inputmode="decimal" aria-label="Share"><input type="number" class="fs-amt" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="Paid"></div>';
       }).join('');
-      list.querySelectorAll('.fs-name').forEach(function(n, i){ n.textContent = displayNameFor(people[i].email, (data.avatars || {})[people[i].key]).split('@')[0]; });
+      list.querySelectorAll('.fs-name').forEach(function(n, i){ n.textContent = displayNameFor(people[i].email, (data.avatars || {})[people[i].key]).split('@')[0];
+        n.closest('.fs-row').querySelector('.fs-sw').setAttribute('aria-label', n.textContent + ' pays'); });
       box.hidden = false;
       updateLeft();
       if(typeof window.__afterAddPeople === 'function'){ var cb = window.__afterAddPeople; window.__afterAddPeople = null; cb(); }
     });
   }
   function addSplitTotal(){ var a = document.getElementById('fabAddAmountInput'); return parseFloat(a && a.value) || 0; }
-  // Not part of it: click the person's face or name (their share becomes 0)
+  // Left out (the switch is off): pays nothing, owes nothing. Share and
+  // Paid are locked at 0 until they're switched back on.
+  function setSplitOut(row, out){
+    var sh = row.querySelector('.fs-sh'), pd = row.querySelector('.fs-amt');
+    if(out) row.setAttribute('data-out', '1'); else row.removeAttribute('data-out');
+    sh.value = out ? '0' : ''; pd.value = out ? '0' : ''; sh.disabled = pd.disabled = out;
+  }
   document.addEventListener('click', function(e){
-    var who = e.target.closest && e.target.closest('#fabAddSplit .fs-row .fs-face, #fabAddSplit .fs-row .fs-name'); if(!who) return;
+    var sw = e.target.closest && e.target.closest('#fabAddSplit .fs-row .fs-sw'); if(!sw) return;
     e.preventDefault(); e.stopPropagation();
-    var row = who.closest('.fs-row'), sh = row.querySelector('.fs-sh'), out = sh.value.trim() !== '0';
-    sh.value = out ? '0' : ''; if(out){ var pd = row.querySelector('.fs-amt'); if(pd && !(parseFloat(pd.value) > 0)) pd.value = ''; }
+    var row = sw.closest('.fs-row'); setSplitOut(row, !row.hasAttribute('data-out'));
     updateLeft();
   }, true);
   function updateLeft(){
     var box = document.getElementById('fabAddSplit'); if(!box) return;
-    box.querySelectorAll('.fs-row').forEach(function(r){ var sv = r.querySelector('.fs-sh').value.trim(), off = sv === '0'; r.classList.toggle('off', off);
-      var f = r.querySelector('.fs-face'); if(f) f.title = off ? 'Not part of it · click to add back' : 'Took part · click to leave out'; });
+    box.querySelectorAll('.fs-row').forEach(function(r){ var off = r.hasAttribute('data-out'), sw = r.querySelector('.fs-sw'); r.classList.toggle('off', off);
+      if(sw){ sw.classList.toggle('on', !off); sw.setAttribute('aria-checked', off ? 'false' : 'true'); sw.title = off ? 'Left out · switch on to add back' : 'Pays · switch off to leave out'; } });
     // Who's in / paid only matters once the activity has a price.
     box.classList.toggle('no-price', !(addSplitTotal() > 0));
     if(box.hidden) return;
@@ -14807,14 +14833,16 @@
     var box = document.getElementById('fabAddSplit');
     if(box && !box.hidden && addSplitPeople.length){
       var paid = [], typed = [];
+      var outKeys = [];
       box.querySelectorAll('.fs-row').forEach(function(row){
         var m = addSplitPeople[+row.dataset.i], sv = row.querySelector('.fs-sh').value.trim();
+        if(row.hasAttribute('data-out')){ outKeys.push(m.key); return; }   // left out: stored as excluded
         if(sv !== '') typed.push({ k: m.key, a: parseFloat(sv) || 0 });
         var v = parseFloat(row.querySelector('.fs-amt').value);
         if(v > 0) paid.push({ k: m.key, a: v });
       });
       if(box.querySelector('.fs-mode button.on[data-mode="own"]')) li.setAttribute('data-pay-mode', 'own'); else li.removeAttribute('data-pay-mode');
-      setPaySplitExcluded(li, []); setPaySplits(li, typed); setPaid(li, paid);
+      setPaySplitExcluded(li, outKeys); setPaySplits(li, typed); setPaid(li, paid);
     }
   }
   // The Type field is a searchable list: the real <select> stays (it holds
@@ -15162,14 +15190,16 @@
     var box = document.getElementById('fabAddSplit');
     if(box && !box.hidden && !box.classList.contains('no-price') && addSplitPeople.length){
       var paid = [], typed = [];
+      var outKeys = [];
       box.querySelectorAll('.fs-row').forEach(function(row){
         var m = addSplitPeople[+row.dataset.i], sv = row.querySelector('.fs-sh').value.trim();
+        if(row.hasAttribute('data-out')){ outKeys.push(m.key); return; }   // left out: stored as excluded
         if(sv !== '') typed.push({ k: m.key, a: parseFloat(sv) || 0 });
         var v = parseFloat(row.querySelector('.fs-amt').value);
         if(v > 0) paid.push({ k: m.key, a: v });
       });
       if(box.querySelector('.fs-mode button.on[data-mode="own"]')) li.setAttribute('data-pay-mode', 'own'); else li.removeAttribute('data-pay-mode');
-      setPaySplitExcluded(li, []); setPaySplits(li, typed); setPaid(li, paid);
+      setPaySplitExcluded(li, outKeys); setPaySplits(li, typed); setPaid(li, paid);
     }
     applyExtras(li);
     // another day?
