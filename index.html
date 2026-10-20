@@ -2978,7 +2978,10 @@
   #goMenu .gm-opt:hover { background:var(--bg); }
   #goMenu .gm-opt svg { width:17px; height:17px; color:var(--muted); flex:none; }
   #goMenu .gm-opt.on, #goMenu .gm-opt.on svg { color:var(--primary); }
-  #goMenu .gm-ext { margin-left:auto; font-size:11px; color:var(--muted); }
+  #goMenu .gm-ext { margin-left:auto; font-size:11px; color:var(--muted); text-decoration:none; white-space:nowrap; padding:3px 6px; border-radius:6px; }
+  #goMenu .gm-tr .gm-ext:hover { background:#fff; color:var(--ink); }
+  #goMenu .gm-tr { align-items:flex-start; }
+  #goMenu .gm-trt small { display:block; font-size:11.5px; font-weight:600; color:var(--muted); margin-top:1px; }
   #goMenu hr { border:none; border-top:1px solid var(--line); margin:6px 0; }
   @media print { .acts > .go-line, #goMenu, #placeDD { display:none !important; } }
   /* ---- Notes: a tab after the alternatives; the page becomes a ruled
@@ -3147,7 +3150,7 @@
   .acts > li[data-city] { --cc:var(--primary); --cc-rgb:var(--primary-rgb); margin-left:24px; }
   .acts > li[data-city="1"] { --cc:var(--secondary); --cc-rgb:var(--secondary-rgb); }
   .acts > li[data-city="2"] { --cc:var(--accent); --cc-rgb:var(--accent-rgb); }
-  .acts > li[data-sec]::before { content:attr(data-sec); position:absolute; left:3px; top:-26px; white-space:nowrap; pointer-events:none;
+  .acts > li[data-sec]::before { content:attr(data-sec); position:absolute; left:3px; right:0; top:-26px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none;
     line-height:16px; font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
     color:var(--muted); }
   .acts > li[data-sec] { margin-top:32px; }
@@ -3550,7 +3553,7 @@
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
       </div></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Add location" aria-label="Place" autocomplete="off" /><span class="gc-to-arrow" id="fabAddPlaceArrow" hidden>→</span><input type="text" id="fabAddPlaceTo" class="fabadd-select" placeholder="To" aria-label="To" autocomplete="off" hidden /></div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="number" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" step="0.01" min="0" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
+      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="text" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
         <div class="fs-mode" role="radiogroup"><button type="button" class="on" data-mode="split">Split the bill</button><button type="button" data-mode="own">Each pays their own</button></div>
@@ -14537,8 +14540,8 @@
       flag(li, 'data-city-last', many && i === seq.length - 1, '');
     });
     // the exact spot picked on the map, under the name (display only)
-    dayActs(cell).forEach(function(li){
-      var sp = li.getAttribute('data-spot'), el = li.querySelector(':scope > .spot-line'), t = li.querySelector(':scope > .title');
+    dayActs(cell).concat(stayNights(cell)).forEach(function(li){   // a stay's other nights show its spot too
+      var sp = (li.__origin || li).getAttribute('data-spot'), el = li.querySelector(':scope > .spot-line'), t = li.querySelector(':scope > .title');
       if(!sp || !t){ if(el) el.remove(); return; }
       if(!el){ el = document.createElement('span'); el.className = 'spot-line'; el.contentEditable = 'false'; t.after(el); }
       if(el.textContent !== '📍 ' + sp) el.textContent = '📍 ' + sp;
@@ -14622,10 +14625,11 @@
       var seen = {}, places = (j.features || []).map(function(f){
         var p = f.properties || {}, c = f.geometry && f.geometry.coordinates; if(!c) return null;
         var area = !!PHOTON_AREA[p.type], street = p.street ? p.street + (p.housenumber ? ' ' + p.housenumber : '') : '';
-        var name = p.name || street || p.city || text, city = area && (p.type === 'city' || p.type === 'town' || p.type === 'village') ? name : (p.city || p.locality || p.county || '');
+        var town = p.type === 'city' || p.type === 'town' || p.type === 'village' || p.type === 'hamlet';
+        var name = p.name || street || p.city || text, city = town ? name : (p.city || (p.type === 'district' || p.type === 'locality' ? '' : p.locality) || p.county || '');
         var label = [area ? '' : street, area ? '' : city, area ? (p.state || '') : '', p.country || ''].filter(function(x){ return x && x !== name; }).join(', ');
         var key = name + '|' + label; if(seen[key]) return null; seen[key] = 1;
-        return { name:name, label:label, lat:c[1], lon:c[0], city:city, spot:!area };
+        return { name:name, label:label, lat:c[1], lon:c[0], city:city, spot:!area, town:town };
       }).filter(Boolean).slice(0, 5);
       if(!places.length) throw new Error('none'); return { places:places };
     });
@@ -14653,7 +14657,12 @@
     var g = inp._geo, v = inp.value.trim();
     if(g && v === g.name){
       li.setAttribute(geoAttr, fmtGeo(g));
-      if(g.spot){ li.setAttribute(spotAttr, g.name); if(g.city) inp.value = g.city; } else li.removeAttribute(spotAttr);
+      // the day's location stays a town: a spot (hotel, restaurant) never
+      // becomes it, and a neighbourhood counts as its town
+      var town = g.city && g.city !== g.name ? g.city : '', before = inp._orig && inp._orig !== g.name ? inp._orig : '';
+      var isTown = g.town || (!g.spot && g.city === g.name);
+      if(g.spot){ li.setAttribute(spotAttr, g.name); inp.value = town || before || g.name; }
+      else { li.removeAttribute(spotAttr); if(!isTown) inp.value = town || before || g.name; }
     } else if(v !== inp._orig || !v){ li.removeAttribute(geoAttr); li.removeAttribute(spotAttr); }
   }
   // the suggestions list under the place fields
@@ -14697,7 +14706,7 @@
     }
     function pick(i){
       var inp = forInp; if(!inp) return;
-      if(i !== 'keep'){ var p = list[i]; inp.value = p.name; inp._geo = { lat:p.lat, lon:p.lon, name:p.name, spot:!!p.spot, city:p.city || '' }; }
+      if(i !== 'keep'){ var p = list[i]; inp.value = p.name; inp._geo = { lat:p.lat, lon:p.lon, name:p.name, spot:!!p.spot, city:p.city || '', town:!!p.town }; }
       else inp._geo = null;
       placeTouched = true; close(); placeMark(inp);
     }
@@ -14726,7 +14735,7 @@
   function goPref(){ try { return localStorage.getItem('tp-go-mode') || 'auto'; } catch(e){ return 'auto'; } }
   function goData(li){ try { return JSON.parse(li.getAttribute('data-go') || '{}') || {}; } catch(e){ return {}; } }
   // automatic: walk when it's under 30 min; anything over ~5 km is a drive
-  function goModeOf(d, ends){ var m = d.m || goPref(); if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
+  function goModeOf(d, ends){ var m = d.m || goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
   function fmtMin(m){ return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
   function fmtKm(k){ return String(Math.round(k * 10) / 10).replace('.', ',') + ' km'; }
   // the stretch between two activities: from where the first ends to where the next starts
@@ -14737,7 +14746,7 @@
     var fSpot = a.hasAttribute('data-geo-to') ? a.hasAttribute('data-spot-to') : a.hasAttribute('data-spot'), d = kmBetween(fg, tg);
     // two exact spots, or two different towns (not the same spot)
     if(d < .08 || d > 2500 || (!(fSpot && b.hasAttribute('data-spot')) && d < 3)) return null;
-    return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b, km:d };
+    return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b, prevLi:a, km:d };
   }
   var goQueue = [], goBusy = false, goAsked = {};
   // One request per stretch: the script asks for walk, bike and car at
@@ -14758,6 +14767,46 @@
     });
     goPump();
   }
+  // Public transport, straight from Transitous (free, open timetables, no
+  // key): leaving at the earlier activity's time on that day (10:00 if it
+  // has none). A date outside the timetables tries the same weekday soon.
+  var goTransitAsked = {};
+  function transitWhen(ends){
+    var a = ends.prevLi && (ends.prevLi.__origin || ends.prevLi), cell = ends.li.closest('.cell'), panel = cell && cell.closest('.panel');
+    var dn = cell && parseInt((cell.querySelector(':scope > .cellhead > .daynum') || {}).textContent, 10), hh = 10, mm = 0;
+    var t = a ? [].map.call(a.querySelectorAll(':scope > .line'), function(l){ return l.textContent; }).join(' ').match(/\b(\d{1,2}):(\d{2})\b/g) : null;
+    if(t && t.length){ var x = t[t.length - 1].split(':'); hh = +x[0]; mm = +x[1]; }
+    var day = panel && dn ? realDate(panel, dn) : null;
+    return day ? new Date(day.year, day.month - 1, day.day, hh, mm) : null;
+  }
+  function transitLabel(it){
+    var NAMES = { TRAM:'tram', BUS:'bus', SUBWAY:'metro', METRO:'metro', FERRY:'ferry', CABLE_CAR:'cable car', FUNICULAR:'funicular', COACH:'coach' };
+    var parts = (it.legs || []).filter(function(l){ return l.mode && l.mode !== 'WALK' && l.mode !== 'BIKE' && l.mode !== 'CAR'; }).map(function(l){
+      var n = l.routeShortName || l.tripShortName || '', k = NAMES[l.mode] || (/RAIL|TRAIN|LONG_DISTANCE|HIGHSPEED|SUBURBAN|REGIONAL/.test(l.mode) ? 'train' : 'transit');
+      if(/^(TRAM|BUS|SUBWAY|METRO|FERRY)$/.test(l.mode)) return k + (n ? ' ' + n : '');
+      return n || k;
+    });
+    return parts.length ? parts.slice(0, 3).join(' + ') + (parts.length > 3 ? ' …' : '') : 'on foot';
+  }
+  function goTransit(ends){
+    if(goTransitAsked[ends.key] || VIEW_ONLY) return; goTransitAsked[ends.key] = 1;
+    var when = transitWhen(ends), now = new Date();
+    function soon(w){ var d = new Date(now.getTime() + 864e5), want = w ? w.getDay() : d.getDay(); while(d.getDay() !== want) d = new Date(d.getTime() + 864e5); d.setHours(w ? w.getHours() : 10, w ? w.getMinutes() : 0, 0, 0); return d; }
+    function ask(t){
+      var url = 'https://api.transitous.org/api/v1/plan?fromPlace=' + ends.from.lat + ',' + ends.from.lon + '&toPlace=' + ends.to.lat + ',' + ends.to.lon + '&time=' + encodeURIComponent(t.toISOString());
+      return fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+        var its = (j && j.itineraries || []).filter(function(it){ return (it.legs || []).some(function(l){ return l.mode && l.mode !== 'WALK'; }); });
+        its.sort(function(x, y){ return x.duration - y.duration; });
+        return its[0] || null; });
+    }
+    var first = when && when > now ? when : soon(when);
+    ask(first).then(function(it){ return it || (first === when ? ask(soon(when)) : null); }).then(function(it){
+      if(!ends.li.isConnected) return;
+      var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+      d.transit = it ? [Math.round(it.duration / 60), transitLabel(it)] : 0;
+      ends.li.setAttribute('data-go', JSON.stringify(d));
+    }).catch(function(){});
+  }
   // a quick estimate from the straight line, shown until the real time arrives
   function goGuess(ends, mode){ var d = ends.km * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[mode]; return [Math.max(1, Math.round(d / sp * 60) + (mode === 'car' ? 3 : 0)), d]; }
   function goPump(){ if(goBusy || !goQueue.length) return; goBusy = true; goQueue.shift()(function(){ goBusy = false; goPump(); }); }
@@ -14768,13 +14817,14 @@
       if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
       var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
       var mode = goModeOf(d, ends);
-      if(!d[mode] || (!d.walk && ends.km <= 150)) goFetch(ends);
+      if(mode !== 'transit' && (!d[mode] || (!d.walk && ends.km <= 150))) goFetch(ends);
+      if(d.transit == null) goTransit(ends);
       var el = acts.querySelector(':scope > .go-line[data-k="' + ends.key + '"]');
       if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
       el.__ends = ends; keep.push(el);
       var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
-      var v = d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
-        : '<button type="button" class="go-b" aria-label="Travel time">' + GO_ICONS[mode] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + GO_ICONS.caret + '</button>';
+      var v = mode === 'transit' ? (d.transit ? [d.transit[0], null] : null) : d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
+        : '<button type="button" class="go-b" aria-label="Travel time">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (v ? fmtMin(v[0]) + (v[1] != null ? ' · ' + fmtKm(v[1]) : '') : mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + GO_ICONS.caret + '</button>';
       if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
     });
     acts.querySelectorAll(':scope > .go-line').forEach(function(el){ if(keep.indexOf(el) === -1) el.remove(); });
@@ -14790,16 +14840,18 @@
       var d = goData(ends.li), cur = goModeOf(d, ends);
       goFetch(ends);
       var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
-      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || ends.km <= 150; }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</button>'; }).join('') +
-        '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + 'Public transport<span class="gm-ext">Google Maps ↗</span></a>' +
+      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25); }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</button>'; }).join('') +
+        (d.transit ? '<div class="gm-opt gm-tr' + (cur === 'transit' ? ' on' : '') + '" role="button" tabindex="0" data-m="transit">' + GO_ICONS.bus + '<span class="gm-trt">' + fmtMin(d.transit[0]) + '<small>' + d.transit[1].replace(/</g, '&lt;') + '</small></span><a class="gm-ext" href="' + maps + '" target="_blank" rel="noopener">Google Maps ↗</a></div>'
+          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>') +
         '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
-        '<button type="button" class="gm-opt" data-x="def">Use ' + GO_MODES[cur].toLowerCase() + ' for every line</button>' +
+        '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>' +
         (goPref() !== 'auto' ? '<button type="button" class="gm-opt" data-x="auto">Back to automatic (walk if short)</button>' : '') +
-        '<div class="gm-src">Routes © openrouteservice · Map data © OpenStreetMap</div>';
+        '<div class="gm-src">Routes © openrouteservice · Transit by Transitous · Map data © OpenStreetMap</div>';
       var r = b.getBoundingClientRect(); menu.hidden = false;
       menu.style.left = Math.round(Math.min(r.left, innerWidth - menu.offsetWidth - 8)) + 'px'; menu.style.top = Math.round(r.bottom + 6) + 'px';
       menu.onclick = function(ev){
-        var o = ev.target.closest('.gm-opt'); if(!o) return; if(o.tagName === 'A'){ menu.hidden = true; return; }
+        if(ev.target.closest('a')){ menu.hidden = true; return; }
+        var o = ev.target.closest('.gm-opt'); if(!o) return;
         if(o.dataset.m) setGo(ends.li, function(x){ if(o.dataset.m === goPref()) delete x.m; else x.m = o.dataset.m; });
         else if(o.dataset.x === 'hide') setGo(ends.li, function(x){ x.h = 1; });
         else if(o.dataset.x === 'def'){ try { localStorage.setItem('tp-go-mode', cur); } catch(err){} }
@@ -14853,7 +14905,7 @@
     var pad = function(t){ var a = t.split(':'); return a[0].padStart(2, '0') + ':' + a[1]; };
     fabAddTimeInput.value = times[0] ? pad(times[0]) : ''; fabAddTimeEndInput.value = times[1] ? pad(times[1]) : '';
     var pv = li.querySelector(':scope > .price > .price-val');
-    fabAddAmountInput.value = pv ? String(parseMoney(pv.textContent)) : '';
+    fabAddAmountInput.value = pv ? (pv.textContent.replace(/^[^\d-]*/, '').trim() || String(parseMoney(pv.textContent))) : '';   // as written, e.g. "45x2"
     fabAddAmountInput.dataset.orig = fabAddAmountInput.value;
     var cur = document.getElementById('fabAddCurrencySelect'); if(cur) cur.value = resolveCurrencyCode(li);
     var paid = getPaid(li), ex = getPaySplitExcluded(li), own = li.getAttribute('data-pay-mode') === 'own';
@@ -15241,7 +15293,7 @@
       if(typeof window.__afterAddPeople === 'function'){ var cb = window.__afterAddPeople; window.__afterAddPeople = null; cb(); }
     });
   }
-  function addSplitTotal(){ var a = document.getElementById('fabAddAmountInput'); return parseFloat(a && a.value) || 0; }
+  function addSplitTotal(){ var a = document.getElementById('fabAddAmountInput'); return a ? parseMoney(a.value) || 0 : 0; }   // "10x3" counts as 30
   // Left out (the switch is off): pays nothing, owes nothing. Share and
   // Paid are locked at 0 until they're switched back on.
   function setSplitOut(row, out){
@@ -15632,7 +15684,7 @@
         if(priceValIsNew) makeEditable(priceVal);
       }
       // no cost (empty or 0): no price on the activity
-      if(!(parseFloat(amountVal) > 0)){ var pz = newLi.querySelector(':scope > .price'); if(pz) pz.remove(); }
+      if(!(parseMoney(amountVal) > 0)){ var pz = newLi.querySelector(':scope > .price'); if(pz) pz.remove(); }
       applyAddPayment(newLi);
       applyExtras(newLi);
       applyPlace(cell, newLi);
@@ -15666,7 +15718,7 @@
     var priceEl = li.querySelector(':scope > .price');
     var cur = document.getElementById('fabAddCurrencySelect');
     if(cur){ var def = resolveCurrencyCode(li.closest('.panel')); if(cur.value && cur.value !== def) li.setAttribute('data-currency', cur.value); else li.removeAttribute('data-currency'); }
-    if(!(parseFloat(amountVal) > 0)){ if(priceEl) priceEl.remove(); li.removeAttribute('data-pay'); }
+    if(!(parseMoney(amountVal) > 0)){ if(priceEl) priceEl.remove(); li.removeAttribute('data-pay'); }
     else { var pv = li.querySelector(':scope > .price > .price-val');
       if(!pv){ priceEl = document.createElement('span'); priceEl.className = 'price'; pv = document.createElement('span'); pv.className = 'price-val'; priceEl.appendChild(pv); li.appendChild(priceEl); makeEditable(pv); }
       // Left as it was (e.g. "€ 45x2"), unless the amount or currency changed.
