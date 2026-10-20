@@ -3040,6 +3040,9 @@
   .dm-popup .maplibregl-popup-close-button { font-size:16px; color:var(--muted); right:4px; top:2px; }
   .dm-photo-slot { margin:-12px -14px 10px; height:128px; overflow:hidden; border-radius:14px 14px 0 0; background:var(--bg); opacity:0; transition:opacity .25s; }
   .dm-photo-slot.in { opacity:1; }
+  .dm-photo-slot.looking { opacity:1; height:auto; padding:9px 14px; border-radius:14px 14px 0 0; font-size:11px; font-weight:700; color:var(--muted); }
+  .dm-photo-slot.looking::before { content:'Looking for a photo…'; }
+  .dm-photo-slot.looking img { display:none; }
   .dm-photo-slot img { width:100%; height:100%; object-fit:cover; display:block; }
   .dm-about { margin:6px 0 0; font-size:12px; font-weight:600; line-height:1.4; color:var(--ink); opacity:.85; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .dm-credit { margin-top:5px; font-size:10.5px; font-weight:700; color:var(--muted); }
@@ -15014,9 +15017,13 @@
         grpToast('Added ' + props.name + ' to the ideas');
       });
       card = new maplibregl.Popup({ closeButton:true, closeOnClick:true, maxWidth:'260px', offset:10, className:'dm-popup' }).setLngLat([g.lon, g.lat]).setDOMContent(el).addTo(map);
-      var mine = card;
+      var mine = card, slot0 = el.querySelector('.dm-photo-slot');
+      slot0.hidden = false; slot0.classList.add('looking');
       placePhoto(g, props).then(function(r){
-        if(!r || card !== mine) return;
+        if(card !== mine) return;
+        slot0.classList.remove('looking');
+        if(!r || (!r.img && !r.about)){ slot0.hidden = true; return; }
+        if(!r.img) slot0.hidden = true;
         var slot = el.querySelector('.dm-photo-slot');
         if(r.img){
           var img = slot.querySelector('img');
@@ -15025,9 +15032,10 @@
         }
         if(r.about){ var ab = el.querySelector('.dm-about'); ab.textContent = r.about; ab.hidden = false; }
         var cr = el.querySelector('.dm-credit');
-        cr.innerHTML = (r.img ? '<a target="_blank" rel="noopener">Photo: Wikimedia Commons</a> · ' : '') + '<a target="_blank" rel="noopener">Wikipedia</a>';
-        var links = cr.querySelectorAll('a');
-        if(r.img){ links[0].href = r.file; links[1].href = r.page; } else links[0].href = r.page;
+        cr.innerHTML = (r.img ? '<a target="_blank" rel="noopener">Photo: Wikimedia Commons</a>' : '') + (r.img && r.page ? ' · ' : '') + (r.page ? '<a target="_blank" rel="noopener">Wikipedia</a>' : '');
+        var links = cr.querySelectorAll('a'), li = 0;
+        if(r.img) links[li++].href = r.file;
+        if(r.page) links[li].href = r.page;
         cr.hidden = false;
       });
     }
@@ -15054,8 +15062,25 @@
       var names = [props.name, props.name_en, props['name:en'], props.name_int].filter(Boolean);
       var hosts = ['en.wikipedia.org'];
       var lang = (navigator.language || 'en').slice(0, 2).toLowerCase(); if(lang !== 'en') hosts.push(lang + '.wikipedia.org');
+      // No article: photos on Wikimedia Commons taken within 100 m whose
+      // title carries the place's name (e.g. "Skarbonka we Wrocławiu.jpg").
+      function tryCommons(){
+        var words = [];
+        names.forEach(function(n){ norm(n).split(' ').forEach(function(w){ if(w.length > 3 && words.indexOf(w) === -1) words.push(w); }); });
+        if(!words.length) return Promise.resolve(null);
+        return wikiGet('commons.wikimedia.org', { action:'query', generator:'geosearch', ggscoord: g.lat + '|' + g.lon, ggsradius:100, ggsnamespace:6, ggslimit:40, prop:'imageinfo', iiprop:'url', iiurlwidth:480 }).then(function(d){
+          var pages = (d.query && d.query.pages) || {}, best = null, bestScore = 0;
+          Object.keys(pages).forEach(function(k){
+            var pg = pages[k], t = norm(String(pg.title || '').replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, ''));
+            var score = words.filter(function(w){ return (' ' + t + ' ').indexOf(' ' + w) !== -1; }).length;
+            if(score > bestScore && pg.imageinfo && pg.imageinfo[0] && pg.imageinfo[0].thumburl){ best = pg; bestScore = score; }
+          });
+          if(!best) return null;
+          return { img: best.imageinfo[0].thumburl, file: best.imageinfo[0].descriptionurl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(best.title.replace(/ /g, '_'))), about:'', page:'' };
+        });
+      }
       function tryHost(i){
-        if(i >= hosts.length) return Promise.resolve(null);
+        if(i >= hosts.length) return tryCommons();
         var host = hosts[i];
         return wikiGet(host, { action:'query', list:'geosearch', gscoord: g.lat + '|' + g.lon, gsradius:150, gslimit:15 }).then(function(d){
           var hits = (d.query && d.query.geosearch) || [];
@@ -15065,8 +15090,10 @@
             var pages = (d2.query && d2.query.pages) || {}, pg = pages[Object.keys(pages)[0]] || {};
             var about = (pg.extract || '').replace(/\s*\([^)]*\)/g, '').trim();
             if(about.length > 160) about = about.slice(0, 157).replace(/\s+\S*$/, '') + '…';
-            return { img: pg.thumbnail ? pg.thumbnail.source : '', file: pg.pageimage ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(pg.pageimage) : '',
+            var res = { img: pg.thumbnail ? pg.thumbnail.source : '', file: pg.pageimage ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(pg.pageimage) : '',
               about: about, page: 'https://' + host + '/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')) };
+            if(res.img) return res;
+            return tryCommons().then(function(c){ if(c){ res.img = c.img; res.file = c.file; } return res; });
           });
         });
       }
