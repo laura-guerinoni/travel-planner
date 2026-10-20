@@ -2966,10 +2966,31 @@
       box-shadow:18px 26px 44px -14px rgba(61,53,104,.38); }
   }
   #dayMap { display:none; }
+  /* With the map open the days are narrower: everything in a day stays inside it. */
+  :root.map-open .panel .grid.week > .cell { min-width:0; }
+  :root.map-open .acts, :root.map-open .acts > li, :root.map-open .acts > li > * { min-width:0; max-width:100%; }
+  :root.map-open .acts > li[data-city] { margin-left:0; }
+  :root.map-open .acts > li .tagrow { flex-wrap:nowrap; min-width:0; }
+  :root.map-open .acts > li .chip { min-width:0; flex-shrink:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  :root.map-open .acts > li > .title, :root.map-open .acts > li > .line, :root.map-open .acts > li > .price, :root.map-open .cell > .loc { overflow-wrap:break-word; hyphens:auto; -webkit-hyphens:auto; }
+  /* on a narrower window, a touch smaller text in the days */
+  @media screen and (max-width:1300px) {
+    :root.map-open .wrap { padding-left:10px !important; padding-right:10px !important; }
+    :root.map-open .panel > .grid { column-gap:5px !important; }
+    :root.map-open .panel .grid.week > .cell:not(.empty) { padding-left:6px !important; padding-right:6px !important; }
+    :root.map-open .panel .acts > li:not(.act-span-ghost) { padding-left:4px !important; padding-right:4px !important; }
+    :root.map-open .acts > li > .title { font-size:12px; line-height:1.25; }
+    :root.map-open .cell > .cellhead > .wd { display:none; }
+    :root.map-open .cell > .loc { letter-spacing:.02em; }
+    :root.map-open .acts > li > .line, :root.map-open .acts > li > .price, :root.map-open .acts > .go-line { font-size:11px; }
+    :root.map-open .acts > li .chip { font-size:10.5px; }
+    :root.map-open .cell > .loc { font-size:10px; }
+  }
+  :root.map-open .acts > .go-line { overflow:hidden; white-space:nowrap; -webkit-mask-image:linear-gradient(90deg, #000 78%, transparent); mask-image:linear-gradient(90deg, #000 78%, transparent); }
   @media screen and (min-width: 721px) {
-    :root.map-open #dayMap { display:block; position:fixed; z-index:30; top:var(--map-top, 96px); bottom:18px; left:var(--map-left, 50%); right:18px;
+    :root.map-open #dayMap { display:block; position:fixed; z-index:30; top:var(--map-top, 96px); bottom:18px; left:var(--map-left, 50%); right:var(--map-right, 18px);
       background-color:var(--bg); background-image:var(--texture); border:1px solid var(--line); border-left:none; border-radius:0 14px 14px 0;
-      box-shadow:4px 4px 0 -1px var(--bg), 4px 4px 0 0 var(--line), 8px 8px 0 -1px var(--bg), 8px 8px 0 0 var(--line), 12px 12px 0 -1px var(--bg), 12px 12px 0 0 var(--line), 18px 26px 44px -14px rgba(61,53,104,.38);
+      box-shadow:12px 26px 44px -18px rgba(61,53,104,.38);
       font-family:inherit; color:var(--ink); }
   }
   /* the fold between the two pages */
@@ -2983,10 +3004,10 @@
   #dayMap .dm-tape.a { left:16px; top:14px; background:rgba(236,106,156,.32); }
   #dayMap .dm-tape.b { right:16px; bottom:18px; background:rgba(63,191,148,.3); }
   /* the day's kraft tag */
-  #dayMap .dm-tag { position:absolute; z-index:7; top:34px; right:40px; padding:9px 26px; text-align:center; background:#f3e3cc; border-radius:4px; transform:rotate(2deg);
+  #dayMap .dm-tag { position:absolute; z-index:7; top:34px; right:58px; max-width:calc(100% - 92px); padding:9px 24px; text-align:center; background:#f3e3cc; border-radius:4px; transform:rotate(2deg);
     box-shadow:0 8px 14px -8px rgba(61,53,104,.5); color:#5a4630; }
-  #dayMap .dm-date { font-family:Caveat, 'Bradley Hand', cursive; font-size:23px; font-weight:700; line-height:1.05; white-space:nowrap; }
-  #dayMap .dm-stats { display:flex; justify-content:center; gap:11px; margin-top:4px; font-size:11.5px; font-weight:800; color:#8a6a45; }
+  #dayMap .dm-date { font-family:Caveat, 'Bradley Hand', cursive; font-size:clamp(19px, 2vw, 23px); font-weight:700; line-height:1.05; white-space:nowrap; }
+  #dayMap .dm-stats { display:flex; flex-wrap:wrap; justify-content:center; gap:2px 10px; margin-top:4px; font-size:11.5px; font-weight:800; color:#8a6a45; }
   #dayMap .dm-stats span { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
   #dayMap .dm-stats svg { width:13px; height:13px; flex:none; }
   #dayMap .dm-arr { position:absolute; top:50%; margin-top:-10px; width:20px; height:20px; padding:0; border:none; background:none; display:grid; place-items:center; color:#a0815a; cursor:pointer; }
@@ -3004,8 +3025,8 @@
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
   #dayMap .dm-note:empty { display:none; }
   #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:Nunito, sans-serif; }
-  .acts > li > .map-num { width:20px; height:20px; flex:none; border-radius:50%; background:var(--primary); color:#fff; font-weight:800; display:grid; place-items:center; }
-  .acts > li > .map-num { position:absolute; left:-9px; top:-7px; width:18px; height:18px; font-size:10.5px; z-index:2; box-shadow:0 0 0 2px #fff; }
+  .acts > li .map-num { width:18px; height:18px; flex:none; border-radius:50%; background:var(--primary); color:#fff; font-size:10.5px; font-weight:800; display:grid; place-items:center; }
+  .acts > li .tagrow > .map-num { margin-right:1px; }
   .acts > li[data-map-hl] { background:rgba(var(--primary-rgb), .1) !important; }
   .cell[data-map-day] { box-shadow:0 0 0 2px rgba(var(--primary-rgb), .35); }
   :root.map-open .cell:not(.empty) > .cellhead { cursor:pointer; }
@@ -3014,7 +3035,7 @@
   .dm-pin.stay { background:#8a6fd1; } .dm-pin.arr { background:#fff; border-color:var(--primary); }
   .dm-pin span { transform:rotate(45deg); color:#fff; font-size:12px; font-weight:800; font-family:Nunito, sans-serif; } .dm-pin.arr span { color:var(--primary); }
   .dm-pinwrap.hl .dm-pin { transform:rotate(-45deg) scale(1.25); }
-  @media print { #dayMap, .page-map, .acts > li > .map-num { display:none !important; } :root.map-open body { padding-right:0 !important; } }
+  @media print { #dayMap, .page-map, .acts > li .map-num { display:none !important; } :root.map-open body { padding-right:0 !important; } }
   /* places on the map, and the travel lines between activities */
   #placeDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #placeDD[hidden] { display:none; }
@@ -7839,7 +7860,7 @@
       btn.style.display = cur ? '' : 'none';
       // With the day map open, the page's outer corner is the map page's.
       var mapPage = document.documentElement.classList.contains('map-open') && document.getElementById('dayMap');
-      btn.style.left = ((mapPage && mapPage.offsetWidth ? mapPage.getBoundingClientRect().right : wrapEl.getBoundingClientRect().right) - 14) + 'px';
+      btn.style.left = (mapPage && mapPage.offsetWidth ? mapPage.getBoundingClientRect().right - 32 - 14 : wrapEl.getBoundingClientRect().right - 14) + 'px';
       // The open month's own color, read off its alternative's tab
       // (renderMonthSidebar paints it there). The inline value is a theme
       // variable (e.g. var(--secondary)), so taking it as written keeps
@@ -7925,7 +7946,7 @@
     // The share icon's right edge lines up with the edge of the last sheet
     // in the stack behind the page (8px out from the page), the button
     // having 8px of padding around its 16px icon.
-    head.style.left = (r.right + 8 + 8) + 'px';
+    head.style.left = (r.right + (mapPage && mapPage.offsetWidth ? 8 : 8 + 8)) + 'px';
     fitPillsToHead();
   }
   // The alternatives row ends just before the header (faces, payments,
@@ -14695,12 +14716,17 @@
     // while the calendar scrolls; the clip follows the tag's left edge.
     function place(){
       if(!isOpen() || !panel) return;
-      var vw = window.innerWidth, w = Math.round(Math.max(380, Math.min(600, vw * .38)));
+      // A tall, narrow page: about 28% of the window, so the days keep room.
+      var vw = window.innerWidth, w = Math.round(Math.max(260, Math.min(500, vw * .28)));
       var root = document.documentElement;
-      if(root.style.getPropertyValue('--map-w') !== w + 'px') root.style.setProperty('--map-w', (w + 18) + 'px');
       var wrap = document.querySelector('.wrap'), pills = document.querySelector('.pills');
       if(wrap){
         var r = wrap.getBoundingClientRect(), top = Math.max(r.top, pills ? pills.getBoundingClientRect().bottom - 1 : 0);
+        // the same margin on the right as the calendar has on the left
+        var m = Math.max(12, Math.round(r.left)) + 'px';
+        if(root.style.getPropertyValue('--map-right') !== m) root.style.setProperty('--map-right', m);
+        var pad = (w + Math.max(12, Math.round(r.left))) + 'px';
+        if(root.style.getPropertyValue('--map-w') !== pad) root.style.setProperty('--map-w', pad);
         root.style.setProperty('--map-left', Math.round(r.right - 1) + 'px');
         root.style.setProperty('--map-top', Math.round(top) + 'px');
       }
@@ -14743,7 +14769,7 @@
       var loc = (cell.querySelector(':scope > .loc .loc-text') || {}).textContent || '';
       return (wd ? wd.textContent + ' ' : '') + (real ? real.day + ' ' + MONTH_FULL[real.month - 1] : dn.textContent);
     }
-    function clearNums(){ document.querySelectorAll('.acts > li > .map-num').forEach(function(x){ x.remove(); }); }
+    function clearNums(){ document.querySelectorAll('.acts > li .map-num').forEach(function(x){ x.remove(); }); }
     function legMin(s, prev){
       if(!prev) return 0;
       var ends = goEnds(prev.li, s.li); if(!ends) return 0;
@@ -14771,7 +14797,7 @@
       document.querySelectorAll('.cell[data-map-day]').forEach(function(c){ if(c !== day) c.removeAttribute('data-map-day'); }); day.setAttribute('data-map-day', '');
       // the numbers on the day's cards
       clearNums();
-      stops.forEach(function(s){ if(s.n && !s.arrival){ var t = s.li.querySelector(':scope > .title'); if(t){ var b = document.createElement('span'); b.className = 'map-num'; b.contentEditable = 'false'; b.textContent = s.n; s.li.insertBefore(b, s.li.firstChild); } } });
+      stops.forEach(function(s){ if(s.n && !s.arrival){ var row = s.li.querySelector(':scope > .tagrow') || s.li; var b = document.createElement('span'); b.className = 'map-num'; b.contentEditable = 'false'; b.textContent = s.n; row.insertBefore(b, row.firstChild); } });
       // the legs: the travel time between each stop and the next, and the day's totals
       var legs = [], mins = 0, km = 0, prev = null, last = null;
       stops.forEach(function(s){
