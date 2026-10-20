@@ -31,7 +31,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27><rect x=%272%27 y=%272%27 width=%2728%27 height=%2728%27 rx=%278%27 fill=%27%23f7f1ea%27/><path d=%27M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z%27 fill=%27%23ef9a5c%27/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <style>
   /* Vivid/joyful palette — pink, mint, and warm coral lifted from a kawaii-style
      reference — is now the main default. Plain-weave grid texture kept very
@@ -2957,28 +2957,54 @@
   .page-map { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; margin-right:2px; border:none; border-radius:50%; background:none; color:var(--ink); cursor:pointer; opacity:.75; }
   .page-map:hover, .page-map.on { background:rgba(255,255,255,.9); opacity:1; } .page-map.on { color:var(--primary); }
   .page-map:focus { outline:none; } .page-map svg { width:17px; height:17px; }
-  @media screen and (min-width: 721px) { :root.map-open body { padding-right:430px; } }
+  /* The map is the right-hand page of the open notebook: it joins the
+     calendar's page at a soft fold, and the map itself is taped on it
+     like a photo, with the day's kraft tag clipped to its top edge. */
+  @media screen and (min-width: 721px) {
+    :root.map-open body { padding-right:var(--map-w, 460px); }
+    :root.map-open .wrap { border-top-right-radius:0; border-bottom-right-radius:0;
+      box-shadow:18px 26px 44px -14px rgba(61,53,104,.38); }
+  }
   #dayMap { display:none; }
   @media screen and (min-width: 721px) {
-    :root.map-open #dayMap { display:flex; flex-direction:column; position:fixed; z-index:30; right:18px; width:396px; top:calc(var(--pills-height, 96px) + 0px); bottom:18px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px -14px rgba(61,53,104,.35), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+    :root.map-open #dayMap { display:block; position:fixed; z-index:30; top:var(--map-top, 96px); bottom:18px; left:var(--map-left, 50%); right:18px;
+      background-color:var(--bg); background-image:var(--texture); border:1px solid var(--line); border-left:none; border-radius:0 14px 14px 0;
+      box-shadow:4px 4px 0 -1px var(--bg), 4px 4px 0 0 var(--line), 8px 8px 0 -1px var(--bg), 8px 8px 0 0 var(--line), 12px 12px 0 -1px var(--bg), 12px 12px 0 0 var(--line), 18px 26px 44px -14px rgba(61,53,104,.38);
+      font-family:inherit; color:var(--ink); }
   }
-  #dayMap .dm-head { display:flex; align-items:center; gap:8px; padding:10px 12px; }
-  #dayMap .dm-title { flex:1; min-width:0; font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #dayMap .dm-nav, #dayMap .dm-x { width:28px; height:28px; flex:none; border:none; border-radius:50%; background:var(--bg); color:var(--ink); font:inherit; font-weight:800; cursor:pointer; }
-  #dayMap .dm-x { background:none; color:var(--muted); }
-  #dayMap .dm-nav:hover, #dayMap .dm-x:hover { background:#ebe3f6; }
-  #dayMap .dm-canvas { flex:0 0 46%; min-height:220px; }
-  #dayMap .dm-empty:empty { display:none; }
-  #dayMap .dm-empty { padding:10px 14px; font-size:12.5px; font-weight:600; color:var(--muted); border-top:1px solid var(--line); }
-  #dayMap .dm-stops { flex:1; overflow:auto; border-top:1px solid var(--line); padding:4px 0 8px; }
-  #dayMap .dm-stop { display:flex; gap:10px; align-items:center; padding:7px 14px; font-size:13px; cursor:default; }
-  #dayMap .dm-stop.hl { background:var(--bg); }
-  #dayMap .dm-stop b { display:block; font-weight:800; } #dayMap .dm-stop small { display:block; color:var(--muted); font-weight:600; font-size:11.5px; }
-  #dayMap .dm-n, .acts > li > .map-num { width:20px; height:20px; flex:none; border-radius:50%; background:var(--primary); color:#fff; font-size:11px; font-weight:800; display:grid; place-items:center; }
-  #dayMap .dm-n.stay { background:#8a6fd1; }
-  #dayMap .dm-leg { display:flex; align-items:center; gap:5px; padding:0 14px 0 44px; font-size:11.5px; font-weight:700; color:var(--muted); }
-  #dayMap .dm-leg svg { width:13px; height:13px; }
-  #dayMap .dm-none { padding:6px 14px; font-size:12px; font-weight:600; color:var(--muted); }
+  /* the fold between the two pages */
+  #dayMap .dm-spine { position:absolute; left:-7px; top:0; bottom:0; width:14px; z-index:8; pointer-events:none;
+    background:linear-gradient(90deg, rgba(61,53,104,0), rgba(61,53,104,.16) 45%, rgba(61,53,104,.16) 55%, rgba(61,53,104,0)); }
+  /* the map, taped on like a photo */
+  #dayMap .dm-photo { position:absolute; left:26px; right:26px; top:26px; bottom:30px; z-index:3; border-radius:4px; overflow:hidden; transform:rotate(.6deg);
+    box-shadow:0 12px 26px -12px rgba(40,25,60,.45), 0 0 0 6px #fff; background:#eef0f3; }
+  #dayMap .dm-canvas { position:absolute; inset:0; }
+  #dayMap .dm-tape { position:absolute; z-index:5; width:84px; height:20px; pointer-events:none; transform:rotate(-24deg); }
+  #dayMap .dm-tape.a { left:16px; top:14px; background:rgba(236,106,156,.32); }
+  #dayMap .dm-tape.b { right:16px; bottom:18px; background:rgba(63,191,148,.3); }
+  /* the day's kraft tag */
+  #dayMap .dm-tag { position:absolute; z-index:7; top:34px; right:40px; padding:9px 26px; text-align:center; background:#f3e3cc; border-radius:4px; transform:rotate(2deg);
+    box-shadow:0 8px 14px -8px rgba(61,53,104,.5); color:#5a4630; }
+  #dayMap .dm-date { font-family:Caveat, 'Bradley Hand', cursive; font-size:23px; font-weight:700; line-height:1.05; white-space:nowrap; }
+  #dayMap .dm-stats { display:flex; justify-content:center; gap:11px; margin-top:4px; font-size:11.5px; font-weight:800; color:#8a6a45; }
+  #dayMap .dm-stats span { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+  #dayMap .dm-stats svg { width:13px; height:13px; flex:none; }
+  #dayMap .dm-arr { position:absolute; top:50%; margin-top:-10px; width:20px; height:20px; padding:0; border:none; background:none; display:grid; place-items:center; color:#a0815a; cursor:pointer; }
+  #dayMap .dm-arr svg { width:15px; height:15px; } #dayMap .dm-arr:hover { color:#5a4630; }
+  #dayMap .dm-arr.l { left:4px; } #dayMap .dm-arr.r { right:4px; }
+  #dayMap .dm-arr:disabled { opacity:.3; cursor:default; }
+  /* the pink paperclip: the arch and front leg over everything, the back leg under the map */
+  #dayMap .dm-clip { position:absolute; top:10px; width:21px; height:52px; pointer-events:none; transform:rotate(-6deg); }
+  #dayMap .dm-clip svg { width:100%; height:100%; display:block; overflow:visible; filter:drop-shadow(0 1px .6px rgba(40,25,60,.25)); }
+  #dayMap .dm-clip.back { z-index:2; } #dayMap .dm-clip.front { z-index:9; }
+  /* travel times on the route */
+  .dm-seg { display:inline-flex; align-items:center; gap:4px; background:#fff; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; color:var(--ink); box-shadow:0 2px 8px rgba(40,25,60,.2); white-space:nowrap; font-family:Nunito, sans-serif; pointer-events:none; }
+  .dm-seg svg { width:12px; height:12px; flex:none; }
+  #dayMap .dm-note { position:absolute; z-index:6; left:50%; bottom:22px; transform:translateX(-50%); max-width:calc(100% - 60px); background:rgba(255,255,255,.95); border-radius:12px; padding:7px 12px;
+    font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
+  #dayMap .dm-note:empty { display:none; }
+  #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:Nunito, sans-serif; }
+  .acts > li > .map-num { width:20px; height:20px; flex:none; border-radius:50%; background:var(--primary); color:#fff; font-weight:800; display:grid; place-items:center; }
   .acts > li > .map-num { position:absolute; left:-9px; top:-7px; width:18px; height:18px; font-size:10.5px; z-index:2; box-shadow:0 0 0 2px #fff; }
   .acts > li[data-map-hl] { background:rgba(var(--primary-rgb), .1) !important; }
   .cell[data-map-day] { box-shadow:0 0 0 2px rgba(var(--primary-rgb), .35); }
@@ -7811,7 +7837,9 @@
       btn.setAttribute('aria-label', btn.title);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.style.display = cur ? '' : 'none';
-      btn.style.left = (wrapEl.getBoundingClientRect().right - 14) + 'px';
+      // With the day map open, the page's outer corner is the map page's.
+      var mapPage = document.documentElement.classList.contains('map-open') && document.getElementById('dayMap');
+      btn.style.left = ((mapPage && mapPage.offsetWidth ? mapPage.getBoundingClientRect().right : wrapEl.getBoundingClientRect().right) - 14) + 'px';
       // The open month's own color, read off its alternative's tab
       // (renderMonthSidebar paints it there). The inline value is a theme
       // variable (e.g. var(--secondary)), so taking it as written keeps
@@ -7887,7 +7915,9 @@
       html += '<span class="pill-access-face" data-key="' + key.replace(/"/g, '') + '" data-name="' + nm + '">' + (full || f.innerHTML) + '</span>';
     });
     if(facesEl.innerHTML !== html) facesEl.innerHTML = html;
-    var r = wrapEl.getBoundingClientRect();
+    // With the day map open, the notebook's outer edge is the map page's.
+    var mapPage = document.documentElement.classList.contains('map-open') && document.getElementById('dayMap');
+    var r = (mapPage && mapPage.offsetWidth ? mapPage : wrapEl).getBoundingClientRect();
     // 22px clear of the ribbon (which hangs from right - 14).
     // In the top row, level with the middle of the tickets and the +.
     var mid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tab-mid')) || 40;
@@ -14587,11 +14617,13 @@
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(renderPlaceSections); }, 400);
 
   // ---------- The day on a map ----------
-  // A 🗺 button in the top bar opens a map on the right of the calendar
-  // (MapLibre + OpenFreeMap tiles: free, no key). It shows one day: its
-  // stops in order, numbered like on the cards, joined by a line, with the
-  // travel times below. Click a day's date to show it there; ‹ › move
-  // between days; editing an activity shows its day.
+  // A 🗺 button in the top bar opens the map as the right-hand page of the
+  // open notebook (MapLibre + OpenFreeMap tiles: free, no key). The map is
+  // taped on that page like a photo and shows one day: its stops in order,
+  // numbered like on the cards, joined by a line, with each travel time on
+  // the line itself. A kraft tag clipped to the map's top edge says which
+  // day it is (with ‹ › to move) and how many places, how long, how far.
+  // Clicking a day's date shows it there; editing an activity shows its day.
   (function(){
     var MAP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.1 6.3 9.9 3.7A2 2 0 0 0 8 3.6L3.7 5.5A1.2 1.2 0 0 0 3 6.6v12.8a1 1 0 0 0 1.4.9l4.2-1.9a2 2 0 0 1 1.8.1l4.2 2.6a2 2 0 0 0 1.9.1l4.3-1.9a1.2 1.2 0 0 0 .7-1.1V4.6a1 1 0 0 0-1.4-.9l-4.2 1.9a2 2 0 0 1-1.8-.1z"/><path d="M15 5.8v15M9 3.2v15"/></svg>';
     var panel = null, map = null, markers = [], day = null, sig = '', loading = null;
@@ -14626,25 +14658,59 @@
       document.documentElement.classList.toggle('map-open', on);
       try { localStorage.setItem('tp-map', on ? '1' : ''); } catch(e){}
       var b = document.querySelector('.page-map'); if(b) b.classList.toggle('on', on);
-      if(on){ build(); loadLib().then(function(){ initMap(); draw(true); }).catch(function(){ panel.querySelector('.dm-empty').textContent = 'The map couldn’t load. Check your connection.'; }); }
+      if(on){ build(); place(); loadLib().then(function(){ initMap(); draw(true); }).catch(function(){ panel.querySelector('.dm-note').textContent = 'The map couldn’t load. Check your connection.'; }); }
       else clearNums();
-      setTimeout(function(){ window.dispatchEvent(new Event('resize')); if(map) map.resize(); }, 60);
+      setTimeout(function(){ window.dispatchEvent(new Event('resize')); if(map) map.resize(); if(typeof renderPageBookmark === 'function') renderPageBookmark(); }, 60);
+    }
+    var ICO = {
+      pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+      clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      route:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>',
+      l:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
+      r:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>' };
+    // The paperclip is one wire drawn over everything (the arch, and the
+    // left leg coming down onto the tag) plus its right leg drawn under the
+    // map, so the map's white border hides that leg exactly at its edge.
+    function clipSVG(part){
+      var d = part === 'leg' ? 'M21 8.6 V40' : 'M21 9 a8 8 0 0 0 -16 0 V43 a4 4 0 0 0 8 0 V18', id = 'dmClip' + part;
+      return '<svg viewBox="0 0 26 60"><defs><linearGradient id="' + id + '" x1="0" x2="1" y1="0" y2=".15"><stop offset="0" stop-color="#a8406a"/><stop offset=".35" stop-color="#ffd3e4"/><stop offset=".55" stop-color="#ec6a9c"/><stop offset="1" stop-color="#a8406a"/></linearGradient></defs>' +
+        '<path d="' + d + '" fill="none" stroke="#a8406a" stroke-opacity=".35" stroke-width="2.6" stroke-linecap="round" transform="translate(.6 .9)"/>' +
+        '<path d="' + d + '" fill="none" stroke="url(#' + id + ')" stroke-width="2.2" stroke-linecap="round"/></svg>';
     }
     function build(){
       if(panel) return;
       panel = document.createElement('div'); panel.id = 'dayMap';
-      panel.innerHTML = '<div class="dm-head"><button type="button" class="dm-nav" data-d="-1" aria-label="Previous day">‹</button><b class="dm-title"></b><button type="button" class="dm-nav" data-d="1" aria-label="Next day">›</button><button type="button" class="dm-x" aria-label="Close the map">✕</button></div>' +
-        '<div class="dm-canvas"></div><div class="dm-empty"></div><div class="dm-stops"></div>';
+      panel.innerHTML = '<div class="dm-spine"></div>' +
+        '<span class="dm-clip back">' + clipSVG('leg') + '</span>' +
+        '<div class="dm-photo"><div class="dm-canvas"></div><div class="dm-note"></div></div>' +
+        '<div class="dm-tape a"></div><div class="dm-tape b"></div>' +
+        '<div class="dm-tag"><button type="button" class="dm-arr l" aria-label="Previous day">' + ICO.l + '</button><button type="button" class="dm-arr r" aria-label="Next day">' + ICO.r + '</button>' +
+          '<div class="dm-date"></div><div class="dm-stats"></div></div>' +
+        '<span class="dm-clip front">' + clipSVG('edge') + '</span>';
       document.body.appendChild(panel);
-      panel.querySelector('.dm-x').addEventListener('click', function(){ toggle(false); });
-      panel.querySelectorAll('.dm-nav').forEach(function(b){ b.addEventListener('click', function(){ step(+b.dataset.d); }); });
-      panel.querySelector('.dm-stops').addEventListener('mouseover', function(e){ var x = e.target.closest('[data-i]'); hl(x ? +x.dataset.i : -1); });
-      panel.querySelector('.dm-stops').addEventListener('mouseleave', function(){ hl(-1); });
+      panel.querySelector('.dm-arr.l').addEventListener('click', function(){ step(-1); });
+      panel.querySelector('.dm-arr.r').addEventListener('click', function(){ step(1); });
     }
+    // The map page sits right against the calendar's page and stays put
+    // while the calendar scrolls; the clip follows the tag's left edge.
+    function place(){
+      if(!isOpen() || !panel) return;
+      var vw = window.innerWidth, w = Math.round(Math.max(380, Math.min(600, vw * .38)));
+      var root = document.documentElement;
+      if(root.style.getPropertyValue('--map-w') !== w + 'px') root.style.setProperty('--map-w', (w + 18) + 'px');
+      var wrap = document.querySelector('.wrap'), pills = document.querySelector('.pills');
+      if(wrap){
+        var r = wrap.getBoundingClientRect(), top = Math.max(r.top, pills ? pills.getBoundingClientRect().bottom - 1 : 0);
+        root.style.setProperty('--map-left', Math.round(r.right - 1) + 'px');
+        root.style.setProperty('--map-top', Math.round(top) + 'px');
+      }
+      var tag = panel.querySelector('.dm-tag');
+      if(tag){ var x = tag.offsetLeft + 20 + 'px'; panel.querySelectorAll('.dm-clip').forEach(function(c){ if(c.style.left !== x) c.style.left = x; }); }
+    }
+    (function follow(){ place(); requestAnimationFrame(follow); })();
     function initMap(){
       if(map) return;
       map = new maplibregl.Map({ container: panel.querySelector('.dm-canvas'), style:'https://tiles.openfreemap.org/styles/positron', center:[12.5, 45], zoom:4, attributionControl:{ compact:true } });
-      map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
       map.on('load', function(){
         map.addSource('dm-route', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
         map.addLayer({ id:'dm-route-casing', type:'line', source:'dm-route', paint:{ 'line-color':'#fff', 'line-width':7, 'line-opacity':.9 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
@@ -14675,9 +14741,16 @@
       var dn = cell.querySelector(':scope > .cellhead > .daynum'), wd = cell.querySelector(':scope > .cellhead > .wd'), p = cell.closest('.panel'), real = null;
       try { real = realDate(p, parseInt(dn.textContent, 10)); } catch(e){}
       var loc = (cell.querySelector(':scope > .loc .loc-text') || {}).textContent || '';
-      return (wd ? wd.textContent + ' ' : '') + (real ? real.day + ' ' + MONTH_FULL[real.month - 1] : dn.textContent) + (loc ? ' · ' + loc : '');
+      return (wd ? wd.textContent + ' ' : '') + (real ? real.day + ' ' + MONTH_FULL[real.month - 1] : dn.textContent);
     }
     function clearNums(){ document.querySelectorAll('.acts > li > .map-num').forEach(function(x){ x.remove(); }); }
+    function legMin(s, prev){
+      if(!prev) return 0;
+      var ends = goEnds(prev.li, s.li); if(!ends) return 0;
+      var d = goData(ends.li); if(d.k !== ends.key) return 0;
+      var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
+      return v ? v[0] : 0;
+    }
     function legOf(s, prev){
       if(!prev) return '';
       var ends = goEnds(prev.li, s.li); if(!ends) return '';
@@ -14692,40 +14765,51 @@
       var stops = stopsOf(day), placed = stops.filter(function(s){ return s.g; });
       var nsig = dayTitle(day) + '|' + stops.map(function(s){ return (s.g ? fmtGeo(s.g) : '-') + s.name + (s.li.getAttribute('data-go') || ''); }).join('|');
       if(nsig === sig && !fit) return; sig = nsig;
-      panel.querySelector('.dm-title').textContent = dayTitle(day);
+      panel.querySelector('.dm-date').textContent = dayTitle(day);
+      var cs = cells(), at = cs.indexOf(day);
+      panel.querySelector('.dm-arr.l').disabled = at <= 0; panel.querySelector('.dm-arr.r').disabled = at === -1 || at >= cs.length - 1;
       document.querySelectorAll('.cell[data-map-day]').forEach(function(c){ if(c !== day) c.removeAttribute('data-map-day'); }); day.setAttribute('data-map-day', '');
       // the numbers on the day's cards
       clearNums();
       stops.forEach(function(s){ if(s.n && !s.arrival){ var t = s.li.querySelector(':scope > .title'); if(t){ var b = document.createElement('span'); b.className = 'map-num'; b.contentEditable = 'false'; b.textContent = s.n; s.li.insertBefore(b, s.li.firstChild); } } });
-      panel.querySelector('.dm-empty').textContent = placed.length ? '' : 'No places on the map for this day yet. Pick a place from the suggestions when you edit an activity.';
-      var list = '', prev = null;
-      stops.forEach(function(s, i){
-        if(s.none){ list += '<div class="dm-none">· ' + npEsc(s.name || 'Activity') + ': no place on the map yet</div>'; return; }
-        if(!s.arrival){ var leg = legOf(s, prev); if(leg) list += '<div class="dm-leg">' + leg + '</div>'; }
-        list += '<div class="dm-stop" data-i="' + i + '"><span class="dm-n' + (s.stay ? ' stay' : '') + '">' + (s.arrival ? '↳' : s.n) + '</span><span><b></b><small></small></span></div>';
+      // the legs: the travel time between each stop and the next, and the day's totals
+      var legs = [], mins = 0, km = 0, prev = null, last = null;
+      stops.forEach(function(s){
+        if(!s.g) return;
+        if(last) km += kmBetween(last.g, s.g);
+        if(!s.arrival && prev){ var txt = legOf(s, prev); mins += legMin(s, prev); if(txt) legs.push({ a: last.g, b: s.g, html: txt }); }
         if(!s.arrival) prev = s;
+        last = s;
       });
-      var st = panel.querySelector('.dm-stops'); st.innerHTML = list;
-      st.querySelectorAll('.dm-stop').forEach(function(el){ var s = stops[+el.dataset.i]; el.querySelector('b').textContent = s.name || 'Activity'; el.querySelector('small').textContent = s.sub; });
+      var nPlaces = stops.filter(function(s){ return s.n && !s.arrival; }).length;
+      panel.querySelector('.dm-stats').innerHTML = nPlaces ? '<span>' + ICO.pin + nPlaces + (nPlaces === 1 ? ' place' : ' places') + '</span>' +
+        (mins ? '<span>' + ICO.clock + fmtMin(mins) + '</span>' : '') + (km >= .05 ? '<span>' + ICO.route + fmtKm(km) + '</span>' : '') : '<span>Nothing on the map yet</span>';
+      var missing = stops.filter(function(s){ return s.none; }).length;
+      panel.querySelector('.dm-note').textContent = !placed.length ? (stops.length ? 'No places on the map for this day yet. Pick a place from the suggestions when you edit an activity.' : 'Nothing planned this day.')
+        : missing ? missing + (missing === 1 ? ' activity has' : ' activities have') + ' no place on the map yet.' : '';
+      place();
       if(!map || !map.getSource('dm-route')) return;
       markers.forEach(function(m){ m.remove(); }); markers = [];
       stops.forEach(function(s, i){
         if(!s.g) return;
-        var el = document.createElement('div'); el.className = 'dm-pinwrap'; el.dataset.i = i;
+        var el = document.createElement('div'); el.className = 'dm-pinwrap'; el.dataset.i = i; el.title = s.name || '';
         el.innerHTML = '<div class="dm-pin' + (s.stay ? ' stay' : '') + (s.arrival ? ' arr' : '') + '"><span>' + (s.arrival ? '↳' : s.n) + '</span></div>';
         el.addEventListener('mouseenter', function(){ hl(i); }); el.addEventListener('mouseleave', function(){ hl(-1); });
         markers.push(new maplibregl.Marker({ element:el, anchor:'bottom-left', offset:[-1, 5] }).setLngLat([s.g.lon, s.g.lat]).addTo(map));
       });
+      legs.forEach(function(l){
+        var el = document.createElement('div'); el.className = 'dm-seg'; el.innerHTML = l.html;
+        markers.push(new maplibregl.Marker({ element:el }).setLngLat([(l.a.lon + l.b.lon) / 2, (l.a.lat + l.b.lat) / 2]).addTo(map));
+      });
       var coords = placed.map(function(s){ return [s.g.lon, s.g.lat]; });
       map.getSource('dm-route').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords.length > 1 ? coords : [] } });
-      if(fit && coords.length){ var b = coords.reduce(function(bb, c){ return bb.extend(c); }, new maplibregl.LngLatBounds(coords[0], coords[0]));
-        map.fitBounds(b, { padding:60, maxZoom:15, duration:500 }); }
+      if(fit && coords.length){ var bb = coords.reduce(function(acc, c){ return acc.extend(c); }, new maplibregl.LngLatBounds(coords[0], coords[0]));
+        map.fitBounds(bb, { padding:{ top:110, bottom:60, left:50, right:50 }, maxZoom:15, duration:500 }); }
     }
     function hl(i){
       var stops = day ? stopsOf(day) : [];
       document.querySelectorAll('.acts > li[data-map-hl]').forEach(function(x){ x.removeAttribute('data-map-hl'); });
       markers.forEach(function(m){ var el = m.getElement(); el.classList.toggle('hl', +el.dataset.i === i); });
-      if(panel) panel.querySelectorAll('.dm-stop').forEach(function(el){ el.classList.toggle('hl', +el.dataset.i === i); });
       if(i >= 0 && stops[i]) stops[i].li.setAttribute('data-map-hl', '');
     }
     // the cards ↔ the map
