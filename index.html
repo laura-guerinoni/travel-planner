@@ -14743,6 +14743,7 @@
         map.addLayer({ id:'dm-route', type:'line', source:'dm-route', paint:{ 'line-color': getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ec6a9c', 'line-width':3.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
         sig = ''; draw(true);
       });
+      map.on('moveend', fitSegs); map.on('zoom', fitSegs);
     }
     function cells(){ var p = document.querySelector('.panel.on'); return p ? [].slice.call(p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)')) : []; }
     function itemsOf(cell){   // the day's activities in the order they're shown
@@ -14803,7 +14804,9 @@
       stops.forEach(function(s){
         if(!s.g) return;
         if(last) km += kmBetween(last.g, s.g);
-        if(!s.arrival && prev){ var txt = legOf(s, prev); mins += legMin(s, prev); if(txt) legs.push({ a: last.g, b: s.g, html: txt }); }
+        if(!s.arrival && prev){ var txt = legOf(s, prev), lm = legMin(s, prev); mins += lm;
+          if(txt){ var icon = (txt.match(/^<svg[\s\S]*?<\/svg>/) || [''])[0], tip = txt.replace(/<[^>]+>/g, '');
+            legs.push({ a: last.g, b: s.g, html: icon + fmtMin(lm), tip: tip }); } }
         if(!s.arrival) prev = s;
         last = s;
       });
@@ -14815,7 +14818,12 @@
         : missing ? missing + (missing === 1 ? ' activity has' : ' activities have') + ' no place on the map yet.' : '';
       place();
       if(!map || !map.getSource('dm-route')) return;
-      markers.forEach(function(m){ m.remove(); }); markers = [];
+      markers.forEach(function(m){ m.remove(); }); markers = []; segs = [];
+      legs.forEach(function(l){
+        var el = document.createElement('div'); el.className = 'dm-seg'; el.innerHTML = l.html; el.title = l.tip;
+        var mk = new maplibregl.Marker({ element:el }).setLngLat([(l.a.lon + l.b.lon) / 2, (l.a.lat + l.b.lat) / 2]).addTo(map);
+        markers.push(mk); segs.push({ el: el, a: l.a, b: l.b });
+      });
       stops.forEach(function(s, i){
         if(!s.g) return;
         var el = document.createElement('div'); el.className = 'dm-pinwrap'; el.dataset.i = i; el.title = s.name || '';
@@ -14823,14 +14831,22 @@
         el.addEventListener('mouseenter', function(){ hl(i); }); el.addEventListener('mouseleave', function(){ hl(-1); });
         markers.push(new maplibregl.Marker({ element:el, anchor:'bottom-left', offset:[-1, 5] }).setLngLat([s.g.lon, s.g.lat]).addTo(map));
       });
-      legs.forEach(function(l){
-        var el = document.createElement('div'); el.className = 'dm-seg'; el.innerHTML = l.html;
-        markers.push(new maplibregl.Marker({ element:el }).setLngLat([(l.a.lon + l.b.lon) / 2, (l.a.lat + l.b.lat) / 2]).addTo(map));
-      });
       var coords = placed.map(function(s){ return [s.g.lon, s.g.lat]; });
       map.getSource('dm-route').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords.length > 1 ? coords : [] } });
       if(fit && coords.length){ var bb = coords.reduce(function(acc, c){ return acc.extend(c); }, new maplibregl.LngLatBounds(coords[0], coords[0]));
-        map.fitBounds(bb, { padding:{ top:110, bottom:60, left:50, right:50 }, maxZoom:15, duration:500 }); }
+        map.fitBounds(bb, { padding:{ top:120, bottom:70, left:60, right:60 }, maxZoom:15, duration:500 }); }
+      setTimeout(fitSegs, 0);
+    }
+    // A time pill only shows where its stretch of route is long enough on
+    // screen to hold it without covering the pins at either end.
+    var segs = [];
+    function fitSegs(){
+      if(!map) return;
+      segs.forEach(function(sg){
+        var p1 = map.project([sg.a.lon, sg.a.lat]), p2 = map.project([sg.b.lon, sg.b.lat]);
+        var len = Math.hypot(p2.x - p1.x, p2.y - p1.y), w = sg.el.offsetWidth || 70;
+        sg.el.style.visibility = len > w + 44 ? '' : 'hidden';
+      });
     }
     function hl(i){
       var stops = day ? stopsOf(day) : [];
