@@ -617,6 +617,16 @@
      wasn't enough of a difference on its own to read as a genuinely
      different kind of chip, just a differently-colored one. */
   .month-segment-slot[data-year-slot] { height:36px; }
+  /* New trip (a dashed, empty tab), the Recent / All trips labels, and the recent tabs */
+  .month-segment-slot.nt-slot { height:44px; }
+  .nt-tab { position:absolute; top:0; bottom:0; right:0; left:18px; display:flex; align-items:center; gap:7px; padding:0 12px; border:2px dashed rgba(var(--primary-rgb), .7); border-right:none; border-radius:10px 0 0 10px; background:rgba(255,255,255,.6); color:var(--primary); font:inherit; font-size:12.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; cursor:pointer; }
+  .nt-tab:hover { background:rgba(255,255,255,.9); }
+  .nt-tab svg { width:14px; height:14px; flex:none; }
+  .month-segment-slot.side-label { height:auto; margin:14px 0 0; padding-left:10px; font-size:11px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .month-segment-slot.recent-slot { height:34px; }
+  .month-segment-slot.side-label + .month-segment-slot[data-year-slot] { margin-top:0 !important; }
+  .month-segment.recent-seg .seg-label { font-size:11.5px; }
+  @media (max-width:720px){ .nt-slot, .side-label, .recent-slot { display:none !important; } }
   /* Permanently escaped from the sidebar's own 46px rail via
      position:fixed (see .month-segment.seg-expanded/.current's own
      comment on why fixed, not overflow:visible, is what actually lets a
@@ -13684,6 +13694,7 @@
   }
   // Years opened or closed by hand in the month column (year -> bool).
   var yearOpenOverride = {};
+  function planEdited(s){ return Math.max.apply(null, s.panels.map(function(p){ return parseInt(p.getAttribute('data-edited'), 10) || 0; })); }
   function renderMonthSidebar(){
     var sidebar = document.getElementById('monthSidebar');
     if(!sidebar) return;
@@ -13719,6 +13730,36 @@
     var activePlan = activePanel ? plansById[planIdOf(activePanel)] : null;
     var activeYear = activePlan ? activePlan.year : null;
     var activeKey = activePlan ? activePlan.key : null;
+
+    // On top (computer): New trip, then Recent (the trips changed last, by
+    // anyone), then All trips by year.
+    var wide = !window.matchMedia('(max-width:720px)').matches;
+    function sideLabel(text){ var l = document.createElement('div'); l.className = 'month-segment-slot side-label'; l.textContent = text; sidebar.appendChild(l); }
+    function planSeg(s, slot, cls){
+      var seg = document.createElement('div');
+      seg.className = 'month-segment' + (cls ? ' ' + cls : '');
+      seg.dataset.monthKey = (cls ? 'recent:' : '') + s.key;
+      seg.dataset.planKey = s.id;
+      seg.style.background = colorByKey[s.key];
+      seg.title = s.panels.map(altDatesLabelWithYear).filter(function(v, i, arr){ return arr.indexOf(v) === i; }).join(' or ');
+      seg.addEventListener('click', function(){ openPlan(s.id); });
+      ['seg-label seg-label-short', 'seg-label seg-label-full'].forEach(function(c){ var l = document.createElement('span'); l.className = c; l.textContent = s.label; seg.appendChild(l); });
+      slot.appendChild(seg);
+      return seg;
+    }
+    if(wide && allPlans.length){
+      var ntSlot = document.createElement('div'); ntSlot.className = 'month-segment-slot nt-slot';
+      var nt = document.createElement('button'); nt.type = 'button'; nt.className = 'nt-tab jsctl';
+      nt.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New trip';
+      nt.addEventListener('click', function(e){ e.stopPropagation(); openNewPlanForm(nt); });
+      ntSlot.appendChild(nt); sidebar.appendChild(ntSlot);
+      var recent = allPlans.filter(function(s){ return !s.archived && planEdited(s); }).sort(function(a, b){ return planEdited(b) - planEdited(a); }).slice(0, 3);
+      if(recent.length){
+        sideLabel('Recent');
+        recent.forEach(function(s){ var slot = document.createElement('div'); slot.className = 'month-segment-slot recent-slot'; attachSegHoverExpand(planSeg(s, slot, 'recent-seg')); sidebar.appendChild(slot); });
+      }
+      sideLabel('All trips');
+    }
 
     var years = [];
     allPlans.forEach(function(s){ if(years.indexOf(s.year) === -1) years.push(s.year); });
@@ -13820,8 +13861,8 @@
         (slotsByYear[yr] = slotsByYear[yr] || { year: yr, slots: [], hidden: [], more: null }).slots.push({ s: s, slot: slot, current: s.key === activeKey });
       });
     });
-    // The "+" under the plans: a new plan (name + when).
-    if(allPlans.length){
+    // The "+" under the plans (on a phone; on a computer it's New trip on top).
+    if(allPlans.length && !wide){
       var addSlot = document.createElement('div');
       addSlot.className = 'month-segment-slot month-add-slot';
       var addBtn = document.createElement('button');
@@ -18469,6 +18510,10 @@
       if(pl) o.pl = pl;
       var pn = panel.getAttribute('data-plan-name');
       if(pn) o.pn = pn;
+      var cty = panel.getAttribute('data-countries');
+      if(cty) o.cty = cty;
+      var ed = parseInt(panel.getAttribute('data-edited'), 10);
+      if(ed) o.ed = ed;
       var days = {}, hasDay = false;
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var dn = dayNumOfCell(cell);
@@ -18677,6 +18722,8 @@
       if(o.arc && o.arc.length) setArchivedBy(panel, o.arc);
       if(o.cr) panel.setAttribute('data-creator', o.cr);
       if(o.cur) panel.setAttribute('data-currency', o.cur);
+      if(o.cty) panel.setAttribute('data-countries', String(o.cty));
+      if(o.ed) panel.setAttribute('data-edited', String(parseInt(o.ed, 10)));
       // The option's own link, or the mirrored one when an older session
       // stripped it on the way through.
       var planLink = o.pl ? [o.pl, o.pn] : planMirror[o.id];
@@ -18812,10 +18859,22 @@
   var restoringHistory = false;
   var UNDO_MAX = 30;
 
+  // Which alternatives changed between two saved versions (switching tabs
+  // or the last-changed time itself doesn't count): they get "now" as
+  // their last change, which is what Recent in the column sorts by.
+  function stampEdited(before, after){
+    var a = null, b = null; try { a = JSON.parse(before); b = JSON.parse(after); } catch(e){ return false; }
+    function key(o){ var c = {}; Object.keys(o).forEach(function(k){ if(k !== 'on' && k !== 'ed') c[k] = o[k]; }); return JSON.stringify(c); }
+    var old = {}; (a.options || []).forEach(function(o){ old[o.id] = key(o); });
+    var now = String(Date.now()), any = false;
+    (b.options || []).forEach(function(o){ if(old[o.id] !== key(o)){ var p = document.getElementById('panel-' + o.id); if(p){ p.setAttribute('data-edited', now); any = true; } } });
+    return any;
+  }
   function pushUndoIfChanged(){
     if(restoringHistory) return;
     var snap = captureUndoSnapshot();
     if(snap.content === lastSnapshot.content && snap.tagData === lastSnapshot.tagData) return;
+    if(stampEdited(lastSnapshot.content, snap.content)){ snap = captureUndoSnapshot(); if(typeof renderMonthSidebar === 'function') setTimeout(renderMonthSidebar, 0); }
     undoStack.push(lastSnapshot);
     if(undoStack.length > UNDO_MAX) undoStack.shift();
     lastSnapshot = snap;
