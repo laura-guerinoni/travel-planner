@@ -20,8 +20,10 @@
   // visibility hide above, just for the theme instead of the content.
   try {
     var savedTheme = localStorage.getItem('travelPlannerTheme');
-    if (savedTheme === 'classic') document.documentElement.setAttribute('data-theme', 'classic');
+    if (savedTheme === 'classic' || savedTheme === 'bubbles') document.documentElement.setAttribute('data-theme', savedTheme);
     if (localStorage.getItem('travelPlannerBackdrop') === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
+    var savedFont = localStorage.getItem('travelPlannerFont');
+    if (savedFont === 'elegant' || savedFont === 'mono' || savedFont === 'dyslexia') document.documentElement.setAttribute('data-font', savedFont);
   } catch(e){}
 })();
 </script>
@@ -47,6 +49,10 @@
   :root[data-theme="classic"] { --bg:#f7f1ea; --card:#ffffff; --ink:#1c3438; --muted:#9c8b86; --line:#e8dcd5; --primary:#1c6672; --primary-rgb:28,102,114; --secondary:#1fa896; --secondary-rgb:31,168,150; --accent:#ef9a5c; --accent-rgb:239,154,92;
     --texture: repeating-linear-gradient(0deg, rgba(28,52,56,.016) 0, rgba(28,52,56,.016) 1px, transparent 1px, transparent 5px),
       repeating-linear-gradient(90deg, rgba(28,52,56,.016) 0, rgba(28,52,56,.016) 1px, transparent 1px, transparent 5px); }
+  /* Bubbles: lavender and periwinkle with a cobalt blue and a lime green */
+  :root[data-theme="bubbles"] { --bg:#efebfd; --card:#ffffff; --ink:#1e2257; --muted:#8a88b9; --line:#e2ddf8; --primary:#3b4fe0; --primary-rgb:59,79,224; --secondary:#7f8cf3; --secondary-rgb:127,140,243; --accent:#9cc31f; --accent-rgb:156,195,31;
+    --texture: repeating-linear-gradient(0deg, rgba(30,34,87,.016) 0, rgba(30,34,87,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(30,34,87,.016) 0, rgba(30,34,87,.016) 1px, transparent 1px, transparent 5px); }
   * { box-sizing:border-box; }
   /* Plain white now, not the faint woven-linen crosshatch — that texture
      moved onto .wrap itself (see its own comment below), so it reads as
@@ -58,8 +64,14 @@
      sitting on a plain page rather than a texture that just keeps going
      underneath everything. */
   body { margin:0; padding:32px 16px 32px 56px; background-color:var(--card); color:var(--ink);
-    font-family:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+    font-family:var(--font); }
   button, input, textarea, select { font-family:inherit; }
+  :root { --font:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  :root[data-font="elegant"] { --font:'Lora',Georgia,'Times New Roman',serif; }
+  :root[data-font="mono"] { --font:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace; }
+  :root[data-font="dyslexia"] { --font:'OpenDyslexic','Comic Sans MS',sans-serif; }
+  @font-face { font-family:'OpenDyslexic'; src:url('fonts/OpenDyslexic-Regular.woff') format('woff'); font-weight:400 600; font-display:swap; }
+  @font-face { font-family:'OpenDyslexic'; src:url('fonts/OpenDyslexic-Bold.woff') format('woff'); font-weight:700 900; font-display:swap; }
   /* No border any more — a first pass drew one (var(--muted), softened
      down from --ink), but with the page around it now plain white (see
      body's own comment) and this block carrying its own textured fill
@@ -1604,6 +1616,7 @@
   .theme-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
   .theme-dot[data-theme-name="kawaii"] { background: conic-gradient(#ec6a9c 0deg 120deg, #3fbf94 120deg 240deg, #f2884d 240deg 360deg); }
   .theme-dot[data-theme-name="classic"] { background: conic-gradient(#1c6672 0deg 120deg, #1fa896 120deg 240deg, #ef9a5c 240deg 360deg); }
+  .theme-dot[data-theme-name="bubbles"] { background: conic-gradient(#3b4fe0 0deg 120deg, #a3acf7 120deg 240deg, #d9f26a 240deg 360deg); }
 
   /* Sign-in gate. Sits on top of the (visibility:hidden) document, so it
      needs its own explicit visibility:visible to punch through — plain
@@ -1983,6 +1996,10 @@
       var(--backdrop-base); }
     /* Classic: sand and sea-mist instead of blush and lilac, and stars in
        its own teal/mint/orange. */
+    :root[data-theme="bubbles"] { --backdrop-base:linear-gradient(160deg, #f1e9ff 0%, #ddd6fc 45%, #a3acf7 100%);
+      --backdrop-glow:226,245,122; --backdrop-color:#ddd6fc; }
+    :root[data-theme="bubbles"] body::before { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='460'%3E%3Cdefs%3E%3CradialGradient id='b' cx='.35' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='.75'/%3E%3Cstop offset='.55' stop-color='%23ffffff' stop-opacity='.12'/%3E%3Cstop offset='1' stop-color='%238f9cf5' stop-opacity='.28'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='96' cy='118' r='58' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='372' cy='84' r='26' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='430' cy='338' r='82' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='190' cy='372' r='20' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3C/svg%3E"); background-position:30px 20px; }
+    :root[data-theme="bubbles"] body::after { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='760' height='640'%3E%3Cdefs%3E%3CradialGradient id='b' cx='.35' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='.75'/%3E%3Cstop offset='.55' stop-color='%23ffffff' stop-opacity='.12'/%3E%3Cstop offset='1' stop-color='%238f9cf5' stop-opacity='.28'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='140' cy='520' r='120' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='610' cy='150' r='150' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='520' cy='560' r='36' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3C/svg%3E"); }
     :root[data-theme="classic"] { --backdrop-base:linear-gradient(165deg, #fff3e2 0%, #f6f1e4 46%, #e3f3ef 100%);
       --backdrop-glow:236,190,120; --backdrop-color:#f6f1e4; }
     :root[data-theme="classic"] body::before { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cpath transform='translate%2840 52%29 scale%281.25%29' fill='%23ffffff' fill-opacity='1' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28212 34%29 scale%280.7%29' fill='%23ef9a5c' fill-opacity='0.9' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28296 170%29 scale%281.05%29' fill='%23ffffff' fill-opacity='0.95' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%28118 236%29 scale%280.8%29' fill='%231fa896' fill-opacity='0.6' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3Cpath transform='translate%2822 198%29 scale%280.55%29' fill='%23ef9a5c' fill-opacity='0.8' d='M0,-6C.6,-1.6 1.6,-.6 6,0C1.6,.6 .6,1.6 0,6C-.6,1.6 -1.6,.6 -6,0C-1.6,-.6 -.6,-1.6 0,-6Z'/%3E%3C/svg%3E"); }
@@ -2019,7 +2036,7 @@
        light in the upper left so it doesn't sit flat. Mixed from the
        theme's variables, so it follows whichever theme is on (a flat
        grey here looked dead next to either palette). */
-    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"] {
+    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"] {
       --backdrop-color:color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg)));
       --backdrop:
         radial-gradient(1100px 760px at 12% -6%, rgba(255,255,255,.55), transparent 62%),
@@ -2033,6 +2050,13 @@
   }
   /* Menu swatches for the two backdrops — same size/ring as the theme
      dots beside them. Hidden on a phone, where there's no backdrop. */
+  .font-dot { min-width:30px; height:26px; padding:0 6px; border-radius:8px; border:2px solid transparent; background:var(--bg); color:var(--ink); cursor:pointer; font-size:14px; font-weight:700; line-height:1; }
+  .font-dot:hover { background:var(--line); }
+  .font-dot.active { border-color:var(--ink); }
+  .font-dot[data-font-name="rounded"] { font-family:'Nunito',sans-serif; }
+  .font-dot[data-font-name="elegant"] { font-family:'Lora',Georgia,serif; }
+  .font-dot[data-font-name="mono"] { font-family:'IBM Plex Mono',ui-monospace,monospace; }
+  .font-dot[data-font-name="dyslexia"] { font-family:'OpenDyslexic','Comic Sans MS',sans-serif; font-size:13px; }
   .backdrop-dot { width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0;
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); transition:transform .15s ease, border-color .15s ease; }
   .backdrop-dot:hover { transform:scale(1.1); }
@@ -3163,7 +3187,7 @@
   #dayMap .dm-clip svg { width:100%; height:100%; display:block; overflow:visible; filter:drop-shadow(0 1px .6px rgba(40,25,60,.25)); }
   #dayMap .dm-clip.back { z-index:2; } #dayMap .dm-clip.front { z-index:9; }
   /* travel times on the route */
-  .dm-seg { display:inline-flex; align-items:center; gap:4px; background:#fff; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; color:var(--ink); box-shadow:0 2px 8px rgba(40,25,60,.2); white-space:nowrap; font-family:Nunito, sans-serif; pointer-events:none; }
+  .dm-seg { display:inline-flex; align-items:center; gap:4px; background:#fff; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; color:var(--ink); box-shadow:0 2px 8px rgba(40,25,60,.2); white-space:nowrap; font-family:var(--font); pointer-events:none; }
   .dm-seg svg { width:12px; height:12px; flex:none; }
   #dayMap .dm-note { position:absolute; z-index:6; left:50%; bottom:22px; transform:translateX(-50%); max-width:calc(100% - 60px); background:rgba(255,255,255,.95); border-radius:12px; padding:7px 12px;
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
@@ -3171,7 +3195,7 @@
   #dayMap .dm-note { bottom:58px; }
   /* search a place, at the foot of the map */
   #dayMap .dm-search { position:absolute; z-index:7; left:14px; right:14px; bottom:14px; display:flex; align-items:center; gap:8px; height:42px; padding:0 14px; border-radius:12px; background:#fff;
-    box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 1px rgba(61,53,104,.08); font-family:Nunito, sans-serif; color:var(--ink); }
+    box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 1px rgba(61,53,104,.08); font-family:var(--font); color:var(--ink); }
   #dayMap .dm-search > svg { width:17px; height:17px; flex:none; color:var(--muted); }
   #dayMap .dm-search input { flex:1; min-width:0; height:100%; border:none; outline:none; background:none; font:inherit; font-size:14px; font-weight:600; color:var(--ink); padding:0; }
   #dayMap .dm-search:focus-within { box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 2px var(--primary); }
@@ -3209,10 +3233,10 @@
   :root.map-open.map-focus .panel.on .cell[data-map-day] .acts > li > .line, :root.map-open.map-focus .panel.on .cell[data-map-day] .acts > li > .price,
   :root.map-open.map-focus .panel.on .cell[data-map-day] .acts > .go-line { font-size:13px !important; }
   :root.map-open.map-focus .panel.on .cell[data-map-day] .acts > li .chip { font-size:12px !important; }
-  #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:Nunito, sans-serif; }
+  #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:var(--font); }
   /* a place picked on the map: our own card, always wholly on the map */
   #dayMap .dm-card { position:absolute; z-index:6; width:252px; max-width:calc(100% - 20px); max-height:calc(100% - 20px); overflow:auto; background:#fff; border-radius:16px;
-    padding:12px 14px; box-shadow:0 14px 30px -12px rgba(40,25,60,.5), 0 0 0 1px rgba(61,53,104,.06); font-family:Nunito, sans-serif; color:var(--ink); }
+    padding:12px 14px; box-shadow:0 14px 30px -12px rgba(40,25,60,.5), 0 0 0 1px rgba(61,53,104,.06); font-family:var(--font); color:var(--ink); }
   .dm-card-x { position:absolute; top:8px; right:8px; z-index:2; width:26px; height:26px; border:none; border-radius:50%; background:rgba(255,255,255,.92); color:var(--muted); font-size:13px; cursor:pointer; display:grid; place-items:center; }
   .dm-card-x:hover { color:var(--ink); }
   .dm-photo-slot { position:relative; margin:-12px -14px 10px; height:132px; overflow:hidden; border-radius:16px 16px 0 0; background:var(--bg); opacity:0; transition:opacity .25s; }
@@ -3236,7 +3260,7 @@
   .dm-pinwrap { width:28px; height:28px; cursor:default; }
   .dm-pin { width:28px; height:28px; border-radius:50% 50% 50% 4px; transform:rotate(-45deg); background:var(--primary); border:2px solid #fff; box-shadow:0 3px 8px rgba(40,25,60,.35); display:grid; place-items:center; transition:transform .15s; }
   .dm-pin.stay { background:#8a6fd1; } .dm-pin.arr { background:#fff; border-color:var(--primary); }
-  .dm-pin span { transform:rotate(45deg); color:#fff; font-size:12px; font-weight:800; font-family:Nunito, sans-serif; } .dm-pin.arr span { color:var(--primary); }
+  .dm-pin span { transform:rotate(45deg); color:#fff; font-size:12px; font-weight:800; font-family:var(--font); } .dm-pin.arr span { color:var(--primary); }
   .dm-pinwrap.hl .dm-pin { transform:rotate(-45deg) scale(1.25); }
   @media print { #dayMap, .page-map, .acts > li .map-num { display:none !important; } :root.map-open body { padding-right:0 !important; } }
   /* places on the map, and the travel lines between activities */
@@ -4196,6 +4220,7 @@
         <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
         <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
         <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="bubbles" title="Bubbles palette"></button>
       </div>
       <!-- What the book lies on: the starry pastel wash, or a plain quiet
            one. Separate from Theme (which recolors the plan itself), and
@@ -4204,6 +4229,13 @@
         <span class="actionMenuThemeLabel" data-i18n="menu_background">Background</span>
         <button type="button" class="backdrop-dot" data-backdrop-name="magical" title="Starry" aria-label="Starry background"></button>
         <button type="button" class="backdrop-dot" data-backdrop-name="minimal" title="Minimal" aria-label="Minimal background"></button>
+      </div>
+      <div class="actionMenuThemeRow actionMenuFontRow">
+        <span class="actionMenuThemeLabel" data-i18n="menu_font">Font</span>
+        <button type="button" class="font-dot" data-font-name="rounded" title="Rounded (Nunito)" aria-label="Rounded font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="elegant" title="Elegant (Lora)" aria-label="Elegant font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="mono" title="Mono (IBM Plex Mono)" aria-label="Monospaced font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="dyslexia" title="Easier to read with dyslexia (OpenDyslexic)" aria-label="Dyslexia-friendly font">Aa</button>
       </div>
       <label class="actionMenuThemeRow actionMenuYearsRow" hidden style="display:none">
         <span class="actionMenuThemeLabel" data-i18n="menu_collapse_years">Collapse other years</span>
@@ -4885,7 +4917,7 @@
     en: {
       menu_save: 'Save', menu_download: 'Download', menu_manage: 'Participants', menu_print: 'Print',
       menu_archive: 'Archive', archive_title: 'Archived', archive_empty: 'Nothing archived yet.', archive_unarchive: 'Unarchive',
-      menu_theme: 'Theme', menu_background: 'Background', menu_collapse_years: 'Collapse other years', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
+      menu_theme: 'Theme', menu_background: 'Background', menu_font: 'Font', menu_collapse_years: 'Collapse other years', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
       manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       manage_delete_member: 'Delete member',
@@ -4937,7 +4969,7 @@
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
       menu_archive: 'Archivio', archive_title: 'Archiviati', archive_empty: 'Ancora niente di archiviato.', archive_unarchive: 'Ripristina',
-      menu_theme: 'Tema', menu_background: 'Sfondo', menu_collapse_years: 'Comprimi gli altri anni', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
+      menu_theme: 'Tema', menu_background: 'Sfondo', menu_font: 'Carattere', menu_collapse_years: 'Comprimi gli altri anni', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
       manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       manage_delete_member: 'Elimina membro',
@@ -4989,7 +5021,7 @@
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
       menu_archive: 'Archivo', archive_title: 'Archivados', archive_empty: 'Nada archivado todavía.', archive_unarchive: 'Restaurar',
-      menu_theme: 'Tema', menu_background: 'Fondo', menu_collapse_years: 'Contraer los otros años', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
+      menu_theme: 'Tema', menu_background: 'Fondo', menu_font: 'Fuente', menu_collapse_years: 'Contraer los otros años', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
       manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       manage_delete_member: 'Eliminar miembro',
@@ -14117,7 +14149,7 @@
   // a reload never flashes the other palette first.
   var THEME_KEY = 'travelPlannerTheme';
   function applyTheme(name){
-    if(name === 'classic') document.documentElement.setAttribute('data-theme', 'classic');
+    if(name === 'classic' || name === 'bubbles') document.documentElement.setAttribute('data-theme', name);
     else document.documentElement.removeAttribute('data-theme');
     document.querySelectorAll('.theme-dot').forEach(function(d){
       d.classList.toggle('active', d.getAttribute('data-theme-name') === name);
@@ -14157,6 +14189,32 @@
   document.querySelectorAll('.theme-dot').forEach(function(dot){
     dot.addEventListener('click', function(){ applyTheme(dot.getAttribute('data-theme-name')); });
   });
+  // Font: rounded (Nunito, the original), elegant, mono or dyslexia-friendly.
+  // Lora and IBM Plex Mono load once, the first time the menu opens or one is
+  // picked; OpenDyslexic comes with the app (fonts/).
+  var FONT_KEY = 'travelPlannerFont';
+  function loadExtraFonts(){
+    if(document.getElementById('extraFonts')) return;
+    var l = document.createElement('link'); l.id = 'extraFonts'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+    document.head.appendChild(l);
+  }
+  function applyFont(name){
+    if(name !== 'elegant' && name !== 'mono' && name !== 'dyslexia') name = 'rounded';
+    if(name === 'rounded') document.documentElement.removeAttribute('data-font');
+    else { if(name !== 'dyslexia') loadExtraFonts(); document.documentElement.setAttribute('data-font', name); }
+    document.querySelectorAll('.font-dot').forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-font-name') === name); });
+    try { localStorage.setItem(FONT_KEY, name); } catch(e){}
+  }
+  document.querySelectorAll('.font-dot').forEach(function(dot){
+    dot.addEventListener('click', function(e){ e.stopPropagation(); applyFont(dot.getAttribute('data-font-name')); });
+  });
+  (function(){ var b = document.getElementById('actionMenuBtn'); if(b) b.addEventListener('click', loadExtraFonts); })();
+  (function initFont(){
+    var saved = 'rounded';
+    try { saved = localStorage.getItem(FONT_KEY) || 'rounded'; } catch(e){}
+    applyFont(saved);
+  })();
   (function initTheme(){
     var saved = 'kawaii';
     try { saved = localStorage.getItem(THEME_KEY) || 'kawaii'; } catch(e){}
