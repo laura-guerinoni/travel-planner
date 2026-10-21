@@ -24,7 +24,7 @@ Single-file trip planner (`index.html`, no build step), hosted on GitHub Pages a
 - **Who's in:** everyone who can see an alternative is in every activity by default. "Skip" (on hover, next to the activity's tag) takes
   you out; the activity then shows who skips, and the payment split only counts the people who are in (it is the same "didn't take part"
   list the split already used).
-- **Idea box** (💡 Ideas, top right): ideas that aren't on a day yet. Heart them, plan one onto a day, or send an activity there from its card.
+- **Idea box** (in Notes, on the right of the page; the Notes tab shows how many): ideas that aren't on a day yet. Heart them, plan one onto a day, or send an activity there from its card.
 - **This or that:** from an activity's card, put it to a vote against an idea or something new. Votes show in the day; when everyone has
   voted (or someone decides) the winner goes on the day and the other goes to the idea box.
 
