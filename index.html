@@ -2965,8 +2965,14 @@
   @media (prefers-reduced-motion: reduce){ #ideaPop .ip-env, #ideaPop .ip-env .ip-heart { animation:none; } }
   #ideaPop .ip-done .ip-ok { width:48px; height:48px; margin:0 auto; border-radius:50%; background:rgba(63,191,148,.15); color:#2a9d76; display:grid; place-items:center; font-size:24px; font-weight:800; }
   @media print { .page-idea, #ideaPop { display:none !important; } }
-  #staleBar { position:fixed; left:50%; top:14px; transform:translateX(-50%); z-index:10050; display:flex; align-items:center; gap:14px; max-width:calc(100vw - 32px); padding:10px 12px 10px 18px; border-radius:14px; background:var(--ink); color:#fff; font-size:13.5px; font-weight:700; box-shadow:0 12px 30px rgba(30,22,50,.3); }
-  #staleBar button { flex:none; border:none; border-radius:999px; padding:7px 16px; background:var(--primary); color:#fff; font:inherit; font-weight:800; cursor:pointer; }
+  /* a newer version is out: a blocking window in the middle (this copy no longer saves) */
+  #staleBar { position:fixed; inset:0; z-index:10050; display:grid; place-items:center; padding:16px; background:rgba(40,30,70,.45); backdrop-filter:blur(3px); }
+  #staleBar .sb-card { width:min(400px, 100%); padding:26px 26px 22px; border-radius:20px; background:var(--card); color:var(--ink); text-align:center; box-shadow:0 24px 60px rgba(30,22,50,.35); }
+  #staleBar .sb-ic { display:grid; place-items:center; width:48px; height:48px; margin:0 auto 12px; border-radius:50%; background:rgba(var(--primary-rgb), .12); color:var(--primary); }
+  #staleBar .sb-ic svg { width:24px; height:24px; }
+  #staleBar h3 { margin:0 0 6px; font-size:19px; font-weight:900; }
+  #staleBar p { margin:0 0 18px; font-size:14px; font-weight:600; color:var(--muted); line-height:1.5; }
+  #staleBar button { width:100%; height:44px; border:none; border-radius:999px; background:var(--primary); color:#fff; font:inherit; font-size:15px; font-weight:800; cursor:pointer; }
   @media print { #staleBar { display:none !important; } }
   /* the day on a map (right of the calendar) */
   .page-map { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; margin-right:2px; border:none; border-radius:50%; background:none; color:var(--ink); cursor:pointer; opacity:.75; }
@@ -16162,9 +16168,13 @@
     }
     function showStale(){
       var b = document.createElement('div'); b.id = 'staleBar';
-      b.innerHTML = '<span>Travel Planner was updated. Reload to keep editing; changes in this tab aren’t saved until you do.</span><button type="button">Reload</button>';
+      b.setAttribute('role', 'alertdialog'); b.setAttribute('aria-modal', 'true'); b.setAttribute('aria-labelledby', 'staleTitle');
+      b.innerHTML = '<div class="sb-card"><div class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></div>' +
+        '<h3 id="staleTitle">Travel Planner was updated</h3><p>Reload to keep editing. Changes made in this tab aren’t saved until you do.</p><button type="button">Reload</button></div>';
       b.querySelector('button').addEventListener('click', function(){ location.reload(); });
-      document.body.appendChild(b);
+      // it blocks the page: nothing behind it can be clicked or typed into
+      ['mousedown', 'click', 'keydown'].forEach(function(t){ b.addEventListener(t, function(e){ e.stopPropagation(); }); });
+      document.body.appendChild(b); if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); b.querySelector('button').focus();
     }
     check(); setInterval(check, 3 * 60 * 1000);
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
