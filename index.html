@@ -3363,6 +3363,9 @@
     .grp-notes-ideas .ib-t { font-family:Caveat, cursive; font-size:22px; font-weight:700; line-height:1.05; color:var(--ink); overflow-wrap:anywhere; }
     .grp-notes-ideas .ib-meta { display:flex; align-items:center; gap:6px; width:100%; font-size:11px; font-weight:700; color:rgba(61,53,104,.6); }
     .grp-notes-ideas .ib-meta .ib-by { width:20px; height:20px; margin-left:auto; flex:none; }
+    .grp-notes-ideas .ib-meta .ib-ask { display:inline-flex; align-items:center; gap:4px; margin-left:auto; padding:1px 2px 1px 7px; border-radius:999px; background:rgba(255,255,255,.7); font-size:10.5px; font-weight:800; color:rgba(61,53,104,.7); }
+    .grp-notes-ideas .ib-meta .ib-ask + .ib-by { margin-left:4px; }
+    .grp-notes-ideas .ib-meta .ib-askface { width:18px; height:18px; flex:none; }
     .grp-notes-ideas .ib-row { display:flex; align-items:center; gap:5px; width:100%; margin-top:auto; }
     .grp-notes-ideas .ib-row .grp-heart { padding:3px 8px; font-size:11.5px; background:rgba(255,255,255,.75); border-color:transparent; }
     .grp-notes-ideas .ib-row .grp-heart.on { background:var(--accent); color:#fff; }
@@ -3376,7 +3379,10 @@
     .grp-notes-ideas .ib-note { cursor:pointer; }
     .grp-notes-ideas .ib-note.editing { box-shadow:0 0 0 2px var(--primary), 0 10px 18px -12px rgba(60,30,60,.55); }
     /* an idea in the activity form: no day, no bill split, no asking */
-  #fabAddPanel.idea-mode .gc-row:has(#fabAddDaySelect), #fabAddPanel.idea-mode #fabAddSplit, #fabAddPanel.idea-mode #fabAddAsk, #fabAddPanel.idea-mode #fabAddMore [data-x="ask"] { display:none !important; }
+  /* an idea in the activity form: only its place, price and who it's assigned to */
+  #fabAddPanel.idea-mode .gc-row:has(#fabAddDaySelect), #fabAddPanel.idea-mode .gc-row:has(#fabAddTagSelect), #fabAddPanel.idea-mode .gc-row:has(#fabAddTimeInput),
+  #fabAddPanel.idea-mode #fabAddNewTag, #fabAddPanel.idea-mode #fabAddSplit, #fabAddPanel.idea-mode #fabAddNotesRow, #fabAddPanel.idea-mode #fabAddLinkRow,
+  #fabAddPanel.idea-mode #fabAddMore [data-x="notes"], #fabAddPanel.idea-mode #fabAddMore [data-x="link"], #fabAddPanel.idea-mode #fabAddMore [data-x="ticket"], #fabAddPanel.idea-mode #fabAddMore [data-x="photo"] { display:none !important; }
   .grp-notes-ideas .ib-note { cursor:pointer; }
   .grp-notes-ideas .ib-editing { display:flex; align-items:center; gap:8px; margin:-4px 0 2px; font-size:11.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); }
     .grp-notes-ideas .ib-cancel { margin-left:auto; border:none; background:none; padding:0; color:var(--muted); font:inherit; font-size:12px; letter-spacing:0; text-transform:none; font-weight:800; cursor:pointer; text-decoration:underline; }
@@ -17215,19 +17221,20 @@
   function notifyAsk(li, a, kind){
     var me = meKey(), to = kind === 'done' ? a.by : a.w;
     if(!to || to === me || !IS_HOSTED || !currentUserKey) return;
-    var p = li.closest('.panel'), cell = li.closest('.cell'); if(!p || !cell) return;
+    var idea = !!li.closest('#ideaScratch'), p = idea ? document.querySelector('.panel.on') : li.closest('.panel'), cell = li.closest('.cell'); if(!p || !cell) return;
     var tEl = li.querySelector(':scope > .title'), title = tEl ? tEl.textContent.trim() : '', chip = li.querySelector('.chip');
     var tag = chip ? ((chip.getAttribute('data-icon') || '') + ' ' + (chip.getAttribute('data-name') || '')).trim() : '';
-    var plan = planNameOf(p), meName = memberNameOf(currentUserKey), dn = dayNumOfCell(cell);
+    var plan = planNameOf(p), meName = memberNameOf(currentUserKey), dn = idea ? null : dayNumOfCell(cell);
     var note = { kind: kind === 'done' ? 'askdone' : 'assign', from: currentUserKey, fromName: meName, plan: plan, planId: planIdOf(p), opt: optOf(p), day: dn, act: title, at: firebase.database.ServerValue.TIMESTAMP, seen: false };
+    if(idea){ delete note.opt; delete note.day; note.idea = 1; }   // no day: the bell opens the plan's Notes
     if(kind !== 'done' && a.m) note.msg = a.m;
     firebase.database().ref('notifications/' + to).push(note).catch(function(err){ console.warn('Notification not saved (database rules?)', err); });
     if(kind === 'done' || !EMAIL_HOOK_URL) return;
     var u = firebase.auth().currentUser; if(!u) return;
-    var link = location.origin + location.pathname + '?act=' + encodeURIComponent(optOf(p) + '|' + dn + '|' + title);
+    var link = location.origin + location.pathname + (idea ? '?notes=' + encodeURIComponent(planIdOf(p)) : '?act=' + encodeURIComponent(optOf(p) + '|' + dn + '|' + title));
     u.getIdToken().then(function(tok){
       fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' },
-        body: JSON.stringify({ idToken: tok, kind:'assign', to: to, from: meName, plan: plan, act: title, tag: tag, when: avWhen(li), msg: a.m || '', url: link }) }).catch(function(){});
+        body: JSON.stringify({ idToken: tok, kind:'assign', to: to, from: meName, plan: plan, act: title, tag: idea ? '' : tag, when: idea ? 'In the idea box' : avWhen(li), msg: a.m || '', url: link }) }).catch(function(){});
     }).catch(function(){});
   }
   // On the calendar: their face in the activity's tag row, with a yellow
@@ -19735,6 +19742,8 @@
   // saved), the form edits that, and Save writes it back into the idea.
   // The hidden day sits over the sticky note, so the form opens beside it.
   var ideaEditing = null;
+  function ideaAskHtml(it){ var a = null; try { a = JSON.parse(it.a.ak || 'null'); } catch(e){} if(!a || !a.w) return '';
+    return '<span class="ib-ask" title="' + grpEsc('Assigned to ' + (a.w === meKey() ? 'you' : grpName(a.w)) + (a.m ? ': ' + a.m : '')) + '">for' + grpFace(a.w, 'ib-askface') + '</span>'; }
   function editIdea(it, note){
     var old = document.getElementById('ideaScratch'); if(old) old.remove();
     var cell = document.createElement('div'); cell.id = 'ideaScratch'; cell.className = 'cell';
@@ -19746,6 +19755,7 @@
     ideaEditing = { it: it, li: li };
     editActivity(li);
     var h = document.getElementById('fabAddHeading'); if(h) h.textContent = 'Edit idea';
+    if(!it.a.p) fabAddAmountInput.value = '';   // no price yet: empty, not "0"
     document.getElementById('fabAddPanel').classList.add('idea-mode');
   }
   function saveIdeaEdit(){
@@ -19788,7 +19798,7 @@
         return '<div class="grp-idea ib-note' + (ideaDraft.editId === it.id ? ' editing' : '') + '" data-id="' + it.id + '" style="--nc:' + NOTE_BG[n % 4] + ';--tape:' + NOTE_TAPE[n % 4] + ';--r:' + (n % 2 ? '1.3deg' : '-1.2deg') + '">' +
           '<button type="button" class="grp-rm" aria-label="Remove idea" title="Remove idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button><div class="ib-t">' + grpEsc(it.a.t || 'Untitled') + '</div>' +
           (parseGeo(it.a.gp || '') ? '<div class="ib-where" title="On the map">' + IB_PIN + '<span>' + grpEsc((it.a.sp || it.a.pl || '') && (it.a.sp || it.a.pl) !== it.a.t ? (it.a.sp || it.a.pl) : 'On the map') + '</span></div>' : '') +
-          (function(){ var m = [grpTimeOf(it.a), it.a.p || ''].filter(function(x){ return x && x !== 'time'; }); return m.length || it.by ? '<div class="ib-meta"' + ((it.a.l || []).length ? ' title="' + grpEsc((it.a.l || []).filter(function(x){ return !/🕒/.test(x); }).join('\n')) + '"' : '') + '><span>' + grpEsc(m.join(' · ')) + '</span>' + (it.by ? grpFace(it.by, 'ib-by') : '') + '</div>' : ''; })() +   // who added it: their face
+          (function(){ var m = [grpTimeOf(it.a), it.a.p || ''].filter(function(x){ return x && x !== 'time'; }); return m.length || it.by ? '<div class="ib-meta"' + ((it.a.l || []).length ? ' title="' + grpEsc((it.a.l || []).filter(function(x){ return !/🕒/.test(x); }).join('\n')) + '"' : '') + '><span>' + grpEsc(m.join(' · ')) + '</span>' + ideaAskHtml(it) + (it.by ? grpFace(it.by, 'ib-by') : '') + '</div>' : ideaAskHtml(it) ? '<div class="ib-meta"><span></span>' + ideaAskHtml(it) + '</div>' : ''; })() +   // who added it: their face
           '<div class="ib-row"><button type="button" class="grp-heart' + (mine ? ' on' : '') + '" aria-pressed="' + mine + '" aria-label="Star ' + grpEsc(it.a.t || '') + '" title="' + grpEsc(hs.length ? 'Starred by ' + hs.map(grpName).join(', ') : 'Star this idea') + '">' + IB_STAR + hs.length + '</button>' +
           '<button type="button" class="ib-plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Plan it</button></div></div>';
       }).join('') + '</div>' : '<p class="grp-empty ib-empty">No ideas yet. Jot the first one above, or open an activity and choose To ideas.</p>');
