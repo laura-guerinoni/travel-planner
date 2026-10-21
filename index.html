@@ -2260,9 +2260,6 @@
   #fieldRemove:hover { color:#fff; background:var(--accent, #e0563f); }
   /* the Where field: countries as chips */
   .cty-wrap { position:relative; }
-  .cty-field { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-height:40px; border:1.5px solid var(--line); border-radius:11px; padding:5px 8px; background:var(--card); cursor:text; }
-  .cty-field:focus-within { border-color:var(--primary); }
-  .cty-field input { flex:1; min-width:90px; height:26px; border:none !important; outline:none; padding:0 !important; margin:0 !important; background:none !important; box-shadow:none !important; font:inherit; font-size:14px; font-weight:700; color:var(--ink); }
   .cty-chip { display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 4px 0 4px; border-radius:999px; background:rgba(var(--primary-rgb), .12); color:var(--primary); font-size:13px; font-weight:800; }
   .cty-chip button { border:none; background:none; color:inherit; opacity:.6; cursor:pointer; padding:0 3px; font-size:12px; }
   .cty-code { display:inline-grid; place-items:center; min-width:24px; height:18px; padding:0 4px; border-radius:5px; background:var(--card); color:var(--ink); font-size:10px; font-weight:900; letter-spacing:.04em; box-shadow:0 0 0 1px var(--line); }
@@ -2578,9 +2575,9 @@
     .monthpop.rangepop.pf input.pf-big::placeholder { color:#c8bfe0; }
     .pf .pf-row { display:grid; grid-template-columns:30px minmax(0, 1fr); align-items:center; gap:12px; margin-bottom:10px; }
     .pf .pf-ic { width:22px; height:22px; color:var(--muted); justify-self:center; }
-    .pf .cty-field { min-height:46px; border:none; border-radius:10px; background:var(--bg); padding:6px 10px; }
-    .pf .cty-field:focus-within { box-shadow:0 0 0 1.5px var(--primary); }
-    .pf .cty-field input { font-size:15px; }
+    .pf .pf-namewrap { position:relative; }
+    .pf .cty-chips { display:flex; flex-wrap:wrap; gap:6px; margin:-6px 0 12px; }
+    .pf .cty-chips[hidden] { display:none; }
     .pf .pf-people { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:46px; padding:6px 8px; border-radius:10px; background:var(--bg); }
     .pf .pf-people .grp-people { display:contents; }
     .pf .grp-person { background:var(--card); padding:2px 10px 2px 2px; font-size:13px; }
@@ -6990,40 +6987,51 @@
   }
   function getCountries(panel){ var v = panel && panel.getAttribute('data-countries'); return v ? v.split(',').filter(Boolean) : []; }
   function setCountries(panel, list){ if(!panel) return; if(list && list.length) panel.setAttribute('data-countries', list.join(',')); else panel.removeAttribute('data-countries'); }
-  // The Where field: type, pick, and each country is a chip (✕ or Backspace removes it).
-  function countryField(host, initial){
-    var sel = (initial || []).slice(), list = [], act = 0;
-    host.className = 'cty-wrap';
-    host.innerHTML = '<div class="cty-field"><input type="text" placeholder="Type a country" aria-label="Countries" autocomplete="off"></div><div class="cty-dd" hidden></div>';
-    var field = host.querySelector('.cty-field'), inp = field.querySelector('input'), dd = host.querySelector('.cty-dd');
+  // Countries picked with "@" in the name, like places in an activity's
+  // name: "Polandia @pol" → pick Poland → the name stays "Polandia" and
+  // Poland becomes a chip under it. The name keeps its own length limit.
+  function countryAt(nameIn, host, initial, max){
+    var sel = (initial || []).slice(), list = [], act = 0, at = null;
+    nameIn.maxLength = max + 40;   // room to type "@country"; the name itself is cut to max
+    host.className = 'cty-chips';
+    var dd = document.createElement('div'); dd.className = 'cty-dd'; dd.hidden = true; nameIn.after(dd);
     function code(c){ return '<span class="cty-code">' + c + '</span>'; }
     function chips(){
-      field.querySelectorAll('.cty-chip').forEach(function(x){ x.remove(); });
+      host.innerHTML = '';
       sel.forEach(function(c){ var el = document.createElement('span'); el.className = 'cty-chip'; el.innerHTML = code(c) + '<span></span><button type="button" aria-label="Remove">✕</button>';
         el.querySelector('span:not(.cty-code)').textContent = countryName(c);
-        el.querySelector('button').addEventListener('click', function(e){ e.stopPropagation(); sel = sel.filter(function(x){ return x !== c; }); chips(); inp.focus(); });
-        field.insertBefore(el, inp); });
-      inp.placeholder = sel.length ? '' : 'Type a country';
+        el.querySelector('button').addEventListener('click', function(e){ e.stopPropagation(); sel = sel.filter(function(x){ return x !== c; }); chips(); nameIn.focus(); });
+        host.appendChild(el); });
+      host.hidden = !sel.length;
     }
+    function find(){ var pos = nameIn.selectionStart, m = /(^|\s)@([^@]{0,30})$/.exec(nameIn.value.slice(0, pos)); return m ? { start: pos - m[2].length - 1, end: pos, q: m[2] } : null; }
     function draw(){
-      if(!inp.value.trim()){ dd.hidden = true; return; }
-      dd.innerHTML = list.length ? list.map(function(x, i){ return '<button type="button" data-c="' + x.c + '" class="' + (i === act ? 'act' : '') + '">' + code(x.c) + '<b></b><i></i></button>'; }).join('') : '<div class="cty-none">No country found</div>';
+      if(!at){ dd.hidden = true; return; }
+      dd.style.top = (nameIn.offsetTop + nameIn.offsetHeight + 4) + 'px'; dd.style.left = nameIn.offsetLeft + 'px'; dd.style.width = nameIn.offsetWidth + 'px';
+      dd.innerHTML = !at.q.trim() ? '<div class="cty-none">Type a country after the @</div>' : list.length ? list.map(function(x, i){ return '<button type="button" data-c="' + x.c + '" class="' + (i === act ? 'act' : '') + '">' + code(x.c) + '<b></b><i></i></button>'; }).join('') : '<div class="cty-none">No country found</div>';
       dd.querySelectorAll('button').forEach(function(b, i){ b.querySelector('b').textContent = list[i].en; b.querySelector('i').textContent = list[i].local ? '· ' + list[i].local : '';
-        b.addEventListener('mousedown', function(e){ e.preventDefault(); add(b.dataset.c); }); });
+        b.addEventListener('mousedown', function(e){ e.preventDefault(); pick(b.dataset.c); }); });
       dd.hidden = false;
     }
-    function add(c){ if(sel.indexOf(c) === -1) sel.push(c); inp.value = ''; list = []; dd.hidden = true; chips(); inp.focus(); }
-    inp.addEventListener('input', function(){ list = countrySearch(inp.value).filter(function(x){ return sel.indexOf(x.c) === -1; }); act = 0; draw(); });
-    inp.addEventListener('keydown', function(e){
-      if(e.key === 'Enter'){ if(list.length && !dd.hidden){ e.preventDefault(); e.stopPropagation(); add(list[act].c); } }
-      else if(e.key === 'Backspace' && !inp.value && sel.length){ sel.pop(); chips(); }
+    function pick(c){
+      if(at){ var v = nameIn.value, rest = v.slice(at.end); nameIn.value = v.slice(0, at.start).replace(/\s+$/, '') + (rest.trim() ? ' ' + rest.replace(/^\s+/, '') : ''); }
+      if(sel.indexOf(c) === -1) sel.push(c);
+      at = null; list = []; dd.hidden = true; chips(); nameIn.focus();
+    }
+    nameIn.addEventListener('input', function(){ at = find(); list = at && at.q.trim() ? countrySearch(at.q).filter(function(x){ return sel.indexOf(x.c) === -1; }) : []; act = 0; draw(); });
+    nameIn.addEventListener('keydown', function(e){
+      if(dd.hidden) return;
+      if(e.key === 'Enter'){ e.preventDefault(); e.stopImmediatePropagation(); if(list.length) pick(list[act].c); }
       else if((e.key === 'ArrowDown' || e.key === 'ArrowUp') && list.length){ e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : list.length - 1)) % list.length; draw(); }
-      else if(e.key === 'Escape' && !dd.hidden){ e.stopPropagation(); dd.hidden = true; }
+      else if(e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); dd.hidden = true; at = null; }
     });
-    inp.addEventListener('blur', function(){ setTimeout(function(){ dd.hidden = true; }, 120); });
-    field.addEventListener('click', function(){ inp.focus(); });
+    nameIn.addEventListener('blur', function(){ setTimeout(function(){ dd.hidden = true; }, 120); });
     chips();
-    return { get: function(){ return sel.slice(); } };
+    return {
+      // the countries, also any "@country" still typed and not picked (its best match)
+      get: function(){ (nameIn.value.match(/(^|\s)@([^@]+)/g) || []).forEach(function(m){ var r = countrySearch(m.replace(/^\s*@/, '')); if(r[0] && sel.indexOf(r[0].c) === -1) sel.push(r[0].c); }); return sel.slice(); },
+      name: function(){ return nameIn.value.replace(/(^|\s)@[^@]*/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max); }
+    };
   }
   // after a new plan or alternative: Month view, with the map on the right
   function openMapOnNew(){ if(typeof window.tpOpenMapMonth === 'function') setTimeout(window.tpOpenMapMonth, 120); }
@@ -7049,15 +7057,14 @@
     }
     function iso(p){ return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'); }
     pop.innerHTML = pfHead(o.title) +
-      '<input type="text" class="whenpop-name pf-big" aria-label="Name" placeholder="Name">' +
-      '<div class="pf-row">' + PF_IC.globe + '<div class="whenpop-where"></div></div>' +
+      '<div class="pf-namewrap"><input type="text" class="whenpop-name pf-big" aria-label="Name" placeholder="Name · @ for countries"></div><div class="whenpop-where"></div>' +
       '<div class="pf-row">' + PF_IC.cal + '<div class="pf-when"><div class="whenpop-row whenpop-months"><select class="whenpop-m1" aria-label="From">' + monthOpts(o.from.year, o.from.month) + '</select><span class="whenpop-to">–</span><select class="whenpop-m2" aria-label="To">' + monthOpts(o.to.year, o.to.month) + '</select></div>' +
         '<div class="whenpop-row whenpop-dates"><input type="date" class="whenpop-from" aria-label="From"><span class="whenpop-to">–</span><input type="date" class="whenpop-until" aria-label="To"></div></div></div>' +
       '<div class="pf-checks"><label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label></div>' +
       '<div class="pf-foot"><button type="button" class="addbtn"></button></div>';
     pfWire(pop);
     var nameIn = pop.querySelector('.whenpop-name'); nameIn.value = o.name; nameIn.maxLength = o.maxlength;
-    var where = countryField(pop.querySelector('.whenpop-where'), o.countries);
+    var where = countryAt(nameIn, pop.querySelector('.whenpop-where'), o.countries, o.maxlength);
     var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
     var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
     fromIn.value = iso(o.from); toIn.value = iso(o.to);
@@ -7081,8 +7088,8 @@
         var a1 = m1.value.split('-').map(Number), a2 = m2.value.split('-').map(Number);
         w = { from: { year: a1[0], month: a1[1], day: 1 }, to: { year: a2[0], month: a2[1], day: daysInMonth(a2[0], a2[1]) }, exact: false };
       }
-      var name = nameIn.value.trim();
       w.countries = where.get();
+      var name = where.name();
       closePop();
       done(name, w);
     });
@@ -20250,8 +20257,7 @@
     }
     var dl = new Date(); dl.setDate(dl.getDate() + 7);
     pop.innerHTML = pfHead(t('add_new_plan')) +
-      '<input type="text" class="whenpop-name pf-big" maxlength="' + PLAN_NAME_MAX + '" aria-label="Plan name" placeholder="Plan name">' +
-      '<div class="pf-row">' + PF_IC.globe + '<div class="whenpop-where"></div></div>' +
+      '<div class="pf-namewrap"><input type="text" class="whenpop-name pf-big" aria-label="Plan name" placeholder="Plan name · @ for countries"></div><div class="whenpop-where"></div>' +
       '<div class="pf-row">' + PF_IC.people + '<div class="pf-people"><div class="grp-people"></div><button type="button" class="pf-invite">+ Invite</button></div></div>' +
       '<div class="whenpop-row pf-invrow" hidden><input type="email" class="grp-inv" placeholder="Their email" aria-label="Invite by email"><button type="button" class="grp-btn ghost grp-invbtn">Invite</button></div>' +
       '<div class="grp-invmsg" hidden></div>' +
@@ -20263,7 +20269,7 @@
       '<div class="pf-foot"><button type="button" class="addbtn">Add plan</button></div>';
     pfWire(pop);
     pop.querySelector('.pf-invite').addEventListener('click', function(e){ e.stopPropagation(); var r = pop.querySelector('.pf-invrow'); r.hidden = false; r.querySelector('input').focus(); });
-    var nameIn = pop.querySelector('.whenpop-name'), where = countryField(pop.querySelector('.whenpop-where'), []);
+    var nameIn = pop.querySelector('.whenpop-name'), where = countryAt(nameIn, pop.querySelector('.whenpop-where'), [], PLAN_NAME_MAX);
     var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
     var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
     var ask = pop.querySelector('.grp-ask'), askRow = pop.querySelector('.grp-askrow'), askOpts = pop.querySelector('.grp-askopts'), dlIn = pop.querySelector('.grp-dl');
@@ -20324,7 +20330,7 @@
         w = { from: { year: a1[0], month: a1[1], day: 1 }, to: { year: a2[0], month: a2[1], day: daysInMonth(a2[0], a2[1]) }, exact: false };
         if(ask.checked) poll = { len: len, from: a1[0] + '-' + String(a1[1]).padStart(2, '0'), to: a2[0] + '-' + String(a2[1]).padStart(2, '0'), dl: dlIn.value, av: {}, by: me || '' };
       }
-      var name = nameIn.value.trim(), picked = Object.keys(who).filter(function(k){ return who[k]; }), countries = where.get();
+      var countries = where.get(), name = where.name(), picked = Object.keys(who).filter(function(k){ return who[k]; });
       closePop();
       var created = createOption(w.from.year, w.from.month);
       if(!created) return;
