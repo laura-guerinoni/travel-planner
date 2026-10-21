@@ -19445,7 +19445,7 @@
         '<div class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted</div>' +
         (duel.q ? '<div class="grp-duel-q-show">' + (duel.by ? grpFace(duel.by) : '') + '<span>' + grpEsc(duel.q) + '</span></div>' : '') +
         side('a') + '<span class="grp-or">or</span>' + side('b') +
-        '<div class="grp-duel-foot">' + (voted.length ? '<button type="button" class="grp-link" data-do="decide">Decide now</button>' : '') + '<button type="button" class="grp-link" data-do="cancel">Cancel vote</button></div>';
+        (voted.length ? '<div class="grp-duel-foot"><button type="button" class="grp-link" data-do="decide">Decide now</button></div>' : '');
       card.addEventListener('click', function(e){
         e.stopPropagation();
         var b = e.target.closest('.grp-side');
