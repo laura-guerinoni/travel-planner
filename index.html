@@ -3036,13 +3036,18 @@
   #dayMap .dm-note { position:absolute; z-index:6; left:50%; bottom:22px; transform:translateX(-50%); max-width:calc(100% - 60px); background:rgba(255,255,255,.95); border-radius:12px; padding:7px 12px;
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
   #dayMap .dm-note:empty { display:none; }
-  #dayMap .dm-note { bottom:70px; }
+  #dayMap .dm-note { bottom:58px; }
   /* search a place, at the foot of the map */
   #dayMap .dm-search { position:absolute; z-index:7; left:14px; right:14px; bottom:14px; display:flex; align-items:center; gap:8px; height:42px; padding:0 14px; border-radius:12px; background:#fff;
     box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 1px rgba(61,53,104,.08); font-family:Nunito, sans-serif; color:var(--ink); }
   #dayMap .dm-search > svg { width:17px; height:17px; flex:none; color:var(--muted); }
   #dayMap .dm-search input { flex:1; min-width:0; height:100%; border:none; outline:none; background:none; font:inherit; font-size:14px; font-weight:600; color:var(--ink); padding:0; }
   #dayMap .dm-search:focus-within { box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 2px var(--primary); }
+  /* a small pill in the corner; it opens out to the map's width while you type */
+  #dayMap .dm-search { right:auto; left:12px; bottom:12px; width:min(210px, calc(100% - 24px)); height:34px; padding:0 12px; gap:7px; border-radius:999px; transition:width .18s ease; }
+  #dayMap .dm-search:focus-within { width:calc(100% - 24px); }
+  #dayMap .dm-search > svg { width:15px; height:15px; }
+  #dayMap .dm-search input { font-size:13px; }
   #dayMap .dm-results { position:absolute; left:0; right:0; bottom:calc(100% + 6px); max-height:280px; overflow:auto; padding:5px 0; border-radius:12px; background:#fff; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   #dayMap .dm-results[hidden] { display:none; }
   #dayMap .dm-res { display:flex; align-items:flex-start; gap:10px; width:100%; padding:7px 12px; border:none; background:none; font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
