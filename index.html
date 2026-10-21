@@ -20,7 +20,8 @@
   // visibility hide above, just for the theme instead of the content.
   try {
     var savedTheme = localStorage.getItem('travelPlannerTheme');
-    if (savedTheme === 'classic' || savedTheme === 'bubbles' || savedTheme === 'cool' || savedTheme === 'forest' || savedTheme === 'harbor' || savedTheme === 'earth' || savedTheme === 'dusk') document.documentElement.setAttribute('data-theme', savedTheme);
+    if (!savedTheme) document.documentElement.setAttribute('data-theme', 'neutral');
+    if (savedTheme === 'neutral' || savedTheme === 'classic' || savedTheme === 'bubbles' || savedTheme === 'cool' || savedTheme === 'forest' || savedTheme === 'harbor' || savedTheme === 'earth' || savedTheme === 'dusk') document.documentElement.setAttribute('data-theme', savedTheme);
     // a theme of your own: its colours become the page's variables
     window.__tpCustomVars = function(t){
       var r = document.documentElement.style, rgb = function(h){ h = String(h || '#000000').replace('#', ''); return [0, 2, 4].map(function(i){ return parseInt(h.substr(i, 2), 16) || 0; }).join(','); };
@@ -89,6 +90,10 @@
   :root[data-theme="dusk"] { --bg:#f7f5f1; --card:#ffffff; --ink:#2b3363; --muted:#8e8aa6; --line:#e8e4ec; --primary:#374375; --primary-rgb:55,67,117; --secondary:#895159; --secondary-rgb:137,81,89; --accent:#c68f82; --accent-rgb:198,143,130;
     --texture: repeating-linear-gradient(0deg, rgba(43,51,99,.016) 0, rgba(43,51,99,.016) 1px, transparent 1px, transparent 5px),
       repeating-linear-gradient(90deg, rgba(43,51,99,.016) 0, rgba(43,51,99,.016) 1px, transparent 1px, transparent 5px); }
+  /* Neutral (the standard): soft greys and charcoal with a little sand */
+  :root[data-theme="neutral"] { --bg:#f4f4f2; --card:#ffffff; --ink:#2a2a2e; --muted:#8a8a90; --line:#e4e4e1; --primary:#3a3a40; --primary-rgb:58,58,64; --secondary:#8a8f98; --secondary-rgb:138,143,152; --accent:#b89b74; --accent-rgb:184,155,116;
+    --texture: repeating-linear-gradient(0deg, rgba(42,42,46,.016) 0, rgba(42,42,46,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(42,42,46,.016) 0, rgba(42,42,46,.016) 1px, transparent 1px, transparent 5px); }
   * { box-sizing:border-box; }
   /* Plain white now, not the faint woven-linen crosshatch — that texture
      moved onto .wrap itself (see its own comment below), so it reads as
@@ -1651,6 +1656,7 @@
     padding:0; transition:transform .15s ease, border-color .15s ease; }
   .theme-dot:hover { transform:scale(1.1); }
   .theme-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
+  .theme-dot[data-theme-name="neutral"] { background: conic-gradient(#3a3a40 0deg 120deg, #8a8f98 120deg 240deg, #b89b74 240deg 360deg); }
   .theme-dot[data-theme-name="kawaii"] { background: conic-gradient(#ec6a9c 0deg 120deg, #3fbf94 120deg 240deg, #f2884d 240deg 360deg); }
   .theme-dot[data-theme-name="classic"] { background: conic-gradient(#1c6672 0deg 120deg, #1fa896 120deg 240deg, #ef9a5c 240deg 360deg); }
   .theme-dot[data-theme-name="cool"] { background: conic-gradient(#14293c 0deg 120deg, #667f91 120deg 240deg, #abbaaf 240deg 360deg); }
@@ -2061,6 +2067,9 @@
       var(--backdrop-base); }
     /* Classic: sand and sea-mist instead of blush and lilac, and stars in
        its own teal/mint/orange. */
+    :root[data-theme="neutral"] { --backdrop-base:linear-gradient(165deg, #f8f8f6 0%, #ececea 50%, #dcdcd8 100%);
+      --backdrop-glow:184,155,116; --backdrop-color:#ececea; }
+    :root[data-theme="neutral"] body::before, :root[data-theme="neutral"] body::after { display:none; }
     :root[data-theme="dusk"] { --backdrop-base:linear-gradient(165deg, #fffcf5 0%, #ecebf5 50%, #cfd1ec 100%);
       --backdrop-glow:223,174,161; --backdrop-color:#ecebf5; }
     :root[data-theme="dusk"] body::before, :root[data-theme="dusk"] body::after { display:none; }
@@ -2116,7 +2125,7 @@
        light in the upper left so it doesn't sit flat. Mixed from the
        theme's variables, so it follows whichever theme is on (a flat
        grey here looked dead next to either palette). */
-    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"], :root[data-backdrop="minimal"][data-theme="cool"], :root[data-backdrop="minimal"][data-theme="forest"], :root[data-backdrop="minimal"][data-theme="harbor"], :root[data-backdrop="minimal"][data-theme="earth"], :root[data-backdrop="minimal"][data-theme="dusk"], :root[data-backdrop="minimal"][data-theme="custom"] {
+    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"], :root[data-backdrop="minimal"][data-theme="cool"], :root[data-backdrop="minimal"][data-theme="forest"], :root[data-backdrop="minimal"][data-theme="harbor"], :root[data-backdrop="minimal"][data-theme="earth"], :root[data-backdrop="minimal"][data-theme="dusk"], :root[data-backdrop="minimal"][data-theme="custom"], :root[data-backdrop="minimal"][data-theme="neutral"] {
       --backdrop-color:color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg)));
       --backdrop:
         radial-gradient(1100px 760px at 12% -6%, rgba(255,255,255,.55), transparent 62%),
@@ -4304,6 +4313,7 @@
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
         <span class="theme-dots">
+        <button type="button" class="theme-dot" data-theme-name="neutral" data-tip="Neutral" aria-label="Neutral palette"></button>
         <button type="button" class="theme-dot" data-theme-name="kawaii" data-tip="Kawaii" aria-label="Kawaii palette"></button>
         <button type="button" class="theme-dot" data-theme-name="classic" data-tip="Classic" aria-label="Classic palette"></button>
         <button type="button" class="theme-dot" data-theme-name="bubbles" data-tip="Bubbles" aria-label="Bubbles palette"></button>
@@ -14296,8 +14306,9 @@
     var own = String(name || '').indexOf('custom:') === 0 ? customThemes().filter(function(x){ return 'custom:' + x.id === name; })[0] : null;
     if(window.__tpCustomVars) window.__tpCustomVars(own || null);
     if(own) document.documentElement.setAttribute('data-theme', 'custom');
-    else if(name === 'classic' || name === 'bubbles' || name === 'cool' || name === 'forest' || name === 'harbor' || name === 'earth' || name === 'dusk') document.documentElement.setAttribute('data-theme', name);
-    else { name = 'kawaii'; document.documentElement.removeAttribute('data-theme'); }
+    else if(name === 'neutral' || name === 'classic' || name === 'bubbles' || name === 'cool' || name === 'forest' || name === 'harbor' || name === 'earth' || name === 'dusk') document.documentElement.setAttribute('data-theme', name);
+    else if(name === 'kawaii') document.documentElement.removeAttribute('data-theme');
+    else { name = 'neutral'; document.documentElement.setAttribute('data-theme', 'neutral'); }
     document.querySelectorAll('.theme-dot').forEach(function(d){
       d.classList.toggle('active', d.getAttribute('data-theme-name') === name);
     });
@@ -14336,7 +14347,7 @@
   // Themes of your own: the "+" opens a small editor (five colours, a name),
   // the page follows each colour as it's picked, Save keeps it (on this
   // device) as a dot next to the others; clicking your active one edits it.
-  function curTheme(){ try { return localStorage.getItem(THEME_KEY) || 'kawaii'; } catch(e){ return 'kawaii'; } }
+  function curTheme(){ try { return localStorage.getItem(THEME_KEY) || 'neutral'; } catch(e){ return 'neutral'; } }
   function hexOf(v){ v = String(v || '').trim(); if(/^#[0-9a-f]{6}$/i.test(v)) return v; if(/^#[0-9a-f]{3}$/i.test(v)) return '#' + v.slice(1).split('').map(function(c){ return c + c; }).join(''); return null; }
   function renderCustomDots(){
     var box = document.querySelector('.theme-dots'), add = box && box.querySelector('.theme-add'); if(!box) return;
@@ -14376,7 +14387,7 @@
     if(del) del.addEventListener('click', function(e){
       e.stopPropagation();
       saveCustomThemes(customThemes().filter(function(x){ return x.id !== themeEdit.id; }));
-      closeThemeEditor(false); applyTheme('kawaii'); renderCustomDots();
+      closeThemeEditor(false); applyTheme('neutral'); renderCustomDots();
     });
   }
   function closeThemeEditor(restore){
@@ -14424,8 +14435,8 @@
     applyFont(saved);
   })();
   (function initTheme(){
-    var saved = 'kawaii';
-    try { saved = localStorage.getItem(THEME_KEY) || 'kawaii'; } catch(e){}
+    var saved = 'neutral';
+    try { saved = localStorage.getItem(THEME_KEY) || 'neutral'; } catch(e){}
     applyTheme(saved); renderCustomDots();
   })();
 
