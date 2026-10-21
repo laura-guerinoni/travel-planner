@@ -2713,6 +2713,13 @@
   #fabAddPanel .gc-title { border:none !important; border-bottom:2px solid var(--line) !important; border-radius:0 !important; height:44px !important;
     font-size:20px !important; font-weight:700; padding:0 2px !important; margin:0 0 14px !important; background:transparent !important; box-shadow:none !important; }
   #fabAddPanel .gc-title:focus { outline:none; border-bottom-color:var(--primary) !important; }
+  /* the name: free words, and a place linked with @ as a pink chip */
+  #fabAddPanel div.gc-title { height:auto !important; min-height:44px; line-height:1.45; padding:6px 2px 6px !important; white-space:pre-wrap; overflow-wrap:anywhere; cursor:text; color:var(--ink); }
+  #fabAddPanel div.gc-title:empty::before { content:attr(data-ph); color:#c4bada; font-weight:700; pointer-events:none; }
+  #fabAddPanel .tchip { display:inline-flex; align-items:center; gap:3px; margin:0 2px; padding:0 8px 0 6px; border-radius:999px; background:rgba(var(--primary-rgb), .13); color:#c2477b; font-size:17px; font-weight:800; line-height:1.5; white-space:nowrap; vertical-align:1px; user-select:all; }
+  #fabAddPanel .tchip svg { width:14px; height:14px; flex:none; }
+  #fabAddPanel .tchip .tx { margin-left:2px; font-size:11px; opacity:.55; cursor:pointer; }
+  #fabAddPanel .tchip .tx:hover { opacity:1; }
   #fabAddPanel .gc-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
   #fabAddPanel .gc-row > .gc-ic { width:20px; height:20px; flex:none; color:var(--muted); }
   #fabAddPanel .gc-row > .fabadd-select, #fabAddPanel .gc-row > .fabadd-time-row, #fabAddPanel .gc-row > .fabadd-amount-row { flex:1; min-width:0; margin:0 !important; }
@@ -4114,7 +4121,7 @@
       </div>
       <!-- Laid out like Google Calendar's quick add: the name as a big
            underlined field, then one compact row per detail with an icon. -->
-      <input type="text" id="fabAddTitleInput" class="fabadd-select gc-title" placeholder="Add a name" aria-label="What" autocomplete="off" />
+      <div id="fabAddTitleInput" class="fabadd-select gc-title" contenteditable="true" role="textbox" aria-label="What" spellcheck="true" data-ph="Add a name · @ for a place"></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
       <div id="fabAddNewTag" class="gc-newtag" hidden>
         <input type="text" class="fabadd-select nt-icon" maxlength="4" placeholder="🎟️" aria-label="Emoji">
@@ -14883,6 +14890,10 @@
   // The activity's name, first in the form (it used to be added as "New
   // activity" and renamed afterwards).
   var fabAddTitleInput = document.getElementById('fabAddTitleInput');
+  if(fabAddTitleInput && fabAddTitleInput.tagName !== 'INPUT') Object.defineProperty(fabAddTitleInput, 'value', {
+    get: function(){ var t = ''; this.childNodes.forEach(function(n){ t += n.nodeType === 3 ? n.nodeValue : n.dataset && n.dataset.n ? n.dataset.n : n.tagName === 'BR' ? '' : n.textContent; }); return t.replace(/\u00a0/g, ' ').replace(/\n/g, ' '); },
+    set: function(v){ this.textContent = v == null ? '' : String(v); }
+  });
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
@@ -15152,7 +15163,7 @@
     // the exact spot picked on the map, under the name (display only)
     dayActs(cell).concat(stayNights(cell)).forEach(function(li){   // a stay's other nights show its spot too
       var sp = (li.__origin || li).getAttribute('data-spot'), el = li.querySelector(':scope > .spot-line'), t = li.querySelector(':scope > .title');
-      if(!sp || !t || sp.trim().toLowerCase() === t.textContent.trim().toLowerCase()){ if(el) el.remove(); return; }
+      if(!sp || !t || t.textContent.toLowerCase().indexOf(sp.trim().toLowerCase()) !== -1){ if(el) el.remove(); return; }
       if(!el){ el = document.createElement('span'); el.className = 'spot-line'; el.contentEditable = 'false'; t.after(el); }
       if(el.textContent !== '📍 ' + sp) el.textContent = '📍 ' + sp;
     });
@@ -15841,7 +15852,7 @@
       if(li && spot) inp.value = spot;
       // a spot without its town saved belongs to the day's town (never becomes one)
       inp._geo = g ? { lat:g.lat, lon:g.lon, name: inp.value.trim(), spot: !!spot, city: li.getAttribute(f[3]) || (f[0] === 'fabAddPlace' && spot ? liPlace(li) : '') } : null;
-      inp._orig = inp.value; inp._for = li; placeMark(inp);
+      inp._orig = inp.value; inp._for = li; inp._fromChip = false; placeMark(inp);
     });
   }
   // saving: a picked spot keeps the day's city as the location
@@ -15856,6 +15867,38 @@
       if(g.spot){ li.setAttribute(spotAttr, g.name); inp.value = town || before || g.name; }
       else { li.removeAttribute(spotAttr); if(!isTown) inp.value = town || before || g.name; }
     } else if(v !== inp._orig || !v){ li.removeAttribute(geoAttr); li.removeAttribute(spotAttr); }
+  }
+  // A place chip in the name: pink, with a pin; ✕ turns it back into words.
+  var TCHIP_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  function titleChip(name, range){
+    var t = document.getElementById('fabAddTitleInput'); if(!t) return null;
+    var old = t.querySelector('.tchip'); if(old) old.replaceWith(document.createTextNode(old.dataset.n));
+    var c = document.createElement('span'); c.className = 'tchip'; c.contentEditable = 'false'; c.dataset.n = name;
+    c.innerHTML = TCHIP_PIN; c.appendChild(document.createTextNode(name));
+    var x = document.createElement('span'); x.className = 'tx'; x.title = 'Not a place: keep it as words'; x.textContent = '✕'; c.appendChild(x);
+    x.addEventListener('mousedown', function(e){ e.preventDefault(); e.stopPropagation(); c.replaceWith(document.createTextNode(name)); unlinkTitlePlace(); t.dispatchEvent(new Event('input', { bubbles:true })); });
+    if(range){ range.insertNode(c); } else t.appendChild(c);
+    // a space after it, and the cursor there
+    var sp = c.nextSibling && c.nextSibling.nodeType === 3 && /^[\s\u00a0]/.test(c.nextSibling.nodeValue) ? c.nextSibling : null;
+    if(!sp){ sp = document.createTextNode('\u00a0'); c.after(sp); }
+    if(document.activeElement === t || range){ var s2 = window.getSelection(), r2 = document.createRange(); r2.setStart(sp, 1); r2.collapse(true); s2.removeAllRanges(); s2.addRange(r2); }
+    return c;
+  }
+  function unlinkTitlePlace(){
+    var pl = document.getElementById('fabAddPlace'); if(!pl) return;
+    pl._fromChip = false; pl._geo = null; placeTouched = false; suggestPlace(); pl._orig = '\u0000';   // differs from anything: Save drops the old map point
+  }
+  // Editing: the place already in the name shows as its chip.
+  function chipifyTitle(li){
+    var t = document.getElementById('fabAddTitleInput'), pl = document.getElementById('fabAddPlace'), sp = li && li.getAttribute('data-spot');
+    if(!t || !sp) return;
+    var txt = t.value, at = txt.toLowerCase().indexOf(sp.toLowerCase()); if(at === -1) return;
+    t.textContent = '';
+    if(at > 0) t.appendChild(document.createTextNode(txt.slice(0, at)));
+    var c = titleChip(txt.slice(at, at + sp.length), null);
+    if(c && c.nextSibling) c.nextSibling.remove();
+    if(at + sp.length < txt.length) t.appendChild(document.createTextNode(txt.slice(at + sp.length)));
+    if(pl) pl._fromChip = true;
   }
   // the suggestions list under the place fields
   (function(){
@@ -15872,8 +15915,9 @@
       if(!g){ var p = document.querySelector('.panel.on'); if(p) p.querySelectorAll('.acts > li[data-geo]').forEach(function(x){ g = g || parseGeo(x.getAttribute('data-geo')); }); }
       return g;
     }
+    var atCtx = null;   // the "@words" being typed in the name: { node, start, end, q }
     function draw(){
-      var r = forInp.getBoundingClientRect(), v = forInp.value.trim();
+      var r = forInp.getBoundingClientRect(), v = forInp.id === 'fabAddTitleInput' ? (atCtx ? atCtx.q.trim() : '') : forInp.value.trim();
       dd.innerHTML = list.map(function(p, i){ return '<div class="pd-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '">' + PIN + '<span><b></b><small></small></span></div>'; }).join('') +
         (note ? '<div class="pd-note">' + note + '</div>' : '') +
         '<div class="pd-opt pd-keep' + (act === list.length ? ' act' : '') + '" data-i="keep">' + TXT + '<span><b></b><small>without travel times</small></span></div><div class="pd-src">Search by Photon · Places © OpenStreetMap</div>';
@@ -15883,8 +15927,9 @@
       dd.hidden = false; dd.style.left = Math.round(r.left) + 'px'; dd.style.top = Math.round(r.bottom + 4) + 'px'; dd.style.width = Math.max(280, Math.round(r.width)) + 'px';
     }
     function search(inp){
-      var v = inp.value.trim(); clearTimeout(timer);
-      if(v.length < 2 || (inp._geo && v === inp._geo.name)){ if(forInp === inp) close(); return; }
+      var title = inp.id === 'fabAddTitleInput', v = title ? (atCtx ? atCtx.q.trim() : '') : inp.value.trim(); clearTimeout(timer);
+      if(title && atCtx && v.length < 2){ forInp = inp; list = []; act = 0; note = 'Type a place after the @'; draw(); return; }
+      if(v.length < 2 || (!title && inp._geo && v === inp._geo.name)){ if(forInp === inp) close(); return; }
       // the list shows straight away ("Searching…"), so it never feels dead
       forInp = inp; list = []; act = 0; note = 'Searching…'; draw();
       timer = setTimeout(function(){
@@ -15898,13 +15943,16 @@
     }
     function pick(i){
       var inp = forInp; if(!inp) return;
-      // The name is the place (like Wanderlog): picking one names the
-      // activity and puts it on the map, in that place's town.
+      // In the name, "@place" becomes a place chip: the words around it stay
+      // the name, the place goes on the map (in its own town).
       if(inp.id === 'fabAddTitleInput'){
-        close(); if(i === 'keep') return;
+        var ctx = atCtx; close(); atCtx = null; if(!ctx || !ctx.node.isConnected) return;
+        if(i === 'keep'){ var r0 = document.createRange(); r0.setStart(ctx.node, ctx.start); r0.setEnd(ctx.node, ctx.start + 1); r0.deleteContents(); return; }   // just drop the @
         var q = list[i], pl = document.getElementById('fabAddPlace');
-        inp.value = q.name; inp._geo = { name:q.name };
-        if(pl){ pl.value = q.name; pl._geo = { lat:q.lat, lon:q.lon, name:q.name, spot:!!q.spot, city:q.city || '', town:!!q.town }; placeTouched = true; }
+        var r = document.createRange(); r.setStart(ctx.node, ctx.start); r.setEnd(ctx.node, Math.min(ctx.end, ctx.node.nodeValue.length)); r.deleteContents();
+        titleChip(q.name, r);
+        if(pl){ pl.value = q.name; pl._geo = { lat:q.lat, lon:q.lon, name:q.name, spot:!!q.spot, city:q.city || '', town:!!q.town }; pl._fromChip = true; placeTouched = true; }
+        inp.dispatchEvent(new Event('input', { bubbles:true }));
         if(typeof anchoredCell !== 'undefined' && anchoredCell) placeAnchored(anchoredCell);
         return;
       }
@@ -15912,8 +15960,24 @@
       else inp._geo = null;
       placeTouched = true; close(); placeMark(inp);
     }
+    // "@" in the name: the only thing that looks for a place there (works in any language)
+    function atBefore(t){
+      var sel = window.getSelection(); if(!sel.rangeCount) return null; var n = sel.anchorNode;
+      if(!n || n.nodeType !== 3 || !t.contains(n)) return null;
+      var before = n.nodeValue.slice(0, sel.anchorOffset), m = /(^|[\s\u00a0(])@([^@\n]{0,40})$/.exec(before);
+      return m ? { node:n, start: sel.anchorOffset - m[2].length - 1, end: sel.anchorOffset, q: m[2] } : null;
+    }
     document.addEventListener('input', function(e){ var t = e.target; if(t && (t.id === 'fabAddPlace' || t.id === 'fabAddPlaceTo')){ placeMark(t); search(t); }
-      else if(t && t.id === 'fabAddTitleInput' && fabAddTagSelect && !isTransportTag(TAGS[fabAddTagSelect.value])) search(t); });
+      else if(t && t.id === 'fabAddTitleInput'){
+        // a linked place whose chip was deleted is unlinked
+        var pl = document.getElementById('fabAddPlace');
+        if(pl && pl._fromChip && !t.querySelector('.tchip')) unlinkTitlePlace();
+        atCtx = atBefore(t);
+        if(atCtx) search(t); else if(forInp === t) close();
+      } });
+    // the name keeps its text plain when pasting
+    document.addEventListener('paste', function(e){ var t = e.target && e.target.closest && e.target.closest('#fabAddTitleInput'); if(!t) return;
+      e.preventDefault(); var txt = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' '); document.execCommand('insertText', false, txt); });
     // on window, so it runs before the form's own Enter (which saves)
     window.addEventListener('keydown', function(e){
       if(dd.hidden || !forInp || e.target !== forInp) return; var n = list.length + 1;
@@ -16197,7 +16261,7 @@
     // To), or when the place isn't simply the name.
     var ex = document.getElementById('fabAddExtras'); if(ex) ex.hidden = true;
     var sp = li ? (li.getAttribute('data-spot') || '') : '', tt = li ? li.querySelector(':scope > .title') : null;
-    placeOpen = !!sp && !!tt && sp.trim().toLowerCase() !== tt.textContent.trim().toLowerCase();
+    placeOpen = !!sp && !!tt && tt.textContent.toLowerCase().indexOf(sp.trim().toLowerCase()) === -1;
     var ti = document.getElementById('fabAddTitleInput'); if(ti) ti._geo = null;
     askReset(li);
     syncPlaceRow(); syncMoreBtn();
@@ -16237,6 +16301,7 @@
     setFormMode(li);
     // fill in what the activity already has
     var tEl = li.querySelector(':scope > .title'); fabAddTitleInput.value = tEl ? tEl.textContent.trim() : '';
+    chipifyTitle(li);
     var chip = li.querySelector('.chip'), tk = chip ? (chip.getAttribute('data-icon') + '|' + chip.getAttribute('data-name')) : '';
     TAGS.forEach(function(tg, i){ if(tagKey(tg) === tk){ fabAddTagSelect.value = String(i); fabAddTagSelect.dataset.prev = String(i); fabAddTagSelect.dispatchEvent(new Event('change')); } });
     var tl = findTimeLine(li), times = tl ? (tl.textContent.match(/\d{1,2}:\d{2}/g) || []) : [];
@@ -16657,7 +16722,7 @@
     if(e.key !== 'Enter' || e.isComposing || e.shiftKey) return;
     var t = e.target, panel = document.getElementById('fabAddPanel');
     if(!panel || !panel.classList.contains('show') || !panel.contains(t)) return;
-    if(t.tagName !== 'INPUT' || t.closest('#fabAddNewTag')) return;
+    if((t.tagName !== 'INPUT' && t.id !== 'fabAddTitleInput') || t.closest('#fabAddNewTag')) return;
     e.preventDefault();
     var b = document.getElementById('fabAddConfirmBtn'); if(b) b.click();
   });
