@@ -16013,8 +16013,9 @@
     function legMin(s, prev){
       if(!prev) return 0;
       var ends = goEnds(prev.li, s.li); if(!ends) return 0;
-      var d = goData(ends.li); if(goChosen(d)) return goChosen(d).min || 0; if(d.k !== ends.key) return 0;
-      var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
+      var d = goData(ends.li); if(goChosen(d)) return goChosen(d).min || 0;
+      var m = goModeOf(d, ends); if(m === 'plane') return goGuess(ends, 'plane')[0]; if(d.k !== ends.key) return 0;
+      var v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
       return v ? v[0] : 0;
     }
     function legOf(s, prev){
@@ -16022,8 +16023,9 @@
       var ends = goEnds(prev.li, s.li); if(!ends) return '';
       var d = goData(ends.li), my = goChosen(d);
       if(my) return (my.b ? GO_ICONS[my.b === 'transit' ? 'bus' : my.b] : '<svg viewBox="0 0 24 24"></svg>') + fmtMin(my.min || 0) + (my.n && !my.b ? ' · ' + my.n : '') + (my.det ? ' · ' + my.det : '');
+      var m = goModeOf(d, ends); if(m === 'plane') return GO_ICONS.plane + '≈ ' + fmtMin(goGuess(ends, 'plane')[0]);
       if(d.k !== ends.key) return '';
-      var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
+      var v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
       return v ? GO_ICONS[m === 'transit' ? 'bus' : m] + fmtMin(v[0]) + (m === 'transit' && d.transit ? ' · ' + d.transit[1] : '') : '';
     }
     // In Notes the map shows the idea box: every idea with a place
@@ -16652,9 +16654,10 @@
     car:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>',
     bus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6v6M15 6v6M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>',
     hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M2 2l20 20"/></svg>',
+    plane:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>',
     caret:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
   };
-  var GO_MODES = { walk:'Walk', bike:'Bike', car:'Car' };
+  var GO_MODES = { walk:'Walk', bike:'Bike', car:'Car', plane:'Flight' };
   function goPref(){ try { return localStorage.getItem('tp-go-mode') || 'auto'; } catch(e){ return 'auto'; } }
   function goData(li){ try { return JSON.parse(li.getAttribute('data-go') || '{}') || {}; } catch(e){ return {}; } }
   // automatic: walk when it's under 30 min; anything over ~5 km is a drive
@@ -16664,7 +16667,7 @@
   function goReset(d, key){ var n = { k: key }; if(d && d.my) n.my = d.my; if(d && goChosen(d)) n.m = d.m; return n; }
   // the price of the way chosen for the stretch that ends at this activity (counted in the day)
   function goPriceOf(li){ var c = goChosen(goData(li)); if(!c || !c.p) return null; var a = parseFloat(String(c.p).replace(',', '.')); return a > 0 ? { a:a, c:c.c || null } : null; }
-  function goModeOf(d, ends){ var m = d.m || goPref(); if(String(m).indexOf('my:') === 0) m = goChosen(d) ? (goChosen(d).b || 'transit') : goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
+  function goModeOf(d, ends){ var m = d.m || goPref(); if(String(m).indexOf('my:') === 0) m = goChosen(d) ? (goChosen(d).b || 'transit') : goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m === 'plane' && ends && ends.km < 300) m = 'auto'; if(ends && ends.km > 2500 && m !== 'plane') return 'plane'; if(m !== 'auto') return m; if(ends && ends.km > 1000) return 'plane'; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
   function fmtMin(m){ return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
   function fmtKm(k){ return String(Math.round(k * 10) / 10).replace('.', ',') + ' km'; }
   // the stretch between two activities: from where the first ends to where the next starts
@@ -16674,7 +16677,7 @@
     if(!fg || !tg) return null;
     var fSpot = a.hasAttribute('data-geo-to') ? a.hasAttribute('data-spot-to') : a.hasAttribute('data-spot'), d = kmBetween(fg, tg);
     // two exact spots, or two different towns (not the same spot)
-    if(d < .08 || d > 2500 || (!(fSpot && b.hasAttribute('data-spot')) && d < 3)) return null;
+    if(d < .08 || (!(fSpot && b.hasAttribute('data-spot')) && d < 3)) return null;
     return { from:fg, to:tg, key: fmtGeo(fg) + '>' + fmtGeo(tg), li:b, prevLi:a, km:d };
   }
   var goQueue = [], goBusy = false, goAsked = {};
@@ -16737,7 +16740,7 @@
     }).catch(function(){});
   }
   // a quick estimate from the straight line, shown until the real time arrives
-  function goGuess(ends, mode){ var d = ends.km * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[mode]; return [Math.max(1, Math.round(d / sp * 60) + (mode === 'car' ? 3 : 0)), d]; }
+  function goGuess(ends, mode){ if(mode === 'plane') return [Math.round(ends.km / 800 * 60 / 5) * 5 + 40, ends.km]; var d = ends.km * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[mode]; return [Math.max(1, Math.round(d / sp * 60) + (mode === 'car' ? 3 : 0)), d]; }
   function goPump(){ if(goBusy || !goQueue.length) return; goBusy = true; goQueue.shift()(function(){ goBusy = false; goPump(); }); }
   function esc1(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   function renderGoLines(cell, seq){
@@ -16747,18 +16750,19 @@
       if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
       var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
       var mode = goModeOf(d, ends);
-      if(mode !== 'transit' && (!d[mode] || (!d.walk && ends.km <= 150))) goFetch(ends);
-      if(d.transit == null) goTransit(ends);
+      var fm = mode === 'plane' ? 'car' : mode;
+      if(mode !== 'transit' && ends.km <= 2500 && (!d[fm] || (!d.walk && ends.km <= 150))) goFetch(ends);
+      if(d.transit == null && ends.km <= 2500) goTransit(ends);
       var el = acts.querySelector(':scope > .go-line[data-k="' + ends.key + '"]');
       if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
       el.__ends = ends; keep.push(el);
       var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
       var mine = goChosen(d);
-      var v = mode === 'transit' ? (d.transit ? [d.transit[0], null] : null) : d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
+      var v = mode === 'transit' ? (d.transit ? [d.transit[0], null] : null) : d[mode], far = mode === 'plane', html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
         : mine ? '<button type="button" class="go-b go-mine" aria-label="Travel time" title="' + esc1([mine.b ? '' : mine.n, mine.t1 ? mine.t1 + (mine.t2 ? ' → ' + mine.t2 : '') : '', mine.min ? fmtMin(mine.min) : '', mine.det || ''].filter(Boolean).join(' · ')) + '"><span class="go-t">' +
             (mine.b ? GO_ICONS[mine.b === 'transit' ? 'bus' : mine.b] : '<span class="go-emo">' + esc1(mine.i || '🚆') + '</span>') + '<span>' + (mine.t1 ? esc1(mine.t1 + (mine.t2 ? '–' + mine.t2 : '')) : fmtMin(mine.min || 0)) + '</span></span>' +
             (mine.p ? '<span class="go-km go-px">· ' + esc1((mine.c ? CURRENCIES[mine.c] : currencySymbol(ends.li)) + ' ' + mine.p) + '</span>' : '') + GO_ICONS.caret + '</button>' : d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
-        : '<button type="button" class="go-b" aria-label="Travel time"' + (v && v[1] != null ? ' title="' + fmtMin(v[0]) + ' · ' + fmtKm(v[1]) + '"' : '') + '><span class="go-t">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (v ? '<span>' + fmtMin(v[0]) + '</span></span>' + (v[1] != null ? '<span class="go-km">· ' + fmtKm(v[1]) + '</span>' : '') : (mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + '</span>') + GO_ICONS.caret + '</button>';
+        : '<button type="button" class="go-b" aria-label="Travel time"' + (v && v[1] != null ? ' title="' + fmtMin(v[0]) + ' · ' + fmtKm(v[1]) + '"' : '') + '><span class="go-t">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (far ? '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, 'plane')[0]) + '</span></span><span class="go-km">· ' + fmtKm(Math.round(ends.km)) + '</span>' : v ? '<span>' + fmtMin(v[0]) + '</span></span>' + (v[1] != null ? '<span class="go-km">· ' + fmtKm(v[1]) + '</span>' : '') : (mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + '</span>') + GO_ICONS.caret + '</button>';
       if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
     });
     acts.querySelectorAll(':scope > .go-line').forEach(function(el){ if(keep.indexOf(el) === -1) el.remove(); });
@@ -16804,10 +16808,10 @@
       var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
       var edited = mine.map(function(o){ return o.b; }).filter(Boolean);
       var tool = function(m){ return '<span class="gm-tools"><button type="button" data-edit="' + m + '" title="Add times, a price or details" aria-label="Edit">' + PEN + '</button></span>'; };
-      var html = Object.keys(GO_MODES).filter(function(m){ return edited.indexOf(m) === -1 && (m === 'car' || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25)); }).map(function(m){ var v = d[m];
-          return '<div class="gm-opt gm-row' + (!chosen && m === cur ? ' on' : '') + '" role="button" tabindex="0" data-m="' + m + '">' + GO_ICONS[m] + '<span class="gm-trt">' + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</span>' + tool(m) + '</div>'; }).join('') +
+      var html = Object.keys(GO_MODES).filter(function(m){ return edited.indexOf(m) === -1 && ((m === 'car' && ends.km <= 2500) || (m === 'plane' && ends.km >= 300) || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25)); }).map(function(m){ var v = d[m];
+          return '<div class="gm-opt gm-row' + (!chosen && m === cur ? ' on' : '') + '" role="button" tabindex="0" data-m="' + m + '">' + GO_ICONS[m] + '<span class="gm-trt">' + (m === 'plane' ? '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + ' · ' + fmtKm(Math.round(ends.km)) + '</span>' : v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</span>' + tool(m) + '</div>'; }).join('') +
         (edited.indexOf('transit') !== -1 ? '' : d.transit ? '<div class="gm-opt gm-tr gm-row' + (!chosen && cur === 'transit' ? ' on' : '') + '" role="button" tabindex="0" data-m="transit">' + GO_ICONS.bus + '<span class="gm-trt">' + fmtMin(d.transit[0]) + '<small>' + d.transit[1].replace(/</g, '&lt;') + '</small></span><a class="gm-ext" href="' + maps + '" target="_blank" rel="noopener">Google Maps ↗</a>' + tool('transit') + '</div>'
-          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>');
+          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null && ends.km <= 2500 ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>');
       if(form && form.b) html += formHtml();
       if(mine.length) html += '<div class="gm-sec">Yours</div>' + mine.map(function(o){
           var on = chosen && chosen.id === o.id;
@@ -16818,7 +16822,7 @@
             (o.u ? '<a class="gm-ext gm-link" href="' + esc(o.u) + '" target="_blank" rel="noopener">Link ↗</a>' : '') + '</div>'; }).join('');
       html += form && !form.b ? formHtml() : '<button type="button" class="gm-opt gm-add" data-x="add">' + PLUS + 'Add your own (train, bus, flight…)</button>';
       html += '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
-        (chosen ? '' : '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>') +
+        (chosen || cur === 'plane' ? '' : '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>') +
         (goPref() !== 'auto' ? '<button type="button" class="gm-opt" data-x="auto">Back to automatic (walk if short)</button>' : '') +
         '<div class="gm-src">Routes © openrouteservice · Transit by Transitous · Map data © OpenStreetMap</div>';
       menu.innerHTML = html;
