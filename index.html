@@ -3524,6 +3524,77 @@
   #niceDD { z-index:10016; }
   #fabAddPanel .gc-edit-tools button.grp-tool { width:auto; padding:0 10px; font:inherit; font-size:12.5px; font-weight:800; white-space:nowrap; gap:4px; }
   #fabAddPanel .gc-edit-tools { flex-wrap:wrap; }
+  /* The activity card: read first (like Google Calendar), edit with the pencil */
+  #fabAddPanel.viewing .map-inner > :not(#actView) { display:none !important; }
+  #fabAddPanel.viewing .map-inner { padding:12px 14px 18px 22px; }
+  #actView[hidden] { display:none; }
+  #actView .av-tools { display:flex; justify-content:flex-end; gap:2px; margin:0 -4px 2px 0; }
+  #actView .av-tools button { width:36px; height:36px; border:none; border-radius:50%; background:none; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  #actView .av-tools button:hover { background:var(--bg); color:var(--ink); }
+  #actView .av-tools button[data-v="delete"]:hover { color:#d6455d; background:#fdeef1; }
+  #actView .av-head { display:grid; grid-template-columns:20px 1fr; gap:14px; align-items:start; margin:0 6px 12px 0; }
+  #actView .av-sq { width:16px; height:16px; border-radius:5px; margin-top:8px; }
+  #actView .av-title { margin:0; font-size:22px; line-height:1.25; font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
+  #actView .av-when { margin-top:4px; font-size:14px; color:var(--ink); opacity:.85; }
+  #actView .av-tag { margin:0 0 10px 34px; }
+  #actView .av-tag .grp-chip { font-size:12px; padding:3px 9px; }
+  #actView .av-row { display:grid; grid-template-columns:20px 1fr; gap:14px; align-items:start; padding:7px 6px 7px 0; font-size:14px; color:var(--ink); }
+  #actView .av-row > svg { color:var(--muted); margin-top:1px; }
+  #actView .av-val { min-width:0; overflow-wrap:anywhere; }
+  #actView .av-val small { display:block; font-size:12.5px; color:var(--muted); margin-top:1px; }
+  #actView .av-val a { color:var(--primary); font-weight:700; text-decoration:none; }
+  #actView .av-val a:hover { text-decoration:underline; }
+  #actView .av-notes .av-val { white-space:pre-wrap; }
+  #actView .av-people .av-val { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #actView .av-in { font-size:13px; color:var(--muted); font-weight:700; }
+  #actView .av-thumb { border:none; padding:0; background:none; cursor:zoom-in; border-radius:10px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:8px; }
+  #actView .av-thumb img { display:block; height:64px; max-width:140px; object-fit:cover; border-radius:10px; }
+  #actView .av-pill { display:inline-flex; align-items:center; gap:5px; height:28px; padding:0 11px; border:none; border-radius:999px; background:var(--bg); color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; vertical-align:middle; }
+  #actView .av-pill svg { width:14px; height:14px; }
+  #actView .av-pill:hover { background:#ebe3f6; }
+  #actView .av-ask > .grp-face { width:20px; height:20px; border:none; }
+  #actView .av-ask q { display:block; margin:6px 0 0; padding:8px 10px; border-left:3px solid var(--primary); border-radius:0 10px 10px 0; background:var(--bg); font-size:13.5px; quotes:none; }
+  .av-chk { display:inline-flex; align-items:center; gap:4px; margin-top:8px; height:28px; padding:0 11px; border:1.5px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .av-chk:hover { border-color:var(--secondary); }
+  .av-chk.on { background:var(--secondary); border-color:var(--secondary); color:#fff; }
+  /* the two group actions, big */
+  #actView .av-big { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 6px 0 0; }
+  #actView .av-big button { display:flex; align-items:center; justify-content:center; gap:7px; height:42px; border-radius:12px; font:inherit; font-size:14px; font-weight:800; cursor:pointer; border:2px solid transparent; }
+  #actView .av-duel { background:rgba(var(--primary-rgb), .12); color:var(--primary); border-color:rgba(var(--primary-rgb), .35) !important; }
+  #actView .av-duel:hover { background:var(--primary); color:#fff; }
+  #actView .av-idea { background:rgba(var(--accent-rgb), .13); color:#c4651f; border-color:rgba(var(--accent-rgb), .4) !important; }
+  #actView .av-idea:hover { background:var(--accent); color:#fff; }
+  /* Edit: extras under "More options", Save on the right */
+  #fabAddPanel #fabAddPlaceRow[hidden], #fabAddPanel #fabAddExtras[hidden], #fabAddPanel .gc-ask[hidden] { display:none !important; }
+  #fabAddPanel .gc-foot { justify-content:space-between; margin-top:4px; }
+  #fabAddPanel .gc-foot .modal-primary-btn { flex:0 0 auto; width:auto !important; min-width:104px; padding:0 22px; }
+  #fabAddPanel .gc-morebtn { display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 12px; margin-left:-12px; border:none; border-radius:10px; background:none; color:var(--primary); font:inherit; font-size:14px; font-weight:800; cursor:pointer; }
+  #fabAddPanel .gc-morebtn:hover { background:rgba(var(--primary-rgb), .08); }
+  #fabAddPanel .gc-morecount { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--primary); color:#fff; font-size:11px; line-height:18px; text-align:center; }
+  #fabAddPanel .gc-more .gc-askbtn { background:rgba(var(--primary-rgb), .1); color:var(--primary); }
+  /* Assign: who's on it */
+  #fabAddPanel .gc-ask { margin:0 0 12px 32px; padding:10px 12px 12px; border-radius:12px; background:var(--bg); }
+  .gc-ask .ga-h { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink); }
+  .gc-ask .ga-h svg { width:16px; height:16px; color:var(--primary); }
+  .gc-ask .ga-x { margin-left:auto; border:none; background:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; text-decoration:underline; }
+  .gc-ask .ga-state { display:flex; align-items:center; gap:9px; margin:9px 0 2px; font-size:13px; font-weight:700; color:var(--ink); }
+  .gc-ask .ga-state small { display:block; font-weight:600; color:var(--muted); }
+  .gc-ask .ga-state .av-chk { margin:0 0 0 auto; }
+  .gc-ask .ga-ppl { display:flex; flex-wrap:wrap; gap:6px; margin:9px 0 8px; }
+  .gc-ask .ga-ppl button { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 11px 0 4px; border:1.5px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+  .gc-ask .ga-ppl button .grp-face { width:24px; height:24px; border:none; }
+  .gc-ask .ga-ppl button:hover { border-color:var(--primary); }
+  .gc-ask .ga-ppl button.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .12); }
+  .gc-ask .ga-msg { width:100%; box-sizing:border-box; min-height:52px; padding:8px 10px; border:1.5px solid var(--line); border-radius:10px; background:var(--card); color:var(--ink); font:inherit; font-size:13.5px; resize:vertical; }
+  .gc-ask .ga-msg:focus { outline:none; border-color:var(--primary); }
+  .gc-ask .ga-hint { margin-top:5px; font-size:12px; color:var(--muted); }
+  .av-askface { position:relative; overflow:visible !important; }
+  /* on the calendar: an assigned activity shows the person's face */
+  .acts > li:has(> .tagrow > .ask-mark) { box-shadow:inset 3px 0 0 rgba(var(--primary-rgb), .55); }
+  .tagrow > .ask-mark { position:relative; display:inline-flex; width:22px; height:22px; margin-left:4px; border-radius:50%; flex:none; vertical-align:middle; }
+  .tagrow > .ask-mark svg { width:100%; height:100%; border-radius:50%; }
+  .tagrow > .ask-mark i { position:absolute; right:-2px; top:-2px; width:9px; height:9px; border-radius:50%; background:#f5c542; border:2px solid var(--card); }
+  .tagrow > .ask-mark i.done { background:var(--secondary); }
   .grp-newpop .grp-people { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px; }
   .grp-newpop .grp-person { padding:2px 9px 2px 2px; font-size:12px; }
   .grp-newpop .grp-person .grp-face { width:20px; height:20px; }
@@ -3802,6 +3873,7 @@
   </button>
   <div id="fabAddPanel" class="modal-overlay">
     <div class="map-inner">
+      <div id="actView" hidden></div>
       <div class="map-header">
         <h2 id="fabAddHeading">Add activity</h2>
         <button type="button" id="fabAddCloseX" class="modal-close" title="Close" aria-label="Close">✕</button>
@@ -3822,7 +3894,7 @@
         <span class="fabadd-time-sep" aria-hidden="true">–</span>
         <input type="time" id="fabAddTimeEndInput" class="fabadd-select" aria-label="End time (optional)" />
       </div></div>
-      <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Add location" aria-label="Place" autocomplete="off" /><span class="gc-to-arrow" id="fabAddPlaceArrow" hidden>→</span><input type="text" id="fabAddPlaceTo" class="fabadd-select" placeholder="To" aria-label="To" autocomplete="off" hidden /></div>
+      <div class="gc-row" id="fabAddPlaceRow"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" id="fabAddPlace" class="fabadd-select" placeholder="Add location" aria-label="Place" autocomplete="off" /><span class="gc-to-arrow" id="fabAddPlaceArrow" hidden>→</span><input type="text" id="fabAddPlaceTo" class="fabadd-select" placeholder="To" aria-label="To" autocomplete="off" hidden /></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg><div class="fabadd-amount-row"><input type="text" id="fabAddAmountInput" class="fabadd-select" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Amount" /><select id="fabAddCurrencySelect" class="fabadd-select" aria-label="Currency"></select></div></div>
       <div id="fabAddSplit" class="fabadd-split" hidden>
         <div class="fs-head"><span class="fabadd-label">Who's in</span></div>
@@ -3831,13 +3903,16 @@
         <div class="fs-list"></div>
         <div class="fs-left"></div>
       </div>
+      <div id="fabAddExtras" hidden>
       <div class="gc-row gc-opt" id="fabAddNotesRow" hidden><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><textarea id="fabAddNotes" class="fabadd-select" rows="2" placeholder="Notes" aria-label="Notes"></textarea></div>
       <div class="gc-row gc-opt" id="fabAddLinkRow" hidden><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg><input type="url" id="fabAddLink" class="fabadd-select" placeholder="Paste a link" aria-label="Link" /></div>
       <div class="gc-more" id="fabAddMore">
-        <button type="button" data-x="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Notes</button><button type="button" data-x="link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>Link</button><button type="button" data-x="ticket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12" stroke-dasharray="2 2"/></svg><span>Ticket</span></button><button type="button" data-x="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><span>Photo</span></button>
+        <button type="button" data-x="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Notes</button><button type="button" data-x="link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>Link</button><button type="button" data-x="ticket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12" stroke-dasharray="2 2"/></svg><span>Ticket</span></button><button type="button" data-x="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><span>Photo</span></button><button type="button" data-x="place"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>Location</button><button type="button" data-x="ask" class="gc-askbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 11-5.7"/><path d="m16 19 2 2 4-4"/></svg>Assign</button>
+      </div>
+      <div id="fabAddAsk" class="gc-ask" hidden></div>
       </div>
       <div class="gc-foot">
-        <span class="gc-edit-tools" hidden><button type="button" data-x="up" aria-label="Move up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button type="button" data-x="down" aria-label="Move down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button><button type="button" data-x="duel" class="grp-tool" title="Put this to a vote against something else"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M8 3H3v5M21 3l-7 7M3 3l7 7M12 14v7"/></svg> This or that</button><button type="button" data-x="idea" class="grp-tool" title="Take it off the day and keep it as an idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> To ideas</button><button type="button" data-x="delete" class="danger" aria-label="Delete activity" title="Delete activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></span>
+        <button type="button" id="fabAddMoreBtn" class="gc-morebtn" aria-expanded="false">More options</button>
         <button type="button" id="fabAddConfirmBtn" class="modal-primary-btn fabadd-confirm-btn" data-i18n="fabadd_confirm">Add activity</button>
       </div>
     </div>
@@ -10346,7 +10421,11 @@
     // also takes over scrolling by hand for real (see its own comment
     // for why a single continuous gesture needs that).
     var actDragOpts = {
-      shouldSkip: function(e){ return e.target.closest('.chip, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
+      // On a computer the whole card drags (its fields are only edited
+      // through the card that opens on click), except its own icons.
+      shouldSkip: function(e){ return window.matchMedia('(min-width:721px)').matches
+        ? e.target.closest('a, button, input, .itemmenu-btn, .editicon, .linkicons, .ticketicon, .photoicon, .payicon, .actcurrency-icon, .photopreview-wrap, .linkpreview-wrap, .participant-face')
+        : e.target.closest('.chip, .itemmenu-btn, .editicon, a, [contenteditable="true"]'); },
       moveThreshold: 5,
       onStart: function(e){ actDrag = { li: li, originCell: li.closest('.cell'), moved: false }; li.classList.add('act-armed'); },
       onMove: onActDragMove,
@@ -10919,18 +10998,22 @@
     var cell = nearestCellAt(panel, e.clientX, e.clientY);
     if(!cell) return;
     var acts = ensureCellHasList(cell);
-    var items = Array.prototype.slice.call(acts.children).filter(function(x){ return x !== actDrag.li; });
+    // the day's activities in the order they show (a stay sits first)
+    var items = Array.prototype.slice.call(acts.children).filter(function(x){ return x !== actDrag.li && x.tagName === 'LI'; })
+      .map(function(x){ return { el:x, r:x.getBoundingClientRect() }; }).sort(function(a, b){ return a.r.top - b.r.top; });
     var insertBeforeEl = null;
     for(var i = 0; i < items.length; i++){
-      var r = items[i].getBoundingClientRect();
-      if(e.clientY < r.top + r.height / 2){ insertBeforeEl = items[i]; break; }
+      if(e.clientY < items[i].r.top + items[i].r.height / 2){ insertBeforeEl = items[i].el; break; }
     }
-    if(insertBeforeEl) acts.insertBefore(actDrag.li, insertBeforeEl);
-    else acts.appendChild(actDrag.li);
+    if(insertBeforeEl){ if(actDrag.li.nextElementSibling !== insertBeforeEl) acts.insertBefore(actDrag.li, insertBeforeEl); }
+    else if(items.length && items[items.length - 1].el.nextElementSibling !== actDrag.li) items[items.length - 1].el.after(actDrag.li);
+    else if(!items.length && actDrag.li.parentNode !== acts) acts.appendChild(actDrag.li);
+    if(typeof renderPlaceSections === 'function') renderPlaceSections(cell);
   }
   function onActDragEnd(){
     stopAutoScroll();
     if(actDrag) actDrag.li.classList.remove('act-armed');
+    if(actDrag && actDrag.moved) window.__actDraggedAt = Date.now();   // the click that ends a drag doesn't open the card
     if(actDrag && actDrag.moved){
       actDrag.li.classList.remove('act-dragging');
       var newCell = actDrag.li.closest('.cell');
@@ -14448,8 +14531,8 @@
     }
     function render(){
       pop.innerHTML = '<div class="bd-head"><span>Notifications</span>' + (items.some(function(x){ return !x.seen; }) ? '<button type="button" class="bd-all">Mark all as read</button>' : '') + '</div>' +
-        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b> mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes' + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
-          : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, it shows up here.</div>');
+        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b>' + (x.kind === 'assign' ? ' assigned you <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : x.kind === 'askdone' ? ' checked <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : ' mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes') + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
+          : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, or assigns you an activity, it shows up here.</div>');
     }
     function markSeen(list){ list.forEach(function(x){ if(!x.seen && x.id && IS_HOSTED && currentUserKey) firebase.database().ref('notifications/' + currentUserKey + '/' + x.id + '/seen').set(true).catch(function(){}); x.seen = true; }); paint(); }
     function openList(b){ render(); var r = b.getBoundingClientRect(); pop.hidden = false; pop.style.top = (r.bottom + 8) + 'px'; pop.style.right = Math.max(8, document.documentElement.clientWidth - r.right) + 'px'; }
@@ -14457,6 +14540,7 @@
       e.stopPropagation();
       if(e.target.closest('.bd-all')){ markSeen(items); return; }
       var it = e.target.closest('.bd-item'); if(!it) return; var x = items[+it.dataset.i]; markSeen([x]); pop.hidden = true;
+      if((x.kind === 'assign' || x.kind === 'askdone') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day, x.act || '')) return;
       var target = [].filter.call(document.querySelectorAll('.panel'), function(p){ return planIdOf(p) === x.planId; })[0];
       if(target){ if(!target.classList.contains('on')) activatePillByOpt(optOf(target)); setTimeout(openNotesPage, 60); }
     });
@@ -14553,8 +14637,9 @@
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
-    if(fabAddPanel) fabAddPanel.classList.remove('show');
-    fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null;
+    if(fabAddPanel) fabAddPanel.classList.remove('show', 'viewing');
+    var av = document.getElementById('actView'); if(av){ av.hidden = true; av.innerHTML = ''; }
+    fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null; askDraft = null; placeOpen = false;
     var so = document.getElementById('fabAddStayOut'); if(so) delete so.dataset.want;
     var de = document.getElementById('fabAddDayEnd'); if(de){ delete de.dataset.want; de.hidden = true; }
     showRange(null);
@@ -14572,7 +14657,7 @@
   // "New location" stand-in); later ones start in the day's last city.
   // With more than one city, the day's activities are grouped under a
   // small heading per city (see renderPlaceSections).
-  var PLACE_STANDIN = 'New location', placeTouched = false;
+  var PLACE_STANDIN = 'New location', placeTouched = false, placeOpen = false;
   function placeOfCell(c){ var l = c && (c.querySelector(':scope > .loc > .loc-text') || c.querySelector(':scope > .loc')); var t = l ? l.textContent.trim() : ''; return t === PLACE_STANDIN ? '' : t; }
   function citiesOf(text){ return text ? text.split('→').map(function(x){ return x.trim(); }).filter(Boolean) : []; }
   function liPlace(li){ var p = li.getAttribute('data-place'); if(p) return p; var c = citiesOf(placeOfCell(li.closest('.cell'))); return c[0] || ''; }
@@ -14589,6 +14674,7 @@
     var on = isTransportTag(TAGS[fabAddTagSelect.value]);
     to.hidden = arrow.hidden = !on;
     from.placeholder = on ? 'From' : 'Add location';
+    syncPlaceRow();
   }
   function suggestPlace(){
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
@@ -14814,7 +14900,7 @@
     // the exact spot picked on the map, under the name (display only)
     dayActs(cell).concat(stayNights(cell)).forEach(function(li){   // a stay's other nights show its spot too
       var sp = (li.__origin || li).getAttribute('data-spot'), el = li.querySelector(':scope > .spot-line'), t = li.querySelector(':scope > .title');
-      if(!sp || !t){ if(el) el.remove(); return; }
+      if(!sp || !t || sp.trim().toLowerCase() === t.textContent.trim().toLowerCase()){ if(el) el.remove(); return; }
       if(!el){ el = document.createElement('span'); el.className = 'spot-line'; el.contentEditable = 'false'; t.after(el); }
       if(el.textContent !== '📍 ' + sp) el.textContent = '📍 ' + sp;
     });
@@ -15459,7 +15545,7 @@
         (note ? '<div class="pd-note">' + note + '</div>' : '') +
         '<div class="pd-opt pd-keep' + (act === list.length ? ' act' : '') + '" data-i="keep">' + TXT + '<span><b></b><small>without travel times</small></span></div><div class="pd-src">Search by Photon · Places © OpenStreetMap</div>';
       dd.querySelectorAll('.pd-opt[data-i]').forEach(function(o){ var i = o.dataset.i;
-        if(i === 'keep') o.querySelector('b').textContent = 'Use “' + v + '” as written';
+        if(i === 'keep'){ o.querySelector('b').textContent = forInp.id === 'fabAddTitleInput' ? 'Just “' + v + '”' : 'Use “' + v + '” as written'; if(forInp.id === 'fabAddTitleInput') o.querySelector('small').textContent = 'a name, not a place'; }
         else { o.querySelector('b').textContent = list[+i].name; o.querySelector('small').textContent = list[+i].label || ''; } });
       dd.hidden = false; dd.style.left = Math.round(r.left) + 'px'; dd.style.top = Math.round(r.bottom + 4) + 'px'; dd.style.width = Math.max(280, Math.round(r.width)) + 'px';
     }
@@ -15479,11 +15565,22 @@
     }
     function pick(i){
       var inp = forInp; if(!inp) return;
+      // The name is the place (like Wanderlog): picking one names the
+      // activity and puts it on the map, in that place's town.
+      if(inp.id === 'fabAddTitleInput'){
+        close(); if(i === 'keep') return;
+        var q = list[i], pl = document.getElementById('fabAddPlace');
+        inp.value = q.name; inp._geo = { name:q.name };
+        if(pl){ pl.value = q.name; pl._geo = { lat:q.lat, lon:q.lon, name:q.name, spot:!!q.spot, city:q.city || '', town:!!q.town }; placeTouched = true; }
+        if(typeof anchoredCell !== 'undefined' && anchoredCell) placeAnchored(anchoredCell);
+        return;
+      }
       if(i !== 'keep'){ var p = list[i]; inp.value = p.name; inp._geo = { lat:p.lat, lon:p.lon, name:p.name, spot:!!p.spot, city:p.city || '', town:!!p.town }; }
       else inp._geo = null;
       placeTouched = true; close(); placeMark(inp);
     }
-    document.addEventListener('input', function(e){ var t = e.target; if(t && (t.id === 'fabAddPlace' || t.id === 'fabAddPlaceTo')){ placeMark(t); search(t); } });
+    document.addEventListener('input', function(e){ var t = e.target; if(t && (t.id === 'fabAddPlace' || t.id === 'fabAddPlaceTo')){ placeMark(t); search(t); }
+      else if(t && t.id === 'fabAddTitleInput' && fabAddTagSelect && !isTransportTag(TAGS[fabAddTagSelect.value])) search(t); });
     // on window, so it runs before the form's own Enter (which saves)
     window.addEventListener('keydown', function(e){
       if(dd.hidden || !forInp || e.target !== forInp) return; var n = list.length + 1;
@@ -15642,7 +15739,6 @@
     var h = document.getElementById('fabAddHeading'), b = document.getElementById('fabAddConfirmBtn');
     if(h) h.textContent = li ? 'Edit activity' : 'Add activity';
     if(b) b.textContent = li ? 'Save' : 'Add activity';
-    var tools = document.querySelector('#fabAddPanel .gc-edit-tools'); if(tools) tools.hidden = !li;
     var notes = document.getElementById('fabAddNotes'), link = document.getElementById('fabAddLink');
     var dl = li ? findDescLine(li) : null, links = li ? getLinks(li) : [];
     notes.value = dl ? dl.textContent.trim() : ''; link.value = links[0] || '';
@@ -15660,9 +15756,42 @@
     var end = document.getElementById('fabAddDayEnd');
     if(end){ var st = li && li.getAttribute('data-span-to'); if(st) end.dataset.want = st; else delete end.dataset.want; end.hidden = !st; fillDayEnd(); }
     syncAllDayForm();
+    // Notes, link, ticket, photo, location and Assign wait under "More
+    // options". The location only has its own row for a journey (From →
+    // To), or when the place isn't simply the name.
+    var ex = document.getElementById('fabAddExtras'); if(ex) ex.hidden = true;
+    var sp = li ? (li.getAttribute('data-spot') || '') : '', tt = li ? li.querySelector(':scope > .title') : null;
+    placeOpen = !!sp && !!tt && sp.trim().toLowerCase() !== tt.textContent.trim().toLowerCase();
+    var ti = document.getElementById('fabAddTitleInput'); if(ti) ti._geo = null;
+    askReset(li);
+    syncPlaceRow(); syncMoreBtn();
   }
-  function openActivityEditor(li){
+  function syncPlaceRow(){
+    var row = document.getElementById('fabAddPlaceRow'); if(!row || !fabAddTagSelect) return;
+    var tr = isTransportTag(TAGS[fabAddTagSelect.value]);
+    row.hidden = !(tr || placeOpen);
+    var b = document.querySelector('#fabAddMore [data-x="place"]'); if(b) b.hidden = !row.hidden;
+  }
+  function syncMoreBtn(){
+    var b = document.getElementById('fabAddMoreBtn'), ex = document.getElementById('fabAddExtras'); if(!b || !ex) return;
+    var li = fabAddEditLi, n = 0, pk = fabAddPendingPick;
+    if(document.getElementById('fabAddNotes').value.trim()) n++;
+    if(document.getElementById('fabAddLink').value.trim()) n++;
+    if((li && li.hasAttribute('data-ticket')) || (pk && pk.kind === 'ticket')) n++;
+    if((li && li.hasAttribute('data-img')) || (pk && pk.kind === 'photo')) n++;
+    if(askDraft && askDraft.open && askDraft.w) n++;
+    b.innerHTML = (ex.hidden ? 'More options' : 'Fewer options') + (n && ex.hidden ? '<span class="gc-morecount">' + n + '</span>' : '');
+    b.setAttribute('aria-expanded', ex.hidden ? 'false' : 'true');
+  }
+  document.addEventListener('click', function(e){
+    if(!e.target.closest || !e.target.closest('#fabAddMoreBtn')) return;
+    e.preventDefault(); e.stopPropagation();
+    var ex = document.getElementById('fabAddExtras'); ex.hidden = !ex.hidden; syncMoreBtn();
+    if(anchoredCell) placeAnchored(anchoredCell);
+  }, true);
+  function editActivity(li){
     var cell = li.closest('.cell'); if(!cell) return;
+    document.getElementById('fabAddPanel').classList.remove('viewing'); document.getElementById('actView').hidden = true;
     var so = document.getElementById('fabAddStayOut'); if(so){ if(li.getAttribute('data-stay-to')) so.dataset.want = li.getAttribute('data-stay-to'); else delete so.dataset.want; }
     fabAddForcedCell = cell;
     var panelEl = document.getElementById('fabAddPanel');
@@ -15677,6 +15806,8 @@
     var tl = findTimeLine(li), times = tl ? (tl.textContent.match(/\d{1,2}:\d{2}/g) || []) : [];
     var pad = function(t){ var a = t.split(':'); return a[0].padStart(2, '0') + ':' + a[1]; };
     fabAddTimeInput.value = times[0] ? pad(times[0]) : ''; fabAddTimeEndInput.value = times[1] ? pad(times[1]) : '';
+    // a time written as words ("4 hours", "Gates 12:00 → late") stays as it is unless a time is picked
+    fabAddTimeInput.dataset.free = tl && !times.length && tl.textContent.replace(/🕒\s*/, '').trim() !== 'time' ? '1' : '';
     var pv = li.querySelector(':scope > .price > .price-val');
     fabAddAmountInput.value = pv ? (pv.textContent.replace(/^[^\d-]*/, '').trim() || String(parseMoney(pv.textContent))) : '';   // as written, e.g. "45x2"
     fabAddAmountInput.dataset.orig = fabAddAmountInput.value;
@@ -15702,6 +15833,195 @@
     placeAnchored(cell);
     setTimeout(function(){ fabAddTitleInput.focus(); }, 30);
   }
+  // ---- Clicking an activity: first a read-only card (like Google
+  // Calendar's), with the pencil to edit, the bin and ✕ along the top,
+  // and This or that / To ideas as the two big actions underneath. ----
+  var AV_SVG = function(d, w){ return '<svg viewBox="0 0 24 24" width="' + (w || 18) + '" height="' + (w || 18) + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; };
+  var AV_IC = {
+    edit: AV_SVG('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+    trash: AV_SVG('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>'),
+    close: AV_SVG('<path d="M18 6 6 18M6 6l12 12"/>'),
+    pin: AV_SVG('<path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>'),
+    wallet: AV_SVG('<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/>'),
+    people: AV_SVG('<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+    notes: AV_SVG('<path d="M4 6h16M4 12h16M4 18h10"/>'),
+    link: AV_SVG('<path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/>'),
+    ticket: AV_SVG('<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/>'),
+    photo: AV_SVG('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>'),
+    ask: AV_SVG('<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 11-5.7"/><path d="m16 19 2 2 4-4"/>'),
+    duel: AV_SVG('<path d="M16 3h5v5M8 3H3v5M21 3l-7 7M3 3l7 7M12 14v7"/>', 17),
+    idea: AV_SVG('<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>', 17)
+  };
+  function avEsc(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function avDate(panel, dn, opts){ var r = realDate(panel, dn); return new Date(r.year, r.month - 1, r.day).toLocaleDateString('en-GB', opts); }
+  // "Sunday, 16 August · 11:15 – 14:35", or a range for a stay / a span
+  function avWhen(li){
+    var panel = li.closest('.panel'), cell = li.closest('.cell'), dn = cell ? dayNumOfCell(cell) : null; if(!panel || dn == null) return '';
+    var to = parseInt(li.getAttribute('data-stay-to') || li.getAttribute('data-span-to') || '', 10), out;
+    if(to && to !== dn) out = avDate(panel, dn, { weekday:'short', day:'numeric', month:'short' }) + ' – ' + avDate(panel, to, { weekday:'short', day:'numeric', month:'short' });
+    else out = avDate(panel, dn, { weekday:'long', day:'numeric', month:'long' });
+    var tl = findTimeLine(li), t = tl ? tl.textContent.replace(/🕒\s*/, '').replace(/\s*-\s*/, ' – ').trim() : '';
+    return out + (t && t !== 'time' ? ' · ' + t : '');
+  }
+  function avAsk(li){ try { var a = JSON.parse(li.getAttribute('data-ask') || 'null'); return a && a.w ? a : null; } catch(e){ return null; } }
+  function renderActView(li){
+    var v = document.getElementById('actView'); if(!v) return;
+    var panel = li.closest('.panel'), chip = li.querySelector('.chip'), tEl = li.querySelector(':scope > .title');
+    var title = tEl ? tEl.textContent.trim() : '', icon = chip ? chip.getAttribute('data-icon') || '' : '', name = chip ? chip.getAttribute('data-name') || '' : '';
+    var st = tagStyleFor(icon, name), rows = [];
+    function row(ic, html, cls){ rows.push('<div class="av-row' + (cls ? ' ' + cls : '') + '">' + ic + '<div class="av-val">' + html + '</div></div>'); }
+    // where: the exact spot (when it isn't just the name again) and the town
+    var spot = li.getAttribute('data-spot') || '', town = li.getAttribute('data-place') || '', dest = li.getAttribute('data-place-to') || '';
+    var same = function(a, b){ return a.trim().toLowerCase() === b.trim().toLowerCase(); };
+    if(dest) row(AV_IC.pin, avEsc((li.getAttribute('data-spot') || town) + ' → ' + (li.getAttribute('data-spot-to') || dest)));
+    else if(spot && !same(spot, title)) row(AV_IC.pin, avEsc(spot) + (town && !same(town, spot) ? '<small>' + avEsc(town) + '</small>' : ''));
+    else if(spot || town) row(AV_IC.pin, avEsc(town || spot));
+    // cost and who paid
+    var pv = li.querySelector(':scope > .price > .price-val');
+    if(pv && pv.textContent.trim()){
+      var sym = currencySymbol(priceValCurrencyCtx(li)), paid = getPaid(li).filter(function(x){ return +x.a > 0; });
+      var sub = li.getAttribute('data-pay-mode') === 'own' ? 'Each pays their own' : paid.map(function(x){ return avEsc(memberNameOf(x.k) || x.k.split(',')[0]) + ' paid ' + avEsc(sym) + ' ' + x.a; }).join(' · ');
+      row(AV_IC.wallet, avEsc(pv.textContent.trim()) + (sub ? '<small>' + sub + '</small>' : ''));
+    }
+    // who's in
+    if(panel && typeof grpEligible === 'function'){
+      var people = grpEligible(panel), skip = grpSkippers(li), inK = people.filter(function(k){ return skip.indexOf(k) === -1; });
+      if(people.length) row(AV_IC.people, grpFaces(inK) + '<span class="av-in">' + (skip.length ? inK.length + ' in · ' + skip.filter(function(k){ return people.indexOf(k) !== -1; }).map(grpName).map(avEsc).join(', ') + ' skip' + (skip.length === 1 ? 's' : '') : 'Everyone’s in') + '</span>', 'av-people');
+    }
+    var dl = findDescLine(li); if(dl && dl.textContent.trim()) row(AV_IC.notes, avEsc(dl.textContent.trim()), 'av-notes');
+    getLinks(li).forEach(function(u){ var h = u; try { h = new URL(u).hostname.replace(/^www\./, ''); } catch(e){} row(AV_IC.link, '<a href="' + avEsc(u) + '" target="_blank" rel="noopener">' + avEsc(h) + '</a>'); });
+    var img = li.getAttribute('data-img'), tk = li.getAttribute('data-ticket');
+    if(img || tk) row(AV_IC.photo, (img ? '<button type="button" class="av-thumb" data-v="photo" title="Open the photo"><img src="' + avEsc(img) + '" alt=""></button>' : '') + (tk ? '<button type="button" class="av-pill" data-v="ticket">' + AV_IC.ticket + 'Ticket</button>' : ''));
+    var ask = avAsk(li);
+    if(ask){
+      var me = meKey(), who = grpName(ask.w);
+      row(grpFace(ask.w, 'av-askface' + (ask.d ? ' done' : '')), '<b>' + (ask.d ? avEsc(who) + ' checked it' : 'Waiting for ' + avEsc(ask.w === me ? 'you' : who)) + '</b><small>assigned by ' + avEsc(ask.by === me ? 'you' : grpName(ask.by)) + '</small>' +
+        (ask.m ? '<q>' + avEsc(ask.m) + '</q>' : '') + '<button type="button" class="av-chk' + (ask.d ? ' on' : '') + '" data-v="check">' + (ask.d ? '✓ Checked' : 'Mark as checked') + '</button>', 'av-ask');
+    }
+    var grp = !!panel && !VIEW_ONLY;
+    v.innerHTML = '<div class="av-tools"><button type="button" data-v="edit" title="Edit" aria-label="Edit">' + AV_IC.edit + '</button><button type="button" data-v="delete" title="Delete" aria-label="Delete">' + AV_IC.trash + '</button><button type="button" data-v="close" title="Close" aria-label="Close">' + AV_IC.close + '</button></div>' +
+      '<div class="av-head"><span class="av-sq" style="background:' + st.bg + '"></span><div><h3 class="av-title">' + avEsc(title || 'New activity') + '</h3><div class="av-when">' + avEsc(avWhen(li)) + '</div></div></div>' +
+      (icon || name ? '<div class="av-tag"><span class="grp-chip" style="background:' + st.bg + ';color:' + st.fg + '">' + avEsc((icon ? icon + ' ' : '') + name) + '</span></div>' : '') +
+      rows.join('') +
+      (grp ? '<div class="av-big"><button type="button" data-v="duel" class="av-duel">' + AV_IC.duel + 'This or that</button><button type="button" data-v="idea" class="av-idea">' + AV_IC.idea + 'To ideas</button></div>' : '');
+  }
+  function openActivityEditor(li){
+    var cell = li.closest('.cell'); if(!cell) return;
+    var panelEl = document.getElementById('fabAddPanel');
+    if(panelEl.classList.contains('show') && !panelEl.classList.contains('viewing')) closeFabAdd();
+    showRange(null); document.querySelectorAll('.day-ghost-slot').forEach(function(x){ x.remove(); });
+    fabAddEditLi = li;
+    renderActView(li);
+    document.getElementById('actView').hidden = false;
+    panelEl.classList.add('anchored', 'viewing', 'show');
+    anchoredCell = cell;
+    var card = panelEl.querySelector('.map-inner'); card._cell = null;
+    placeAnchored(cell);
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('#actView [data-v]'); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var li = fabAddEditLi, x = b.dataset.v; if(!li) return;
+    if(x === 'close') closeFabAdd();
+    else if(x === 'edit') editActivity(li);
+    else if(x === 'delete'){ closeFabAdd(); deleteActivityLi(li); scheduleAutoSave(); scheduleUndoSnapshot(); }
+    else if(x === 'duel'){ closeFabAdd(); setTimeout(function(){ openDuelForm(li, li); }, 0); }
+    else if(x === 'idea'){ closeFabAdd(); grpMoveToIdeas(li); }
+    else if(x === 'photo') openPhotobox(li);
+    else if(x === 'ticket') openTicket(li);
+    else if(x === 'check'){ var a = avAsk(li); if(!a) return; if(a.d) delete a.d; else a.d = 1; li.setAttribute('data-ask', JSON.stringify(a)); if(a.d) notifyAsk(li, a, 'done'); scheduleAutoSave(); scheduleUndoSnapshot(); renderAskMark(li); renderActView(li); }
+  }, true);
+  // ---- Assign: "Who's on it?" (More options → Assign) ----
+  // Stored on the activity as data-ask = { w: who, by: who assigned it,
+  // m: the message, d: 1 once it's checked }. Saving tells them: a bell
+  // and an email; ticking "Mark as checked" tells whoever assigned it.
+  var askDraft = null;
+  function askReset(li){ var a = li ? avAsk(li) : null; askDraft = a ? { open:true, w:a.w, m:a.m || '', d:!!a.d } : { open:false, w:null, m:'', d:false }; drawAsk(); }
+  function drawAsk(){
+    var sec = document.getElementById('fabAddAsk'), btn = document.querySelector('#fabAddMore [data-x="ask"]'); if(!sec || !askDraft) return;
+    var on = askDraft.open; sec.hidden = !on; if(btn) btn.hidden = on;
+    if(!on){ sec.innerHTML = ''; return; }
+    var p = document.querySelector('.panel.on'), people = p ? grpEligible(p) : [], me = meKey(), d = askDraft;
+    var saved = fabAddEditLi ? avAsk(fabAddEditLi) : null, nm = d.w ? (d.w === me ? 'you' : grpName(d.w)) : '';
+    if(d.w && people.indexOf(d.w) === -1) people = people.concat([d.w]);
+    sec.innerHTML = '<div class="ga-h">' + AV_IC.ask + '<b>Who’s on it?</b><button type="button" class="ga-x" data-a="rm">' + (saved ? 'Remove' : 'Cancel') + '</button></div>' +
+      (saved && saved.w === d.w ? '<div class="ga-state">' + grpFace(saved.w, 'av-askface' + (d.d ? ' done' : '')) + '<div>' + (d.d ? avEsc(grpName(saved.w)) + ' checked it' : 'Waiting for ' + avEsc(nm)) + '<small>assigned by ' + avEsc(saved.by === me ? 'you' : grpName(saved.by)) + '</small></div>' +
+        '<button type="button" class="av-chk' + (d.d ? ' on' : '') + '" data-a="chk">' + (d.d ? '✓ Checked' : 'Mark as checked') + '</button></div>' : '') +
+      '<div class="ga-ppl">' + people.map(function(k){ return '<button type="button" data-a="who" data-k="' + avEsc(k) + '"' + (d.w === k ? ' class="on"' : '') + '>' + grpFace(k) + avEsc(k === me ? 'Me' : grpName(k)) + '</button>'; }).join('') + '</div>' +
+      '<textarea class="ga-msg" rows="2" placeholder="' + avEsc(d.w ? (d.w === me ? 'A note for yourself' : 'Message for ' + grpName(d.w) + ', e.g. can you book this?') : 'Pick someone, then write them a message (optional)') + '">' + avEsc(d.m) + '</textarea>' +
+      '<div class="ga-hint">' + (d.w && d.w !== me ? avEsc(grpName(d.w)) + ' gets a notification and an email when you save.' : d.w ? 'Only a reminder for you: nobody else is told.' : 'They’ll get a notification and an email.') + '</div>';
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('#fabAddAsk [data-a]'); if(!b || !askDraft) return;
+    e.preventDefault(); e.stopPropagation();
+    var m = document.querySelector('#fabAddAsk .ga-msg'); if(m) askDraft.m = m.value;
+    if(b.dataset.a === 'who'){ askDraft.w = askDraft.w === b.dataset.k ? null : b.dataset.k; askDraft.d = false; drawAsk(); if(askDraft.w){ var t = document.querySelector('#fabAddAsk .ga-msg'); if(t) t.focus(); } }
+    else if(b.dataset.a === 'chk'){ askDraft.d = !askDraft.d; drawAsk(); }
+    else if(b.dataset.a === 'rm'){ askDraft = { open:false, w:null, m:'', d:false, removed:true }; drawAsk(); }
+    if(typeof anchoredCell !== 'undefined' && anchoredCell) placeAnchored(anchoredCell);
+  }, true);
+  document.addEventListener('input', function(e){ if(askDraft && e.target && e.target.classList && e.target.classList.contains('ga-msg')) askDraft.m = e.target.value; });
+  function applyAsk(li){
+    var d = askDraft; if(!d) return;
+    var before = avAsk(li), me = meKey();
+    if(d.open && d.w){
+      var a = { w: d.w, by: before && before.w === d.w ? before.by : (me || ''), m: d.m.trim() }; if(d.d) a.d = 1;
+      if(!a.m) delete a.m;
+      li.setAttribute('data-ask', JSON.stringify(a));
+      if(!before || before.w !== a.w || (before.m || '') !== (a.m || '')) notifyAsk(li, a, 'assign');
+      else if(a.d && !before.d) notifyAsk(li, a, 'done');
+    } else if(before && (d.removed || d.open)) li.removeAttribute('data-ask');
+    renderAskMark(li);
+  }
+  // Tells the person: a bell, and (for a new assignment) an email.
+  function notifyAsk(li, a, kind){
+    var me = meKey(), to = kind === 'done' ? a.by : a.w;
+    if(!to || to === me || !IS_HOSTED || !currentUserKey) return;
+    var p = li.closest('.panel'), cell = li.closest('.cell'); if(!p || !cell) return;
+    var tEl = li.querySelector(':scope > .title'), title = tEl ? tEl.textContent.trim() : '', chip = li.querySelector('.chip');
+    var tag = chip ? ((chip.getAttribute('data-icon') || '') + ' ' + (chip.getAttribute('data-name') || '')).trim() : '';
+    var plan = planNameOf(p), meName = memberNameOf(currentUserKey), dn = dayNumOfCell(cell);
+    var note = { kind: kind === 'done' ? 'askdone' : 'assign', from: currentUserKey, fromName: meName, plan: plan, planId: planIdOf(p), opt: optOf(p), day: dn, act: title, at: firebase.database.ServerValue.TIMESTAMP, seen: false };
+    if(kind !== 'done' && a.m) note.msg = a.m;
+    firebase.database().ref('notifications/' + to).push(note).catch(function(err){ console.warn('Notification not saved (database rules?)', err); });
+    if(kind === 'done' || !EMAIL_HOOK_URL) return;
+    var u = firebase.auth().currentUser; if(!u) return;
+    var link = location.origin + location.pathname + '?act=' + encodeURIComponent(optOf(p) + '|' + dn + '|' + title);
+    u.getIdToken().then(function(tok){
+      fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' },
+        body: JSON.stringify({ idToken: tok, kind:'assign', to: to, from: meName, plan: plan, act: title, tag: tag, when: avWhen(li), msg: a.m || '', url: link }) }).catch(function(){});
+    }).catch(function(){});
+  }
+  // On the calendar: their face in the activity's tag row, with a yellow
+  // "to check" dot (a green tick once checked), and a tint on the card.
+  function renderAskMark(li){
+    var row = li.querySelector(':scope > .tagrow'), mark = row ? row.querySelector(':scope > .ask-mark') : null, a = avAsk(li);
+    if(!a || !row){ if(mark) mark.remove(); return; }
+    if(!mark){ mark = document.createElement('span'); mark.className = 'grp-ui ask-mark jsctl'; var ctl = row.querySelector(':scope > .tagctl'); row.insertBefore(mark, ctl || null); }
+    var html = memberFaceOf(a.w) + '<i class="' + (a.d ? 'done' : '') + '"></i>';
+    if(mark.__html !== html){ mark.__html = html; mark.innerHTML = html; }
+    var t = grpName(a.w) + (a.d ? ' checked it' : ' · to check') + (a.m ? ' — ' + a.m : ''); if(mark.title !== t) mark.title = t;
+    mark.classList.toggle('done', !!a.d);
+  }
+  // Opening a link to one activity (from the email, or the bell): ?act=opt|day|title
+  function openActFromLink(opt, dn, title){
+    var p = document.getElementById('panel-' + opt); if(!p) return false;
+    if(!p.classList.contains('on')) activatePillByOpt(opt);
+    setTimeout(function(){
+      var hit = null; p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === +dn) c.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)').forEach(function(li){ var t = li.querySelector(':scope > .title'); if(!hit && t && t.textContent.trim() === title) hit = li; }); });
+      if(hit){ hit.scrollIntoView({ block:'center' }); setTimeout(function(){ openActivityEditor(hit); }, 250); }
+    }, 120);
+    return true;
+  }
+  window.__openActFromLink = openActFromLink;
+  (function(){
+    var want = (location.search.match(/[?&]act=([^&]+)/) || [])[1]; if(!want) return; want = decodeURIComponent(want).split('|');
+    var tries = 0, t = setInterval(function(){
+      tries++;
+      if(document.querySelector('.panel.on') && document.getElementById('panel-' + want[0])){ clearInterval(t); openActFromLink(want[0], want[1], want.slice(2).join('|')); try { history.replaceState(null, '', location.pathname); } catch(e){} }
+      else if(tries > 240) clearInterval(t);
+    }, 250);
+  })();
   // Writes the form's notes/link onto an activity.
   function applyExtras(li){
     var notes = document.getElementById('fabAddNotes').value.trim(), link = document.getElementById('fabAddLink').value.trim();
@@ -15716,7 +16036,7 @@
     fabAddPendingPick = null;
   }
   document.addEventListener('click', function(e){
-    var b = e.target.closest && e.target.closest('#fabAddMore button, #fabAddPanel .gc-edit-tools button'); if(!b) return;
+    var b = e.target.closest && e.target.closest('#fabAddMore button'); if(!b) return;
     e.preventDefault(); e.stopPropagation();
     var x = b.dataset.x, li = fabAddEditLi;
     if(x === 'notes' || x === 'link'){ var row = document.getElementById(x === 'notes' ? 'fabAddNotesRow' : 'fabAddLinkRow'); row.hidden = false; b.hidden = true; row.querySelector('textarea, input').focus(); }
@@ -15737,10 +16057,10 @@
         inp.click();
       }
     }
-    else if(li && (x === 'up' || x === 'down')){ moveActBy(li, x === 'up' ? -1 : 1); scheduleAutoSave(); scheduleUndoSnapshot(); }
-    else if(li && x === 'delete'){ var c = li.closest('.cell'); closeFabAdd(); deleteActivityLi(li); scheduleAutoSave(); scheduleUndoSnapshot(); }
-    else if(li && x === 'duel'){ closeFabAdd(); setTimeout(function(){ openDuelForm(li, li); }, 0); }
-    else if(li && x === 'idea'){ closeFabAdd(); grpMoveToIdeas(li); }
+    else if(x === 'place'){ placeOpen = true; syncPlaceRow(); var pi = document.getElementById('fabAddPlace'); if(pi) pi.focus(); }
+    else if(x === 'ask'){ if(!askDraft) askReset(li); askDraft.open = true; drawAsk(); var ab = document.querySelector('#fabAddAsk .ga-ppl button'); if(ab) ab.focus(); }
+    syncMoreBtn();
+    if(anchoredCell) placeAnchored(anchoredCell);
   });
   // Click an activity (desktop): it behaves as one block and opens the
   // form to edit it. Its own icons (link, ticket, photo, wallet, currency)
@@ -15753,6 +16073,7 @@
   }, true);
   document.addEventListener('click', function(e){
     if(!e.isTrusted || !window.matchMedia('(min-width:721px)').matches || VIEW_ONLY) return;
+    if(window.__actDraggedAt && Date.now() - window.__actDraggedAt < 400 && e.target.closest && e.target.closest('.acts > li')){ e.preventDefault(); e.stopPropagation(); return; }
     var night = e.target.closest && e.target.closest('.panel.on .acts > li.stay-ghost');
     if(night && night.__origin && night.__origin.isConnected){ e.preventDefault(); e.stopPropagation(); openActivityEditor(night.__origin); return; }
     var li = e.target.closest && e.target.closest('.panel.on .acts > li:not(.act-span-ghost)');
@@ -16299,6 +16620,7 @@
     if(!(e.target.closest && e.target.closest('#fabAddTimeClear'))) return;
     e.preventDefault();
     document.getElementById('fabAddTimeInput').value = ''; document.getElementById('fabAddTimeEndInput').value = '';
+    document.getElementById('fabAddTimeInput').dataset.free = '';
   });
   function openFabAdd(){
     var panel = document.querySelector('.panel.on');
@@ -16333,7 +16655,7 @@
       fabAddTagSelect.dataset.prev = fabAddTagSelect.value;
       var nt = document.getElementById('fabAddNewTag'); if(nt) nt.hidden = true;
     }
-    if(fabAddTimeInput) fabAddTimeInput.value = '';
+    if(fabAddTimeInput){ fabAddTimeInput.value = ''; fabAddTimeInput.dataset.free = ''; }
     if(fabAddTimeEndInput) fabAddTimeEndInput.value = '';
     if(fabAddAmountInput) fabAddAmountInput.value = '';
     fillAddPayment(panel);
@@ -16463,6 +16785,7 @@
       if(!(parseMoney(amountVal) > 0)){ var pz = newLi.querySelector(':scope > .price'); if(pz) pz.remove(); }
       applyAddPayment(newLi);
       applyExtras(newLi);
+      applyAsk(newLi);
       applyPlace(cell, newLi);
       applyRange(newLi, rangeTo);
       placeAllDay(newLi);
@@ -16490,7 +16813,7 @@
     var tl = findTimeLine(li);
     if(timeVal){ if(!tl){ tl = document.createElement('span'); tl.className = 'line'; li.insertBefore(tl, li.querySelector(':scope > .price') || findDescLine(li) || null); makeEditable(tl); }
       tl.textContent = '🕒 ' + timeVal + (timeEndVal ? ' - ' + timeEndVal : ''); }
-    else if(tl) tl.remove();
+    else if(tl && !fabAddTimeInput.dataset.free) tl.remove();
     var priceEl = li.querySelector(':scope > .price');
     var cur = document.getElementById('fabAddCurrencySelect');
     if(cur){ var def = resolveCurrencyCode(li.closest('.panel')); if(cur.value && cur.value !== def) li.setAttribute('data-currency', cur.value); else li.removeAttribute('data-currency'); }
@@ -16517,6 +16840,7 @@
       setPaySplitExcluded(li, outKeys); setPaySplits(li, typed); setPaid(li, paid);
     }
     applyExtras(li);
+    applyAsk(li);
     // another day?
     var target = null;
     panel.querySelectorAll('.cell:not(.empty)').forEach(function(c){ var dn = c.querySelector(':scope > .cellhead > .daynum'); if(dn && dn.textContent === day) target = c; });
@@ -16970,6 +17294,7 @@
     if(li.getAttribute('data-geo')) a.gp = li.getAttribute('data-geo');
     if(li.getAttribute('data-geo-to')) a.gpt = li.getAttribute('data-geo-to');
     if(li.getAttribute('data-go')) a.go = li.getAttribute('data-go');
+    if(li.getAttribute('data-ask')) a.ak = li.getAttribute('data-ask');
     if(li.getAttribute('data-stay-to')) a.so = parseInt(li.getAttribute('data-stay-to'), 10);
     if(li.getAttribute('data-span-to')) a.st = parseInt(li.getAttribute('data-span-to'), 10);
     var currency = li.getAttribute('data-currency');
@@ -17138,6 +17463,7 @@
     if(a.gp) li.setAttribute('data-geo', a.gp);
     if(a.gpt) li.setAttribute('data-geo-to', a.gpt);
     if(a.go) li.setAttribute('data-go', a.go);
+    if(a.ak) li.setAttribute('data-ask', a.ak);
     if(a.so) li.setAttribute('data-stay-to', String(a.so));
     if(a.st) li.setAttribute('data-span-to', String(a.st));
     if(a.cur) li.setAttribute('data-currency', a.cur);
@@ -17421,7 +17747,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to', 'data-spot', 'data-spot-to', 'data-geo', 'data-geo-to', 'data-go'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to', 'data-spot', 'data-spot-to', 'data-geo', 'data-geo-to', 'data-go', 'data-ask'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
@@ -18456,7 +18782,7 @@
       if(typeof renderPageBookmark === 'function') renderPageBookmark();
       document.querySelectorAll('.panel').forEach(function(p){ if(p !== panel){ p.querySelectorAll('.grp-duel, .grp-pollbar').forEach(function(n){ n.remove(); }); } });
       if(panel){
-        panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li').forEach(renderWhosIn);
+        panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty) > .acts > li').forEach(function(li){ renderWhosIn(li); renderAskMark(li); });
         renderDuels(panel);
         renderPollBanner(panel);
       }
@@ -18483,8 +18809,8 @@
     renderPageBookmark = function(){ prev(); if(!grpRendering) renderGroup(); };
   })();
   new MutationObserver(function(ms){
-    ms.forEach(function(m){ var li = m.target; if(li.matches && li.matches('.panel.on .acts > li')) renderWhosIn(li); });
-  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-pay-excluded'] });
+    ms.forEach(function(m){ var li = m.target; if(li.matches && li.matches('.panel.on .acts > li')){ if(m.attributeName === 'data-ask') renderAskMark(li); else renderWhosIn(li); } });
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-pay-excluded', 'data-ask'] });
   loadMemberAvatarData().then(function(){ renderGroup(); });
   renderGroup();
 
