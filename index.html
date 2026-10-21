@@ -18562,9 +18562,14 @@
     var askMirror = {};
     model.options.forEach(function(o){ Object.keys(o.d || {}).forEach(function(dn){ (o.d[dn].a || []).forEach(function(a){
       if(a.ak){ (askMirror[o.id] = askMirror[o.id] || {})[dn + '|' + String(a.t || '').trim()] = a.ak; } }); }); });
+    // A plan's countries and when it was last changed get the same mirror
+    // (an older copy left open drops o.cty / o.ed, and Recent would empty).
+    var metaMirror = {};
+    model.options.forEach(function(o){ if(o.cty || o.ed){ metaMirror[o.id] = {}; if(o.cty) metaMirror[o.id].cty = o.cty; if(o.ed) metaMirror[o.id].ed = o.ed; } });
     var notesOut = {};
-    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks') notesOut[k] = MONTH_NOTES[k]; });
+    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks' && k !== '__meta') notesOut[k] = MONTH_NOTES[k]; });
     if(Object.keys(planMirror).length) notesOut.__plans = planMirror;
+    if(Object.keys(metaMirror).length) notesOut.__meta = metaMirror;
     if(Object.keys(askMirror).length) notesOut.__asks = askMirror;
     if(grpHasData()) notesOut.__group = JSON.parse(JSON.stringify(GROUP));
     if(Object.keys(notesOut).length) model.notes = notesOut;
@@ -18687,7 +18692,10 @@
     // a month's notes — keep it out of MONTH_NOTES.
     var planMirror = (model.notes && model.notes.__plans && typeof model.notes.__plans === 'object') ? model.notes.__plans : {};
     MONTH_NOTES = {};
-    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks') MONTH_NOTES[k] = model.notes[k]; });
+    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks' && k !== '__meta') MONTH_NOTES[k] = model.notes[k]; });
+    // countries and last change an older copy dropped come back from their mirror (the newest change wins)
+    var metaMirror = (model.notes && model.notes.__meta) || {};
+    model.options.forEach(function(o){ var m = metaMirror[o.id]; if(!m) return; if(!o.cty && m.cty) o.cty = m.cty; if(m.ed && !(o.ed >= m.ed)) o.ed = m.ed; });
     GROUP = grpNormalize(model.notes && model.notes.__group);
     // an assignment an older copy dropped comes back from its mirror
     var askMirror = (model.notes && model.notes.__asks) || {};
