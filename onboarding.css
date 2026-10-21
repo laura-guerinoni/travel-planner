@@ -1,0 +1,219 @@
+/* Sign-up steps, the first-trip guide, What's new and the cheat corner.
+   Everything here is scoped (.tpo, .tpo-*) so it can't touch the app. */
+
+/* ---- the 50/50 screen: the sign-up steps ---- */
+.tpo { position:fixed; inset:0; z-index:10000; display:grid; grid-template-columns:1fr 1fr; background:var(--card); color:var(--ink); }
+.tpo[hidden] { display:none; }
+.tpo-left { position:relative; background:color-mix(in srgb, var(--primary) 18%, var(--card)); display:flex; align-items:center; justify-content:center; padding:84px 40px 90px; overflow:hidden; transition:background .3s; }
+.tpo-right { position:relative; display:flex; align-items:center; justify-content:center; padding:70px 40px 40px; overflow:auto; }
+.tpo-card { width:100%; max-width:440px; }
+.tpo-back { position:absolute; left:28px; top:26px; width:42px; height:42px; border:none; background:none; color:var(--ink); cursor:pointer; padding:8px; border-radius:50%; }
+.tpo-back:hover { background:color-mix(in srgb, var(--ink) 7%, transparent); }
+.tpo-back svg { width:26px; height:26px; }
+.tpo-back[hidden] { display:none; }
+.tpo-logo { position:absolute; left:32px; bottom:28px; display:flex; align-items:center; gap:10px; font-size:19px; font-weight:800; letter-spacing:-.01em; }
+.tpo-logo .mark { width:34px; height:34px; border-radius:10px; background:#fff; display:grid; place-items:center; box-shadow:0 2px 8px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.05); }
+.tpo-logo .mark svg { width:22px; height:22px; }
+.tpo-preview-tag { position:absolute; right:24px; top:24px; background:var(--ink); color:var(--card); border-radius:999px; padding:6px 12px 6px 14px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:8px; z-index:2; }
+.tpo-preview-tag button { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0 2px; font-size:14px; }
+.tpo h2 { margin:0 0 8px; font-size:32px; font-weight:800; line-height:1.12; letter-spacing:-.02em; }
+.tpo .tpo-sub { margin:0 0 24px; color:var(--muted); font-weight:600; font-size:15px; line-height:1.5; }
+.tpo .tpo-titlerow { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.tpo .tpo-titlerow h2 { margin:0 0 8px; }
+.tpo .tpo-big { width:100%; box-sizing:border-box; border:none; border-bottom:2.5px solid var(--primary); padding:6px 2px 12px; font:inherit; font-size:28px; font-weight:700; outline:none; background:none; color:var(--ink); }
+.tpo .tpo-big::placeholder { color:color-mix(in srgb, var(--muted) 60%, transparent); }
+.tpo-go { width:100%; border:none; border-radius:14px; background:var(--primary); color:var(--on-primary, #fff); font:inherit; font-weight:800; font-size:17px; padding:16px; cursor:pointer; margin-top:24px; }
+.tpo-go[disabled] { opacity:.4; cursor:default; }
+.tpo-skip { display:block; width:100%; border:none; background:none; color:var(--muted); font:inherit; font-weight:800; font-size:14px; padding:12px; cursor:pointer; margin-top:4px; }
+.tpo-skip:hover { color:var(--ink); }
+.tpo-err { color:#b3261e; font-size:13px; font-weight:600; margin-top:10px; }
+/* style step */
+.tpo-lab { font-size:12px; font-weight:800; color:var(--muted); letter-spacing:.02em; margin:0 0 10px; }
+.tpo-pal { display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:22px; }
+.tpo-pal button { aspect-ratio:1; border-radius:50%; border:3px solid var(--card); cursor:pointer; box-shadow:0 0 0 1px rgba(0,0,0,.12); padding:0; }
+.tpo-pal button.on { box-shadow:0 0 0 3px var(--ink); }
+.tpo-fonts { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:22px; }
+.tpo-fonts button { border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:12px 2px 8px; cursor:pointer; text-align:center; }
+.tpo-fonts button span { display:block; font-size:26px; font-weight:700; line-height:1; }
+.tpo-fonts button small { display:block; margin-top:6px; font-family:'Plus Jakarta Sans', sans-serif; font-size:11px; font-weight:700; color:var(--muted); }
+.tpo-fonts button.on, .tpo-chips button.on { border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
+.tpo-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.tpo-chips button { border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:8px 14px; font:inherit; font-weight:800; font-size:13.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.tpo-chips button svg { width:15px; height:15px; }
+/* done */
+.tpo-done { text-align:center; }
+.tpo-done .face { width:120px; height:120px; margin:0 auto 14px; }
+.tpo-done .face svg { width:100%; height:100%; }
+.tpo-sum { display:flex; justify-content:center; align-items:center; gap:14px; margin:18px 0 4px; }
+.tpo-sum .dots { display:flex; }
+.tpo-sum .dots i { width:26px; height:26px; border-radius:50%; border:2px solid var(--card); margin-left:-6px; box-shadow:0 0 0 1px rgba(0,0,0,.08); }
+.tpo-sum .dots i:first-child { margin-left:0; }
+.tpo-sum .aa { width:40px; height:40px; border-radius:10px; border:1.5px solid var(--line); display:grid; place-items:center; font-size:19px; font-weight:700; }
+.tpo-sum .sep { width:1px; height:26px; background:var(--line); }
+.tpo-sum .md svg { width:22px; height:22px; }
+.tpo-bigface { width:300px; height:300px; filter:drop-shadow(0 20px 30px rgba(0,0,0,.12)); }
+.tpo-bigface svg { width:100%; height:100%; }
+
+/* ---- the left side: a weekend in Florence, live ---- */
+.tpo-pv { width:100%; max-width:620px; }
+.tpo-pv .bar { display:flex; align-items:flex-end; gap:6px; }
+.tpo-pv .nt { background:var(--card); border-radius:12px 12px 0 0; padding:9px 16px; font-weight:700; font-size:12.5px; color:var(--muted); }
+.tpo-pv .nt svg { width:12px; height:12px; vertical-align:-1px; margin-right:5px; }
+.tpo-pv .tab { color:#fff; border-radius:12px 12px 0 0; padding:6px 14px; font-weight:700; font-size:12.5px; line-height:1.25; }
+.tpo-pv .tab small { display:block; font-size:10.5px; opacity:.85; font-weight:600; }
+.tpo-pv .tab.on { background:var(--primary); color:var(--on-primary, #fff); padding:8px 16px; }
+.tpo-pv .me { margin-left:auto; display:flex; align-items:center; gap:6px; padding-bottom:6px; font-size:12px; font-weight:800; }
+.tpo-pv .me .f { width:30px; height:30px; display:inline-block; border-radius:50%; background:var(--card); box-shadow:0 2px 6px rgba(0,0,0,.12); }
+.tpo-pv .me svg { width:100%; height:100%; }
+.tpo-pv .book { background:var(--bg); border-radius:0 14px 14px 14px; padding:12px; box-shadow:0 24px 50px -26px rgba(0,0,0,.35), 0 0 0 1px var(--line); position:relative; }
+.tpo-pv .days { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+.tpo-pv .day { background:var(--card); border-radius:12px; padding:9px 9px 10px; box-shadow:0 0 0 1px var(--line); transition:box-shadow .3s; }
+.tpo-pv .day.ping { box-shadow:0 0 0 2px var(--primary), 0 10px 24px -14px rgba(0,0,0,.3); }
+.tpo-pv .dh { display:flex; align-items:baseline; gap:4px; font-size:11px; color:var(--muted); margin-bottom:2px; }
+.tpo-pv .dh b { font-size:17px; color:var(--ink); }
+.tpo-pv .dh .tot { margin-left:auto; background:var(--bg); border-radius:999px; padding:1px 7px; font-weight:800; color:var(--ink); font-size:10.5px; }
+.tpo-pv .wx { font-size:10.5px; font-weight:800; color:var(--ink); margin:0 0 6px; }
+.tpo-pv .wx i { font-style:normal; color:var(--muted); font-weight:700; }
+.tpo-pv .loc { font-size:9.5px; font-weight:800; letter-spacing:.08em; color:var(--muted); margin-bottom:6px; }
+.tpo-pv .act { border-radius:9px; padding:6px 7px; background:var(--bg); }
+.tpo-pv .act.new { animation:tpoActIn .5s cubic-bezier(.3,1.4,.5,1) both; box-shadow:inset 0 0 0 1.5px var(--primary); }
+.tpo-pv .chip, .tpo-feed .chip, .tpo-check .chip { display:inline-block; font-size:9.5px; font-weight:800; border-radius:999px; padding:2px 7px; color:#fff; }
+.tpo-pv .tt { font-size:12px; font-weight:700; margin:3px 0 1px; line-height:1.2; }
+.tpo-pv .mm { font-size:10.5px; color:var(--muted); font-weight:600; }
+.tpo-pv .go2 { display:flex; align-items:center; gap:4px; font-size:10px; font-weight:800; color:var(--muted); border-left:2px solid var(--line); padding:3px 0 3px 7px; margin:4px 0 4px 6px; }
+.tpo-feed { position:relative; height:64px; margin-top:22px; display:flex; justify-content:center; }
+.tpo-feed::before { content:''; position:absolute; top:8px; left:50%; width:300px; height:46px; transform:translateX(-50%) scale(.92) translateY(9px); border-radius:14px; background:var(--card); opacity:.55; box-shadow:0 0 0 1px var(--line); }
+.tpo-toast { position:relative; display:flex; align-items:center; gap:10px; background:var(--card); border-radius:14px; padding:9px 14px 9px 9px; box-shadow:0 14px 30px -12px rgba(0,0,0,.35), 0 0 0 1px var(--line); font-size:12.5px; font-weight:600; animation:tpoFeedIn .5s cubic-bezier(.3,1.4,.5,1) both; }
+.tpo-toast .f { width:32px; height:32px; flex:none; }
+.tpo-toast .f svg { width:100%; height:100%; }
+.tpo-toast b { font-weight:800; }
+.tpo-toast small { display:block; color:var(--muted); font-size:11px; font-weight:700; }
+.tpo-toast .chip { margin-left:6px; }
+.tpo-toast .vote { margin-left:6px; background:var(--ink); color:var(--card); border-radius:999px; padding:2px 7px; font-size:9.5px; font-weight:900; }
+.tpo-toast .star { margin-left:6px; background:var(--primary); color:var(--on-primary, #fff); border-radius:999px; padding:2px 8px; font-size:10.5px; font-weight:900; }
+@keyframes tpoFeedIn { from { transform:translateY(14px); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes tpoActIn { from { transform:scale(.85); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes tpoPop { from { transform:translateY(10px) scale(.95); opacity:0; } to { transform:none; opacity:1; } }
+
+/* ---- the sign-in picture: vote between two places ---- */
+.tpo-hero { width:100%; max-width:640px; }
+.tpo-vs { display:grid; grid-template-columns:240px 46px 240px; justify-content:center; gap:16px; align-items:center; }
+.tpo-vs .c { display:block; background:var(--card); border-radius:18px; padding:12px; text-align:left; cursor:pointer; box-shadow:0 20px 40px -20px rgba(0,0,0,.3), 0 0 0 1px var(--line); transition:transform .15s, box-shadow .2s; user-select:none; }
+.tpo-vs .c:hover { transform:translateY(-3px); }
+.tpo-vs .c:active { transform:scale(.98); }
+.tpo-vs .c.win { box-shadow:0 0 0 2.5px var(--primary), 0 20px 40px -20px rgba(0,0,0,.3); }
+.tpo-vs .ph { height:150px; border-radius:12px; margin-bottom:10px; overflow:hidden; }
+.tpo-vs .ph svg { display:block; width:100%; height:100%; }
+.tpo-vs .t { font-weight:800; font-size:15px; }
+.tpo-vs .m { font-size:12px; color:var(--muted); font-weight:600; margin-top:2px; }
+.tpo-vs .votes { display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12px; font-weight:800; }
+.tpo-vs .votes .f { width:24px; height:24px; margin-left:-8px; border-radius:50%; background:var(--card); }
+.tpo-vs .votes .f:first-child { margin-left:0; }
+.tpo-vs .votes svg { width:100%; height:100%; }
+.tpo-vs .c.mine .votes .f:last-of-type svg { animation:tpoPop .35s both; }
+.tpo-vs .vbtn { margin-left:auto; background:var(--bg); border-radius:999px; padding:4px 10px; font-size:11.5px; font-weight:800; color:var(--ink); }
+.tpo-vs .c.mine .vbtn { background:var(--primary); color:var(--on-primary, #fff); }
+.tpo-vs .or2 { width:46px; height:46px; border-radius:50%; background:var(--ink); color:var(--card); display:grid; place-items:center; font-weight:900; font-size:14px; }
+.tpo-herocap { text-align:center; margin-top:26px; font-weight:800; font-size:15px; }
+.tpo-herocap small { display:block; color:var(--muted); font-weight:600; font-size:13px; margin-top:3px; }
+@media (max-width:1100px) { .tpo-vs { grid-template-columns:1fr 40px 1fr; } }
+
+/* ---- the first-trip guide ---- */
+.tpo-scrim { position:fixed; inset:0; background:rgba(20,20,22,.38); display:flex; align-items:center; justify-content:center; z-index:10001; }
+.tpo-scrim[hidden] { display:none; }
+.tpo-wiz { width:min(580px, 92vw); max-height:calc(100vh - 40px); overflow:auto; box-sizing:border-box; background:var(--card); color:var(--ink); border-radius:22px; padding:30px 32px 26px; box-shadow:0 40px 80px -30px rgba(0,0,0,.5); animation:tpoPop .3s both; }
+.tpo-wiz .prog { display:flex; gap:6px; margin-bottom:22px; }
+.tpo-wiz .prog i { height:5px; flex:1; border-radius:9px; background:var(--line); }
+.tpo-wiz .prog i.on { background:var(--primary); }
+.tpo-wiz h3 { margin:0 0 6px; font-size:26px; font-weight:800; letter-spacing:-.02em; }
+.tpo-wiz p { margin:0 0 18px; color:var(--muted); font-weight:600; font-size:14.5px; }
+.tpo-wiz .in { width:100%; box-sizing:border-box; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:13px 14px; font:inherit; font-weight:600; font-size:15px; outline:none; }
+.tpo-wiz .in:focus { border-color:var(--ink); }
+.tpo-wiz .sugg { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:12px; }
+.tpo-wiz .sugg button, .tpo-wiz .two button, .tpo-wiz .months button { border:1.5px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; font:inherit; font-weight:800; }
+.tpo-wiz .sugg button { border-radius:14px; padding:12px 6px; font-size:13px; }
+.tpo-wiz .sugg button span { display:block; font-size:24px; margin-bottom:4px; }
+.tpo-wiz .on { border-color:var(--ink) !important; box-shadow:0 0 0 1px var(--ink); }
+.tpo-wiz .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tpo-wiz .two button { border-radius:16px; padding:16px; text-align:left; font-size:15px; }
+.tpo-wiz .two button small { display:block; color:var(--muted); font-weight:600; font-size:12.5px; margin-top:4px; }
+.tpo-wiz .dates { display:flex; align-items:center; gap:10px; margin-top:14px; }
+.tpo-wiz .dates input { flex:1; }
+.tpo-wiz .months { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:14px; }
+.tpo-wiz .months button { border-radius:10px; padding:9px 0; font-size:13px; }
+.tpo-wiz .ppl { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.tpo-wiz .ppl span { display:inline-flex; align-items:center; gap:6px; background:var(--bg); border-radius:999px; padding:4px 12px 4px 4px; font-weight:700; font-size:13px; }
+.tpo-wiz .ppl i { width:26px; height:26px; display:inline-block; }
+.tpo-wiz .ppl i svg { width:100%; height:100%; }
+.tpo-wiz .foot { display:flex; align-items:center; gap:10px; margin-top:24px; }
+.tpo-wiz .foot .bk { border:none; background:none; font:inherit; font-weight:800; color:var(--muted); cursor:pointer; font-size:14px; }
+.tpo-wiz .foot .tpo-go { margin:0 0 0 auto; width:auto; padding:13px 26px; }
+/* what do you like? */
+.tpo-likes { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+.tpo-like { position:relative; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:14px; padding:0; overflow:hidden; cursor:pointer; text-align:left; font:inherit; }
+.tpo-like .im { height:96px; background:color-mix(in srgb, var(--primary) 22%, var(--bg)) center/cover no-repeat; display:grid; place-items:center; font-size:30px; }
+.tpo-like .tx { padding:8px 10px 10px; }
+.tpo-like b { display:block; font-size:13px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.tpo-like small { display:block; font-size:11px; color:var(--muted); font-weight:700; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tpo-like .ck { position:absolute; right:8px; top:8px; width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.9); color:#1d1d1f; display:grid; place-items:center; font-weight:900; font-size:13px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+.tpo-like.on { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary); }
+.tpo-like.on .ck { background:var(--primary); color:var(--on-primary, #fff); }
+.tpo-likes-load { color:var(--muted); font-weight:700; font-size:14px; padding:30px 0; text-align:center; }
+/* coach marks */
+.tpo-spot { position:fixed; z-index:10002; border-radius:14px; box-shadow:0 0 0 4px var(--primary), 0 0 0 9999px rgba(20,20,22,.32); pointer-events:none; transition:all .25s; }
+.tpo-coach { position:fixed; z-index:10003; width:280px; background:var(--ink); color:var(--card); border-radius:16px; padding:14px 16px; box-shadow:0 20px 40px -14px rgba(0,0,0,.5); animation:tpoPop .35s both; }
+.tpo-coach b { display:block; font-size:15px; margin-bottom:4px; }
+.tpo-coach p { margin:0; font-size:13px; line-height:1.45; opacity:.85; }
+.tpo-coach .cf { display:flex; align-items:center; justify-content:space-between; margin-top:12px; font-size:12px; font-weight:700; opacity:.9; }
+.tpo-coach .cf button { border:none; background:var(--primary); color:var(--on-primary, #fff); border-radius:999px; padding:6px 14px; font:inherit; font-weight:800; cursor:pointer; font-size:12.5px; }
+.tpo-coach .cf .sk { background:none; color:var(--card); opacity:.7; padding:6px 4px; }
+/* get started */
+.tpo-check { position:fixed; right:24px; bottom:24px; z-index:60; width:290px; background:var(--card); color:var(--ink); border-radius:18px; box-shadow:0 24px 50px -20px rgba(0,0,0,.4), 0 0 0 1px var(--line); padding:16px 16px 12px; animation:tpoPop .4s both; }
+.tpo-check .h { display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; }
+.tpo-check .h small { margin-left:auto; font-weight:800; color:var(--muted); font-size:12px; }
+.tpo-check .h button { border:none; background:none; color:var(--muted); cursor:pointer; font-size:15px; padding:0 2px; }
+.tpo-check .bar2 { height:6px; border-radius:9px; background:var(--line); margin:10px 0 8px; overflow:hidden; }
+.tpo-check .bar2 i { display:block; height:100%; background:var(--primary-ink, var(--primary)); transition:width .3s; }
+.tpo-check .it { display:flex; align-items:center; gap:10px; padding:7px 2px; font-weight:700; font-size:13.5px; }
+.tpo-check .it i { width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex:none; display:grid; place-items:center; font-style:normal; font-size:12px; color:#fff; box-sizing:border-box; }
+.tpo-check .it.ok { color:var(--muted); text-decoration:line-through; }
+.tpo-check .it.ok i { background:var(--primary-ink, var(--primary)); border-color:var(--primary-ink, var(--primary)); }
+.tpo-check .it button { margin-left:auto; border:none; background:none; font:inherit; font-weight:800; color:var(--primary-ink, var(--primary)); font-size:12px; cursor:pointer; text-decoration:none; }
+.tpo-check .all { text-align:center; font-weight:800; padding:6px 0 4px; }
+
+/* ---- What's new ---- */
+.tpo-new { width:min(460px, 92vw); background:var(--card); color:var(--ink); border-radius:22px; padding:26px 28px 22px; box-shadow:0 40px 80px -30px rgba(0,0,0,.5); animation:tpoPop .3s both; }
+.tpo-new .k { font-size:11.5px; font-weight:800; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; }
+.tpo-new h3 { margin:4px 0 14px; font-size:24px; font-weight:800; letter-spacing:-.02em; }
+.tpo-new ul { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.tpo-new li { display:flex; gap:12px; align-items:flex-start; font-size:14px; line-height:1.4; }
+.tpo-new li .ic { width:36px; height:36px; flex:none; border-radius:10px; background:color-mix(in srgb, var(--primary) 22%, var(--card)); display:grid; place-items:center; overflow:hidden; }
+.tpo-new li .ic svg { width:20px; height:20px; }
+.tpo-new li .ic.face svg { width:36px; height:36px; }
+.tpo-new li b { display:block; }
+.tpo-new li span { color:var(--muted); font-weight:600; }
+
+/* ---- the cheat corner (the owner only) ---- */
+.tpo-cheat-hot { position:fixed; left:0; bottom:0; width:16px; height:16px; z-index:10010; }
+.tpo-cheat-hot::after { content:''; position:absolute; left:3px; bottom:3px; width:6px; height:6px; border-radius:50%; background:var(--primary); opacity:0; transition:opacity .2s, transform 2s linear; }
+.tpo-cheat-hot.arming::after { opacity:.9; transform:scale(2.2); }
+.tpo-cheat { position:fixed; left:12px; bottom:12px; z-index:10011; width:280px; background:var(--ink); color:var(--card); border-radius:16px; padding:12px; box-shadow:0 24px 50px -16px rgba(0,0,0,.5); animation:tpoPop .25s both; }
+.tpo-cheat .h { display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; opacity:.75; padding:2px 4px 8px; }
+.tpo-cheat .h button { border:none; background:none; color:inherit; font-size:15px; cursor:pointer; }
+.tpo-cheat .row { display:flex; align-items:center; gap:10px; width:100%; border:none; background:none; color:inherit; text-align:left; font:inherit; font-size:13.5px; font-weight:700; padding:8px; border-radius:10px; cursor:pointer; }
+.tpo-cheat .row:hover { background:rgba(255,255,255,.1); }
+.tpo-cheat .row svg { width:17px; height:17px; flex:none; opacity:.85; }
+.tpo-cheat .row small { display:block; font-weight:600; opacity:.6; font-size:11.5px; }
+.tpo-cheat .note { font-size:11px; opacity:.55; padding:6px 8px 2px; }
+#authGate .auth-preview-bar { display:none; }
+#authGate.auth-preview .auth-preview-bar { display:flex; position:absolute; top:auto; right:24px; bottom:24px; z-index:3; }
+#authGate .auth-preview-bar button { padding:0 2px; border:none; background:none; color:inherit; font-size:14px; border-radius:0; }
+#authGate.auth-preview .auth-email-form, #authGate.auth-preview #authSignInBtn { pointer-events:none; }
+
+@media (max-width:820px) {
+  .tpo { grid-template-columns:1fr; }
+  .tpo-left { display:none; }
+  .tpo-right { padding:70px 20px 30px; }
+  .tpo-likes { grid-template-columns:repeat(2, 1fr); }
+  .tpo-wiz .sugg { grid-template-columns:repeat(2, 1fr); }
+}
