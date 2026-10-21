@@ -15351,10 +15351,42 @@
       if(tag){ var x = tag.offsetLeft + 20 + 'px'; panel.querySelectorAll('.dm-clip').forEach(function(c){ if(c.style.left !== x) c.style.left = x; }); }
     }
     (function follow(){ place(); requestAnimationFrame(follow); })();
+    // The map's own place tags (shops, cafés, museums…): the map data ranks
+    // each one by how important it is around it (1 = most). Important ones
+    // are bigger and win when labels collide; the small ones wait until
+    // you zoom in.
+    window.tuneMapPlaces = function(m){
+      var OPS = { '==':1, '!=':1, '<':1, '<=':1, '>':1, '>=':1 };
+      function key(k){ return k === '$type' ? ['geometry-type'] : k === '$id' ? ['id'] : ['get', k]; }
+      function conv(f){   // an old-style filter → an expression (so it can be combined)
+        if(!Array.isArray(f) || typeof f[0] !== 'string') return f;
+        var op = f[0];
+        if(op === 'all' || op === 'any') return [op].concat(f.slice(1).map(conv));
+        if(op === 'none') return ['!', ['any'].concat(f.slice(1).map(conv))];
+        if(typeof f[1] !== 'string') return f;   // already an expression
+        if(OPS[op]) return [op, key(f[1]), f[2]];
+        if(op === 'in' || op === '!in'){ var e = ['match', key(f[1]), f.slice(2), true, false]; if(!f.slice(2).length) e = false; return op === 'in' ? e : ['!', e]; }
+        if(op === 'has') return ['has', f[1]];
+        if(op === '!has') return ['!', ['has', f[1]]];
+        return f;
+      }
+      var R = ['coalesce', ['to-number', ['get', 'rank']], 30];
+      (m.getStyle().layers || []).forEach(function(l){
+        if(l.type !== 'symbol' || l['source-layer'] !== 'poi') return;
+        try {
+          var old = m.getFilter(l.id), show = ['any', ['<=', R, 2], ['all', ['>=', ['zoom'], 15], ['<=', R, 8]], ['>=', ['zoom'], 17]];
+          m.setFilter(l.id, old ? ['all', conv(old), show] : show);
+          m.setLayoutProperty(l.id, 'symbol-sort-key', R);
+          m.setLayoutProperty(l.id, 'icon-size', ['step', R, 1.25, 4, 1, 12, 0.85]);
+          m.setLayoutProperty(l.id, 'text-size', ['interpolate', ['linear'], ['zoom'], 14, ['step', R, 13, 4, 11.5, 12, 10.5], 18, ['step', R, 15.5, 4, 13.5, 12, 12]]);
+        } catch(e){}
+      });
+    };
     function initMap(){
       if(map) return;
       map = new maplibregl.Map({ container: panel.querySelector('.dm-canvas'), style:'https://tiles.openfreemap.org/styles/positron', center:[12.5, 45], zoom:4, attributionControl:{ compact:true } });
       map.on('load', function(){
+        window.tuneMapPlaces(map);
         map.addSource('dm-route', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
         map.addLayer({ id:'dm-route-casing', type:'line', source:'dm-route', paint:{ 'line-color':'#fff', 'line-width':7, 'line-opacity':.9 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
         map.addLayer({ id:'dm-route', type:'line', source:'dm-route', paint:{ 'line-color': getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ec6a9c', 'line-width':3.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
@@ -19017,6 +19049,7 @@
       var m = new maplibregl.Map({ container: host, style:'https://tiles.openfreemap.org/styles/positron', bounds: bb, fitBoundsOptions:{ padding:26, maxZoom:15 }, attributionControl:false, interactive:false });
       duelMaps.push(m);
       m.on('load', function(){
+        if(window.tuneMapPlaces) window.tuneMapPlaces(m);
         m.addSource('l', { type:'geojson', data:{ type:'FeatureCollection', features: pts.slice(1).map(function(p){ return { type:'Feature', properties:{ c:p.c }, geometry:{ type:'LineString', coordinates:[[pts[0].lon, pts[0].lat], [p.lon, p.lat]] } }; }) } });
         m.addLayer({ id:'l', type:'line', source:'l', paint:{ 'line-color':['get', 'c'], 'line-width':2.5, 'line-dasharray':[2, 1.5] } });
       });
