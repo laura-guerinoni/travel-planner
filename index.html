@@ -90,10 +90,10 @@
   :root[data-theme="dusk"] { --bg:#f7f5f1; --card:#ffffff; --ink:#2b3363; --muted:#8e8aa6; --line:#e8e4ec; --primary:#374375; --primary-rgb:55,67,117; --secondary:#895159; --secondary-rgb:137,81,89; --accent:#c68f82; --accent-rgb:198,143,130;
     --texture: repeating-linear-gradient(0deg, rgba(43,51,99,.016) 0, rgba(43,51,99,.016) 1px, transparent 1px, transparent 5px),
       repeating-linear-gradient(90deg, rgba(43,51,99,.016) 0, rgba(43,51,99,.016) 1px, transparent 1px, transparent 5px); }
-  /* Neutral (the standard): soft greys and charcoal with a little sand */
-  :root[data-theme="neutral"] { --bg:#f4f4f2; --card:#ffffff; --ink:#2a2a2e; --muted:#8a8a90; --line:#e4e4e1; --primary:#3a3a40; --primary-rgb:58,58,64; --secondary:#8a8f98; --secondary-rgb:138,143,152; --accent:#b89b74; --accent-rgb:184,155,116;
-    --texture: repeating-linear-gradient(0deg, rgba(42,42,46,.016) 0, rgba(42,42,46,.016) 1px, transparent 1px, transparent 5px),
-      repeating-linear-gradient(90deg, rgba(42,42,46,.016) 0, rgba(42,42,46,.016) 1px, transparent 1px, transparent 5px); }
+  /* Standard: forest green, warm gold and a chestnut brown on off-white, near-black text */
+  :root[data-theme="neutral"] { --bg:#f5f5f2; --card:#ffffff; --ink:#1f2421; --muted:#868b87; --line:#e4e5e0; --primary:#2f6b4f; --primary-rgb:47,107,79; --secondary:#d29d43; --secondary-rgb:210,157,67; --accent:#8f4a1f; --accent-rgb:143,74,31;
+    --texture: repeating-linear-gradient(0deg, rgba(31,36,33,.016) 0, rgba(31,36,33,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(31,36,33,.016) 0, rgba(31,36,33,.016) 1px, transparent 1px, transparent 5px); }
   * { box-sizing:border-box; }
   /* Plain white now, not the faint woven-linen crosshatch — that texture
      moved onto .wrap itself (see its own comment below), so it reads as
@@ -1656,7 +1656,7 @@
     padding:0; transition:transform .15s ease, border-color .15s ease; }
   .theme-dot:hover { transform:scale(1.1); }
   .theme-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
-  .theme-dot[data-theme-name="neutral"] { background: conic-gradient(#3a3a40 0deg 120deg, #8a8f98 120deg 240deg, #b89b74 240deg 360deg); }
+  .theme-dot[data-theme-name="neutral"] { background: conic-gradient(#2f6b4f 0deg 120deg, #f4c66e 120deg 240deg, #8f4a1f 240deg 360deg); }
   .theme-dot[data-theme-name="kawaii"] { background: conic-gradient(#ec6a9c 0deg 120deg, #3fbf94 120deg 240deg, #f2884d 240deg 360deg); }
   .theme-dot[data-theme-name="classic"] { background: conic-gradient(#1c6672 0deg 120deg, #1fa896 120deg 240deg, #ef9a5c 240deg 360deg); }
   .theme-dot[data-theme-name="cool"] { background: conic-gradient(#14293c 0deg 120deg, #667f91 120deg 240deg, #abbaaf 240deg 360deg); }
@@ -2067,8 +2067,8 @@
       var(--backdrop-base); }
     /* Classic: sand and sea-mist instead of blush and lilac, and stars in
        its own teal/mint/orange. */
-    :root[data-theme="neutral"] { --backdrop-base:linear-gradient(165deg, #f8f8f6 0%, #ececea 50%, #dcdcd8 100%);
-      --backdrop-glow:184,155,116; --backdrop-color:#ececea; }
+    :root[data-theme="neutral"] { --backdrop-base:linear-gradient(165deg, #fbfaf6 0%, #f1f0e8 50%, #e2eadf 100%);
+      --backdrop-glow:244,198,110; --backdrop-color:#f1f0e8; }
     :root[data-theme="neutral"] body::before, :root[data-theme="neutral"] body::after { display:none; }
     :root[data-theme="dusk"] { --backdrop-base:linear-gradient(165deg, #fffcf5 0%, #ecebf5 50%, #cfd1ec 100%);
       --backdrop-glow:223,174,161; --backdrop-color:#ecebf5; }
@@ -4313,7 +4313,7 @@
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
         <span class="theme-dots">
-        <button type="button" class="theme-dot" data-theme-name="neutral" data-tip="Neutral" aria-label="Neutral palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="neutral" data-tip="Standard" aria-label="Standard palette"></button>
         <button type="button" class="theme-dot" data-theme-name="kawaii" data-tip="Kawaii" aria-label="Kawaii palette"></button>
         <button type="button" class="theme-dot" data-theme-name="classic" data-tip="Classic" aria-label="Classic palette"></button>
         <button type="button" class="theme-dot" data-theme-name="bubbles" data-tip="Bubbles" aria-label="Bubbles palette"></button>
