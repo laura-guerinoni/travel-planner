@@ -3373,7 +3373,10 @@
     .grp-notes-ideas .ib-empty { margin:10px 0 0; }
     .grp-notes-ideas .ib-note { cursor:pointer; }
     .grp-notes-ideas .ib-note.editing { box-shadow:0 0 0 2px var(--primary), 0 10px 18px -12px rgba(60,30,60,.55); }
-    .grp-notes-ideas .ib-editing { display:flex; align-items:center; gap:8px; margin:-4px 0 2px; font-size:11.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); }
+    /* an idea in the activity form: no day, no bill split, no asking */
+  #fabAddPanel.idea-mode .gc-row:has(#fabAddDaySelect), #fabAddPanel.idea-mode #fabAddSplit, #fabAddPanel.idea-mode #fabAddAsk, #fabAddPanel.idea-mode #fabAddMore [data-x="ask"] { display:none !important; }
+  .grp-notes-ideas .ib-note { cursor:pointer; }
+  .grp-notes-ideas .ib-editing { display:flex; align-items:center; gap:8px; margin:-4px 0 2px; font-size:11.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); }
     .grp-notes-ideas .ib-cancel { margin-left:auto; border:none; background:none; padding:0; color:var(--muted); font:inherit; font-size:12px; letter-spacing:0; text-transform:none; font-weight:800; cursor:pointer; text-decoration:underline; }
     .grp-notes-ideas .ib-more { display:block; margin:6px 0 0; padding:3px 2px; border:none; background:none; color:var(--primary); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; text-align:left; }
     .grp-notes-ideas .ib-more span { color:var(--ink); opacity:.7; }
@@ -15222,6 +15225,7 @@
   var fabAddCloseX = document.getElementById('fabAddCloseX');
   var fabAddConfirmBtn = document.getElementById('fabAddConfirmBtn');
   function closeFabAdd(){
+    if(typeof ideaEditing !== 'undefined' && ideaEditing && fabAddEditLi === ideaEditing.li) setTimeout(function(){ if(ideaEditing && !document.getElementById('fabAddPanel').classList.contains('show')) endIdeaEdit(); }, 0);
     if(fabAddPanel) fabAddPanel.classList.remove('show', 'viewing');
     var av = document.getElementById('actView'); if(av){ av.hidden = true; av.innerHTML = ''; }
     fabAddEditLi = null; fabAddPendingPick = null; placeTouched = false; fabAddInsertAfter = null; askDraft = null; placeOpen = false;
@@ -15267,7 +15271,7 @@
     // Editing: once the activity's own place is loaded (its spot, its map
     // point), it stays — changing the type mustn't swap it for the town,
     // which on Save looked like a new place and dropped the map point.
-    if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ if(!(inp._for === fabAddEditLi && inp._geo)) inp.value = liPlace(fabAddEditLi); return; }
+    if(fabAddEditLi && (fabAddEditLi.closest('.cell') === cell || fabAddEditLi.closest('#ideaScratch'))){ if(!(inp._for === fabAddEditLi && inp._geo)) inp.value = liPlace(fabAddEditLi); return; }
     if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
     var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || ''; inp._geo = null; inp._orig = inp.value; placeMark(inp);
     // a journey on a day with nothing yet leaves from where the day before ended
@@ -17902,6 +17906,7 @@
   });
   if(fabAddCloseX) fabAddCloseX.addEventListener('click', closeFabAdd);
   if(fabAddConfirmBtn) fabAddConfirmBtn.addEventListener('click', function(){
+    if(ideaEditing && fabAddEditLi === ideaEditing.li){ saveIdeaEdit(); return; }
     if(fabAddEditLi){ saveActivityEdit(fabAddEditLi); return; }
     var panel = document.querySelector('.panel.on');
     var day = fabAddDaySelect ? fabAddDaySelect.value : null;
@@ -19679,6 +19684,37 @@
     });
     inp.addEventListener('blur', function(){ setTimeout(function(){ if(document.activeElement !== inp) close(); }, 150); });
   }
+  // An idea is edited in the activity form itself: a stand-in activity is
+  // built from it in a hidden day (outside every plan, so nothing of it is
+  // saved), the form edits that, and Save writes it back into the idea.
+  // The hidden day sits over the sticky note, so the form opens beside it.
+  var ideaEditing = null;
+  function editIdea(it, note){
+    var old = document.getElementById('ideaScratch'); if(old) old.remove();
+    var cell = document.createElement('div'); cell.id = 'ideaScratch'; cell.className = 'cell';
+    var r = note.getBoundingClientRect();
+    cell.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
+    cell.innerHTML = '<div class="cellhead"><span class="daynum">0</span></div>';
+    var li = buildActivityLi(it.a); ensureActsList(cell).appendChild(li);
+    document.body.appendChild(cell);
+    ideaEditing = { it: it, li: li };
+    editActivity(li);
+    var h = document.getElementById('fabAddHeading'); if(h) h.textContent = 'Edit idea';
+    document.getElementById('fabAddPanel').classList.add('idea-mode');
+  }
+  function saveIdeaEdit(){
+    var ed = ideaEditing; if(!ed) return;
+    fabAddDaySelect.value = '';   // stays out of the calendar
+    saveActivityEdit(ed.li);
+    ed.it.a = extractActivity(ed.li);
+    endIdeaEdit();
+    playCheckSound(); grpChanged();
+  }
+  function endIdeaEdit(){
+    ideaEditing = null;
+    var sc = document.getElementById('ideaScratch'); if(sc) sc.remove();
+    var fp = document.getElementById('fabAddPanel'); if(fp) fp.classList.remove('idea-mode');
+  }
   function closeIdeaBox(){ var box = document.getElementById('grpIdeaBox'); if(box){ box.classList.remove('open'); box.hidden = true; } }
   function renderIdeaBox(){
     var box = document.getElementById('grpIdeaBox');
@@ -19701,12 +19737,6 @@
       (ideaDraft.editId ? '<div class="ib-editing">Editing the idea<button type="button" class="ib-cancel">Cancel</button></div>' : '') +
       '<form class="grp-ideaform ib-add"><input id="grpIdeaTitle" placeholder="@ for places" aria-label="' + (ideaDraft.editId ? 'The idea' : 'New idea') + '" autocomplete="off"><button type="submit" class="ib-plus" aria-label="' + (ideaDraft.editId ? 'Save the idea' : 'Add the idea') + '">' +
         (ideaDraft.editId ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>') + '</button></form>' +
-      (ideaDraft.open ? '<div class="ib-det">' +
-          '<div class="ibd-row">' + IB_CLOCK + '<input type="time" data-d="t1" aria-label="Starts" value="' + grpEsc(ideaDraft.t1) + '"><span>–</span><input type="time" data-d="t2" aria-label="Ends" value="' + grpEsc(ideaDraft.t2) + '"></div>' +
-          '<div class="ibd-row">' + IB_WALLET + '<input data-d="p" inputmode="decimal" placeholder="Price" value="' + grpEsc(ideaDraft.p) + '"><span class="ibd-cur">' + grpEsc(currencySymbol(panel)) + '</span></div>' +
-          '<div class="ibd-row">' + IB_NOTE + '<input data-d="notes" placeholder="Notes" value="' + grpEsc(ideaDraft.notes) + '"></div>' +
-          '<div class="ibd-foot"><button type="button" class="ibd-done" data-x="det">Done</button></div></div>'
-        : '<button type="button" class="ib-more" data-x="det">+ Time, price, notes…' + (ideaDetTxt() ? ' <span>' + grpEsc(ideaDetTxt()) + '</span>' : '') + '</button>') +
       (list.length ? '<div class="ib-board">' + list.map(function(it, n){
         var hs = it.h || [], mine = !!me && hs.indexOf(me) !== -1;
         return '<div class="grp-idea ib-note' + (ideaDraft.editId === it.id ? ' editing' : '') + '" data-id="' + it.id + '" style="--nc:' + NOTE_BG[n % 4] + ';--tape:' + NOTE_TAPE[n % 4] + ';--r:' + (n % 2 ? '1.3deg' : '-1.2deg') + '">' +
@@ -19765,15 +19795,10 @@
       box.querySelectorAll('.ib-det [data-d]').forEach(function(x){ x.addEventListener('input', keepIdeaDet); });
       wireIdeaAt(titleIn, panel);
       var cancel = box.querySelector('.ib-cancel'); if(cancel) cancel.addEventListener('click', function(){ ideaDraft = { open:false, t1:'', t2:'', p:'', notes:'', geo:null }; titleIn.value = ''; renderIdeaBox(); });
-      // clicking a sticky note opens it in the form above, to change its name, place or details
+      // clicking a sticky note opens it in the same form as an activity
       box.querySelectorAll('.ib-note').forEach(function(note){ note.addEventListener('click', function(e){
         if(e.target.closest('button')) return;
-        var it = grpIdeas(opt).filter(function(x){ return x.id === note.dataset.id; })[0]; if(!it) return;
-        var a = it.a, tm = (grpTimeOf(a) || '').split('–'), g = parseGeo(a.gp || ''), m = /[\d.,]+/.exec(a.p || '');
-        ideaDraft = { editId: it.id, open: true, t1: /^\d{1,2}:\d{2}$/.test(tm[0]) ? tm[0] : '', t2: /^\d{1,2}:\d{2}$/.test(tm[1] || '') ? tm[1] : '',
-          p: m ? m[0] : '', notes: (a.l || []).filter(function(x){ return !/🕒/.test(x); }).join(' '), geo: g ? { lat:g.lat, lon:g.lon, name:a.sp || a.pl || '', spot:!!a.sp, city:a.pl || '', keep:true } : null };
-        titleIn.value = a.t || ''; renderIdeaBox();
-        var ti = box.querySelector('#grpIdeaTitle'); if(ti){ ti.focus(); ti.setSelectionRange(ti.value.length, ti.value.length); }
+        var it = grpIdeas(opt).filter(function(x){ return x.id === note.dataset.id; })[0]; if(it) editIdea(it, note);
       }); });
     }
     box.querySelectorAll('.grp-idea').forEach(function(row){
