@@ -2974,15 +2974,15 @@
   .page-map:focus { outline:none; } .page-map svg { width:17px; height:17px; }
   /* the weather: a small chip next to the date, or a full one under each city on a day with several */
   .wx { display:inline-flex; align-items:center; gap:3px; padding:1px 7px 1px 5px; border-radius:999px; background:var(--bg); font-size:12px; font-weight:900; color:var(--ink); white-space:nowrap; cursor:default; vertical-align:middle; }
-  .wx[hidden], .wx-usual[hidden] { display:none; }
-  .wx svg, .wx-usual svg, #wxCard svg { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .wx[hidden] { display:none; }
+  .wx svg, #wxCard svg { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
   .wx svg { width:15px; height:15px; }
   .wx-sun, svg .wx-sun { color:#f2a93b; stroke:#f2a93b; } svg.wx-cloud { color:#9aa3b5; } svg.wx-rain { color:#5b8fd6; }
   .wx i { font-style:normal; font-weight:700; color:var(--muted); }
   .wx.past { opacity:.75; }
   .cellhead > .wx.sm { gap:2px; margin-left:4px; padding:0 2px; background:none; font-size:11.5px; }
   .cellhead > .wx.sm svg { width:14px; height:14px; }
-  .wx:hover, .wx-usual:hover { box-shadow:0 0 0 2px rgba(var(--primary-rgb), .35); }
+  .wx:hover { box-shadow:0 0 0 2px rgba(var(--primary-rgb), .35); }
   /* under a city's name, on a day with several cities (the name and its dot move up for it) */
   .acts > li[data-sec] > .wx { position:absolute; left:0; top:-25px; margin:0; }
   .acts > li[data-sec]:has(> .wx:not([hidden])) { margin-top:52px; }
@@ -2990,12 +2990,10 @@
   .acts > li[data-sec]:has(> .wx:not([hidden]))::before { top:-46px; }
   .acts > li[data-sec]:has(> .wx:not([hidden]))::after { top:-45px; }
   .acts > li[data-sec]:not([data-sec-first]):has(> .wx:not([hidden]))::after { top:-68px; }
-  /* far away: one line on top of the month, the usual weather per city */
-  .wx-strip { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin:0 2px 12px; }
-  .wx-strip-h { font-size:11px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
-  .wx-usual { display:inline-flex; align-items:center; gap:4px; padding:3px 10px 3px 8px; border:1px dashed var(--muted); border-radius:999px; background:var(--card); color:var(--ink); font-size:12px; font-weight:800; white-space:nowrap; cursor:default; }
-  .wx-usual em { font-style:normal; font-size:9.5px; font-weight:900; letter-spacing:.06em; color:var(--muted); }
-  .wx-usual i { font-style:normal; font-weight:700; color:var(--muted); } .wx-usual .rb { color:#5b8fd6; font-weight:900; }
+  /* far away: the usual weather of the week (dashed, ~, no sky; its first day a little stronger) */
+  .wx.avg { background:none; border:1px dashed var(--muted); padding:0 6px; font-size:11px; font-weight:800; gap:3px; }
+  .wx.avg.first { background:var(--card); }
+  .cellhead > .wx.avg.sm { padding:0 5px; margin-left:4px; }
   /* the hover card: hour by hour */
   #wxCard { position:fixed; z-index:10030; width:330px; background:#fff; border-radius:16px; padding:13px 15px 11px; box-shadow:0 22px 44px -16px rgba(40,25,60,.42), 0 0 0 1px var(--line); color:var(--ink); }
   #wxCard[hidden] { display:none; }
@@ -3013,7 +3011,7 @@
   #wxCard .wxc-note { font-size:10.5px; font-weight:700; color:var(--muted); text-align:right; margin-top:2px; }
   #wxCard .wxc-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:9px; padding-top:8px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
   #wxCard .wxc-foot a { color:var(--primary); font-weight:900; text-decoration:none; white-space:nowrap; }
-  @media print { .wx, .wx-strip, .page-wx, #wxCard { display:none !important; } }
+  @media print { .wx, .page-wx, #wxCard { display:none !important; } }
   /* The map is the right-hand page of the open notebook: it joins the
      calendar's page at a soft fold, and the map itself is taped on it
      like a photo, with the day's kraft tag clipped to its top edge. */
@@ -15918,11 +15916,12 @@
   // ---------- The weather on each day ----------
   // Open-Meteo (free, no key). Up to 16 days ahead each day gets its
   // forecast: a small chip next to the date, or, on a day moving between
-  // cities, a full chip under each city. Further away a single day's
-  // weather means nothing, so the month gets one line instead: for each
-  // city, your dates there and the usual weather on them (the last 5
-  // years). Past days show what the weather was. Hovering opens the day
-  // (or the stay) hour by hour, with a link to the full forecast.
+  // cities, a full chip under each city. Further away one day's weather
+  // means nothing, so those days show the usual weather (the last 5
+  // years) of their week in that city: the same dashed "~" chip on each
+  // of them, the first day of the week a little stronger. Past days show
+  // what the weather was. Hovering opens the day (or the week) hour by
+  // hour, with a link to the full forecast.
   (function(){
     var WX_ON_KEY = 'tp-weather', SLOTS = [8, 10, 12, 14, 16, 18, 20, 22];
     function wxOn(){ try { return localStorage.getItem(WX_ON_KEY) !== '0'; } catch(e){ return true; } }
@@ -16057,7 +16056,7 @@
       var foot = '<div class="wxc-foot"><span>Weather by Open-Meteo</span><a href="' + link(d.g) + '" target="_blank" rel="noopener">Full forecast ↗</a></div>';
       if(d.kind === 'usual'){ var u = d.u;
         return '<div class="wxc-h"><b>' + esc(d.city) + ' · ' + rangeLabel(d.from, d.to) + '</b><span class="wxc-badge av">Average</span></div>' +
-          '<div class="wxc-sub">Your days in ' + esc(d.city) + ', last 5 years. Not a forecast: each day gets its own forecast 16 days before.</div>' +
+          '<div class="wxc-sub">Usual for these days, last 5 years.<br>Not a forecast: each day gets its own 16 days before.</div>' +
           '<div class="wxc-big"><b>~' + deg(u.hi) + '</b><i>/ ~' + deg(u.lo) + '</i><span>rain on<br>' + Math.round(u.wet * 10) + ' days in 10</span></div>' +
           (hours ? hoursHtml(hours, true) : hours === null ? '' : '<div class="wxc-note">Loading the hours…</div>') + foot;
       }
@@ -16081,54 +16080,56 @@
       if(d.kind === 'usual' && d.hours === undefined) usualHours(d.g, d.from, d.to).then(function(hs){ d.hours = hs || null; if(cardFor === el && !card.hidden){ card.innerHTML = cardHtml(d, d.hours); place(el); } });
     }
     function hideSoon(){ clearTimeout(hideT); hideT = setTimeout(function(){ if(card){ card.hidden = true; cardFor = null; } }, 220); }
-    document.addEventListener('mouseover', function(e){ var el = e.target.closest && e.target.closest('.wx, .wx-usual'); if(el && el !== cardFor) showCard(el); else if(el) clearTimeout(hideT); });
-    document.addEventListener('mouseout', function(e){ var el = e.target.closest && e.target.closest('.wx, .wx-usual'); if(el && !(e.relatedTarget && el.contains(e.relatedTarget))) hideSoon(); });
+    document.addEventListener('mouseover', function(e){ var el = e.target.closest && e.target.closest('.wx'); if(el && el !== cardFor) showCard(el); else if(el) clearTimeout(hideT); });
+    document.addEventListener('mouseout', function(e){ var el = e.target.closest && e.target.closest('.wx'); if(el && !(e.relatedTarget && el.contains(e.relatedTarget))) hideSoon(); });
     window.addEventListener('scroll', function(){ if(card && !card.hidden){ card.hidden = true; cardFor = null; } }, true);
-    // ---- the month's line: the usual weather on your days in each city ----
-    function renderStrip(panel, stays){
-      var strip = panel.querySelector(':scope > .wx-strip'), key = stays.map(function(s){ return s.city + s.dates.join(','); }).join('|');
-      if(!stays.length){ if(strip) strip.remove(); return; }
-      if(!strip){ strip = document.createElement('div'); strip.className = 'wx-strip jsctl'; strip.innerHTML = '<span class="wx-strip-h">Usual weather on your dates</span>'; }
-      var first = panel.querySelector(':scope > .grid'); if(first && strip.nextSibling !== first) panel.insertBefore(strip, first);
-      if(strip.__key === key) return; strip.__key = key;
-      strip.querySelectorAll('.wx-usual').forEach(function(x){ x.remove(); });
-      stays.forEach(function(st){
-        var el = document.createElement('span'); el.className = 'wx-usual'; el.hidden = true; strip.appendChild(el);
-        geoOf(st.cell, st.city).then(function(g){ return g ? climate(g).then(function(s){ return s ? { g:g, u:usual(s, st.dates) } : null; }) : null; }).then(function(r){
-          if(!r || !r.u || strip.__key !== key) return;
-          var from = st.dates[0], to = st.dates[st.dates.length - 1];
-          el.innerHTML = '<em>AVG</em><b>' + esc(st.city) + ' ' + rangeLabel(from, to) + '</b> ~' + deg(r.u.hi) + ' <i>/ ' + deg(r.u.lo) + '</i> <span class="rb">rain ' + Math.round(r.u.wet * 10) + ' days in 10</span>';
-          el.setAttribute('aria-label', 'Usual weather in ' + st.city + ', ' + rangeLabel(from, to) + ' (last 5 years): high ' + deg(r.u.hi) + ', low ' + deg(r.u.lo) + ', rain on ' + Math.round(r.u.wet * 10) + ' days in 10');
-          el.__wx = { kind:'usual', city:st.city, g:r.g, u:r.u, from:from, to:to }; el.hidden = false;
-        }).catch(function(){});
-      });
+    // ---- far away: the usual weather of the week, on each of its days ----
+    function weekOf(t){ return Math.floor((t + 3 * 864e5) / (7 * 864e5)); }   // 1 Jan 1970 was a Thursday: +3 days makes weeks start on Monday
+    function avgChip(host, cell, bl, t, small, before){
+      var key = bl.city + '|' + bl.dates.join(',') + '|' + (t === bl.dates[0] ? 1 : 0) + (small ? 's' : 'f'), el = host.querySelector(':scope > .wx');
+      if(el && el.__key === key) return;
+      if(!el){ el = document.createElement('span'); el.className = 'wx jsctl'; el.contentEditable = 'false'; }
+      if(before){ if(el.previousElementSibling !== before) before.after(el); } else if(el.parentNode !== host) host.appendChild(el);
+      el.__key = key; el.hidden = true; el.__wx = null;
+      geoOf(bl.cell, bl.city).then(function(g){ return g ? climate(g).then(function(s){ return s ? { g:g, u:usual(s, bl.dates) } : null; }) : null; }).then(function(r){
+        if(el.__key !== key || !r || !r.u) return;
+        var from = bl.dates[0], to = bl.dates[bl.dates.length - 1];
+        el.className = 'wx jsctl avg' + (small ? ' sm' : '') + (t === from ? ' first' : '');
+        el.innerHTML = '<b>~' + deg(r.u.hi) + '</b><i>' + deg(r.u.lo) + '</i>';
+        el.setAttribute('aria-label', 'Usual weather in ' + bl.city + ', ' + rangeLabel(from, to) + ' (last 5 years, not a forecast): high ' + deg(r.u.hi) + ', low ' + deg(r.u.lo) + ', rain on ' + Math.round(r.u.wet * 10) + ' days in 10');
+        el.__wx = { kind:'usual', city:bl.city, g:r.g, u:r.u, from:from, to:to }; el.hidden = false;
+      }).catch(function(){});
     }
-    function clear(){ document.querySelectorAll('.wx, .wx-strip').forEach(function(x){ x.remove(); }); if(card) card.hidden = true; }
+    function clear(){ document.querySelectorAll('.wx').forEach(function(x){ x.remove(); }); if(card) card.hidden = true; }
     function render(){
       var panel = document.querySelector('.panel.on'); if(!panel) return;
       if(!wxOn()){ clear(); return; }
-      var stays = [], last = {};
-      function stay(city, cell, t){ var s = last[city]; if(s && t - s.dates[s.dates.length - 1] === 864e5){ s.dates.push(t); return; } s = last[city] = { city:city, cell:cell, dates:[t] }; stays.push(s); }
+      // each day, and the cities it shows weather for
+      var list = [];
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var date = null; try { date = realDate(panel, dayNumOfCell(cell)); } catch(e){}
         var head = cell.querySelector(':scope > .cellhead'), hw = head && head.querySelector(':scope > .wx');
-        if(!date || !head){ if(hw) hw.remove(); return; }
-        var t = utc(date), kind = kindOf(t), secs = [].slice.call(cell.querySelectorAll(':scope > .acts > li[data-sec]'));
         cell.querySelectorAll(':scope > .acts > li:not([data-sec]) > .wx').forEach(function(x){ x.remove(); });
-        if(secs.length){
-          // moving between cities: a full chip under each city (the far ones: the month's line)
-          if(hw) hw.remove();
-          secs.forEach(function(li){ var city = li.getAttribute('data-sec'), w = li.querySelector(':scope > .wx');
-            if(kind === 'far'){ if(w) w.remove(); stay(city, cell, t); } else dayChip(li, cell, city, t, false); });
-          return;
-        }
+        if(!date || !head){ if(hw) hw.remove(); return; }
+        var t = utc(date), secs = [].slice.call(cell.querySelectorAll(':scope > .acts > li[data-sec]'));
+        if(secs.length){ if(hw) hw.remove(); secs.forEach(function(li){ list.push({ cell:cell, t:t, city:li.getAttribute('data-sec'), host:li }); }); return; }
         var acts = dayActs(cell), city = citiesOf(placeOfCell(cell))[0] || (acts[0] ? liPlace(acts[0]) : '');
         if(!city){ if(hw) hw.remove(); return; }
-        if(kind === 'far'){ if(hw) hw.remove(); stay(city, cell, t); return; }
-        // one city all day: a small chip next to the date
-        dayChip(head, cell, city, t, true, head.querySelector(':scope > .wd'));
+        list.push({ cell:cell, t:t, city:city, host:head, small:true, before:head.querySelector(':scope > .wd') });
       });
-      renderStrip(panel, stays);
+      // the far days, in blocks: a city's days in a row, within one week (Monday to Sunday)
+      var last = {};
+      list.forEach(function(x){
+        if(kindOf(x.t) !== 'far') return;
+        var b = last[x.city];
+        if(b && x.t - b.dates[b.dates.length - 1] <= 864e5 && weekOf(x.t) === weekOf(b.dates[0])){ if(b.dates.indexOf(x.t) === -1) b.dates.push(x.t); }
+        else b = last[x.city] = { city:x.city, cell:x.cell, dates:[x.t] };
+        x.block = b;
+      });
+      list.forEach(function(x){
+        if(x.block) avgChip(x.host, x.cell, x.block, x.t, x.small, x.before);
+        else dayChip(x.host, x.cell, x.city, x.t, x.small, x.before);
+      });
     }
     // the sun button in the top bar shows or hides it (on by default)
     var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
