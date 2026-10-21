@@ -3129,6 +3129,43 @@
   .go-guess { opacity:.6; }
   #goMenu { position:fixed; z-index:10020; width:250px; background:#fff; border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
   #goMenu[hidden] { display:none; }
+  /* your own ways of getting there */
+  #goMenu { width:330px !important; max-height:calc(100vh - 16px); overflow:auto; box-sizing:border-box; }
+  #goMenu .gm-row { position:relative; }
+  #goMenu .gm-trt { flex:1; min-width:0; }
+  #goMenu .gm-trt b { display:block; font-weight:800; }
+  #goMenu .gm-trt small { display:block; font-size:11.5px; font-weight:700; color:var(--muted); overflow-wrap:anywhere; }
+  #goMenu .gm-tools { display:flex; gap:3px; margin-left:auto; opacity:0; transition:opacity .12s; }
+  #goMenu .gm-row:hover .gm-tools, #goMenu .gm-row:focus-within .gm-tools { opacity:1; }
+  #goMenu .gm-tools button { width:26px; height:26px; padding:0; border:none; border-radius:7px; background:#fff; color:var(--muted); display:grid; place-items:center; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
+  #goMenu .gm-tools button:hover { color:var(--ink); }
+  #goMenu .gm-tools svg { width:13px; height:13px; }
+  #goMenu .gm-tr .gm-ext + .gm-tools { margin-left:4px; }
+  #goMenu .gm-emo { width:17px; text-align:center; font-size:15px; flex:none; }
+  #goMenu .gm-badge { display:inline-block; margin-left:6px; font-style:normal; font-size:9.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:999px; padding:1px 6px; vertical-align:2px; }
+  #goMenu .gm-price { font-weight:900; font-size:13px; color:var(--ink); white-space:nowrap; }
+  #goMenu .gm-link { position:absolute; right:12px; bottom:4px; }
+  #goMenu .gm-sec { padding:8px 14px 2px; font-size:10.5px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  #goMenu .gm-add, #goMenu .gm-add svg { color:var(--primary); }
+  #goMenu .gm-form { margin:4px 8px 6px; padding:10px; border-radius:12px; background:var(--bg); display:grid; gap:7px; min-width:0; }
+  #goMenu .gf-h { font-size:12.5px; font-weight:800; color:var(--ink); }
+  #goMenu .gf-types { display:flex; flex-wrap:wrap; gap:4px; }
+  #goMenu .gf-types button { border:1.5px solid transparent; border-radius:999px; padding:3px 9px; background:#fff; color:var(--ink); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+  #goMenu .gf-types button.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .1); }
+  #goMenu .gf-row { display:flex; align-items:center; gap:7px; min-width:0; color:var(--muted); font-weight:800; }
+  #goMenu .gf-row > svg { width:16px; height:16px; flex:none; }
+  #goMenu .gf-row input, #goMenu .gf-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:1.5px solid var(--line); border-radius:9px; background:#fff; padding:0 8px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
+  #goMenu .gf-row select { flex:0 0 88px; width:88px; padding:0 4px; }
+  #goMenu .gf-row input:focus, #goMenu .gf-row select:focus { outline:none; border-color:var(--primary); }
+  #goMenu .gf-time input { height:40px; font-size:15px; font-weight:900; text-align:center; }
+  #goMenu .gf-dur { padding-left:23px; }
+  #goMenu .gf-dur .gf-l { font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+  #goMenu .gf-foot { display:flex; justify-content:flex-end; gap:6px; }
+  #goMenu .gf-foot button { border:none; border-radius:9px; padding:7px 14px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  #goMenu .gf-cancel { background:none; color:var(--ink); }
+  #goMenu .gf-save { background:var(--primary); color:#fff; }
+  .go-line .go-emo { font-size:13px; line-height:1; }
+  .go-line .go-px { color:var(--primary); }
   #goMenu .gm-opt { display:flex; align-items:center; gap:10px; width:100%; padding:8px 14px; border:none; background:none; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink); cursor:pointer; text-decoration:none; text-align:left; }
   #goMenu .gm-opt:hover { background:var(--bg); }
   #goMenu .gm-opt svg { width:17px; height:17px; color:var(--muted); flex:none; }
@@ -3160,7 +3197,7 @@
     body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
     body.notes-mode .notes-page { display:block; margin-top:-5px; padding:0 10px 24px; }
     /* the idea box: a column on the right of the notes */
-    body.notes-mode .notes-page:has(> .grp-notes-ideas) { display:grid; grid-template-columns:minmax(0, 1fr) clamp(280px, 28%, 360px); grid-template-rows:auto 1fr; column-gap:26px; }
+    body.notes-mode .notes-page:has(> .grp-notes-ideas) { display:grid; grid-template-columns:minmax(0, 1fr) clamp(300px, 30%, 380px); grid-template-rows:auto 1fr; column-gap:26px; }
     .notes-page > .np-head { grid-column:1; grid-row:1; }
     .notes-page > .np-lines { grid-column:1; grid-row:2; }
     .notes-page > .grp-notes-ideas { grid-column:2; grid-row:1 / span 2; align-self:start; position:sticky; top:12px; display:flex; flex-direction:column; gap:12px; padding:16px 16px 18px; border-radius:16px;
@@ -3168,6 +3205,40 @@
     .notes-page > .grp-notes-ideas[hidden] { display:none; }
     .notes-page > .grp-notes-ideas h3 { margin:0; font-size:18px; font-weight:900; }
     .notes-page > .grp-notes-ideas .grp-drawer-head p { margin:2px 0 0; color:var(--muted); font-weight:700; font-size:13px; }
+    /* idea box in Notes: sticky notes taped on the page */
+    .notes-page > .grp-notes-ideas { background:rgba(255,255,255,.55); }
+    .grp-notes-ideas .ib-title { display:flex; align-items:center; gap:10px; }
+    .grp-notes-ideas .ib-title h3 { margin:0; font-family:Caveat, cursive; font-size:32px; font-weight:700; line-height:1; color:var(--ink); }
+    .grp-notes-ideas .ib-cnt { font-weight:900; font-size:12px; color:#fff; background:var(--accent); border-radius:999px; padding:1px 8px; }
+    .grp-notes-ideas .ib-add { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+    .grp-notes-ideas .ib-add input { flex:1; min-width:0; height:38px; border:none !important; border-bottom:2px solid var(--line) !important; border-radius:0 !important; background:transparent !important; padding:0 2px !important; font-size:14px !important; font-weight:700; }
+    .grp-notes-ideas .ib-add input:focus { outline:none; border-bottom-color:var(--primary) !important; }
+    .grp-notes-ideas .ib-add select { flex:0 1 auto; max-width:110px; height:30px; border:none !important; border-radius:999px !important; background:var(--bg) !important; font-size:12px !important; font-weight:800; padding:0 8px !important; }
+    .grp-notes-ideas .ib-plus { flex:none; width:32px; height:32px; border:none; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; cursor:pointer; }
+    .grp-notes-ideas .ib-plus svg { width:16px; height:16px; }
+    .grp-notes-ideas .ib-board { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:18px 12px; margin-top:12px; padding:4px 2px 6px; }
+    .grp-notes-ideas .ib-note { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-height:116px; padding:20px 11px 10px; border-radius:3px; background:var(--nc); box-shadow:0 10px 18px -12px rgba(60,30,60,.55); transform:rotate(var(--r)); }
+    .grp-notes-ideas .ib-note::before { content:''; position:absolute; top:-9px; left:50%; width:56px; height:18px; margin-left:-28px; background:var(--tape); transform:rotate(-4deg); pointer-events:none; }
+    .grp-notes-ideas .ib-note.fav { box-shadow:0 0 0 2px var(--accent), 0 10px 18px -12px rgba(60,30,60,.55); }
+    .grp-notes-ideas .ib-note.fav::after { content:'★'; position:absolute; top:3px; right:7px; color:var(--accent); font-size:15px; }
+    .grp-notes-ideas .ib-note .grp-chip { font-size:10.5px; }
+    .grp-notes-ideas .ib-t { font-family:Caveat, cursive; font-size:22px; font-weight:700; line-height:1.05; color:var(--ink); overflow-wrap:anywhere; }
+    .grp-notes-ideas .ib-meta { font-size:11px; font-weight:700; color:var(--ink); opacity:.55; }
+    .grp-notes-ideas .ib-row { display:flex; align-items:center; gap:5px; width:100%; margin-top:auto; }
+    .grp-notes-ideas .ib-row .grp-heart { padding:3px 8px; font-size:11.5px; background:rgba(255,255,255,.75); border-color:transparent; }
+    .grp-notes-ideas .ib-row .grp-heart.on { background:var(--primary); color:#fff; }
+    .grp-notes-ideas .ib-plan { display:inline-flex; align-items:center; gap:4px; margin-left:auto; height:25px; padding:0 9px; border:none; border-radius:999px; background:rgba(255,255,255,.75); color:var(--primary); font:inherit; font-size:11.5px; font-weight:900; cursor:pointer; white-space:nowrap; }
+    .grp-notes-ideas .ib-plan svg { width:12px; height:12px; }
+    .grp-notes-ideas .ib-note .grp-rm { position:absolute; top:2px; left:4px; opacity:0; transition:opacity .12s; background:none; }
+    .grp-notes-ideas .ib-note:hover .grp-rm { opacity:.7; }
+    .grp-notes-ideas .ib-empty { margin:10px 0 0; }
+    #ibDays { position:fixed; z-index:10030; width:250px; padding:10px; background:#fff; border-radius:14px; box-shadow:0 14px 30px -10px rgba(40,25,60,.45), 0 0 0 1px var(--line); color:var(--ink); }
+    #ibDays[hidden] { display:none; }
+    #ibDays .ibd-h { font-size:11px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 6px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #ibDays .ibd-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; max-height:220px; overflow:auto; }
+    #ibDays button { height:32px; border:none; border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-weight:800; font-size:12px; cursor:pointer; line-height:1.05; }
+    #ibDays button small { display:block; font-size:8.5px; color:var(--muted); }
+    #ibDays button:hover { background:var(--primary); color:#fff; } #ibDays button:hover small { color:#fff; }
     .pills .pill.notes-tab .nt-ideas { display:inline-flex; align-items:center; gap:3px; margin-left:2px; padding:1px 7px 1px 5px; border-radius:999px; background:rgba(var(--accent-rgb), .16); color:#c4651f; font-size:11.5px; font-weight:900; }
     .pills .pill.notes-tab .nt-ideas svg { width:12px; height:12px; color:inherit; }
     .notes-page .np-head { display:flex; align-items:center; gap:10px; margin:0 0 16px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
@@ -3452,9 +3523,15 @@
     background:var(--ink); color:var(--card); font-weight:800; font-size:14px; padding:10px 16px; border-radius:12px; transition:opacity .2s, transform .2s; }
   .grp-toast.show { opacity:1; transform:translate(-50%, 0); }
   /* shared stars: faces hang under the ribbon */
-  .grp-starfaces { position:fixed; z-index:2; display:flex; flex-direction:column; align-items:center; width:32px; gap:0; }
-  .grp-starfaces .grp-face { width:24px; height:24px; box-shadow:0 2px 6px rgba(61,53,104,.18); }
+  .grp-starfaces { position:fixed; z-index:3; display:flex; flex-direction:column; align-items:center; width:32px; gap:0; pointer-events:none; }
+  .grp-starfaces .grp-face { width:20px; height:20px; border-width:1.5px; box-shadow:0 1px 3px rgba(61,53,104,.25); }
   .grp-starfaces .grp-face + .grp-face { margin-top:-6px; }
+  @media screen and (min-width: 721px) {
+    .page-bookmark { height:calc(62px + var(--faces-h, 0px)); }
+    .page-bookmark:hover { height:calc(70px + var(--faces-h, 0px)); }
+    .page-bookmark[data-state="on"] { height:calc(86px + var(--faces-h, 0px)); }
+    .page-bookmark[data-state="on"]:hover { height:calc(92px + var(--faces-h, 0px)); }
+  }
   @media screen and (max-width: 720px) { .grp-starfaces { display:none !important; } }
   /* who's in, under each activity */
   .acts li > .grp-in { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:3px; font-size:11px; font-weight:700; color:var(--muted); }
@@ -3481,7 +3558,50 @@
   .grp-duel-foot .grp-link { white-space:nowrap; }
   .grp-link { border:0; background:none; padding:0; font:inherit; font-size:11px; font-weight:800; color:var(--muted); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
   .grp-link:hover { color:var(--ink); }
-  .grp-duelpop { max-width:340px; }
+  .grp-duelpop { max-width:none; width:min(460px, calc(100vw - 24px)); box-sizing:border-box; max-height:calc(100vh - 24px); overflow:auto; }
+  .grp-duelpop .grp-duel-idea.on { box-shadow:0 0 0 2px var(--primary); }
+  .grp-duelpop .dp-srch { position:relative; }
+  .grp-duelpop .dp-field { display:flex; align-items:center; gap:8px; height:40px; padding:0 11px; border:1.5px solid var(--line); border-radius:11px; background:#fff; }
+  .grp-duelpop .dp-field:focus-within { border-color:var(--primary); }
+  .grp-duelpop .dp-field svg { width:16px; height:16px; color:var(--muted); flex:none; }
+  .grp-duelpop .dp-field input { flex:1; min-width:0; border:none !important; outline:none; background:none !important; padding:0 !important; height:100%; font-size:14px; font-weight:700; color:var(--ink); box-shadow:none !important; }
+  .grp-duelpop .dp-dd { position:absolute; z-index:5; left:0; right:0; top:calc(100% + 4px); background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 12px 28px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
+  .grp-duelpop .dp-dd[hidden] { display:none; }
+  .grp-duelpop .dp-dd button { display:flex; align-items:flex-start; gap:9px; width:100%; padding:7px 12px; border:none; background:none; font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
+  .grp-duelpop .dp-dd button:hover, .grp-duelpop .dp-dd button.act { background:var(--bg); }
+  .grp-duelpop .dp-dd svg { width:15px; height:15px; color:var(--primary); flex:none; margin-top:2px; }
+  .grp-duelpop .dp-dd b { display:block; font-size:13.5px; font-weight:800; } .grp-duelpop .dp-dd small { display:block; font-size:11.5px; color:var(--muted); font-weight:600; }
+  .grp-duelpop .dp-dd em { margin-left:auto; font-style:normal; font-size:11.5px; font-weight:800; color:var(--muted); white-space:nowrap; padding-top:2px; }
+  .grp-duelpop .dp-dd .dp-tt { width:15px; text-align:center; font-weight:900; color:var(--muted); }
+  .grp-duelpop .dp-note { padding:6px 14px; font-size:12.5px; font-weight:700; color:var(--muted); }
+  .grp-duelpop .dp-more { display:block; margin:6px 0 0; padding:4px 2px; border:none; background:none; color:var(--primary); font:inherit; font-size:13px; font-weight:800; cursor:pointer; text-align:left; }
+  .grp-duelpop .dp-more span { color:var(--ink); }
+  .grp-duelpop .dp-detf { margin-top:8px; padding:10px; border-radius:12px; background:var(--bg); display:grid; gap:7px; }
+  .grp-duelpop .dp-row { display:flex; align-items:center; gap:8px; color:var(--muted); font-weight:800; min-width:0; }
+  .grp-duelpop .dp-row > svg { width:16px; height:16px; flex:none; }
+  .grp-duelpop .dp-row input, .grp-duelpop .dp-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:none; border-radius:9px; background:#fff; padding:0 9px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
+  .grp-duelpop .dp-row input:focus, .grp-duelpop .dp-row select:focus { outline:2px solid var(--primary); }
+  .grp-duelpop .dp-cur { flex:none; background:#fff; border-radius:9px; padding:8px 10px; color:var(--ink); font-size:12.5px; }
+  .grp-duelpop .dp-detfoot { display:flex; justify-content:flex-end; }
+  .grp-duelpop .dp-done { border:none; border-radius:9px; background:var(--primary); color:#fff; font:inherit; font-size:12.5px; font-weight:800; padding:6px 14px; cursor:pointer; }
+  .grp-duelpop .dp-cmp { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); gap:8px; margin-top:12px; align-items:stretch; }
+  .grp-duelpop .dp-or { align-self:center; font-size:12px; font-weight:900; color:var(--muted); }
+  .grp-duelpop .dp-side { display:grid; gap:5px; align-content:start; padding:10px; border:1.5px solid var(--line); border-radius:12px; min-width:0; }
+  .grp-duelpop .dp-side.a { border-color:rgba(var(--primary-rgb), .5); }
+  .grp-duelpop .dp-side.b { border-color:#b9a8ec; }
+  .grp-duelpop .dp-side .grp-chip { justify-self:start; }
+  .grp-duelpop .dp-t { font-weight:800; font-size:13.5px; line-height:1.25; overflow-wrap:anywhere; }
+  .grp-duelpop .dp-det { font-size:12px; font-weight:800; color:var(--ink); opacity:.8; }
+  .grp-duelpop .dp-d { display:flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:12px; font-weight:800; color:var(--muted); }
+  .grp-duelpop .dp-d b { color:var(--ink); }
+  .grp-duelpop .dp-d svg { width:13px; height:13px; flex:none; }
+  .grp-duelpop .dp-mini { position:relative; height:96px; margin-top:4px; border-radius:10px; overflow:hidden; background:#eef0f3; }
+  .grp-duelpop .dp-empty { place-items:center; align-content:center; text-align:center; border-style:dashed !important; color:var(--muted); font-weight:800; font-size:12.5px; min-height:120px; }
+  .grp-duelpop .dp-from { margin-top:6px; font-size:12px; font-weight:700; color:var(--muted); }
+  .grp-duelpop .addbtn { margin-top:12px; }
+  .dm-mini-none { position:absolute; inset:0; display:grid; place-items:center; font-size:11.5px; font-weight:800; color:var(--muted); }
+  .dm-mini-pin { width:18px; height:18px; border-radius:50%; border:2px solid #fff; color:#fff; font:900 9.5px/14px Nunito, sans-serif; text-align:center; box-shadow:0 2px 6px rgba(40,25,60,.35); }
+  .grp-side-det { display:block; font-size:11.5px; font-weight:800; color:var(--muted); margin-top:2px; }
   .grp-duelpop .grp-hint { margin:4px 0 8px; }
   .grp-duel-ideas { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
   .grp-duel-idea { display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:4px 10px 4px 4px; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
@@ -3516,6 +3636,16 @@
   .grp-rm { border:0; background:none; color:var(--muted); cursor:pointer; padding:4px; font-size:12px; border-radius:6px; }
   .grp-rm:hover { color:var(--ink); background:var(--bg); }
   .grp-empty { color:var(--muted); font-weight:600; font-size:13px; margin:8px 0; }
+  /* This or that: why the vote, and why each pick */
+  .grp-duelpop .grp-duel-q { width:100%; box-sizing:border-box; margin:0 0 10px; padding:8px 10px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:13px; color:var(--ink); background:var(--card); resize:vertical; }
+  .grp-duelpop .grp-duel-q:focus { outline:none; border-color:var(--primary); }
+  .grp-duel-q-show { display:flex; align-items:flex-start; gap:7px; margin:2px 0 8px; padding:7px 9px; border-left:3px solid var(--primary); border-radius:0 10px 10px 0; background:var(--card); font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.35; overflow-wrap:anywhere; }
+  .grp-duel-q-show .grp-face { width:18px; height:18px; border:none; }
+  .grp-why-line { display:flex; align-items:flex-start; gap:6px; margin:4px 2px 2px 8px; font-size:12px; font-weight:600; color:var(--ink); line-height:1.35; overflow-wrap:anywhere; }
+  .grp-why-line .grp-face { width:16px; height:16px; border:none; margin-top:1px; }
+  .grp-why-line b { font-weight:800; }
+  .grp-duel .grp-why { width:100%; box-sizing:border-box; margin:8px 0 2px; padding:6px 9px; border:1.5px dashed rgba(var(--primary-rgb), .45); border-radius:9px; background:var(--card); font:inherit; font-size:12.5px; color:var(--ink); }
+  .grp-duel .grp-why:focus { outline:none; border-style:solid; border-color:var(--primary); }
   /* date poll: banner on the plan, and the full sheet */
   .panel > .grp-pollbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; border-radius:14px;
     background:rgba(var(--secondary-rgb), .1); border:1.5px dashed rgba(var(--secondary-rgb), .6); color:var(--ink); }
@@ -7270,6 +7400,14 @@
       }
       sum += amount;
     });
+    // what you pay to get to an activity (your own train, bus… on its travel line)
+    cell.querySelectorAll(':scope > .acts > li').forEach(function(li){
+      if(typeof goPriceOf !== 'function' || !li.hasAttribute('data-go')) return;
+      var gp = goPriceOf(li); if(!gp) return;
+      count++;
+      var amt = gp.a; if(gp.c && gp.c !== panelCode){ var cv = convertAmount(amt, gp.c, panelCode); if(cv !== null) amt = cv; }
+      sum += amt;
+    });
     var costEl = cell.querySelector(':scope > .cost');
     if(count === 0){
       if(costEl) costEl.remove();
@@ -8175,9 +8313,11 @@
       if(tabColor) btn.style.setProperty('--bookmark-color', tabColor);
       faces.innerHTML = who.map(function(k){ return '<span class="grp-face" title="' + (memberNameOf(k) || '').replace(/"/g, '&quot;') + '">' + memberFaceOf(k) + '</span>'; }).join('');
       faces.style.display = cur && who.length ? '' : 'none';
-      var br = btn.getBoundingClientRect();
-      faces.style.left = btn.style.left;   // under the ribbon, wherever it hangs
-      faces.style.top = (br.bottom + 6) + 'px';
+      // The faces sit inside the ribbon, under the star; the ribbon grows to hold them.
+      var fh = cur && who.length ? 20 + (who.length - 1) * 14 + 8 : 0;
+      btn.style.setProperty('--faces-h', fh + 'px');
+      faces.style.left = btn.style.left;
+      faces.style.top = ((parseFloat(getComputedStyle(btn).top) || btn.getBoundingClientRect().top) + 30) + 'px';
       // Option ids are generated ("option-12"); anything else is skipped
       // rather than written into a selector.
       var all = GROUP ? GROUP.stars : {};
@@ -14586,7 +14726,9 @@
     }
     function render(){
       pop.innerHTML = '<div class="bd-head"><span>Notifications</span>' + (items.some(function(x){ return !x.seen; }) ? '<button type="button" class="bd-all">Mark all as read</button>' : '') + '</div>' +
-        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b>' + (x.kind === 'assign' ? ' assigned you <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : x.kind === 'askdone' ? ' checked <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : ' mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes') + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
+        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b>' + (x.kind === 'assign' ? ' assigned you <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>'
+          : x.kind === 'duel' ? ' started a vote in <b>' + npEsc(x.plan || 'a plan') + '</b>: <b>' + npEsc(x.act || '') + '</b>'
+          : x.kind === 'datepoll' ? ' asks when you’re free for <b>' + npEsc(x.plan || 'a new plan') + '</b>' : x.kind === 'askdone' ? ' checked <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : ' mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes') + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
           : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, or assigns you an activity, it shows up here.</div>');
     }
     function markSeen(list){ list.forEach(function(x){ if(!x.seen && x.id && IS_HOSTED && currentUserKey) firebase.database().ref('notifications/' + currentUserKey + '/' + x.id + '/seen').set(true).catch(function(){}); x.seen = true; }); paint(); }
@@ -14596,6 +14738,7 @@
       if(e.target.closest('.bd-all')){ markSeen(items); return; }
       var it = e.target.closest('.bd-item'); if(!it) return; var x = items[+it.dataset.i]; markSeen([x]); pop.hidden = true;
       if((x.kind === 'assign' || x.kind === 'askdone') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day, x.act || '')) return;
+      if((x.kind === 'duel' || x.kind === 'datepoll') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day || '', '')) return;
       var target = [].filter.call(document.querySelectorAll('.panel'), function(p){ return planIdOf(p) === x.planId; })[0];
       if(target){ if(!target.classList.contains('on')) activatePillByOpt(optOf(target)); setTimeout(openNotesPage, 60); }
     });
@@ -15113,6 +15256,8 @@
       var vw = window.innerWidth, w = Math.round(Math.max(260, Math.min(500, vw * .28)));
       var root = document.documentElement;
       var wrap = document.querySelector('.wrap'), pills = document.querySelector('.pills');
+      // One day at a time: the day and its map share the book half and half.
+      if(root.classList.contains('map-focus') && wrap){ var lm = Math.max(12, Math.round(wrap.getBoundingClientRect().left)); w = Math.max(260, Math.round((vw - 2 * lm) / 2)); }
       if(wrap){
         var r = wrap.getBoundingClientRect(), top = Math.max(r.top, pills ? pills.getBoundingClientRect().bottom - 1 : 0);
         // the same margin on the right as the calendar has on the left
@@ -15430,14 +15575,16 @@
     function legMin(s, prev){
       if(!prev) return 0;
       var ends = goEnds(prev.li, s.li); if(!ends) return 0;
-      var d = goData(ends.li); if(d.k !== ends.key) return 0;
+      var d = goData(ends.li); if(goChosen(d)) return goChosen(d).min || 0; if(d.k !== ends.key) return 0;
       var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
       return v ? v[0] : 0;
     }
     function legOf(s, prev){
       if(!prev) return '';
       var ends = goEnds(prev.li, s.li); if(!ends) return '';
-      var d = goData(ends.li); if(d.k !== ends.key) return '';
+      var d = goData(ends.li), my = goChosen(d);
+      if(my) return (my.b ? GO_ICONS[my.b === 'transit' ? 'bus' : my.b] : '<svg viewBox="0 0 24 24"></svg>') + fmtMin(my.min || 0) + (my.n && !my.b ? ' · ' + my.n : '') + (my.det ? ' · ' + my.det : '');
+      if(d.k !== ends.key) return '';
       var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
       return v ? GO_ICONS[m === 'transit' ? 'bus' : m] + fmtMin(v[0]) + (m === 'transit' && d.transit ? ' · ' + d.transit[1] : '') : '';
     }
@@ -15727,7 +15874,13 @@
   function goPref(){ try { return localStorage.getItem('tp-go-mode') || 'auto'; } catch(e){ return 'auto'; } }
   function goData(li){ try { return JSON.parse(li.getAttribute('data-go') || '{}') || {}; } catch(e){ return {}; } }
   // automatic: walk when it's under 30 min; anything over ~5 km is a drive
-  function goModeOf(d, ends){ var m = d.m || goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
+  // Your own ways of getting there (d.my), and which one is used (d.m = 'my:<id>')
+  function goChosen(d){ if(!d || !d.m || String(d.m).indexOf('my:') !== 0) return null; var id = d.m.slice(3); return (d.my || []).filter(function(o){ return o.id === id; })[0] || null; }
+  // the stretch's two ends moved: the times are looked up again, yours stay
+  function goReset(d, key){ var n = { k: key }; if(d && d.my) n.my = d.my; if(d && goChosen(d)) n.m = d.m; return n; }
+  // the price of the way chosen for the stretch that ends at this activity (counted in the day)
+  function goPriceOf(li){ var c = goChosen(goData(li)); if(!c || !c.p) return null; var a = parseFloat(String(c.p).replace(',', '.')); return a > 0 ? { a:a, c:c.c || null } : null; }
+  function goModeOf(d, ends){ var m = d.m || goPref(); if(String(m).indexOf('my:') === 0) m = goChosen(d) ? (goChosen(d).b || 'transit') : goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
   function fmtMin(m){ return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
   function fmtKm(k){ return String(Math.round(k * 10) / 10).replace('.', ',') + ' km'; }
   // the stretch between two activities: from where the first ends to where the next starts
@@ -15752,7 +15905,7 @@
       p.then(function(res){
         if(!res || res.error || !ends.li.isConnected) return;
         if(res.min != null) res = { car: res };   // an older script: one mode only
-        var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+        var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
         ['walk', 'bike', 'car'].forEach(function(m){ var v = res[m]; if(v && !v.error && v.min != null) d[m] = [v.min, v.km]; });
         ends.li.setAttribute('data-go', JSON.stringify(d));
       }).catch(function(){}).then(function(){ setTimeout(done, 400); });
@@ -15794,7 +15947,7 @@
     var first = when && when > now ? when : soon(when);
     ask(first).then(function(it){ return it || (first === when ? ask(soon(when)) : null); }).then(function(it){
       if(!ends.li.isConnected) return;
-      var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+      var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
       d.transit = it ? [Math.round(it.duration / 60), transitLabel(it)] : 0;
       ends.li.setAttribute('data-go', JSON.stringify(d));
     }).catch(function(){});
@@ -15802,12 +15955,13 @@
   // a quick estimate from the straight line, shown until the real time arrives
   function goGuess(ends, mode){ var d = ends.km * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[mode]; return [Math.max(1, Math.round(d / sp * 60) + (mode === 'car' ? 3 : 0)), d]; }
   function goPump(){ if(goBusy || !goQueue.length) return; goBusy = true; goQueue.shift()(function(){ goBusy = false; goPump(); }); }
+  function esc1(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   function renderGoLines(cell, seq){
     var acts = cell.querySelector(':scope > .acts'); if(!acts) return;
     var keep = [];
     seq.forEach(function(li, i){
       if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
-      var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+      var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
       var mode = goModeOf(d, ends);
       if(mode !== 'transit' && (!d[mode] || (!d.walk && ends.km <= 150))) goFetch(ends);
       if(d.transit == null) goTransit(ends);
@@ -15815,7 +15969,11 @@
       if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
       el.__ends = ends; keep.push(el);
       var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
+      var mine = goChosen(d);
       var v = mode === 'transit' ? (d.transit ? [d.transit[0], null] : null) : d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
+        : mine ? '<button type="button" class="go-b go-mine" aria-label="Travel time" title="' + esc1([mine.b ? '' : mine.n, mine.t1 ? mine.t1 + (mine.t2 ? ' → ' + mine.t2 : '') : '', mine.min ? fmtMin(mine.min) : '', mine.det || ''].filter(Boolean).join(' · ')) + '"><span class="go-t">' +
+            (mine.b ? GO_ICONS[mine.b === 'transit' ? 'bus' : mine.b] : '<span class="go-emo">' + esc1(mine.i || '🚆') + '</span>') + '<span>' + (mine.t1 ? esc1(mine.t1 + (mine.t2 ? '–' + mine.t2 : '')) : fmtMin(mine.min || 0)) + '</span></span>' +
+            (mine.p ? '<span class="go-km go-px">· ' + esc1((mine.c ? CURRENCIES[mine.c] : currencySymbol(ends.li)) + ' ' + mine.p) + '</span>' : '') + GO_ICONS.caret + '</button>' : d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
         : '<button type="button" class="go-b" aria-label="Travel time"' + (v && v[1] != null ? ' title="' + fmtMin(v[0]) + ' · ' + fmtKm(v[1]) + '"' : '') + '><span class="go-t">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (v ? '<span>' + fmtMin(v[0]) + '</span></span>' + (v[1] != null ? '<span class="go-km">· ' + fmtKm(v[1]) + '</span>' : '') : (mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + '</span>') + GO_ICONS.caret + '</button>';
       if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
     });
@@ -15824,33 +15982,125 @@
   (function(){
     var menu = document.createElement('div'); menu.id = 'goMenu'; menu.hidden = true; document.body.appendChild(menu);
     function setGo(li, fn){ if(VIEW_ONLY) return; var d = goData(li); fn(d); li.setAttribute('data-go', JSON.stringify(d)); }
-    document.addEventListener('click', function(e){
-      var b = e.target.closest && e.target.closest('.go-line .go-b'); if(!b){ if(!menu.contains(e.target)) menu.hidden = true; return; }
-      e.preventDefault(); e.stopPropagation();
-      var ends = b.parentNode.__ends; if(!ends) return;
-      if(b.classList.contains('go-off')){ setGo(ends.li, function(d){ delete d.h; }); return; }
-      var d = goData(ends.li), cur = goModeOf(d, ends);
-      goFetch(ends);
+    var PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+    var UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>';
+    var XX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    var PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+    var CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    var WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg>';
+    var NOTES = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+    var LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>';
+    var ends = null, form = null;   // form: { id?, b?: 'car'|'walk'|'bike'|'transit', i, n, t1, t2, dur, p, c, det, u }
+    function esc(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+    function baseName(m){ return m === 'transit' ? 'Public transport' : GO_MODES[m]; }
+    function baseVal(d, m){ return m === 'transit' ? (d.transit ? [d.transit[0], null, d.transit[1]] : null) : d[m]; }
+    function transportTags(){ var t = TAGS.filter(isTransportTag); return t.length ? t : [{ icon:'🚆', name:'Train' }, { icon:'🚌', name:'Bus' }, { icon:'✈️', name:'Flight' }]; }
+    function curOpts(sel){ return Object.keys(CURRENCIES).map(function(c){ return '<option value="' + c + '"' + (c === sel ? ' selected' : '') + '>' + c + ' ' + CURRENCIES[c] + '</option>'; }).join(''); }
+    function sub(o){ return [o.t1 ? o.t1 + (o.t2 ? ' → ' + o.t2 : '') : '', o.min ? fmtMin(o.min) : '', o.det || ''].filter(Boolean).join(' · '); }
+    function formHtml(){
+      var f = form, tt = transportTags();
+      return '<div class="gm-form">' +
+        (f.b ? '<div class="gf-h">Your version of ' + esc(baseName(f.b).toLowerCase()) + '</div>'
+          : '<div class="gf-types">' + tt.map(function(t){ return '<button type="button" data-ty="' + esc(t.icon + '|' + t.name) + '"' + (f.n === t.name ? ' class="on"' : '') + '>' + esc(t.icon + ' ' + t.name) + '</button>'; }).join('') + '</div>') +
+        '<div class="gf-row gf-time">' + CLOCK + '<input type="time" data-f="t1" aria-label="Departs" value="' + esc(f.t1) + '"><span>→</span><input type="time" data-f="t2" aria-label="Arrives" value="' + esc(f.t2) + '"></div>' +
+        '<div class="gf-row gf-dur"><span class="gf-l">Takes</span><input data-f="dur" placeholder="e.g. 9 h 30" value="' + esc(f.dur) + '"></div>' +
+        '<div class="gf-row">' + WALLET + '<input data-f="p" inputmode="decimal" placeholder="Price" value="' + esc(f.p) + '"><select data-f="c" aria-label="Currency">' + curOpts(f.c) + '</select></div>' +
+        '<div class="gf-row">' + NOTES + '<input data-f="det" placeholder="Details, e.g. IC 207, seat 34" value="' + esc(f.det) + '"></div>' +
+        '<div class="gf-row">' + LINK + '<input data-f="u" placeholder="Paste a link (tickets, booking)" value="' + esc(f.u) + '"></div>' +
+        '<div class="gf-foot"><button type="button" class="gf-cancel" data-x="cancel">Cancel</button><button type="button" class="gf-save" data-x="save">Save</button></div></div>';
+    }
+    function parseDur(s){ s = String(s || '').trim(); if(!s) return 0; var m = /^(\d+):(\d{2})$/.exec(s); if(m) return +m[1] * 60 + +m[2];
+      var h = /(\d+(?:[.,]\d+)?)\s*h/i.exec(s), mm = /(\d+)\s*m/i.exec(s.replace(/\d+(?:[.,]\d+)?\s*h/i, '')), rest = s.replace(/\d+(?:[.,]\d+)?\s*h/i, '').trim();
+      var v = (h ? Math.round(parseFloat(h[1].replace(',', '.')) * 60) : 0) + (mm ? +mm[1] : (h && /^\d+$/.test(rest) ? +rest : 0));
+      return v || (/^\d+$/.test(s) ? +s : 0); }
+    function spanMin(t1, t2){ if(!t1 || !t2) return 0; var a = t1.split(':'), b = t2.split(':'), x = (+b[0] * 60 + +b[1]) - (+a[0] * 60 + +a[1]); return x <= 0 ? x + 1440 : x; }
+    function keep(){ menu.querySelectorAll('.gm-form [data-f]').forEach(function(i){ form[i.dataset.f] = i.value; }); }
+    function draw(){
+      var d = goData(ends.li), cur = goModeOf(d, ends), mine = d.my || [], chosen = goChosen(d);
       var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
-      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25); }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</button>'; }).join('') +
-        (d.transit ? '<div class="gm-opt gm-tr' + (cur === 'transit' ? ' on' : '') + '" role="button" tabindex="0" data-m="transit">' + GO_ICONS.bus + '<span class="gm-trt">' + fmtMin(d.transit[0]) + '<small>' + d.transit[1].replace(/</g, '&lt;') + '</small></span><a class="gm-ext" href="' + maps + '" target="_blank" rel="noopener">Google Maps ↗</a></div>'
-          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>') +
-        '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
-        '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>' +
+      var edited = mine.map(function(o){ return o.b; }).filter(Boolean);
+      var tool = function(m){ return '<span class="gm-tools"><button type="button" data-edit="' + m + '" title="Add times, a price or details" aria-label="Edit">' + PEN + '</button></span>'; };
+      var html = Object.keys(GO_MODES).filter(function(m){ return edited.indexOf(m) === -1 && (m === 'car' || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25)); }).map(function(m){ var v = d[m];
+          return '<div class="gm-opt gm-row' + (!chosen && m === cur ? ' on' : '') + '" role="button" tabindex="0" data-m="' + m + '">' + GO_ICONS[m] + '<span class="gm-trt">' + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</span>' + tool(m) + '</div>'; }).join('') +
+        (edited.indexOf('transit') !== -1 ? '' : d.transit ? '<div class="gm-opt gm-tr gm-row' + (!chosen && cur === 'transit' ? ' on' : '') + '" role="button" tabindex="0" data-m="transit">' + GO_ICONS.bus + '<span class="gm-trt">' + fmtMin(d.transit[0]) + '<small>' + d.transit[1].replace(/</g, '&lt;') + '</small></span><a class="gm-ext" href="' + maps + '" target="_blank" rel="noopener">Google Maps ↗</a>' + tool('transit') + '</div>'
+          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>');
+      if(form && form.b) html += formHtml();
+      if(mine.length) html += '<div class="gm-sec">Yours</div>' + mine.map(function(o){
+          var on = chosen && chosen.id === o.id;
+          return '<div class="gm-opt gm-row gm-mine' + (on ? ' on' : '') + '" role="button" tabindex="0" data-my="' + esc(o.id) + '">' + (o.b ? GO_ICONS[o.b === 'transit' ? 'bus' : o.b] : '<span class="gm-emo">' + esc(o.i || '🚆') + '</span>') +
+            '<span class="gm-trt"><b>' + esc(o.b ? baseName(o.b) : o.n) + (o.b ? '<i class="gm-badge">edited</i>' : '') + '</b><small>' + esc(sub(o)) + '</small></span>' +
+            (o.p ? '<span class="gm-price">' + esc((o.c ? CURRENCIES[o.c] : currencySymbol(ends.li)) + ' ' + o.p) + '</span>' : '') +
+            '<span class="gm-tools"><button type="button" data-edit="my:' + esc(o.id) + '" title="Edit" aria-label="Edit">' + PEN + '</button><button type="button" data-rm="' + esc(o.id) + '" title="' + (o.b ? 'Back to the suggested ' + esc(baseName(o.b).toLowerCase()) : 'Remove') + '" aria-label="' + (o.b ? 'Undo' : 'Remove') + '">' + (o.b ? UNDO : XX) + '</button></span>' +
+            (o.u ? '<a class="gm-ext gm-link" href="' + esc(o.u) + '" target="_blank" rel="noopener">Link ↗</a>' : '') + '</div>'; }).join('');
+      html += form && !form.b ? formHtml() : '<button type="button" class="gm-opt gm-add" data-x="add">' + PLUS + 'Add your own (train, bus, flight…)</button>';
+      html += '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
+        (chosen ? '' : '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>') +
         (goPref() !== 'auto' ? '<button type="button" class="gm-opt" data-x="auto">Back to automatic (walk if short)</button>' : '') +
         '<div class="gm-src">Routes © openrouteservice · Transit by Transitous · Map data © OpenStreetMap</div>';
-      var r = b.getBoundingClientRect(); menu.hidden = false;
-      menu.style.left = Math.round(Math.min(r.left, innerWidth - menu.offsetWidth - 8)) + 'px'; menu.style.top = Math.round(r.bottom + 6) + 'px';
-      menu.onclick = function(ev){
-        if(ev.target.closest('a')){ menu.hidden = true; return; }
-        var o = ev.target.closest('.gm-opt'); if(!o) return;
-        if(o.dataset.m) setGo(ends.li, function(x){ if(o.dataset.m === goPref()) delete x.m; else x.m = o.dataset.m; });
-        else if(o.dataset.x === 'hide') setGo(ends.li, function(x){ x.h = 1; });
-        else if(o.dataset.x === 'def'){ try { localStorage.setItem('tp-go-mode', cur); } catch(err){} }
-        else if(o.dataset.x === 'auto'){ try { localStorage.removeItem('tp-go-mode'); } catch(err){} }
-        menu.hidden = true;
-      };
+      menu.innerHTML = html;
+      // the line's button is redrawn when the stretch changes: find it again
+      var bb = document.querySelector('.panel.on .go-line[data-k="' + String(ends.key).replace(/"/g, '') + '"] .go-b'); if(bb) menu.__b = bb;
+      var r = menu.__b.getBoundingClientRect(); if(!r.width && menu.__r) r = menu.__r; else menu.__r = r;
+      menu.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8))) + 'px';
+      var top = r.bottom + 6; if(top + menu.offsetHeight > innerHeight - 8) top = Math.max(8, innerHeight - 8 - menu.offsetHeight);
+      menu.style.top = Math.round(top) + 'px';
+      var f1 = menu.querySelector('.gm-form [data-f="t1"]'); if(f1 && !menu.__focused){ menu.__focused = true; f1.focus(); }
+    }
+    function saveForm(){
+      keep(); var f = form, li = ends.li, cell = li.closest('.cell');
+      var min = spanMin(f.t1, f.t2) || parseDur(f.dur) || (f.b ? (baseVal(goData(li), f.b) || [0])[0] : 0);
+      var o = { id: f.id || ('t' + Date.now().toString(36)), i: f.i, n: f.n, min: min };
+      if(f.b) o.b = f.b; if(f.t1) o.t1 = f.t1; if(f.t2) o.t2 = f.t2; if(f.det.trim()) o.det = f.det.trim();
+      if(String(f.p).trim()) o.p = String(f.p).trim().replace(',', '.'); if(f.c && f.c !== resolveCurrencyCode(li.closest('.panel'))) o.c = f.c;
+      if(f.u.trim()) o.u = /^https?:\/\//i.test(f.u.trim()) ? f.u.trim() : 'https://' + f.u.trim();
+      setGo(li, function(x){ x.my = (x.my || []).filter(function(y){ return y.id !== o.id; }); x.my.push(o); x.m = 'my:' + o.id; });
+      form = null; menu.__focused = false; if(cell) recomputeCell(cell); scheduleAutoSave(); draw();
+    }
+    document.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('.go-line .go-b'); if(!b){ if(!menu.contains(e.target) && e.target.isConnected) { menu.hidden = true; form = null; } return; }
+      e.preventDefault(); e.stopPropagation();
+      var en = b.parentNode.__ends; if(!en) return;
+      if(b.classList.contains('go-off')){ setGo(en.li, function(d){ delete d.h; }); return; }
+      if(!menu.hidden && ends && ends.key === en.key){ menu.hidden = true; form = null; return; }
+      ends = en; form = null; menu.__b = b; menu.__focused = false;
+      goFetch(ends);
+      menu.hidden = false; draw();
     }, true);
+    menu.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){ e.preventDefault(); if(form){ form = null; draw(); } else menu.hidden = true; }
+      else if(e.key === 'Enter' && form && e.target.tagName === 'INPUT'){ e.preventDefault(); saveForm(); }
+    });
+    menu.addEventListener('click', function(ev){
+      if(!ends) return;
+      if(ev.target.closest('a')){ menu.hidden = true; return; }
+      var li = ends.li, cell = li.closest('.cell'), d = goData(li);
+      var ty = ev.target.closest('[data-ty]'); if(ty){ keep(); var p = ty.dataset.ty.split('|'); form.i = p[0]; form.n = p[1]; draw(); return; }
+      var ed = ev.target.closest('[data-edit]');
+      if(ed){ ev.stopPropagation(); var k = ed.dataset.edit;
+        if(k.indexOf('my:') === 0){ var o = (d.my || []).filter(function(y){ return 'my:' + y.id === k; })[0]; if(!o) return;
+          form = { id:o.id, b:o.b || '', i:o.i || '', n:o.n || '', t1:o.t1 || '', t2:o.t2 || '', dur: o.min ? fmtMin(o.min) : '', p:o.p || '', c:o.c || resolveCurrencyCode(li.closest('.panel')), det:o.det || '', u:o.u || '' }; }
+        else { var v = baseVal(d, k), tg = transportTags().filter(function(t){ return new RegExp('^' + (k === 'transit' ? 'bus' : k === 'car' ? 'drive|car' : k), 'i').test(t.name); })[0];
+          form = { b:k, i: tg ? tg.icon : '', n: baseName(k), t1:'', t2:'', dur: v ? fmtMin(v[0]) : '', p:'', c: resolveCurrencyCode(li.closest('.panel')), det: v && v[2] ? v[2] : '', u:'' }; }
+        menu.__focused = false; draw(); return; }
+      var rm = ev.target.closest('[data-rm]');
+      if(rm){ ev.stopPropagation(); var id = rm.dataset.rm, was = (d.my || []).filter(function(y){ return y.id === id; })[0];
+        setGo(li, function(x){ x.my = (x.my || []).filter(function(y){ return y.id !== id; }); if(!x.my.length) delete x.my; if(x.m === 'my:' + id){ if(was && was.b && was.b !== goPref()) x.m = was.b; else delete x.m; } });
+        if(cell) recomputeCell(cell); scheduleAutoSave(); draw(); return; }
+      var x = ev.target.closest('[data-x]');
+      if(x){ var w = x.dataset.x;
+        if(w === 'add'){ var t0 = transportTags()[0]; form = { b:'', i:t0.icon, n:t0.name, t1:'', t2:'', dur:'', p:'', c: resolveCurrencyCode(li.closest('.panel')), det:'', u:'' }; menu.__focused = false; draw(); return; }
+        if(w === 'cancel'){ form = null; draw(); return; }
+        if(w === 'save'){ saveForm(); return; }
+        if(w === 'hide') setGo(li, function(y){ y.h = 1; });
+        else if(w === 'def'){ var cm = goModeOf(d, ends); try { localStorage.setItem('tp-go-mode', cm); } catch(err){} }
+        else if(w === 'auto'){ try { localStorage.removeItem('tp-go-mode'); } catch(err){} }
+        menu.hidden = true; form = null; return; }
+      if(ev.target.closest('.gm-form')) return;
+      var my = ev.target.closest('[data-my]');
+      if(my){ setGo(li, function(y){ y.m = 'my:' + my.dataset.my; }); if(cell) recomputeCell(cell); scheduleAutoSave(); menu.hidden = true; return; }
+      var o2 = ev.target.closest('[data-m]');
+      if(o2){ setGo(li, function(y){ if(o2.dataset.m === goPref()) delete y.m; else y.m = o2.dataset.m; }); if(cell) recomputeCell(cell); menu.hidden = true; }
+    });
   })();
   (function(){
     var inp = document.getElementById('fabAddPlace'); if(!inp) return;
@@ -16131,7 +16381,9 @@
     if(!p.classList.contains('on')) activatePillByOpt(opt);
     setTimeout(function(){
       var hit = null; p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === +dn) c.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)').forEach(function(li){ var t = li.querySelector(':scope > .title'); if(!hit && t && t.textContent.trim() === title) hit = li; }); });
-      if(hit){ hit.scrollIntoView({ block:'center' }); setTimeout(function(){ openActivityEditor(hit); }, 250); }
+      if(hit){ hit.scrollIntoView({ block:'center' }); setTimeout(function(){ openActivityEditor(hit); }, 250); return; }
+      if(!dn){ var poll = typeof grpPollOf === 'function' ? grpPollOf(p) : null; if(poll && !poll.lk) openPoll(p); return; }
+      p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === +dn) c.scrollIntoView({ block:'center' }); });
     }, 120);
     return true;
   }
@@ -17502,9 +17754,15 @@
     // restores the links from it.
     var planMirror = {};
     model.options.forEach(function(o){ if(o.pl) planMirror[o.id] = [o.pl, o.pn || '']; });
+    // Assignments get the same kind of mirror (an older copy drops the
+    // activity's ak): option → "day|name" → ak.
+    var askMirror = {};
+    model.options.forEach(function(o){ Object.keys(o.d || {}).forEach(function(dn){ (o.d[dn].a || []).forEach(function(a){
+      if(a.ak){ (askMirror[o.id] = askMirror[o.id] || {})[dn + '|' + String(a.t || '').trim()] = a.ak; } }); }); });
     var notesOut = {};
-    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group') notesOut[k] = MONTH_NOTES[k]; });
+    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks') notesOut[k] = MONTH_NOTES[k]; });
     if(Object.keys(planMirror).length) notesOut.__plans = planMirror;
+    if(Object.keys(askMirror).length) notesOut.__asks = askMirror;
     if(grpHasData()) notesOut.__group = JSON.parse(JSON.stringify(GROUP));
     if(Object.keys(notesOut).length) model.notes = notesOut;
     return model;
@@ -17625,8 +17883,12 @@
     // a month's notes — keep it out of MONTH_NOTES.
     var planMirror = (model.notes && model.notes.__plans && typeof model.notes.__plans === 'object') ? model.notes.__plans : {};
     MONTH_NOTES = {};
-    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group') MONTH_NOTES[k] = model.notes[k]; });
+    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks') MONTH_NOTES[k] = model.notes[k]; });
     GROUP = grpNormalize(model.notes && model.notes.__group);
+    // an assignment an older copy dropped comes back from its mirror
+    var askMirror = (model.notes && model.notes.__asks) || {};
+    model.options.forEach(function(o){ var m = askMirror[o.id]; if(!m) return; Object.keys(o.d || {}).forEach(function(dn){ (o.d[dn].a || []).forEach(function(a){
+      if(!a.ak && m[dn + '|' + String(a.t || '').trim()]) a.ak = m[dn + '|' + String(a.t || '').trim()]; }); }); });
     var wrap = document.querySelector('.wrap');
     var pillsWrap = document.querySelector('.pills');
     var budgetList = document.querySelector('.budget ul');
@@ -18350,6 +18612,25 @@
     el.textContent = msg; el.classList.add('show');
     clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
   }
+  // Tells people about something in a plan they're in: a bell, and (with
+  // email) an email through the script. Never yourself.
+  function grpNotify(keys, note, email){
+    var me = meKey(); keys = (keys || []).filter(function(k, i, all){ return k && k !== me && all.indexOf(k) === i; });
+    if(!keys.length || !IS_HOSTED || !currentUserKey) return;
+    var fromName = memberNameOf(currentUserKey);
+    note.from = currentUserKey; note.fromName = fromName; note.at = firebase.database.ServerValue.TIMESTAMP; note.seen = false;
+    Object.keys(note).forEach(function(k){ if(note[k] === undefined || note[k] === '') delete note[k]; });
+    keys.forEach(function(k){ firebase.database().ref('notifications/' + k).push(note).catch(function(err){ console.warn('Notification not saved (database rules?)', err); }); });
+    if(!email || !EMAIL_HOOK_URL) return;
+    var u = firebase.auth().currentUser; if(!u) return;
+    u.getIdToken().then(function(tok){
+      keys.forEach(function(k){
+        var body = { idToken: tok, to: k, from: fromName }; Object.keys(email).forEach(function(x){ body[x] = email[x]; });
+        fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify(body) }).catch(function(){});
+      });
+    }).catch(function(){});
+  }
+  function grpChipText(a){ return a ? ((a.i ? a.i + ' ' : '') + (a.n || '')).trim() : ''; }
   function grpPlaceActivity(panel, dn, a){
     var cell = grpCellOf(panel, dn);
     if(!cell) return null;
@@ -18494,7 +18775,20 @@
     var pill = pillOfPanel(panel), altName = pill && pill.querySelector('.pill-name') ? pill.querySelector('.pill-name').textContent.trim() : '';
     var focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : '';
     var draft = box.querySelector('#grpIdeaTitle'); draft = draft ? draft.value : '';
-    box.innerHTML = '<div class="grp-drawer-head"><div><h3>Idea box</h3><p>' + grpEsc(altName || planNameOf(panel)) + '</p></div>' +
+    // In Notes: sticky notes taped on the page (the chosen design), two per row.
+    var NOTE_BG = ['#fff3bf', '#ffd9e6', '#dff5ec', '#e8e1fb'], NOTE_TAPE = ['rgba(236,106,156,.35)', 'rgba(63,191,148,.35)', 'rgba(242,136,77,.35)', 'rgba(155,143,192,.4)'];
+    var favN = list.filter(function(x){ return (x.h || []).length === top; }).length;
+    if(inNotes) box.innerHTML = '<div class="ib-title"><h3>Idea box</h3>' + (list.length ? '<span class="ib-cnt">' + list.length + '</span>' : '') + '</div>' +
+      '<form class="grp-ideaform ib-add"><input id="grpIdeaTitle" placeholder="Jot an idea, e.g. Kayak on the Vistula" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="ib-plus" aria-label="Add the idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></form>' +
+      (list.length ? '<div class="ib-board">' + list.map(function(it, n){
+        var hs = it.h || [], mine = !!me && hs.indexOf(me) !== -1, fav = top > 0 && hs.length === top && favN === 1;
+        return '<div class="grp-idea ib-note' + (fav ? ' fav' : '') + '" data-id="' + it.id + '" style="--nc:' + NOTE_BG[n % 4] + ';--tape:' + NOTE_TAPE[n % 4] + ';--r:' + (n % 2 ? '1.3deg' : '-1.2deg') + '"' + (fav ? ' title="Group favourite"' : '') + '>' +
+          '<button type="button" class="grp-rm" aria-label="Remove idea" title="Remove idea">✕</button>' + grpChipHtml(it.a) + '<div class="ib-t">' + grpEsc(it.a.t || 'Untitled') + '</div>' +
+          ((it.a.p || it.by) ? '<div class="ib-meta">' + (it.a.p ? grpEsc(it.a.p) + ' · ' : '') + (it.by ? grpEsc(grpName(it.by)) : '') + '</div>' : '') +
+          '<div class="ib-row"><button type="button" class="grp-heart' + (mine ? ' on' : '') + '" aria-pressed="' + mine + '" aria-label="Heart ' + grpEsc(it.a.t || '') + '" title="' + grpEsc(hs.map(grpName).join(', ')) + '">♥ ' + hs.length + '</button>' +
+          '<button type="button" class="ib-plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Plan it</button></div></div>';
+      }).join('') + '</div>' : '<p class="grp-empty ib-empty">No ideas yet. Jot the first one above, or open an activity and choose To ideas.</p>');
+    else box.innerHTML = '<div class="grp-drawer-head"><div><h3>Idea box</h3><p>' + grpEsc(altName || planNameOf(panel)) + '</p></div>' +
       (inNotes ? '' : '<button type="button" class="grp-x" aria-label="Close idea box">✕</button>') + '</div>' +
       '<p class="grp-hint">Things you might do. Heart the ones you like; plan an idea onto a day when it\'s time.</p>' +
       '<form class="grp-ideaform"><input id="grpIdeaTitle" placeholder="Add an idea, e.g. Kayak on the Vistula" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="grp-btn">Add</button></form>' +
@@ -18527,12 +18821,31 @@
         if(k === -1){ it.h.push(me); playStarSound(); } else it.h.splice(k, 1);
         grpChanged();
       });
-      row.querySelector('.grp-plan').addEventListener('change', function(e){
-        var dn = parseInt(e.target.value, 10); if(isNaN(dn)) return;
+      function planOn(dn){
         var li = grpPlaceActivity(panel, dn, it.a);
         if(!li) return;
         GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== it; });
         playStampSound(); grpChanged(); grpToast('Planned on ' + grpDayLabel(panel, dn));
+      }
+      var sel = row.querySelector('.grp-plan');
+      if(sel) sel.addEventListener('change', function(e){ var dn = parseInt(e.target.value, 10); if(!isNaN(dn)) planOn(dn); });
+      // Plan it: the trip's days to pick from
+      var pb = row.querySelector('.ib-plan');
+      if(pb) pb.addEventListener('click', function(e){
+        e.stopPropagation();
+        var dd = document.getElementById('ibDays');
+        if(!dd){ dd = document.createElement('div'); dd.id = 'ibDays'; dd.className = 'grp-ui'; dd.hidden = true; document.body.appendChild(dd);
+          document.addEventListener('mousedown', function(ev){ if(!dd.hidden && !dd.contains(ev.target) && !ev.target.closest('.ib-plan')) dd.hidden = true; });
+          window.addEventListener('scroll', function(){ dd.hidden = true; }, true); }
+        if(!dd.hidden && dd.__for === row.dataset.id){ dd.hidden = true; return; }
+        dd.__for = row.dataset.id;
+        dd.innerHTML = '<div class="ibd-h">Plan “' + grpEsc((it.a.t || '').slice(0, 30)) + '” on</div><div class="ibd-grid">' + days.map(function(dn){ var r = realDate(panel, dn), d = new Date(r.year, r.month - 1, r.day);
+          return '<button type="button" data-dn="' + dn + '"><small>' + WD_ABBR[(d.getDay() + 6) % 7] + '</small>' + r.day + '</button>'; }).join('') + '</div>';
+        dd.querySelectorAll('[data-dn]').forEach(function(b){ b.addEventListener('click', function(){ dd.hidden = true; planOn(+b.dataset.dn); }); });
+        dd.hidden = false;
+        var rr = pb.getBoundingClientRect(), w = dd.offsetWidth, h = dd.offsetHeight;
+        dd.style.left = Math.round(Math.max(8, Math.min(rr.right - w, innerWidth - w - 8))) + 'px';
+        dd.style.top = Math.round(rr.bottom + 6 + h > innerHeight - 8 ? rr.top - 6 - h : rr.bottom + 6) + 'px';
       });
       row.querySelector('.grp-rm').addEventListener('click', function(){
         GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== it; }); playCrumpleSound(); grpChanged();
@@ -18542,38 +18855,181 @@
 
   // ---- this or that ---------------------------------------------------
   function grpDuels(opt){ return GROUP.duels[opt] || (GROUP.duels[opt] = []); }
+  // ---- This or that: the other option is found like an activity's name
+  // (a place search), can have the same details (type, time, price,
+  // notes, link), and the two sit side by side, each with a small map and
+  // how far it is from the activity before. ----
+  var duelMaps = [];
+  function grpMapLib(){
+    if(window.maplibregl) return Promise.resolve();
+    if(grpMapLib.p) return grpMapLib.p;
+    grpMapLib.p = new Promise(function(res, rej){
+      if(!document.querySelector('link[href*="maplibre-gl"]')){ var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css'; document.head.appendChild(l); }
+      var sc = document.createElement('script'); sc.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc);
+    });
+    return grpMapLib.p;
+  }
+  function grpMiniMap(host, pts){
+    host.innerHTML = '';
+    if(!pts.some(function(p){ return p.n !== '1'; })){ host.innerHTML = '<div class="dm-mini-none">No place on the map</div>'; return; }
+    function sketch(){
+      var W = host.clientWidth || 180, H = host.clientHeight || 96, la = pts.map(function(p){ return p.lat; }), lo = pts.map(function(p){ return p.lon; });
+      var a = Math.min.apply(null, la), b = Math.max.apply(null, la), c = Math.min.apply(null, lo), d = Math.max.apply(null, lo);
+      var sx = function(v){ return 18 + (d - c ? (v - c) / (d - c) : .5) * (W - 36); }, sy = function(v){ return 16 + (b - a ? (b - v) / (b - a) : .5) * (H - 32); };
+      host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="100%"><rect width="100%" height="100%" fill="#eef0f3"/>' +
+        pts.slice(1).map(function(p){ return '<line x1="' + sx(pts[0].lon) + '" y1="' + sy(pts[0].lat) + '" x2="' + sx(p.lon) + '" y2="' + sy(p.lat) + '" stroke="' + p.c + '" stroke-width="2.5" stroke-dasharray="5 4"/>'; }).join('') +
+        pts.map(function(p){ return '<g transform="translate(' + sx(p.lon) + ' ' + sy(p.lat) + ')"><circle r="9" fill="' + p.c + '" stroke="#fff" stroke-width="2"/><text text-anchor="middle" dy="3.5" font-size="9.5" font-weight="900" fill="#fff">' + p.n + '</text></g>'; }).join('') + '</svg>';
+    }
+    sketch();
+    grpMapLib().then(function(){
+      if(!host.isConnected) return;
+      host.innerHTML = '';
+      var bb = new maplibregl.LngLatBounds([pts[0].lon, pts[0].lat], [pts[0].lon, pts[0].lat]); pts.forEach(function(p){ bb.extend([p.lon, p.lat]); });
+      var m = new maplibregl.Map({ container: host, style:'https://tiles.openfreemap.org/styles/positron', bounds: bb, fitBoundsOptions:{ padding:26, maxZoom:15 }, attributionControl:false, interactive:false });
+      duelMaps.push(m);
+      m.on('load', function(){
+        m.addSource('l', { type:'geojson', data:{ type:'FeatureCollection', features: pts.slice(1).map(function(p){ return { type:'Feature', properties:{ c:p.c }, geometry:{ type:'LineString', coordinates:[[pts[0].lon, pts[0].lat], [p.lon, p.lat]] } }; }) } });
+        m.addLayer({ id:'l', type:'line', source:'l', paint:{ 'line-color':['get', 'c'], 'line-width':2.5, 'line-dasharray':[2, 1.5] } });
+      });
+      pts.forEach(function(p){ var el = document.createElement('div'); el.className = 'dm-mini-pin'; el.style.background = p.c; el.textContent = p.n; new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(m); });
+    }).catch(function(){});
+  }
+  function grpTripTo(km){ var d = km * 1.3, w = d / 4.8 * 60; return w <= 30 ? { m:'walk', t: Math.max(1, Math.round(w)) } : { m:'car', t: Math.round(d / (d > 10 ? 55 : 28) * 60) + 3 }; }
+  function grpFmtKm(k){ return k < 1 ? Math.round(k * 100) * 10 + ' m' : fmtKm(k); }
+  // the activity just before this one on its day, with a place on the map
+  function grpPrevStop(li){
+    var cell = li.closest('.cell'); if(!cell) return null;
+    var all = [].slice.call(cell.querySelectorAll(':scope > .acts > li')).sort(function(x, y){ return (parseInt(x.getAttribute('data-ord'), 10) || 0) - (parseInt(y.getAttribute('data-ord'), 10) || 0); });
+    var prev = null;
+    for(var i = 0; i < all.length && all[i] !== li; i++){ var o = all[i].__origin || all[i], g = parseGeo(o.getAttribute('data-geo-to')) || parseGeo(o.getAttribute('data-geo')); if(g){ var t = o.querySelector(':scope > .title'); prev = { g:g, name: t ? t.textContent.trim() : '' }; } }
+    return prev;
+  }
+  function grpTimeOf(a){ var t = (a.l || []).filter(function(x){ return /🕒/.test(x); })[0]; return t ? t.replace(/🕒\s*/, '').replace(/\s*-\s*/, '–').trim() : ''; }
+  function grpDetOf(a){ return [grpTimeOf(a), a.p || ''].filter(function(x){ return x && x !== 'time'; }).join(' · '); }
   function openDuelForm(li, anchorEl){
     closePop();
+    duelMaps.forEach(function(m){ try { m.remove(); } catch(e){} }); duelMaps = [];
     var panel = li.closest('.panel'), cell = li.closest('.cell'); if(!panel || !cell) return;
-    var opt = optOf(panel), a = extractActivity(li), ideas = grpIdeas(opt);
+    var opt = optOf(panel), a = extractActivity(li), ideas = grpIdeas(opt), dn = dayNumOfCell(cell), prev = grpPrevStop(li);
     var pop = document.createElement('div'); pop.className = 'monthpop rangepop grp-ui grp-duelpop';
-    var tagOpts = TAGS.map(function(tg, i){ return '<option value="' + i + '">' + grpEsc(tg.icon + ' ' + tg.name) + '</option>'; }).join('');
-    pop.innerHTML = '<div class="rangepop-title">This or that?</div>' +
-      '<p class="grp-hint">Put <b>' + grpEsc(a.t || 'this activity') + '</b> to a vote against something else for ' + grpEsc(grpDayLabel(panel, dayNumOfCell(cell))) + '. The loser goes to the idea box.</p>' +
-      (ideas.length ? '<div class="whenpop-label">Pick from the idea box</div><div class="grp-duel-ideas">' + ideas.map(function(it){ return '<button type="button" class="grp-duel-idea" data-id="' + it.id + '">' + grpChipHtml(it.a) + ' ' + grpEsc(it.a.t || '') + '</button>'; }).join('') + '</div><div class="whenpop-label">or something new</div>' : '<div class="whenpop-label">Against</div>') +
-      '<div class="whenpop-row"><input type="text" class="grp-duel-t" placeholder="e.g. Salt mine tour"><select class="grp-duel-tag" aria-label="Type">' + tagOpts + '</select></div>' +
-      '<button type="button" class="addbtn">Start the vote</button>';
-    var input = pop.querySelector('.grp-duel-t'), tagSel = pop.querySelector('.grp-duel-tag');
-    var other = TAGS.findIndex(function(tg){ return tg.name === 'Other'; }); if(other >= 0) tagSel.value = String(other);
-    pop.addEventListener('click', function(e){ e.stopPropagation(); });
-    function start(b, fromIdea){
-      var me = meKey();
-      grpDuels(opt).push({ id: grpId(), d: dayNumOfCell(cell), a: a, b: b, v: {}, by: me || '' });
-      if(fromIdea) GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== fromIdea; });
-      li.remove(); recomputeCell(cell); renderActivitySpans(panel);
-      closePop(); playStampSound(); grpChanged();
+    var other = null, fromIdea = null, det = { open:false, tag:'', t1:'', t2:'', p:'', notes:'', u:'' }, q = '', search = '';
+    var defTag = TAGS.findIndex(function(tg){ return tg.name === 'Other'; });
+    var PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+    var SRCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+    var CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    var WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg>';
+    var TAGI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>';
+    var NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+    var LINKI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>';
+    var ROUTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>';
+    // "that", as an activity model
+    function thatModel(){
+      if(fromIdea && !det.open && !det.t1 && !det.p) return fromIdea.a;
+      var tg = TAGS[det.tag !== '' ? +det.tag : (other && other.tag != null ? other.tag : defTag)] || {}, b = { i: tg.icon || '', n: tg.name || '', t: other ? other.name : '' };
+      if(fromIdea) b = JSON.parse(JSON.stringify(fromIdea.a));
+      if(det.tag !== '' && TAGS[+det.tag]){ b.i = TAGS[+det.tag].icon; b.n = TAGS[+det.tag].name; }
+      var lines = (b.l || []).filter(function(x){ return !/🕒/.test(x); });
+      if(det.t1) lines.unshift('🕒 ' + det.t1 + (det.t2 ? ' - ' + det.t2 : ''));
+      if(det.notes.trim()) lines.push(det.notes.trim());
+      if(lines.length) b.l = lines; else delete b.l;
+      if(String(det.p).trim()) b.p = currencySymbol(panel) + ' ' + String(det.p).trim();
+      if(det.u.trim()) b.u = [/^https?:\/\//i.test(det.u.trim()) ? det.u.trim() : 'https://' + det.u.trim()];
+      if(other && other.lat != null){ b.gp = fmtGeo(other); if(other.spot) b.sp = other.name; if(other.city) b.pl = other.city; }
+      return b;
     }
-    pop.querySelectorAll('.grp-duel-idea').forEach(function(btn){
-      btn.addEventListener('click', function(){ var it = ideas.filter(function(x){ return x.id === btn.dataset.id; })[0]; if(it) start(it.a, it); });
-    });
-    pop.querySelector('.addbtn').addEventListener('click', function(){
-      var v = input.value.trim(); if(!v){ input.focus(); return; }
-      var tg = TAGS[+tagSel.value] || {};
-      start({ i: tg.icon || '', n: tg.name || '', t: v });
-    });
-    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); pop.querySelector('.addbtn').click(); } });
+    function side(k, m, g){
+      var dist = '';
+      if(g && prev){ var km = kmBetween(prev.g, g), tr = grpTripTo(km); dist = '<div class="dp-d">' + ROUTE + '<b>' + grpFmtKm(km) + '</b> · ' + GO_ICONS[tr.m] + fmtMin(tr.t) + '</div>'; }
+      return '<div class="dp-side ' + k + '">' + grpChipHtml(m) + '<div class="dp-t">' + grpEsc(m.t || '') + '</div>' + (grpDetOf(m) ? '<div class="dp-det">' + grpEsc(grpDetOf(m)) + '</div>' : '') + dist + '<div class="dp-mini" data-k="' + k + '"></div></div>';
+    }
+    function draw(){
+      var b = (other || fromIdea) ? thatModel() : null, ga = parseGeo(a.gp || ''), gb = b ? parseGeo(b.gp || '') : null;
+      var tagOpts = TAGS.map(function(tg, i){ return '<option value="' + i + '"' + (String(i) === String(det.tag !== '' ? det.tag : (other && other.tag != null ? other.tag : defTag)) ? ' selected' : '') + '>' + grpEsc(tg.icon + ' ' + tg.name) + '</option>'; }).join('');
+      var detTxt = b ? grpDetOf(b) : '';
+      pop.innerHTML = '<div class="rangepop-title">This or that?</div>' +
+        '<p class="grp-hint">Put <b>' + grpEsc(a.t || 'this activity') + '</b> to a vote against something else for ' + grpEsc(grpDayLabel(panel, dn)) + '. The loser goes to the idea box.</p>' +
+        '<textarea class="grp-duel-q" rows="2" maxlength="300" placeholder="Why the vote? (optional), e.g. Only time for one in the morning">' + grpEsc(q) + '</textarea>' +
+        (ideas.length ? '<div class="whenpop-label">From the idea box</div><div class="grp-duel-ideas">' + ideas.map(function(it){ return '<button type="button" class="grp-duel-idea' + (fromIdea === it ? ' on' : '') + '" data-id="' + it.id + '">' + grpChipHtml(it.a) + ' ' + grpEsc(it.a.t || '') + '</button>'; }).join('') + '</div>' : '') +
+        '<div class="whenpop-label">Against</div><div class="dp-srch"><div class="dp-field">' + SRCH + '<input type="text" class="grp-duel-t" placeholder="Search a place, or just type a name" value="' + grpEsc(other ? other.name : fromIdea ? (fromIdea.a.t || '') : search) + '" autocomplete="off"></div><div class="dp-dd" hidden></div></div>' +
+        (det.open ? '<div class="dp-detf">' +
+            '<div class="dp-row">' + TAGI + '<select data-d="tag" aria-label="Type">' + tagOpts + '</select></div>' +
+            '<div class="dp-row">' + CLOCK + '<input type="time" data-d="t1" aria-label="Starts" value="' + grpEsc(det.t1) + '"><span>–</span><input type="time" data-d="t2" aria-label="Ends" value="' + grpEsc(det.t2) + '"></div>' +
+            '<div class="dp-row">' + WALLET + '<input data-d="p" inputmode="decimal" placeholder="Price" value="' + grpEsc(det.p) + '"><span class="dp-cur">' + grpEsc(currencySymbol(panel)) + '</span></div>' +
+            '<div class="dp-row">' + NOTE + '<input data-d="notes" placeholder="Notes" value="' + grpEsc(det.notes) + '"></div>' +
+            '<div class="dp-row">' + LINKI + '<input data-d="u" placeholder="Paste a link" value="' + grpEsc(det.u) + '"></div>' +
+            '<div class="dp-detfoot"><button type="button" class="dp-done" data-x="det">Done</button></div></div>'
+          : '<button type="button" class="dp-more" data-x="det">+ Time, price, notes…' + (detTxt ? ' <span>' + grpEsc(detTxt) + '</span>' : '') + '</button>') +
+        '<div class="dp-cmp">' + side('a', a, ga) + '<span class="dp-or">or</span>' + (b ? side('b', b, gb) : '<div class="dp-side b dp-empty">Search a place<br>to compare</div>') + '</div>' +
+        (prev ? '<div class="dp-from">Distances from ' + grpEsc(prev.name || 'the activity before') + ', the activity before.</div>' : '') +
+        '<button type="button" class="addbtn">Start the vote</button>';
+      var P = prev ? [{ lat:prev.g.lat, lon:prev.g.lon, c:'#9b8fc0', n:'1' }] : [];
+      duelMaps.forEach(function(m){ try { m.remove(); } catch(e){} }); duelMaps = [];
+      var ha = pop.querySelector('.dp-mini[data-k="a"]'), hb = pop.querySelector('.dp-mini[data-k="b"]');
+      if(ha) grpMiniMap(ha, ga ? P.concat([{ lat:ga.lat, lon:ga.lon, c:'#ec6a9c', n:'A' }]) : P);
+      if(hb) grpMiniMap(hb, gb ? P.concat([{ lat:gb.lat, lon:gb.lon, c:'#8a6fd1', n:'B' }]) : P);
+      wire();
+    }
+    function keepDet(){ pop.querySelectorAll('[data-d]').forEach(function(x){ det[x.dataset.d] = x.value; }); var qq = pop.querySelector('.grp-duel-q'); if(qq) q = qq.value; }
+    var list = [], act = 0, timer = null, seq = 0;
+    function wire(){
+      var inp = pop.querySelector('.grp-duel-t'), dd = pop.querySelector('.dp-dd');
+      function show(note){
+        dd.innerHTML = list.map(function(p, i){ return '<button type="button" data-i="' + i + '" class="' + (i === act ? 'act' : '') + '">' + PIN + '<span><b></b><small></small></span>' + (prev ? '<em>' + grpFmtKm(kmBetween(prev.g, p)) + '</em>' : '') + '</button>'; }).join('') +
+          (note ? '<div class="dp-note">' + grpEsc(note) + '</div>' : '') + (inp.value.trim() ? '<button type="button" data-i="keep"><span class="dp-tt">T</span><span><b></b><small>a name, not a place</small></span></button>' : '');
+        dd.querySelectorAll('[data-i]').forEach(function(x){ var i = x.dataset.i; if(i === 'keep') x.querySelector('b').textContent = 'Just “' + inp.value.trim() + '”'; else { x.querySelector('b').textContent = list[+i].name; x.querySelector('small').textContent = list[+i].label || ''; } });
+        dd.hidden = false;
+      }
+      function choose(i){
+        dd.hidden = true; fromIdea = null; keepDet();
+        if(i === 'keep'){ other = { name: inp.value.trim() }; }
+        else { var p = list[i]; other = { name:p.name, lat:p.lat, lon:p.lon, spot:!!p.spot, city:p.city || '' }; }
+        draw();
+      }
+      inp.addEventListener('input', function(){
+        search = inp.value; other = null; var v = inp.value.trim(); clearTimeout(timer);
+        if(v.length < 2){ dd.hidden = true; return; }
+        list = []; act = 0; show('Searching…');
+        timer = setTimeout(function(){
+          var my = ++seq, near = prev ? prev.g : parseGeo(a.gp || '');
+          placeSearch(v, near).then(function(r){ if(my !== seq) return; list = (r && r.places) || []; act = 0; show(list.length ? '' : 'No places found'); })
+            .catch(function(){ if(my === seq){ list = []; show('Place search isn’t available right now'); } });
+        }, 180);
+      });
+      inp.addEventListener('keydown', function(e){
+        if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ if(!list.length) return; e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length; show(''); }
+        else if(e.key === 'Enter'){ e.preventDefault(); if(!dd.hidden && list.length) choose(act); else if(inp.value.trim()) choose('keep'); }
+        else if(e.key === 'Escape' && !dd.hidden){ e.stopPropagation(); dd.hidden = true; }
+      });
+      dd.addEventListener('mousedown', function(e){ e.preventDefault(); var x = e.target.closest('[data-i]'); if(x) choose(x.dataset.i === 'keep' ? 'keep' : +x.dataset.i); });
+      inp.addEventListener('blur', function(){ setTimeout(function(){ dd.hidden = true; }, 150); });
+      pop.querySelectorAll('[data-x="det"]').forEach(function(x){ x.addEventListener('click', function(){ keepDet(); det.open = !det.open; draw(); var f = pop.querySelector('[data-d="t1"]'); if(f) f.focus(); }); });
+      pop.querySelectorAll('[data-d]').forEach(function(x){ x.addEventListener('change', function(){ keepDet(); if(!det.open) draw(); }); });
+      pop.querySelectorAll('.grp-duel-idea').forEach(function(btn){
+        btn.addEventListener('click', function(){ keepDet(); var it = ideas.filter(function(x){ return x.id === btn.dataset.id; })[0]; if(!it) return; fromIdea = fromIdea === it ? null : it; other = null; draw(); });
+      });
+      pop.querySelector('.addbtn').addEventListener('click', function(){
+        keepDet();
+        if(!other && !fromIdea){ var v = inp.value.trim(); if(!v){ inp.focus(); return; } other = { name: v }; }
+        start(thatModel(), fromIdea);
+      });
+    }
+    pop.addEventListener('click', function(e){ e.stopPropagation(); });
+    function start(b, idea){
+      var me = meKey(), qv = q.trim(), duel = { id: grpId(), d: dn, a: a, b: b, v: {}, by: me || '' };
+      if(qv) duel.q = qv;
+      grpDuels(opt).push(duel);
+      if(idea) GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== idea; });
+      li.remove(); recomputeCell(cell); renderActivitySpans(panel);
+      closePop(); duelMaps.forEach(function(m){ try { m.remove(); } catch(e){} }); duelMaps = [];
+      playStampSound(); grpChanged();
+      // everyone in the alternative hears about it
+      var plan = planNameOf(panel), when = grpDayLabel(panel, dn);
+      grpNotify(grpEligible(panel), { kind:'duel', plan: plan, planId: planIdOf(panel), opt: opt, day: dn, act: (a.t || '') + ' or ' + (b.t || ''), msg: qv },
+        { kind:'duel', plan: plan, a: a.t || '', b: b.t || '', tagA: grpChipText(a), tagB: grpChipText(b), when: when, msg: qv, url: location.origin + location.pathname + '?act=' + encodeURIComponent(opt + '|' + dn + '|') });
+    }
+    draw();
     positionPopover(pop, anchorEl);
-    input.focus();
+    var t0 = pop.querySelector('.grp-duel-t'); if(t0) t0.focus();
   }
   function grpResolveDuel(panel, duel, cancel){
     var opt = optOf(panel);
@@ -18587,6 +19043,8 @@
     grpChanged();
   }
   function renderDuels(panel){
+    // keep what you're typing as your reason across a re-render
+    var typing = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('grp-why') ? { id: document.activeElement.dataset.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
     panel.querySelectorAll('.grp-duel').forEach(function(n){ n.remove(); });
     var opt = optOf(panel), me = meKey(), people = grpEligible(panel);
     grpDuels(opt).slice().forEach(function(duel){
@@ -18598,11 +19056,23 @@
         var x = duel[k], fans = Object.keys(v).filter(function(p){ return v[p] === k; }), mine = me && v[me] === k;
         var pct = people.length ? Math.round(fans.length / people.length * 100) : 0;
         return '<button type="button" class="grp-side' + (mine ? ' on' : '') + '" data-k="' + k + '" aria-pressed="' + !!mine + '"><span class="grp-side-fill" style="width:' + pct + '%"></span>' +
-          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (fans.length ? grpFaces(fans) : '') + '</button>';
+          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (grpDetOf(x) ? '<span class="grp-side-det">' + grpEsc(grpDetOf(x)) + '</span>' : '') + (fans.length ? grpFaces(fans) : '') + '</button>' +
+          // why each of them picked it
+          fans.filter(function(p){ return r[p]; }).map(function(p){ return '<div class="grp-why-line">' + grpFace(p) + '<span><b>' + grpEsc(p === me ? 'You' : grpName(p)) + '</b> ' + grpEsc(r[p]) + '</span></div>'; }).join('');
       }
+      var r = duel.r || {}, myVote = me && v[me];
       card.innerHTML = '<div class="grp-duel-head"><span>This or that?</span><span class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted</span></div>' +
+        (duel.q ? '<div class="grp-duel-q-show">' + (duel.by ? grpFace(duel.by) : '') + '<span>' + grpEsc(duel.q) + '</span></div>' : '') +
         side('a') + '<span class="grp-or">or</span>' + side('b') +
+        (myVote ? '<input type="text" class="grp-why" maxlength="200" data-id="' + grpEsc(duel.id) + '" placeholder="Why ' + grpEsc((duel[myVote].t || 'this').slice(0, 30)) + '? (optional)" value="' + grpEsc(r[me] || '') + '">' : '') +
         '<div class="grp-duel-foot">' + (voted.length ? '<button type="button" class="grp-link" data-do="decide">Decide now</button>' : '') + '<button type="button" class="grp-link" data-do="cancel">Cancel vote</button></div>';
+      var why = card.querySelector('.grp-why');
+      if(why){
+        var saveWhy = function(){ var t = why.value.trim(); duel.r = duel.r || {}; if((duel.r[me] || '') === t) return; if(t) duel.r[me] = t; else delete duel.r[me]; grpChanged(); };
+        why.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); saveWhy(); why.blur(); } });
+        why.addEventListener('change', saveWhy);
+        why.addEventListener('blur', saveWhy);
+      }
       card.addEventListener('click', function(e){ e.stopPropagation(); });
       card.querySelectorAll('.grp-side').forEach(function(b){
         b.addEventListener('click', function(){ if(!me) return; duel.v = duel.v || {}; if(duel.v[me] === b.dataset.k) delete duel.v[me]; else { duel.v[me] = b.dataset.k; playCheckSound(); } grpChanged(); });
@@ -18613,6 +19083,7 @@
       var acts = cell.querySelector(':scope > .acts');
       if(acts) acts.insertAdjacentElement('afterend', card);
       else { var head = cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead'); if(head) head.insertAdjacentElement('afterend', card); else cell.appendChild(card); }
+      if(why && typing && typing.id === duel.id){ why.value = typing.v; why.focus(); try { why.setSelectionRange(typing.s, typing.s); } catch(e){} }
     });
   }
 
@@ -18869,7 +19340,12 @@
       setOptionName(created, t('default_alt_name') + ' 1');
       if(currentUserKey){ var mb = [currentUserKey]; picked.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
       if(picked.length) GROUP.plans[pid] = { who: (me ? [me] : []).concat(picked.filter(function(k){ return k !== me; })) };
-      if(poll) GROUP.polls[pid] = poll;
+      if(poll){
+        GROUP.polls[pid] = poll;
+        var pplan = (name || t('default_plan_name')), pnote = { kind:'datepoll', plan: pplan, planId: pid, opt: pid };
+        if(poll.dl) pnote.msg = 'Answers by ' + poll.dl;
+        grpNotify(grpPollPeople(created), pnote, { kind:'datepoll', plan: pplan, len: String(poll.len || ''), dl: poll.dl || '', url: location.origin + location.pathname + '?act=' + encodeURIComponent(pid + '||') });
+      }
       planChanged();
       activatePillByOpt(pid);
       grpChanged();
