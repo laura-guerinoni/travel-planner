@@ -2113,6 +2113,18 @@
   .cell[data-off-trip] > .cellhead { opacity:.45; }
   .cell[data-off-trip]:not(:has(> .acts > li)) > :not(.cellhead) { display:none; }
   @media print { .cell[data-off-trip] { display:none; } }
+  /* a trip shorter than a week: just its days, in one row (each day already says its weekday) */
+  .panel[data-short] { display:grid !important; gap:8px; align-content:stretch; grid-auto-rows:1fr; }
+  .panel[data-short="1"] { grid-template-columns:repeat(1,minmax(0,1fr)); }
+  .panel[data-short="2"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .panel[data-short="3"] { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .panel[data-short="4"] { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .panel[data-short="5"] { grid-template-columns:repeat(5,minmax(0,1fr)); }
+  .panel[data-short="6"] { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .panel[data-short] > .grid.heads { display:none !important; }
+  .panel[data-short] > .grid.week { display:contents; }
+  .panel[data-short] > :not(.grid) { grid-column:1 / -1; }
+  .panel[data-short] > .grid.week > .cell.empty, .panel[data-short] > .grid.week > .cell[data-off-trip]:not(:has(> .acts > li)) { display:none !important; }
   @media screen and (min-width: 721px) {
     .cell.empty.out-day { border:1.5px dashed var(--line); background:none; border-radius:12px; padding:10px; min-height:120px; }
     .cell.empty.out-day .out-num { display:block; font-weight:700; font-size:18px; color:var(--muted); opacity:.75; }
@@ -11768,19 +11780,23 @@
 
   // With exact dates, the calendar shows the trip: days before or after it
   // look like the days of other months, and weeks with none of the trip's
-  // days (and nothing planned) are left out. Display only.
+  // days (and nothing planned) are left out. A trip shorter than a week is
+  // just its days, side by side in one row (Thu Fri Sat Sun). Display only.
   function markTripDays(panel){
     var hs = getHolidays(panel), a = hs.length ? Math.min.apply(null, hs.map(function(h){ return h.start; })) : null, b = hs.length ? Math.max.apply(null, hs.map(function(h){ return h.end; })) : null;
+    var shown = 0;
     panel.querySelectorAll(':scope > .grid.week').forEach(function(row){
       var keep = false;
       row.querySelectorAll(':scope > .cell').forEach(function(c){
         if(c.classList.contains('empty')) return;
         var dn = dayNumOfCell(c), off = a !== null && dn !== null && (dn < a || dn > b), busy = !!c.querySelector(':scope > .acts > li');
         if(c.hasAttribute('data-off-trip') !== off){ if(off) c.setAttribute('data-off-trip', ''); else c.removeAttribute('data-off-trip'); }   // an attribute, not a class: never counts as an edit
-        if(!off || busy) keep = true;
+        if(!off || busy){ keep = true; shown++; }
       });
       if(row.hasAttribute('data-off-trip') === keep){ if(keep) row.removeAttribute('data-off-trip'); else row.setAttribute('data-off-trip', ''); }
     });
+    var short = a !== null && shown < 7 ? String(shown) : '';
+    if((panel.getAttribute('data-short') || '') !== short){ if(short) panel.setAttribute('data-short', short); else panel.removeAttribute('data-short'); }
   }
   setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) markTripDays(p); }, 500);
   function lastDayOfCalendar(panel){
