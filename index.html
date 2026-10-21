@@ -3129,6 +3129,43 @@
   .go-guess { opacity:.6; }
   #goMenu { position:fixed; z-index:10020; width:250px; background:#fff; border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
   #goMenu[hidden] { display:none; }
+  /* your own ways of getting there */
+  #goMenu { width:330px !important; max-height:calc(100vh - 16px); overflow:auto; box-sizing:border-box; }
+  #goMenu .gm-row { position:relative; }
+  #goMenu .gm-trt { flex:1; min-width:0; }
+  #goMenu .gm-trt b { display:block; font-weight:800; }
+  #goMenu .gm-trt small { display:block; font-size:11.5px; font-weight:700; color:var(--muted); overflow-wrap:anywhere; }
+  #goMenu .gm-tools { display:flex; gap:3px; margin-left:auto; opacity:0; transition:opacity .12s; }
+  #goMenu .gm-row:hover .gm-tools, #goMenu .gm-row:focus-within .gm-tools { opacity:1; }
+  #goMenu .gm-tools button { width:26px; height:26px; padding:0; border:none; border-radius:7px; background:#fff; color:var(--muted); display:grid; place-items:center; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
+  #goMenu .gm-tools button:hover { color:var(--ink); }
+  #goMenu .gm-tools svg { width:13px; height:13px; }
+  #goMenu .gm-tr .gm-ext + .gm-tools { margin-left:4px; }
+  #goMenu .gm-emo { width:17px; text-align:center; font-size:15px; flex:none; }
+  #goMenu .gm-badge { display:inline-block; margin-left:6px; font-style:normal; font-size:9.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:999px; padding:1px 6px; vertical-align:2px; }
+  #goMenu .gm-price { font-weight:900; font-size:13px; color:var(--ink); white-space:nowrap; }
+  #goMenu .gm-link { position:absolute; right:12px; bottom:4px; }
+  #goMenu .gm-sec { padding:8px 14px 2px; font-size:10.5px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  #goMenu .gm-add, #goMenu .gm-add svg { color:var(--primary); }
+  #goMenu .gm-form { margin:4px 8px 6px; padding:10px; border-radius:12px; background:var(--bg); display:grid; gap:7px; min-width:0; }
+  #goMenu .gf-h { font-size:12.5px; font-weight:800; color:var(--ink); }
+  #goMenu .gf-types { display:flex; flex-wrap:wrap; gap:4px; }
+  #goMenu .gf-types button { border:1.5px solid transparent; border-radius:999px; padding:3px 9px; background:#fff; color:var(--ink); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+  #goMenu .gf-types button.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .1); }
+  #goMenu .gf-row { display:flex; align-items:center; gap:7px; min-width:0; color:var(--muted); font-weight:800; }
+  #goMenu .gf-row > svg { width:16px; height:16px; flex:none; }
+  #goMenu .gf-row input, #goMenu .gf-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:1.5px solid var(--line); border-radius:9px; background:#fff; padding:0 8px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
+  #goMenu .gf-row select { flex:0 0 88px; width:88px; padding:0 4px; }
+  #goMenu .gf-row input:focus, #goMenu .gf-row select:focus { outline:none; border-color:var(--primary); }
+  #goMenu .gf-time input { height:40px; font-size:15px; font-weight:900; text-align:center; }
+  #goMenu .gf-dur { padding-left:23px; }
+  #goMenu .gf-dur .gf-l { font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+  #goMenu .gf-foot { display:flex; justify-content:flex-end; gap:6px; }
+  #goMenu .gf-foot button { border:none; border-radius:9px; padding:7px 14px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  #goMenu .gf-cancel { background:none; color:var(--ink); }
+  #goMenu .gf-save { background:var(--primary); color:#fff; }
+  .go-line .go-emo { font-size:13px; line-height:1; }
+  .go-line .go-px { color:var(--primary); }
   #goMenu .gm-opt { display:flex; align-items:center; gap:10px; width:100%; padding:8px 14px; border:none; background:none; font:inherit; font-size:13.5px; font-weight:700; color:var(--ink); cursor:pointer; text-decoration:none; text-align:left; }
   #goMenu .gm-opt:hover { background:var(--bg); }
   #goMenu .gm-opt svg { width:17px; height:17px; color:var(--muted); flex:none; }
@@ -7285,6 +7322,14 @@
         if(converted !== null) amount = converted;
       }
       sum += amount;
+    });
+    // what you pay to get to an activity (your own train, bus… on its travel line)
+    cell.querySelectorAll(':scope > .acts > li').forEach(function(li){
+      if(typeof goPriceOf !== 'function' || !li.hasAttribute('data-go')) return;
+      var gp = goPriceOf(li); if(!gp) return;
+      count++;
+      var amt = gp.a; if(gp.c && gp.c !== panelCode){ var cv = convertAmount(amt, gp.c, panelCode); if(cv !== null) amt = cv; }
+      sum += amt;
     });
     var costEl = cell.querySelector(':scope > .cost');
     if(count === 0){
@@ -15453,14 +15498,16 @@
     function legMin(s, prev){
       if(!prev) return 0;
       var ends = goEnds(prev.li, s.li); if(!ends) return 0;
-      var d = goData(ends.li); if(d.k !== ends.key) return 0;
+      var d = goData(ends.li); if(goChosen(d)) return goChosen(d).min || 0; if(d.k !== ends.key) return 0;
       var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
       return v ? v[0] : 0;
     }
     function legOf(s, prev){
       if(!prev) return '';
       var ends = goEnds(prev.li, s.li); if(!ends) return '';
-      var d = goData(ends.li); if(d.k !== ends.key) return '';
+      var d = goData(ends.li), my = goChosen(d);
+      if(my) return (my.b ? GO_ICONS[my.b === 'transit' ? 'bus' : my.b] : '<svg viewBox="0 0 24 24"></svg>') + fmtMin(my.min || 0) + (my.n && !my.b ? ' · ' + my.n : '') + (my.det ? ' · ' + my.det : '');
+      if(d.k !== ends.key) return '';
       var m = goModeOf(d, ends), v = m === 'transit' ? (d.transit ? [d.transit[0]] : null) : d[m];
       return v ? GO_ICONS[m === 'transit' ? 'bus' : m] + fmtMin(v[0]) + (m === 'transit' && d.transit ? ' · ' + d.transit[1] : '') : '';
     }
@@ -15750,7 +15797,13 @@
   function goPref(){ try { return localStorage.getItem('tp-go-mode') || 'auto'; } catch(e){ return 'auto'; } }
   function goData(li){ try { return JSON.parse(li.getAttribute('data-go') || '{}') || {}; } catch(e){ return {}; } }
   // automatic: walk when it's under 30 min; anything over ~5 km is a drive
-  function goModeOf(d, ends){ var m = d.m || goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
+  // Your own ways of getting there (d.my), and which one is used (d.m = 'my:<id>')
+  function goChosen(d){ if(!d || !d.m || String(d.m).indexOf('my:') !== 0) return null; var id = d.m.slice(3); return (d.my || []).filter(function(o){ return o.id === id; })[0] || null; }
+  // the stretch's two ends moved: the times are looked up again, yours stay
+  function goReset(d, key){ var n = { k: key }; if(d && d.my) n.my = d.my; if(d && goChosen(d)) n.m = d.m; return n; }
+  // the price of the way chosen for the stretch that ends at this activity (counted in the day)
+  function goPriceOf(li){ var c = goChosen(goData(li)); if(!c || !c.p) return null; var a = parseFloat(String(c.p).replace(',', '.')); return a > 0 ? { a:a, c:c.c || null } : null; }
+  function goModeOf(d, ends){ var m = d.m || goPref(); if(String(m).indexOf('my:') === 0) m = goChosen(d) ? (goChosen(d).b || 'transit') : goPref(); if(m === 'transit' && d.transit === 0) m = 'auto'; if(m !== 'auto') return m; if(ends && ends.km > 5) return 'car'; return d.walk ? (d.walk[0] <= 30 ? 'walk' : 'car') : 'walk'; }
   function fmtMin(m){ return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
   function fmtKm(k){ return String(Math.round(k * 10) / 10).replace('.', ',') + ' km'; }
   // the stretch between two activities: from where the first ends to where the next starts
@@ -15775,7 +15828,7 @@
       p.then(function(res){
         if(!res || res.error || !ends.li.isConnected) return;
         if(res.min != null) res = { car: res };   // an older script: one mode only
-        var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+        var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
         ['walk', 'bike', 'car'].forEach(function(m){ var v = res[m]; if(v && !v.error && v.min != null) d[m] = [v.min, v.km]; });
         ends.li.setAttribute('data-go', JSON.stringify(d));
       }).catch(function(){}).then(function(){ setTimeout(done, 400); });
@@ -15817,7 +15870,7 @@
     var first = when && when > now ? when : soon(when);
     ask(first).then(function(it){ return it || (first === when ? ask(soon(when)) : null); }).then(function(it){
       if(!ends.li.isConnected) return;
-      var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+      var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
       d.transit = it ? [Math.round(it.duration / 60), transitLabel(it)] : 0;
       ends.li.setAttribute('data-go', JSON.stringify(d));
     }).catch(function(){});
@@ -15825,12 +15878,13 @@
   // a quick estimate from the straight line, shown until the real time arrives
   function goGuess(ends, mode){ var d = ends.km * 1.3, sp = { walk:4.8, bike:15, car: d > 10 ? 55 : 28 }[mode]; return [Math.max(1, Math.round(d / sp * 60) + (mode === 'car' ? 3 : 0)), d]; }
   function goPump(){ if(goBusy || !goQueue.length) return; goBusy = true; goQueue.shift()(function(){ goBusy = false; goPump(); }); }
+  function esc1(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   function renderGoLines(cell, seq){
     var acts = cell.querySelector(':scope > .acts'); if(!acts) return;
     var keep = [];
     seq.forEach(function(li, i){
       if(!i) return; var ends = goEnds(seq[i - 1], li); if(!ends) return;
-      var d = goData(ends.li); if(d.k !== ends.key) d = { k: ends.key };
+      var d = goData(ends.li); if(d.k !== ends.key) d = goReset(d, ends.key);
       var mode = goModeOf(d, ends);
       if(mode !== 'transit' && (!d[mode] || (!d.walk && ends.km <= 150))) goFetch(ends);
       if(d.transit == null) goTransit(ends);
@@ -15838,7 +15892,11 @@
       if(!el){ el = document.createElement('div'); el.className = 'go-line'; el.setAttribute('data-k', ends.key); acts.appendChild(el); }
       el.__ends = ends; keep.push(el);
       var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
+      var mine = goChosen(d);
       var v = mode === 'transit' ? (d.transit ? [d.transit[0], null] : null) : d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
+        : mine ? '<button type="button" class="go-b go-mine" aria-label="Travel time" title="' + esc1([mine.b ? '' : mine.n, mine.t1 ? mine.t1 + (mine.t2 ? ' → ' + mine.t2 : '') : '', mine.min ? fmtMin(mine.min) : '', mine.det || ''].filter(Boolean).join(' · ')) + '"><span class="go-t">' +
+            (mine.b ? GO_ICONS[mine.b === 'transit' ? 'bus' : mine.b] : '<span class="go-emo">' + esc1(mine.i || '🚆') + '</span>') + '<span>' + (mine.t1 ? esc1(mine.t1 + (mine.t2 ? '–' + mine.t2 : '')) : fmtMin(mine.min || 0)) + '</span></span>' +
+            (mine.p ? '<span class="go-km go-px">· ' + esc1((mine.c ? CURRENCIES[mine.c] : currencySymbol(ends.li)) + ' ' + mine.p) + '</span>' : '') + GO_ICONS.caret + '</button>' : d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
         : '<button type="button" class="go-b" aria-label="Travel time"' + (v && v[1] != null ? ' title="' + fmtMin(v[0]) + ' · ' + fmtKm(v[1]) + '"' : '') + '><span class="go-t">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (v ? '<span>' + fmtMin(v[0]) + '</span></span>' + (v[1] != null ? '<span class="go-km">· ' + fmtKm(v[1]) + '</span>' : '') : (mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + '</span>') + GO_ICONS.caret + '</button>';
       if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
     });
@@ -15847,33 +15905,125 @@
   (function(){
     var menu = document.createElement('div'); menu.id = 'goMenu'; menu.hidden = true; document.body.appendChild(menu);
     function setGo(li, fn){ if(VIEW_ONLY) return; var d = goData(li); fn(d); li.setAttribute('data-go', JSON.stringify(d)); }
-    document.addEventListener('click', function(e){
-      var b = e.target.closest && e.target.closest('.go-line .go-b'); if(!b){ if(!menu.contains(e.target)) menu.hidden = true; return; }
-      e.preventDefault(); e.stopPropagation();
-      var ends = b.parentNode.__ends; if(!ends) return;
-      if(b.classList.contains('go-off')){ setGo(ends.li, function(d){ delete d.h; }); return; }
-      var d = goData(ends.li), cur = goModeOf(d, ends);
-      goFetch(ends);
+    var PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+    var UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>';
+    var XX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    var PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+    var CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    var WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/></svg>';
+    var NOTES = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+    var LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>';
+    var ends = null, form = null;   // form: { id?, b?: 'car'|'walk'|'bike'|'transit', i, n, t1, t2, dur, p, c, det, u }
+    function esc(v){ return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+    function baseName(m){ return m === 'transit' ? 'Public transport' : GO_MODES[m]; }
+    function baseVal(d, m){ return m === 'transit' ? (d.transit ? [d.transit[0], null, d.transit[1]] : null) : d[m]; }
+    function transportTags(){ var t = TAGS.filter(isTransportTag); return t.length ? t : [{ icon:'🚆', name:'Train' }, { icon:'🚌', name:'Bus' }, { icon:'✈️', name:'Flight' }]; }
+    function curOpts(sel){ return Object.keys(CURRENCIES).map(function(c){ return '<option value="' + c + '"' + (c === sel ? ' selected' : '') + '>' + c + ' ' + CURRENCIES[c] + '</option>'; }).join(''); }
+    function sub(o){ return [o.t1 ? o.t1 + (o.t2 ? ' → ' + o.t2 : '') : '', o.min ? fmtMin(o.min) : '', o.det || ''].filter(Boolean).join(' · '); }
+    function formHtml(){
+      var f = form, tt = transportTags();
+      return '<div class="gm-form">' +
+        (f.b ? '<div class="gf-h">Your version of ' + esc(baseName(f.b).toLowerCase()) + '</div>'
+          : '<div class="gf-types">' + tt.map(function(t){ return '<button type="button" data-ty="' + esc(t.icon + '|' + t.name) + '"' + (f.n === t.name ? ' class="on"' : '') + '>' + esc(t.icon + ' ' + t.name) + '</button>'; }).join('') + '</div>') +
+        '<div class="gf-row gf-time">' + CLOCK + '<input type="time" data-f="t1" aria-label="Departs" value="' + esc(f.t1) + '"><span>→</span><input type="time" data-f="t2" aria-label="Arrives" value="' + esc(f.t2) + '"></div>' +
+        '<div class="gf-row gf-dur"><span class="gf-l">Takes</span><input data-f="dur" placeholder="e.g. 9 h 30" value="' + esc(f.dur) + '"></div>' +
+        '<div class="gf-row">' + WALLET + '<input data-f="p" inputmode="decimal" placeholder="Price" value="' + esc(f.p) + '"><select data-f="c" aria-label="Currency">' + curOpts(f.c) + '</select></div>' +
+        '<div class="gf-row">' + NOTES + '<input data-f="det" placeholder="Details, e.g. IC 207, seat 34" value="' + esc(f.det) + '"></div>' +
+        '<div class="gf-row">' + LINK + '<input data-f="u" placeholder="Paste a link (tickets, booking)" value="' + esc(f.u) + '"></div>' +
+        '<div class="gf-foot"><button type="button" class="gf-cancel" data-x="cancel">Cancel</button><button type="button" class="gf-save" data-x="save">Save</button></div></div>';
+    }
+    function parseDur(s){ s = String(s || '').trim(); if(!s) return 0; var m = /^(\d+):(\d{2})$/.exec(s); if(m) return +m[1] * 60 + +m[2];
+      var h = /(\d+(?:[.,]\d+)?)\s*h/i.exec(s), mm = /(\d+)\s*m/i.exec(s.replace(/\d+(?:[.,]\d+)?\s*h/i, '')), rest = s.replace(/\d+(?:[.,]\d+)?\s*h/i, '').trim();
+      var v = (h ? Math.round(parseFloat(h[1].replace(',', '.')) * 60) : 0) + (mm ? +mm[1] : (h && /^\d+$/.test(rest) ? +rest : 0));
+      return v || (/^\d+$/.test(s) ? +s : 0); }
+    function spanMin(t1, t2){ if(!t1 || !t2) return 0; var a = t1.split(':'), b = t2.split(':'), x = (+b[0] * 60 + +b[1]) - (+a[0] * 60 + +a[1]); return x <= 0 ? x + 1440 : x; }
+    function keep(){ menu.querySelectorAll('.gm-form [data-f]').forEach(function(i){ form[i.dataset.f] = i.value; }); }
+    function draw(){
+      var d = goData(ends.li), cur = goModeOf(d, ends), mine = d.my || [], chosen = goChosen(d);
       var maps = 'https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=' + ends.from.lat + ',' + ends.from.lon + '&destination=' + ends.to.lat + ',' + ends.to.lon;
-      menu.innerHTML = Object.keys(GO_MODES).filter(function(m){ return m === 'car' || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25); }).map(function(m){ var v = d[m]; return '<button type="button" class="gm-opt' + (m === cur ? ' on' : '') + '" data-m="' + m + '">' + GO_ICONS[m] + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</button>'; }).join('') +
-        (d.transit ? '<div class="gm-opt gm-tr' + (cur === 'transit' ? ' on' : '') + '" role="button" tabindex="0" data-m="transit">' + GO_ICONS.bus + '<span class="gm-trt">' + fmtMin(d.transit[0]) + '<small>' + d.transit[1].replace(/</g, '&lt;') + '</small></span><a class="gm-ext" href="' + maps + '" target="_blank" rel="noopener">Google Maps ↗</a></div>'
-          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>') +
-        '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
-        '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>' +
+      var edited = mine.map(function(o){ return o.b; }).filter(Boolean);
+      var tool = function(m){ return '<span class="gm-tools"><button type="button" data-edit="' + m + '" title="Add times, a price or details" aria-label="Edit">' + PEN + '</button></span>'; };
+      var html = Object.keys(GO_MODES).filter(function(m){ return edited.indexOf(m) === -1 && (m === 'car' || (m === 'bike' && ends.km <= 80) || (m === 'walk' && ends.km <= 25)); }).map(function(m){ var v = d[m];
+          return '<div class="gm-opt gm-row' + (!chosen && m === cur ? ' on' : '') + '" role="button" tabindex="0" data-m="' + m + '">' + GO_ICONS[m] + '<span class="gm-trt">' + (v ? fmtMin(v[0]) + ' · ' + fmtKm(v[1]) : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, m)[0]) + '</span>') + '</span>' + tool(m) + '</div>'; }).join('') +
+        (edited.indexOf('transit') !== -1 ? '' : d.transit ? '<div class="gm-opt gm-tr gm-row' + (!chosen && cur === 'transit' ? ' on' : '') + '" role="button" tabindex="0" data-m="transit">' + GO_ICONS.bus + '<span class="gm-trt">' + fmtMin(d.transit[0]) + '<small>' + d.transit[1].replace(/</g, '&lt;') + '</small></span><a class="gm-ext" href="' + maps + '" target="_blank" rel="noopener">Google Maps ↗</a>' + tool('transit') + '</div>'
+          : '<a class="gm-opt" href="' + maps + '" target="_blank" rel="noopener">' + GO_ICONS.bus + (d.transit == null ? '<span class="go-guess">Public transport …</span>' : 'Public transport') + '<span class="gm-ext">Google Maps ↗</span></a>');
+      if(form && form.b) html += formHtml();
+      if(mine.length) html += '<div class="gm-sec">Yours</div>' + mine.map(function(o){
+          var on = chosen && chosen.id === o.id;
+          return '<div class="gm-opt gm-row gm-mine' + (on ? ' on' : '') + '" role="button" tabindex="0" data-my="' + esc(o.id) + '">' + (o.b ? GO_ICONS[o.b === 'transit' ? 'bus' : o.b] : '<span class="gm-emo">' + esc(o.i || '🚆') + '</span>') +
+            '<span class="gm-trt"><b>' + esc(o.b ? baseName(o.b) : o.n) + (o.b ? '<i class="gm-badge">edited</i>' : '') + '</b><small>' + esc(sub(o)) + '</small></span>' +
+            (o.p ? '<span class="gm-price">' + esc((o.c ? CURRENCIES[o.c] : currencySymbol(ends.li)) + ' ' + o.p) + '</span>' : '') +
+            '<span class="gm-tools"><button type="button" data-edit="my:' + esc(o.id) + '" title="Edit" aria-label="Edit">' + PEN + '</button><button type="button" data-rm="' + esc(o.id) + '" title="' + (o.b ? 'Back to the suggested ' + esc(baseName(o.b).toLowerCase()) : 'Remove') + '" aria-label="' + (o.b ? 'Undo' : 'Remove') + '">' + (o.b ? UNDO : XX) + '</button></span>' +
+            (o.u ? '<a class="gm-ext gm-link" href="' + esc(o.u) + '" target="_blank" rel="noopener">Link ↗</a>' : '') + '</div>'; }).join('');
+      html += form && !form.b ? formHtml() : '<button type="button" class="gm-opt gm-add" data-x="add">' + PLUS + 'Add your own (train, bus, flight…)</button>';
+      html += '<button type="button" class="gm-opt" data-x="hide">' + GO_ICONS.hide + 'Hide this line</button><hr>' +
+        (chosen ? '' : '<button type="button" class="gm-opt" data-x="def">Use ' + (cur === 'transit' ? 'public transport' : GO_MODES[cur].toLowerCase()) + ' for every line</button>') +
         (goPref() !== 'auto' ? '<button type="button" class="gm-opt" data-x="auto">Back to automatic (walk if short)</button>' : '') +
         '<div class="gm-src">Routes © openrouteservice · Transit by Transitous · Map data © OpenStreetMap</div>';
-      var r = b.getBoundingClientRect(); menu.hidden = false;
-      menu.style.left = Math.round(Math.min(r.left, innerWidth - menu.offsetWidth - 8)) + 'px'; menu.style.top = Math.round(r.bottom + 6) + 'px';
-      menu.onclick = function(ev){
-        if(ev.target.closest('a')){ menu.hidden = true; return; }
-        var o = ev.target.closest('.gm-opt'); if(!o) return;
-        if(o.dataset.m) setGo(ends.li, function(x){ if(o.dataset.m === goPref()) delete x.m; else x.m = o.dataset.m; });
-        else if(o.dataset.x === 'hide') setGo(ends.li, function(x){ x.h = 1; });
-        else if(o.dataset.x === 'def'){ try { localStorage.setItem('tp-go-mode', cur); } catch(err){} }
-        else if(o.dataset.x === 'auto'){ try { localStorage.removeItem('tp-go-mode'); } catch(err){} }
-        menu.hidden = true;
-      };
+      menu.innerHTML = html;
+      // the line's button is redrawn when the stretch changes: find it again
+      var bb = document.querySelector('.panel.on .go-line[data-k="' + String(ends.key).replace(/"/g, '') + '"] .go-b'); if(bb) menu.__b = bb;
+      var r = menu.__b.getBoundingClientRect(); if(!r.width && menu.__r) r = menu.__r; else menu.__r = r;
+      menu.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8))) + 'px';
+      var top = r.bottom + 6; if(top + menu.offsetHeight > innerHeight - 8) top = Math.max(8, innerHeight - 8 - menu.offsetHeight);
+      menu.style.top = Math.round(top) + 'px';
+      var f1 = menu.querySelector('.gm-form [data-f="t1"]'); if(f1 && !menu.__focused){ menu.__focused = true; f1.focus(); }
+    }
+    function saveForm(){
+      keep(); var f = form, li = ends.li, cell = li.closest('.cell');
+      var min = spanMin(f.t1, f.t2) || parseDur(f.dur) || (f.b ? (baseVal(goData(li), f.b) || [0])[0] : 0);
+      var o = { id: f.id || ('t' + Date.now().toString(36)), i: f.i, n: f.n, min: min };
+      if(f.b) o.b = f.b; if(f.t1) o.t1 = f.t1; if(f.t2) o.t2 = f.t2; if(f.det.trim()) o.det = f.det.trim();
+      if(String(f.p).trim()) o.p = String(f.p).trim().replace(',', '.'); if(f.c && f.c !== resolveCurrencyCode(li.closest('.panel'))) o.c = f.c;
+      if(f.u.trim()) o.u = /^https?:\/\//i.test(f.u.trim()) ? f.u.trim() : 'https://' + f.u.trim();
+      setGo(li, function(x){ x.my = (x.my || []).filter(function(y){ return y.id !== o.id; }); x.my.push(o); x.m = 'my:' + o.id; });
+      form = null; menu.__focused = false; if(cell) recomputeCell(cell); scheduleAutoSave(); draw();
+    }
+    document.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('.go-line .go-b'); if(!b){ if(!menu.contains(e.target) && e.target.isConnected) { menu.hidden = true; form = null; } return; }
+      e.preventDefault(); e.stopPropagation();
+      var en = b.parentNode.__ends; if(!en) return;
+      if(b.classList.contains('go-off')){ setGo(en.li, function(d){ delete d.h; }); return; }
+      if(!menu.hidden && ends && ends.key === en.key){ menu.hidden = true; form = null; return; }
+      ends = en; form = null; menu.__b = b; menu.__focused = false;
+      goFetch(ends);
+      menu.hidden = false; draw();
     }, true);
+    menu.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){ e.preventDefault(); if(form){ form = null; draw(); } else menu.hidden = true; }
+      else if(e.key === 'Enter' && form && e.target.tagName === 'INPUT'){ e.preventDefault(); saveForm(); }
+    });
+    menu.addEventListener('click', function(ev){
+      if(!ends) return;
+      if(ev.target.closest('a')){ menu.hidden = true; return; }
+      var li = ends.li, cell = li.closest('.cell'), d = goData(li);
+      var ty = ev.target.closest('[data-ty]'); if(ty){ keep(); var p = ty.dataset.ty.split('|'); form.i = p[0]; form.n = p[1]; draw(); return; }
+      var ed = ev.target.closest('[data-edit]');
+      if(ed){ ev.stopPropagation(); var k = ed.dataset.edit;
+        if(k.indexOf('my:') === 0){ var o = (d.my || []).filter(function(y){ return 'my:' + y.id === k; })[0]; if(!o) return;
+          form = { id:o.id, b:o.b || '', i:o.i || '', n:o.n || '', t1:o.t1 || '', t2:o.t2 || '', dur: o.min ? fmtMin(o.min) : '', p:o.p || '', c:o.c || resolveCurrencyCode(li.closest('.panel')), det:o.det || '', u:o.u || '' }; }
+        else { var v = baseVal(d, k), tg = transportTags().filter(function(t){ return new RegExp('^' + (k === 'transit' ? 'bus' : k === 'car' ? 'drive|car' : k), 'i').test(t.name); })[0];
+          form = { b:k, i: tg ? tg.icon : '', n: baseName(k), t1:'', t2:'', dur: v ? fmtMin(v[0]) : '', p:'', c: resolveCurrencyCode(li.closest('.panel')), det: v && v[2] ? v[2] : '', u:'' }; }
+        menu.__focused = false; draw(); return; }
+      var rm = ev.target.closest('[data-rm]');
+      if(rm){ ev.stopPropagation(); var id = rm.dataset.rm, was = (d.my || []).filter(function(y){ return y.id === id; })[0];
+        setGo(li, function(x){ x.my = (x.my || []).filter(function(y){ return y.id !== id; }); if(!x.my.length) delete x.my; if(x.m === 'my:' + id){ if(was && was.b && was.b !== goPref()) x.m = was.b; else delete x.m; } });
+        if(cell) recomputeCell(cell); scheduleAutoSave(); draw(); return; }
+      var x = ev.target.closest('[data-x]');
+      if(x){ var w = x.dataset.x;
+        if(w === 'add'){ var t0 = transportTags()[0]; form = { b:'', i:t0.icon, n:t0.name, t1:'', t2:'', dur:'', p:'', c: resolveCurrencyCode(li.closest('.panel')), det:'', u:'' }; menu.__focused = false; draw(); return; }
+        if(w === 'cancel'){ form = null; draw(); return; }
+        if(w === 'save'){ saveForm(); return; }
+        if(w === 'hide') setGo(li, function(y){ y.h = 1; });
+        else if(w === 'def'){ var cm = goModeOf(d, ends); try { localStorage.setItem('tp-go-mode', cm); } catch(err){} }
+        else if(w === 'auto'){ try { localStorage.removeItem('tp-go-mode'); } catch(err){} }
+        menu.hidden = true; form = null; return; }
+      if(ev.target.closest('.gm-form')) return;
+      var my = ev.target.closest('[data-my]');
+      if(my){ setGo(li, function(y){ y.m = 'my:' + my.dataset.my; }); if(cell) recomputeCell(cell); scheduleAutoSave(); menu.hidden = true; return; }
+      var o2 = ev.target.closest('[data-m]');
+      if(o2){ setGo(li, function(y){ if(o2.dataset.m === goPref()) delete y.m; else y.m = o2.dataset.m; }); if(cell) recomputeCell(cell); menu.hidden = true; }
+    });
   })();
   (function(){
     var inp = document.getElementById('fabAddPlace'); if(!inp) return;
