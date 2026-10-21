@@ -16674,6 +16674,57 @@
       viaPhoton.then(win, lose); viaScript.then(win, lose);
     });
   }
+  // A spot (hotel, venue) whose town is missing, or whose "town" is really a
+  // venue's name, gets its real town from its map point (Photon reverse).
+  // It also corrects the day's heading. Checked once per spot and place.
+  var spotTownAsked = {}, spotTownBusy = false;
+  function photonTown(p){ return p.city || p.town || p.village || p.locality || p.county || ''; }
+  function isAreaName(name, near){
+    var url = 'https://photon.komoot.io/api/?limit=1&lang=en&q=' + encodeURIComponent(name) + (near ? '&lat=' + near.lat.toFixed(2) + '&lon=' + near.lon.toFixed(2) : '');
+    return fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+      var f = j && j.features && j.features[0], t = f && f.properties && f.properties.type;
+      return !f || !!PHOTON_AREA[t] || /^(city|town|village|hamlet|county|state|district|locality|country)$/.test(t || ''); });
+  }
+  function swapDayPlace(cell, oldP, newP){
+    var lt = cell.querySelector(':scope > .loc > .loc-text') || cell.querySelector(':scope > .loc');
+    var cities = citiesOf(placeOfCell(cell)), k = oldP ? cities.indexOf(oldP) : -1;
+    var stillUsed = oldP && dayActs(cell).some(function(x){ return x.getAttribute('data-place') === oldP; });
+    if(k !== -1 && !stillUsed){ if(cities.indexOf(newP) === -1) cities[k] = newP; else cities.splice(k, 1); }
+    else if(cities.indexOf(newP) === -1) cities.push(newP);
+    var final = cities.join(' → ');
+    if(lt){ if(lt.textContent.trim() !== final) lt.textContent = final; }
+    else if(final){ var loc = buildLocEl(final); cell.insertBefore(loc, cell.querySelector(':scope > .acts') || null); cell.classList.add('active'); }
+  }
+  function spotTowns(){
+    if(spotTownBusy || VIEW_ONLY) return;
+    var panel = document.querySelector('.panel.on'); if(!panel) return;
+    var spots = {}; panel.querySelectorAll('.acts > li[data-spot]').forEach(function(x){ spots[x.getAttribute('data-spot')] = 1; });
+    var li = [].filter.call(panel.querySelectorAll('.acts > li[data-spot][data-geo]:not(.act-span-ghost)'), function(x){
+      return !spotTownAsked[x.getAttribute('data-geo') + '|' + (x.getAttribute('data-place') || '')]; })[0];
+    if(!li) return;
+    var g = parseGeo(li.getAttribute('data-geo')), P = li.getAttribute('data-place') || '', spot = li.getAttribute('data-spot');
+    spotTownAsked[li.getAttribute('data-geo') + '|' + P] = 1;
+    if(!g) return;
+    spotTownBusy = true;
+    fetch('https://photon.komoot.io/reverse?lang=en&lat=' + g.lat + '&lon=' + g.lon).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+      var f = j && j.features && j.features[0], C = f ? photonTown(f.properties || {}) : '';
+      if(!C || C === P) return;
+      // a missing town, the spot's own name, or another spot's name: surely wrong.
+      // Otherwise only when what's there isn't a place at all (a venue's name).
+      var sure = !P || P === spot || spots[P] || li.__needsTown;
+      return (sure ? Promise.resolve(false) : isAreaName(P, g)).then(function(area){
+        if(area || !li.isConnected) return;
+        var cell = li.closest('.cell'); li.setAttribute('data-place', C); delete li.__needsTown;
+        spotTownAsked[li.getAttribute('data-geo') + '|' + C] = 1;
+        if(cell) swapDayPlace(cell, P, C);
+        // a stay: the nights after check-in wake up in its town too
+        var sp = li.hasAttribute('data-stay-to') ? staySpan(li) : null;
+        if(sp && cell){ var pn = cell.closest('.panel'); for(var d = sp.start + 1; d <= sp.end; d++){ var nc = null; pn.querySelectorAll('.cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === d) nc = c; }); if(nc && citiesOf(placeOfCell(nc)).indexOf(P) !== -1) swapDayPlace(nc, P, C); } }
+        scheduleAutoSave();
+      });
+    }).catch(function(){}).then(function(){ setTimeout(function(){ spotTownBusy = false; }, 300); });
+  }
+  setInterval(spotTowns, 1500);
   function parseGeo(v){ var m = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(v || ''); return m ? { lat: +m[1], lon: +m[2] } : null; }
   function fmtGeo(g){ return (Math.round(g.lat * 1e5) / 1e5) + ',' + (Math.round(g.lon * 1e5) / 1e5); }
   function placeMark(){}   // (no mark in the field: the suggestions list is enough)
@@ -16696,7 +16747,7 @@
       // becomes it, and a neighbourhood counts as its town
       var town = g.city && g.city !== g.name ? g.city : '', before = inp._orig && inp._orig !== g.name ? inp._orig : '';
       var isTown = g.town || (!g.spot && g.city === g.name);
-      if(g.spot){ li.setAttribute(spotAttr, g.name); inp.value = town || before || g.name; }
+      if(g.spot){ li.setAttribute(spotAttr, g.name); inp.value = town || before || ''; if(!town) li.__needsTown = 1; }   // no town known: it's looked up from the map point (see spotTowns)
       else { li.removeAttribute(spotAttr); if(!isTown) inp.value = town || before || g.name; }
     } else if(v !== inp._orig || !v){ li.removeAttribute(geoAttr); li.removeAttribute(spotAttr); }
   }
