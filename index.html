@@ -23,7 +23,7 @@
     if (savedTheme === 'classic' || savedTheme === 'bubbles') document.documentElement.setAttribute('data-theme', savedTheme);
     if (localStorage.getItem('travelPlannerBackdrop') === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
     var savedFont = localStorage.getItem('travelPlannerFont');
-    if (savedFont === 'elegant' || savedFont === 'mono' || savedFont === 'dyslexia') document.documentElement.setAttribute('data-font', savedFont);
+    if (savedFont === 'neutral' || savedFont === 'elegant' || savedFont === 'mono' || savedFont === 'dyslexia') document.documentElement.setAttribute('data-font', savedFont);
   } catch(e){}
 })();
 </script>
@@ -67,6 +67,7 @@
     font-family:var(--font); }
   button, input, textarea, select { font-family:inherit; }
   :root { --font:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  :root[data-font="neutral"] { --font:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   :root[data-font="elegant"] { --font:'Lora',Georgia,'Times New Roman',serif; }
   :root[data-font="mono"] { --font:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace; }
   :root[data-font="dyslexia"] { --font:'OpenDyslexic','Comic Sans MS',sans-serif; }
@@ -2058,6 +2059,7 @@
   .font-dot:hover { background:var(--line); }
   .font-dot.active { border-color:var(--ink); }
   .font-dot[data-font-name="rounded"] { font-family:'Nunito',sans-serif; }
+  .font-dot[data-font-name="neutral"] { font-family:'Inter',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; }
   .font-dot[data-font-name="elegant"] { font-family:'Lora',Georgia,serif; }
   .font-dot[data-font-name="mono"] { font-family:'IBM Plex Mono',ui-monospace,monospace; }
   .font-dot[data-font-name="dyslexia"] { font-family:'OpenDyslexic','Comic Sans MS',sans-serif; font-size:13px; }
@@ -4241,6 +4243,7 @@
       <div class="actionMenuThemeRow actionMenuFontRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_font">Font</span>
         <button type="button" class="font-dot" data-font-name="rounded" title="Rounded (Nunito)" aria-label="Rounded font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="neutral" title="Neutral (Inter)" aria-label="Neutral font">Aa</button>
         <button type="button" class="font-dot" data-font-name="elegant" title="Elegant (Lora)" aria-label="Elegant font">Aa</button>
         <button type="button" class="font-dot" data-font-name="mono" title="Mono (IBM Plex Mono)" aria-label="Monospaced font">Aa</button>
         <button type="button" class="font-dot" data-font-name="dyslexia" title="Easier to read with dyslexia (OpenDyslexic)" aria-label="Dyslexia-friendly font">Aa</button>
@@ -13676,6 +13679,8 @@
   // after, on top of whatever synchronous call already ran.
   if(window.document && document.fonts && document.fonts.ready){
     document.fonts.ready.then(function(){ syncBarLayout(); }).catch(function(){});
+    // a font picked later (or still arriving) changes the tabs' height: line the page up again
+    if(document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function(){ syncBarLayout(); });
   }
 
   // A month segment's "⋯" menu — same row/icon/divider language as
@@ -14241,21 +14246,22 @@
   document.querySelectorAll('.theme-dot').forEach(function(dot){
     dot.addEventListener('click', function(){ applyTheme(dot.getAttribute('data-theme-name')); });
   });
-  // Font: rounded (Nunito, the original), elegant, mono or dyslexia-friendly.
-  // Lora and IBM Plex Mono load once, the first time the menu opens or one is
+  // Font: rounded (Nunito, the original), neutral, elegant, mono or dyslexia-friendly.
+  // Inter, Lora and IBM Plex Mono load once, the first time the menu opens or one is
   // picked; OpenDyslexic comes with the app (fonts/).
   var FONT_KEY = 'travelPlannerFont';
   function loadExtraFonts(){
     if(document.getElementById('extraFonts')) return;
     var l = document.createElement('link'); l.id = 'extraFonts'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+    l.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
     document.head.appendChild(l);
   }
   function applyFont(name){
-    if(name !== 'elegant' && name !== 'mono' && name !== 'dyslexia') name = 'rounded';
+    if(name !== 'neutral' && name !== 'elegant' && name !== 'mono' && name !== 'dyslexia') name = 'rounded';
     if(name === 'rounded') document.documentElement.removeAttribute('data-font');
     else { if(name !== 'dyslexia') loadExtraFonts(); document.documentElement.setAttribute('data-font', name); }
     document.querySelectorAll('.font-dot').forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-font-name') === name); });
+    if(typeof syncBarLayout === 'function'){ syncBarLayout(); if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ syncBarLayout(); }).catch(function(){}); }
     try { localStorage.setItem(FONT_KEY, name); } catch(e){}
   }
   document.querySelectorAll('.font-dot').forEach(function(dot){
