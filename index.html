@@ -1894,11 +1894,15 @@
        left edge stays a clean line of year and month names. Only there
        when there's more than one year. The year you're in can't be
        closed, so it isn't clickable. */
-    .month-segment[data-year-seg][data-toggle]::after { content:''; position:absolute; right:33px; top:50%;
-      width:5px; height:5px; margin-top:-5px; color:var(--muted);
-      border-right:2px solid currentColor; border-bottom:2px solid currentColor;
-      transform:rotate(45deg); transition:transform .18s ease; pointer-events:none; }
-    .month-segment[data-year-seg][data-toggle="closed"]::after { transform:rotate(-45deg); margin-top:-4px; right:35px; }
+    .month-segment[data-year-seg][data-toggle]::after { content:''; position:absolute; left:var(--yx, 10px); top:50%;
+      width:10px; height:10px; margin-top:-5px; background:var(--muted); pointer-events:none;
+      -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px 10px no-repeat;
+      mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px 10px no-repeat; }
+    .month-segment[data-year-seg][data-toggle="closed"]::after {
+      -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 1l4 4-4 4' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 1l4 4-4 4' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+    .month-segment[data-year-seg][data-toggle]:hover::after { background:var(--ink); }
+    .month-segment[data-year-seg][data-toggle] .seg-label-short { padding-left:calc(var(--yx, 10px) + 16px) !important; }
     .month-segment[data-year-seg][data-toggle][title^="Show"], .month-segment[data-year-seg][data-toggle][title^="Hide"] { cursor:pointer; }
     .month-segment[data-year-seg][data-toggle][title^="Show"]:hover .seg-label-short,
     .month-segment[data-year-seg][data-toggle][title^="Hide"]:hover .seg-label-short { opacity:1; color:var(--ink); }
@@ -2212,8 +2216,6 @@
        column; a year row gets a soft highlight on hover. */
     .month-sidebar .itemmenu-btn { visibility:hidden !important; opacity:0; transition:opacity .12s; }
     .month-sidebar .month-segment:hover .itemmenu-btn, .month-sidebar .itemmenu-btn.open { visibility:visible !important; opacity:1; }
-    .month-segment[data-year-seg][data-toggle]::after { opacity:0; transition:opacity .12s; }
-    .month-segment[data-year-seg]:hover::after { opacity:1; }
     .month-segment[data-year-seg] { border-radius:9px !important; transition:background-color .12s; }
     .month-segment[data-year-seg]:hover { background:rgba(255,255,255,.55) !important; }
     .month-add { opacity:0 !important; transition:opacity .15s; }
@@ -13713,6 +13715,13 @@
   }
   // Years opened or closed by hand in the month column (year -> bool).
   var yearOpenOverride = {};
+  // A year's arrow starts exactly where the "All trips" label's text starts.
+  function alignYearArrows(){
+    var labs = document.querySelectorAll('#monthSidebar > .side-label'), lab = labs[labs.length - 1]; if(!lab) return;
+    var lx = lab.getBoundingClientRect().left + (parseFloat(getComputedStyle(lab).paddingLeft) || 0);
+    document.querySelectorAll('#monthSidebar [data-year-seg]').forEach(function(y){ y.style.setProperty('--yx', Math.round(lx - y.getBoundingClientRect().left) + 'px'); });
+  }
+  window.addEventListener('resize', function(){ alignYearArrows(); });
   function planEdited(s){ return Math.max.apply(null, s.panels.map(function(p){ return parseInt(p.getAttribute('data-edited'), 10) || 0; })); }
   function renderMonthSidebar(){
     var sidebar = document.getElementById('monthSidebar');
@@ -13826,12 +13835,13 @@
       // Years open and close exactly as before (arrow on the right, the
       // year you're in always open, "Collapse other years" in the menu).
       var yearPlans = allPlans.filter(function(s){ return s.year === yr && !s.archived; });
-      if(yearSeg && years.length > 1 && yearPlans.length){
+      // Every year can be closed (the one you're in starts open).
+      if(yearSeg && yearPlans.length){
         var isActiveYear = activeYear === null || yr === activeYear;
-        var open = isActiveYear || (yearOpenOverride.hasOwnProperty(yr) ? yearOpenOverride[yr] : !collapseOtherYears());
+        var open = yearOpenOverride.hasOwnProperty(yr) ? yearOpenOverride[yr] : (isActiveYear || !collapseOtherYears());
         yearSeg.dataset.toggle = open ? 'open' : 'closed';
         yearSeg.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if(!isActiveYear){
+        {
           yearSeg.title = (open ? 'Hide ' : 'Show ') + yr + ' (' + yearPlans.length + (yearPlans.length === 1 ? ' plan)' : ' plans)');
           (function(year, wasOpen){
             yearSeg.addEventListener('click', function(){
@@ -13910,6 +13920,7 @@
     if(typeof renderPageBookmark === 'function') renderPageBookmark();
     renderPlans();
     syncBarLayout();
+    alignYearArrows(); requestAnimationFrame(alignYearArrows);
   }
   // Recomputed fresh on demand (see archiveMenuBtn's own click handler)
   // rather than reusing renderMonthSidebar's own internal grouping —
