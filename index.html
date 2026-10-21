@@ -2124,7 +2124,7 @@
   .cell[data-off-trip]:not(:has(> .acts > li)) > :not(.cellhead) { display:none; }
   @media print { .cell[data-off-trip] { display:none; } }
   /* a trip shorter than a week: just its days, in one row (each day already says its weekday) */
-  .panel[data-short] { display:grid !important; gap:8px; align-content:stretch; grid-auto-rows:1fr; }
+  .panel.on[data-short] { display:grid !important; gap:8px; align-content:stretch; grid-auto-rows:1fr; }
   .panel[data-short="1"] { grid-template-columns:repeat(1,minmax(0,1fr)); }
   .panel[data-short="2"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .panel[data-short="3"] { grid-template-columns:repeat(3,minmax(0,1fr)); }
@@ -12485,6 +12485,10 @@
     clone.removeAttribute('data-plan-name');
     clone.removeAttribute('data-span-start');
     clone.removeAttribute('data-span-end');
+    clone.removeAttribute('data-short');
+    clone.removeAttribute('data-countries');
+    clone.removeAttribute('data-edited');
+    clone.querySelectorAll('[data-off-trip]').forEach(function(n){ n.removeAttribute('data-off-trip'); });
     clone.querySelectorAll('.jsctl').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.tagpop, .linkpop, .monthpop').forEach(function(n){ n.remove(); });
     clone.querySelectorAll('.loc, .acts, .cost').forEach(function(n){ n.remove(); });
