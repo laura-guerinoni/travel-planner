@@ -2540,6 +2540,36 @@
     .monthpop.rangepop .addbtn { height:46px; border-radius:12px; font-size:15px; font-weight:800; margin-top:6px; }
     .whenpop-label { font-size:12px !important; letter-spacing:.06em; text-transform:uppercase; margin:8px 0 6px !important; }
     .whenpop-check { font-size:14px !important; margin:6px 0 14px !important; }
+    /* new plan / alternative: like Add activity */
+    .monthpop.rangepop.pf { padding:22px 24px 20px !important; border-radius:20px !important; }
+    .pf .pf-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+    .monthpop.rangepop.pf .rangepop-title { margin:0; font-size:17px; font-weight:900; color:var(--muted); }
+    .pf .pf-x { width:32px; height:32px; display:grid; place-items:center; border:none; background:none; color:var(--muted); cursor:pointer; border-radius:50%; }
+    .pf .pf-x:hover { background:var(--bg); } .pf .pf-x svg { width:20px; height:20px; }
+    .monthpop.rangepop.pf input.pf-big { height:auto !important; min-height:0; border:none !important; border-bottom:2px solid var(--primary) !important; border-radius:0 !important; padding:6px 2px 10px !important; margin:0 0 14px !important; background:none !important; box-shadow:none !important; font-size:26px !important; font-weight:800; color:var(--ink); }
+    .monthpop.rangepop.pf input.pf-big::placeholder { color:#c8bfe0; }
+    .pf .pf-row { display:grid; grid-template-columns:30px minmax(0, 1fr); align-items:center; gap:12px; margin-bottom:10px; }
+    .pf .pf-ic { width:22px; height:22px; color:var(--muted); justify-self:center; }
+    .pf .cty-field { min-height:46px; border:none; border-radius:10px; background:var(--bg); padding:6px 10px; }
+    .pf .cty-field:focus-within { box-shadow:0 0 0 1.5px var(--primary); }
+    .pf .cty-field input { font-size:15px; }
+    .pf .pf-people { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:46px; padding:6px 8px; border-radius:10px; background:var(--bg); }
+    .pf .pf-people .grp-people { display:contents; }
+    .pf .grp-person { background:var(--card); padding:2px 10px 2px 2px; font-size:13px; }
+    .pf .grp-person .grp-face { width:24px; height:24px; }
+    .pf .pf-invite { height:30px; padding:0 11px; border:1.5px dashed rgba(var(--primary-rgb), .5); border-radius:999px; background:none; color:var(--primary); font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+    .pf .pf-invrow { margin:-2px 0 10px 42px !important; }
+    .pf .grp-invmsg { margin:-4px 0 10px 42px !important; }
+    .pf .pf-when .whenpop-row { margin:0; }
+    .pf .pf-when .whenpop-row[hidden] { display:none; }
+    .monthpop.rangepop.pf .pf-when select, .monthpop.rangepop.pf .pf-when input[type="date"], .pf .pf-when .mp-btn { height:46px; border:none !important; background-color:var(--bg) !important; border-radius:10px !important; font-weight:600; }
+    .pf .grp-askopts .mp-btn { border:none !important; background-color:var(--bg) !important; }
+    .monthpop.rangepop.pf input.pf-big:focus { outline:none; }
+    .pf .pf-checks { margin:4px 0 0 42px; }
+    .monthpop.rangepop.pf .whenpop-check { margin:4px 0 8px !important; }
+    .pf .grp-askopts { margin:0 0 6px; }
+    .pf .pf-foot { display:flex; justify-content:flex-end; margin-top:12px; }
+    .monthpop.rangepop.pf .pf-foot .addbtn { width:auto; padding:0 26px; height:48px; border-radius:14px; font-size:16px; margin:0; }
   }
 
   @media screen and (min-width: 721px) {
@@ -6967,10 +6997,19 @@
   }
   // after a new plan or alternative: Month view, with the map on the right
   function openMapOnNew(){ if(typeof window.tpOpenMapMonth === 'function') setTimeout(window.tpOpenMapMonth, 120); }
+  // The new plan / alternative forms look like Add activity: a small title
+  // with ✕, the name big over a pink line, then rows with a line icon.
+  var PF_IC = {
+    x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    globe:'<svg class="pf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+    people:'<svg class="pf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>',
+    cal:'<svg class="pf-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>' };
+  function pfHead(title){ return '<div class="pf-head"><div class="rangepop-title">' + grpEsc(title) + '</div><button type="button" class="pf-x" aria-label="Close">' + PF_IC.x + '</button></div>'; }
+  function pfWire(pop){ var x = pop.querySelector('.pf-x'); if(x) x.addEventListener('click', function(e){ e.stopPropagation(); closePop(); }); }
   function openWhenForm(anchorEl, o, done){
     closePop();
     var pop = document.createElement('div');
-    pop.className = 'monthpop rangepop whenpop';
+    pop.className = 'monthpop rangepop whenpop pf';
     var nowY = new Date().getFullYear();
     function monthOpts(selY, selM){
       var h = '';
@@ -6979,27 +7018,26 @@
       return h;
     }
     function iso(p){ return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'); }
-    pop.innerHTML = '<div class="rangepop-title"></div>' +
-      '<label class="whenpop-label"></label><input type="text" class="whenpop-name">' +
-      '<label class="whenpop-label">Where <span class="whenpop-hint">· optional, one or more countries</span></label><div class="whenpop-where"></div>' +
-      '<label class="whenpop-label">When</label>' +
-      '<div class="whenpop-row"><select class="whenpop-m1">' + monthOpts(o.from.year, o.from.month) + '</select><span class="whenpop-to">to</span><select class="whenpop-m2">' + monthOpts(o.to.year, o.to.month) + '</select></div>' +
-      '<label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label>' +
-      '<div class="whenpop-row whenpop-dates"><input type="date" class="whenpop-from"><span class="whenpop-to">to</span><input type="date" class="whenpop-until"></div>' +
-      '<button type="button" class="addbtn"></button>';
-    pop.querySelector('.rangepop-title').textContent = o.title;
-    pop.querySelectorAll('.whenpop-label')[0].innerHTML = o.nameLabel;
+    pop.innerHTML = pfHead(o.title) +
+      '<input type="text" class="whenpop-name pf-big" aria-label="Name" placeholder="Name">' +
+      '<div class="pf-row">' + PF_IC.globe + '<div class="whenpop-where"></div></div>' +
+      '<div class="pf-row">' + PF_IC.cal + '<div class="pf-when"><div class="whenpop-row whenpop-months"><select class="whenpop-m1" aria-label="From">' + monthOpts(o.from.year, o.from.month) + '</select><span class="whenpop-to">–</span><select class="whenpop-m2" aria-label="To">' + monthOpts(o.to.year, o.to.month) + '</select></div>' +
+        '<div class="whenpop-row whenpop-dates"><input type="date" class="whenpop-from" aria-label="From"><span class="whenpop-to">–</span><input type="date" class="whenpop-until" aria-label="To"></div></div></div>' +
+      '<div class="pf-checks"><label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label></div>' +
+      '<div class="pf-foot"><button type="button" class="addbtn"></button></div>';
+    pfWire(pop);
     var nameIn = pop.querySelector('.whenpop-name'); nameIn.value = o.name; nameIn.maxLength = o.maxlength;
     var where = countryField(pop.querySelector('.whenpop-where'), o.countries);
     var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
     var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
     fromIn.value = iso(o.from); toIn.value = iso(o.to);
-    exact.checked = !!o.exact; dates.hidden = !o.exact;
+    var months = pop.querySelector('.whenpop-months');
+    exact.checked = !!o.exact; dates.hidden = !o.exact; months.hidden = !!o.exact;
     var btn = pop.querySelector('.addbtn'); btn.textContent = o.button;
     // The end month can't be before the start month.
     m1.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m2.selectedIndex = m1.selectedIndex; });
     m2.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m1.selectedIndex = m2.selectedIndex; });
-    exact.addEventListener('change', function(){ dates.hidden = !exact.checked; });
+    exact.addEventListener('change', function(){ dates.hidden = !exact.checked; months.hidden = exact.checked; });
     enhanceMonthSelect(m1); enhanceMonthSelect(m2); enhanceDateInput(fromIn); enhanceDateInput(toIn);
     pop.addEventListener('click', function(e){ e.stopPropagation(); });
     btn.addEventListener('click', function(e){
@@ -20101,7 +20139,7 @@
     var d = todayOrPanelDate(document.querySelector('.panel.on'));
     var me = meKey(), who = {}, invited = [], len = 5;
     var pop = document.createElement('div');
-    pop.className = 'monthpop rangepop whenpop grp-newpop';
+    pop.className = 'monthpop rangepop whenpop grp-newpop pf';
     var nowY = new Date().getFullYear();
     function monthOpts(selY, selM){
       var h = '';
@@ -20110,19 +20148,20 @@
       return h;
     }
     var dl = new Date(); dl.setDate(dl.getDate() + 7);
-    pop.innerHTML = '<div class="rangepop-title">' + grpEsc(t('add_new_plan')) + '</div>' +
-      '<label class="whenpop-label">Name <span class="whenpop-hint">· on the tab, up to ' + PLAN_NAME_MAX + ' letters</span></label><input type="text" class="whenpop-name" maxlength="' + PLAN_NAME_MAX + '">' +
-      '<label class="whenpop-label">Where <span class="whenpop-hint">· optional, one or more countries</span></label><div class="whenpop-where"></div>' +
-      '<label class="whenpop-label">Who\'s coming</label><div class="grp-people"></div>' +
-      '<div class="whenpop-row"><input type="email" class="grp-inv" placeholder="Invite by email" aria-label="Invite by email"><button type="button" class="grp-btn ghost grp-invbtn">Invite</button></div>' +
+    pop.innerHTML = pfHead(t('add_new_plan')) +
+      '<input type="text" class="whenpop-name pf-big" maxlength="' + PLAN_NAME_MAX + '" aria-label="Plan name" placeholder="Plan name">' +
+      '<div class="pf-row">' + PF_IC.globe + '<div class="whenpop-where"></div></div>' +
+      '<div class="pf-row">' + PF_IC.people + '<div class="pf-people"><div class="grp-people"></div><button type="button" class="pf-invite">+ Invite</button></div></div>' +
+      '<div class="whenpop-row pf-invrow" hidden><input type="email" class="grp-inv" placeholder="Their email" aria-label="Invite by email"><button type="button" class="grp-btn ghost grp-invbtn">Invite</button></div>' +
       '<div class="grp-invmsg" hidden></div>' +
-      '<label class="whenpop-label">When</label>' +
-      '<div class="whenpop-row"><select class="whenpop-m1">' + monthOpts(d.year, d.month) + '</select><span class="whenpop-to">to</span><select class="whenpop-m2">' + monthOpts(d.year, d.month) + '</select></div>' +
-      '<label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label>' +
-      '<div class="whenpop-row whenpop-dates" hidden><input type="date" class="whenpop-from"><span class="whenpop-to">to</span><input type="date" class="whenpop-until"></div>' +
+      '<div class="pf-row">' + PF_IC.cal + '<div class="pf-when"><div class="whenpop-row whenpop-months"><select class="whenpop-m1" aria-label="From">' + monthOpts(d.year, d.month) + '</select><span class="whenpop-to">–</span><select class="whenpop-m2" aria-label="To">' + monthOpts(d.year, d.month) + '</select></div>' +
+        '<div class="whenpop-row whenpop-dates" hidden><input type="date" class="whenpop-from" aria-label="From"><span class="whenpop-to">–</span><input type="date" class="whenpop-until" aria-label="To"></div></div></div>' +
+      '<div class="pf-checks"><label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label>' +
       '<label class="whenpop-check grp-askrow"><input type="checkbox" class="grp-ask"> Ask everyone when they\'re free</label>' +
-      '<div class="whenpop-row grp-askopts" hidden><span class="grp-stepper"><button type="button" data-len="-1" aria-label="Fewer days">−</button><span class="grp-len">5 days</span><button type="button" data-len="1" aria-label="More days">+</button></span><span class="whenpop-to">answers by</span><input type="date" class="grp-dl"></div>' +
-      '<button type="button" class="addbtn">Add plan</button>';
+      '<div class="whenpop-row grp-askopts" hidden><span class="grp-stepper"><button type="button" data-len="-1" aria-label="Fewer days">−</button><span class="grp-len">5 days</span><button type="button" data-len="1" aria-label="More days">+</button></span><span class="whenpop-to">answers by</span><input type="date" class="grp-dl"></div></div>' +
+      '<div class="pf-foot"><button type="button" class="addbtn">Add plan</button></div>';
+    pfWire(pop);
+    pop.querySelector('.pf-invite').addEventListener('click', function(e){ e.stopPropagation(); var r = pop.querySelector('.pf-invrow'); r.hidden = false; r.querySelector('input').focus(); });
     var nameIn = pop.querySelector('.whenpop-name'), where = countryField(pop.querySelector('.whenpop-where'), []);
     var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
     var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
@@ -20138,16 +20177,18 @@
         ms.map(function(m){ var on = !!who[m.key]; return '<button type="button" class="grp-person' + (on ? ' on' : '') + '" data-k="' + grpEsc(m.key) + '" aria-pressed="' + on + '">' + grpFace(m.key) + grpEsc(grpName(m.key)) + (on ? ' ✓' : '') + '</button>'; }).join('');
       box.querySelectorAll('.grp-person[data-k]').forEach(function(b){ b.addEventListener('click', function(){ who[b.dataset.k] = !who[b.dataset.k]; people(); }); });
     }
+    var months = pop.querySelector('.whenpop-months');
     function sync(){
-      dates.hidden = !exact.checked;
-      askRow.hidden = exact.checked;
-      askOpts.hidden = exact.checked || !ask.checked;
+      dates.hidden = !exact.checked; months.hidden = exact.checked;
+      askOpts.hidden = !ask.checked;
       pop.querySelector('.grp-len').textContent = len + (len === 1 ? ' day' : ' days');
       btn.textContent = !exact.checked && ask.checked ? 'Add plan & ask for dates' : 'Add plan';
     }
     m1.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m2.selectedIndex = m1.selectedIndex; });
     m2.addEventListener('change', function(){ if(m2.selectedIndex < m1.selectedIndex) m1.selectedIndex = m2.selectedIndex; });
-    exact.addEventListener('change', sync); ask.addEventListener('change', sync);
+    // exact dates or a date poll: one or the other (or neither), never both
+    exact.addEventListener('change', function(){ if(exact.checked) ask.checked = false; sync(); });
+    ask.addEventListener('change', function(){ if(ask.checked) exact.checked = false; sync(); });
     pop.querySelectorAll('[data-len]').forEach(function(b){ b.addEventListener('click', function(){ len = Math.max(1, Math.min(30, len + +b.dataset.len)); sync(); }); });
     function invite(){
       var inp = pop.querySelector('.grp-inv'), email = inp.value.trim().toLowerCase(), msg = pop.querySelector('.grp-invmsg');
