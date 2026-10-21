@@ -7152,7 +7152,7 @@
     }
     function iso(p){ return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'); }
     pop.innerHTML = pfHead(o.title) +
-      '<div class="pf-namewrap"><input type="text" class="whenpop-name pf-big" aria-label="Name" placeholder="Name · @ for countries"></div><div class="whenpop-where"></div>' +
+      '<div class="pf-namewrap"><input type="text" class="whenpop-name pf-big" aria-label="Name" placeholder="Name · @ for places"></div><div class="whenpop-where"></div>' +
       '<div class="pf-row">' + PF_IC.cal + '<div class="pf-when"><div class="whenpop-row whenpop-months"><select class="whenpop-m1" aria-label="From">' + monthOpts(o.from.year, o.from.month) + '</select><span class="whenpop-to">–</span><select class="whenpop-m2" aria-label="To">' + monthOpts(o.to.year, o.to.month) + '</select></div>' +
         '<div class="whenpop-row whenpop-dates"><input type="date" class="whenpop-from" aria-label="From"><span class="whenpop-to">–</span><input type="date" class="whenpop-until" aria-label="To"></div></div></div>' +
       '<div class="pf-checks"><label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label></div>' +
@@ -20493,7 +20493,7 @@
     }
     var dl = new Date(); dl.setDate(dl.getDate() + 7);
     pop.innerHTML = pfHead(t('add_new_plan')) +
-      '<div class="pf-namewrap"><input type="text" class="whenpop-name pf-big" aria-label="Plan name" placeholder="Plan name · @ for countries"></div><div class="whenpop-where"></div>' +
+      '<div class="pf-namewrap"><input type="text" class="whenpop-name pf-big" aria-label="Plan name" placeholder="Plan name · @ for places"></div><div class="whenpop-where"></div>' +
       '<div class="pf-row">' + PF_IC.people + '<div class="pf-people"><div class="grp-people"></div><button type="button" class="pf-invite">+ Invite</button></div></div>' +
       '<div class="whenpop-row pf-invrow" hidden><input type="email" class="grp-inv" placeholder="Their email" aria-label="Invite by email"><button type="button" class="grp-btn ghost grp-invbtn">Invite</button></div>' +
       '<div class="grp-invmsg" hidden></div>' +
