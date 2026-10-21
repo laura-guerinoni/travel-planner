@@ -2969,6 +2969,8 @@
   #mentionDD[hidden], #bellDD[hidden] { display:none; }
   #mentionDD .md-opt { display:flex; align-items:center; gap:9px; padding:7px 14px; font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; }
   #mentionDD .md-opt.act, #mentionDD .md-opt:hover { background:var(--bg); }
+  #mentionDD .md-all { display:grid; place-items:center; border-radius:50%; background:rgba(var(--primary-rgb),.13); color:var(--primary); } #mentionDD .md-all svg { width:15px; height:15px; }
+  #mentionDD .md-sub { margin-left:auto; padding-left:12px; font-size:12px; font-weight:700; color:var(--muted); }
   #mentionDD .md-face, #bellDD .bd-face { width:24px; height:24px; flex:none; } #mentionDD .md-face svg, #bellDD .bd-face svg { width:100%; height:100%; }
   .page-bell { position:relative; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; margin-right:2px; border:none; border-radius:50%; background:none; color:var(--ink); cursor:pointer; opacity:.75; }
   .page-bell:hover { background:rgba(255,255,255,.9); opacity:1; } .page-bell:focus { outline:none; }
@@ -14875,6 +14877,8 @@
   }
   function planNameOf(p){ if(!p) return ''; var pill = document.querySelector('.pill[data-opt="' + optOf(p) + '"] .pill-name'); var n = p.getAttribute('data-plan-name') || (pill ? pill.textContent.trim() : ''); return n.charAt(0) + n.slice(1).toLowerCase(); }
   function notifyMentions(items){
+    // "@all" is everyone who can see this plan (each gets the message)
+    items = [].concat.apply([], (items || []).map(function(x){ return x.k === '*all' ? mentionablePeople().map(function(m){ return { k:m.key, msg:x.msg, all:true }; }) : [x]; }));
     var seen = {}; items = (items || []).filter(function(x){ if(!x.k || x.k === currentUserKey || seen[x.k]) return false; seen[x.k] = 1; return true; });
     var keys = items.map(function(x){ return x.k; }), msgOf = {}; items.forEach(function(x){ msgOf[x.k] = x.msg; });
     if(!keys.length || !IS_HOSTED || !currentUserKey) return;
@@ -14882,7 +14886,7 @@
     var altEl = p && document.querySelector('.pill[data-opt="' + optOf(p) + '"] .pill-name'), alt = altEl ? altEl.textContent.trim() : '';
     var where = p && p.getAttribute('data-plan-name') && alt && alt.toLowerCase() !== plan.toLowerCase() ? plan + ' · ' + alt : (plan || alt);
     var me = memberNameOf(currentUserKey);
-    function lineFor(k){ var sp = notesArea && notesArea.querySelector('.np-mention[data-key="' + k.replace(/"/g, '') + '"]'); var row = sp && sp.closest('.np-row'); if(!row) return '';
+    function lineFor(k){ var sp = notesArea && (notesArea.querySelector('.np-mention[data-key="' + k.replace(/"/g, '') + '"]') || notesArea.querySelector('.np-mention[data-key="*all"]')); var row = sp && sp.closest('.np-row'); if(!row) return '';
       var c = row.querySelector('.np-text').cloneNode(true); c.querySelectorAll('.np-msg').forEach(function(x){ x.remove(); }); return c.textContent.replace(/\s+/g, ' ').trim().slice(0, 220); }
     var link = location.origin + location.pathname + '?notes=' + encodeURIComponent(planId);
     keys.forEach(function(k){
@@ -14912,17 +14916,19 @@
     }
     function draw(){
       at = query(); if(!at){ close(); return; }
-      list = mentionablePeople().filter(function(m){ return memberNameOf(m.key).toLowerCase().indexOf(at.q) !== -1 || m.email.toLowerCase().indexOf(at.q) === 0; }).slice(0, 8);
+      var people = mentionablePeople();
+      list = people.filter(function(m){ return memberNameOf(m.key).toLowerCase().indexOf(at.q) !== -1 || m.email.toLowerCase().indexOf(at.q) === 0; }).slice(0, 8);
+      if(people.length > 1 && 'all'.indexOf(at.q) === 0) list.unshift({ key:'*all', all:true });
       if(!list.length){ close(); return; }
       act = Math.min(act, list.length - 1);
-      dd.innerHTML = list.map(function(m, i){ return '<div class="md-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '"><span class="md-face">' + memberFaceOf(m.key) + '</span>' + npEsc(memberNameOf(m.key)) + '</div>'; }).join('');
+      dd.innerHTML = list.map(function(m, i){ return '<div class="md-opt' + (i === act ? ' act' : '') + '" data-i="' + i + '">' + (m.all ? '<span class="md-face md-all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg></span>all<small class="md-sub">everyone in this plan</small>' : '<span class="md-face">' + memberFaceOf(m.key) + '</span>' + npEsc(memberNameOf(m.key))) + '</div>'; }).join('');
       var r = document.createRange(); r.setStart(at.node, at.start); r.setEnd(at.node, at.end); var b = r.getBoundingClientRect();
       dd.hidden = false; dd.style.left = Math.round(b.left) + 'px'; dd.style.top = Math.round(b.bottom + 6) + 'px';
     }
     function pick(i){
       var m = list[i]; if(!m || !at) return;
       var r = document.createRange(); r.setStart(at.node, at.start); r.setEnd(at.node, at.end); r.deleteContents();
-      var sp = npMentionEl(m.key, memberNameOf(m.key), '');
+      var sp = npMentionEl(m.key, m.all ? 'all' : memberNameOf(m.key), '');
       r.insertNode(sp); var space = document.createTextNode(' '); sp.after(space);
       var c = document.createRange(); c.setStart(space, 1); c.collapse(true); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(c);
       close(); npChanged(); openMentionMsg(sp, true);
@@ -14945,8 +14951,9 @@
   var mmFor = null, mmText = mmCard.querySelector('textarea');
   function openMentionMsg(sp, fresh){
     mmFor = sp; var name = sp.getAttribute('data-name') || '';
-    mmCard.querySelector('.mm-title').textContent = 'Message for ' + name;
-    mmText.placeholder = 'What should ' + name + ' do or know?';
+    var all = sp.getAttribute('data-key') === '*all';
+    mmCard.querySelector('.mm-title').textContent = all ? 'Message for everyone' : 'Message for ' + name;
+    mmText.placeholder = all ? 'What should everyone do or know?' : 'What should ' + name + ' do or know?';
     mmText.value = sp.getAttribute('data-msg') || '';
     mmCard.querySelector('.mm-ok').textContent = fresh || !mmText.value ? 'Add' : 'Save';
     mmCard.querySelector('.mm-hint').textContent = fresh ? 'Enter to add · Esc to skip' : 'Enter to save';
