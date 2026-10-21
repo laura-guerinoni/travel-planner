@@ -32,6 +32,21 @@ All of this is stored in the plan under `notes.__group` (stars, ideas, votes, po
 so older open copies of the app pass it through untouched. In local mode a "Testing as" switcher at the bottom lets one browser act as
 each of the sample people.
 
+## New people, new faces (October 2026)
+
+- **Sign-in:** a 50/50 screen: a little vote between two places in Florence on the left (click a card to vote), the way in on the right,
+  with a language picker. "Create account" for someone new on this browser, "Log in" once anyone has signed in here.
+- **Sign-up steps** (`onboarding.js` / `onboarding.css`): on a new account's first sign-in (created in the last 14 days, no avatar yet):
+  name → avatar → style (colours, font, light/dark, dice to shuffle) → done, with a live Florence weekend on the left. Then the
+  **first-trip guide**: Where / When / Who creates a real plan, "What do you like?" offers places for the idea box (needs `OTM_KEY` in the
+  Apps Script), three pointers, and a **Get started** list that ticks itself off.
+- **Avatars:** drawn by `TPAvatar` (top of `index.html`): hair styles (loose, ponytail, two ponytails, braid), bangs, textures, lengths,
+  glasses, piercing, hat. Menu → Edit avatar uses the same maker as the sign-up. New fields are saved in `/avatars/{key}`.
+- **Background:** Flat is the standard; Starry and Gradient are in Menu → Background. **Mode:** Light or Dark in the menu.
+- **What's new:** shown once per release to everyone else.
+- **Cheat corner** (the owner, or the local draft): hover the bottom-left corner for 2 seconds. Preview the sign-up, the sign-in page,
+  the guide or What's new without saving; send yourself a sample notification; reset your preferences.
+
 ## Preview locally
 
 Opening `index.html` from disk runs it in local (non-synced) mode. To serve it over http without the sign-in gate

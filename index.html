@@ -38,12 +38,232 @@
       var own = (JSON.parse(localStorage.getItem('travelPlannerCustomThemes') || '[]') || []).filter(function(x){ return 'custom:' + x.id === savedTheme; })[0];
       if (own) { document.documentElement.setAttribute('data-theme', 'custom'); window.__tpCustomVars(own); }
     }
-    if (localStorage.getItem('travelPlannerBackdrop') === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
+    // Background: flat is the standard (once, for everyone, when it
+    // arrived); starry and gradient stay a pick away in the menu.
+    var bd = localStorage.getItem('travelPlannerBackdrop');
+    if (localStorage.getItem('travelPlannerBackdropV') !== '2') { bd = 'flat'; localStorage.setItem('travelPlannerBackdrop', 'flat'); localStorage.setItem('travelPlannerBackdropV', '2'); }
+    if (bd === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
+    else if (bd !== 'magical') document.documentElement.setAttribute('data-backdrop', 'flat');
+    if (localStorage.getItem('travelPlannerMode') === 'dark') document.documentElement.setAttribute('data-mode', 'dark');
     var savedFont = localStorage.getItem('travelPlannerFont');
     if (!savedFont) document.documentElement.setAttribute('data-font', 'neutral');   // the standard
     if (savedFont === 'neutral' || savedFont === 'elegant' || savedFont === 'mono' || savedFont === 'dyslexia') document.documentElement.setAttribute('data-font', savedFont);
   } catch(e){}
 })();
+</script>
+<script>
+/* Travel Planner avatar, v4: hair rebuilt from clean outlines.
+   TPAvatar.render(options) returns an SVG string (64x64).
+   Every hairstyle is an outline drawn on the left and mirrored, so it's
+   always symmetric; it's smoothed with a spline, then given its texture:
+     straight  the smooth outline
+     wavy      the same outline with even waves of one fixed size
+     curly     even round curls along the same outline (hairline kept high,
+               so the forehead always shows)
+   The hair behind the head is one shade darker than the hair in front.
+   options.fringe picks the front: 'curtain' (middle part), 'bangs', 'side'. */
+(function(root){
+  var SKIN = ['#F0D3AC', '#C68B59', '#7A4B2E'];
+  var MOUTH_BY_SKIN = { '#F0D3AC':'#8A5A42', '#C68B59':'#5C3A28', '#7A4B2E':'#2B1810' };
+  var HAIR_COLORS = ['#E8E3D8', '#B8B0A8', '#D9B877', '#E5A15C', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', '#E8A0C4', '#7AB88A', '#5DA0D9', '#8B6FC9'];
+  var EYE_COLORS = ['#8A8F94', '#4A89C9', '#4F8A5B', '#8A7043', '#6B4423', '#2B2B2B'];
+  var MOUTHS = [0, 1, 2, 4, 3, 5, 6, 7];
+  var BG_COLORS = ['#FDE8EF', '#E8F3FD', '#FFF6DC', '#E9F7EC', '#F1E9FB', '#F6F1FB'];
+  var LENGTHS = ['short', 'medium', 'long'], STYLES = ['loose', 'ponytail', 'pigtails', 'braid'], TEXTURES = ['straight', 'wavy', 'curly'], FRINGES = ['none', 'curtain', 'bangs', 'short', 'wispy', 'side'];
+  var TIE = '#E05A7A', GLASSES = '#4A4A4A';
+  var DEFAULTS = { skin:SKIN[0], hair:'#5B3A29', hairLength:'medium', hairStyle:'loose', hairTexture:'straight', fringe:'curtain', eyes:'#6B4423', mouthType:0, glasses:false, piercing:false, hat:false, bg:'#FFF6DC' };
+  function normalize(o){
+    o = o || {}; var r = {}, k;
+    for(k in DEFAULTS) r[k] = DEFAULTS[k];
+    for(k in o) if(o[k] !== undefined && o[k] !== null) r[k] = o[k];
+    if(!o.hairLength && o.longHair != null) r.hairLength = o.longHair ? 'long' : 'short';
+    if(o.glasses === true) r.glasses = 'glasses';
+    if(LENGTHS.indexOf(r.hairLength) < 0) r.hairLength = 'medium';
+    if(STYLES.indexOf(r.hairStyle) < 0) r.hairStyle = 'loose';   // a bun saved earlier becomes loose
+    if(TEXTURES.indexOf(r.hairTexture) < 0) r.hairTexture = 'straight';
+    if(FRINGES.indexOf(r.fringe) < 0) r.fringe = 'curtain';
+    return r;
+  }
+  function pick(l){ return l[Math.floor(Math.random() * l.length)]; }
+  function randomize(){ return normalize({ skin:pick(SKIN), hair:pick(HAIR_COLORS), hairLength:pick(LENGTHS), hairStyle:pick(STYLES), hairTexture:pick(TEXTURES), fringe:pick(FRINGES), eyes:pick(EYE_COLORS), mouthType:pick(MOUTHS), glasses:pick([false, false, 'glasses', 'sunglasses']), piercing:Math.random() < .2, hat:Math.random() < .15, bg:pick(BG_COLORS) }); }
+
+  // ---- geometry ----
+  function f(n){ return Math.round(n * 100) / 100; }
+  // Catmull-Rom through closed points, sampled densely
+  function spline(P, per){
+    var out = [], n = P.length; per = per || 8;
+    for(var i = 0; i < n; i++){
+      var p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+      for(var k = 0; k < per; k++){ var t = k / per, t2 = t * t, t3 = t2 * t;
+        out.push([0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+                  0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)]); }
+    }
+    return out;
+  }
+  // even spacing along the outline
+  function resample(P, step){
+    var out = [P[0]], acc = 0, n = P.length;
+    for(var i = 1; i <= n; i++){ var a = P[i - 1], b = P[i % n], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      while(acc + d >= step){ var t = (step - acc) / d; a = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; out.push(a); d = Math.hypot(b[0] - a[0], b[1] - a[1]); acc = 0; }
+      acc += d; }
+    return out;
+  }
+  function pathOf(P){ var S = spline(P, 4); return 'M' + S.map(function(p){ return f(p[0]) + ' ' + f(p[1]); }).join('L') + 'Z'; }
+  // outward normal (points go clockwise on screen)
+  function normals(P){ var n = P.length; return P.map(function(p, i){ var a = P[(i - 1 + n) % n], b = P[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [dy / L, -dx / L]; }); }
+  // a shape in a texture: P = rough outline (clockwise), `edge(i,p)` = how much of the texture shows at that point (0..1)
+  function shape(P, tex, c, edge){
+    var S = resample(spline(P, 10), tex === 'curly' ? 4.2 : 0.5);
+    if(tex === 'straight') return '<path d="' + pathOf(resample(spline(P, 10), 2)) + '" fill="' + c + '"/>';
+    var N = normals(S), w0 = edge || function(){ return 1; }, w = function(i, p){ return w0(i, p, tex); };
+    if(tex === 'wavy'){
+      // waves of one size: a fixed wavelength along the outline, the phase counted from its start
+      var s = 0, Q = S.map(function(p, i){ if(i) s += Math.hypot(p[0] - S[i - 1][0], p[1] - S[i - 1][1]); var a = 1.7 * w(i, p) * Math.sin(s / 13 * Math.PI * 2); return [p[0] + N[i][0] * a, p[1] + N[i][1] * a]; });
+      return '<path d="M' + Q.map(function(p){ return f(p[0]) + ' ' + f(p[1]); }).join('L') + 'Z" fill="' + c + '" stroke="' + c + '" stroke-width=".6" stroke-linejoin="round"/>';
+    }
+    // curly: the outline filled, plus even round curls along it where the texture shows
+    var o = '<path d="' + pathOf(resample(spline(P, 10), 2)) + '" fill="' + c + '"/>';
+    S.forEach(function(p, i){ var k = w(i, p); if(k > .2) o += '<circle cx="' + f(p[0] + N[i][0] * .2) + '" cy="' + f(p[1] + N[i][1] * .2) + '" r="' + f(2.4 + 1 * k) + '" fill="' + c + '"/>'; });
+    return o;
+  }
+  function mirror(P){ return P.map(function(p){ return [64 - p[0], p[1]]; }).reverse(); }
+  function shade(c, k){ var n = parseInt(c.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; k = k || .8;
+    return '#' + [r, g, b].map(function(v){ var x = Math.round(v * k); return (x < 16 ? '0' : '') + x.toString(16); }).join(''); }
+
+  // ---- the hair ----
+  var END = { short:39, medium:50, long:59 }, TAIL = { short:37, medium:44, long:53 };
+  // the cap over the head, with its hairline (the fringe); clockwise from the left temple
+  function edge(x){ return 34 - Math.sqrt(Math.max(0, 324 - (x - 32) * (x - 32))); }   // the top of the face at x
+  function cap(fr, tex){
+    var top = [], i, lift = tex === 'curly' ? 1.3 : 0;
+    for(i = 0; i <= 12; i++){ var a = Math.PI * (1.08 + i / 12 * 0.84); top.push([32 + 20.2 * Math.cos(a), 33.5 + 20.5 * Math.sin(a) - (tex === 'curly' ? 1.2 : 0)]); }
+    var line;
+    // none: no bangs, the hair goes back from a high, smooth hairline
+    // (it follows the edge of the face a little inside it, so there's never a gap)
+    if(fr === 'none') line = [49.8, 48.6, 45, 39.5, 32, 24.5, 19, 15.4, 14.2].map(function(x){ return [x, x > 49 || x < 15 ? 33 : edge(x) + 2.6 - lift * .4]; });
+    // short: little baby bangs high on the forehead
+    else if(fr === 'short') line = [[49.8, 33], [48.4, 25.6 - lift * .5], [43, 23.4 - lift * .5], [32, 22.9 - lift * .5], [21, 23.4 - lift * .5], [15.6, 25.6 - lift * .5], [14.2, 33]];
+    // wispy: a full fringe that ends in soft pointed pieces
+    else if(fr === 'wispy') line = [[49.8, 33], [48.6, 27.6], [45, 25.4], [42, 28.2], [38.6, 25], [35.2, 28.4], [32, 25], [28.8, 28.4], [25.4, 25], [22, 28.2], [19, 25.4], [15.4, 27.6], [14.2, 33]];
+    // bangs: a full fringe straight across, just above the eyes
+    else if(fr === 'bangs') line = [[49.8, 33], [48.4, 28.4 - lift * .6], [42, 27.4 - lift * .6], [32, 27.1 - lift * .6], [22, 27.4 - lift * .6], [15.6, 28.4 - lift * .6], [14.2, 33]];
+    // side: a deep part on the right, swept across to the left
+    else if(fr === 'side') line = [[49.8, 32], [48.4, 26.6], [46.2, 23.8 - lift * .5], [43, 21.6 - lift * .5], [40, 19.8 - lift * .5], [35.5, 22.8 - lift], [28, 26.4 - lift], [20, 28.6 - lift], [15.4, 30.6], [14.2, 34]];
+    // curtain: a middle part that opens on the forehead in a soft V
+    else line = [[49.8, 33.5], [47.6, 28.6 - lift], [42, 24.2 - lift], [35.6, 20.2 - lift], [32, 18.6 - lift], [28.4, 20.2 - lift], [22, 24.2 - lift], [16.4, 28.6 - lift], [14.2, 33.5]];
+    return top.concat(line);
+  }
+  function capTexture(fr){
+    // the texture shows mostly on the outline and the hairline, softer at the temples
+    return function(i, p, tex){ return tex === 'wavy' ? (p[1] > 24 ? .55 : 0) : (p[1] > 24 ? .35 : 1); };
+  }
+  function sidePanel(L){
+    var e = END[L];
+    return [[17, 22], [12.5, 28], [10.6, 36], [10.4, e - 6], [11.4, e - 1.5], [14.5, e + .5], [18.5, e - 1], [20.5, e - 6], [19.5, 38], [18, 30]];
+  }
+  function tailSide(L){ var e = TAIL[L]; return [[15.4, 26.4], [11, 28.6], [8.6, 33], [8, e - 5], [9.4, e - .6], [12.2, e + .4], [14.4, e - 3.5], [14.8, 36], [16, 30]]; }
+  function ponytail(L){ var e = TAIL[L]; return [[45, 15], [51, 13.4], [56.5, 16.6], [58.4, 23], [58.2, e - 6], [56.4, e - .8], [53.2, e + .4], [51.2, e - 4], [52.2, 28], [51, 21.5], [47, 18.4]]; }
+
+  function hair(o){
+    var c = o.hair, d = c, tex = o.hairTexture, L = o.hairLength, st = o.hairStyle, back = '', front = '', ties = '';
+    if(st === 'loose'){ var p = sidePanel(L), pt = tex === 'wavy' && L === 'short' ? 'straight' : tex; back += shape(p, pt, d) + shape(mirror(p), pt, d); }
+    if(st === 'pigtails'){ var q = tailSide(L); back += shape(q, tex, d) + shape(mirror(q), tex, d);
+      ties += '<rect x="12.2" y="25.6" width="5" height="3.6" rx="1.8" fill="' + TIE + '" transform="rotate(-28 14.7 27.4)"/><rect x="46.8" y="25.6" width="5" height="3.6" rx="1.8" fill="' + TIE + '" transform="rotate(28 49.3 27.4)"/>'; }
+    if(st === 'ponytail'){ back += shape(ponytail(L), tex, d); ties += '<rect x="46" y="13.4" width="5.4" height="4" rx="2" fill="' + TIE + '" transform="rotate(32 48.7 15.4)"/>'; }
+    if(st === 'braid'){
+      var n = { short:3, medium:5, long:7 }[L], b = '';
+      for(var i = 0; i < n; i++){ var cy = 34.5 + i * 4.4, cx = 13.2; b += '<ellipse cx="' + cx + '" cy="' + f(cy) + '" rx="3.6" ry="2.5" fill="' + c + '" transform="rotate(' + (i % 2 ? 24 : -24) + ' ' + cx + ' ' + f(cy) + ')"/>'; }
+      var endY = 34.5 + n * 4.4;
+      back += '<path d="M17.5 24 C13 27 12 30 13.2 33" stroke="' + d + '" stroke-width="7" fill="none" stroke-linecap="round"/>' + b +
+        shape([[13.2, endY - 1], [15.6, endY + 3.4], [13.2, endY + 6], [10.8, endY + 3.4]], tex === 'curly' ? 'curly' : 'straight', d);
+      ties += '<rect x="10.6" y="' + f(endY - 2.6) + '" width="5.2" height="2.6" rx="1.3" fill="' + TIE + '"/>'; }
+    front += shape(cap(o.fringe, tex), tex, c, capTexture(o.fringe));
+    // a soft highlight on straight and wavy hair
+    return { back:back, front:front, ties:ties };
+  }
+  function mouth(t, c){
+    if(t === 0) return '<path d="M25 41 Q32 47 39 41" stroke="' + c + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(t === 1) return '<path d="M26 42 L38 42" stroke="' + c + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(t === 2) return '<path d="M26 40 A6 5 0 0 0 38 40 Z" fill="' + c + '"/>';
+    if(t === 4) return '<path d="M25 43 Q32 37 39 43" stroke="' + c + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(t === 3) return '<path d="M27 41 Q33 44 39 39" stroke="' + c + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(t === 5) return '<path d="M25 42 L34 42 Q37 42 39 39" stroke="' + c + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(t === 6) return '<path d="M23 40 Q32 50 41 40 Q32 45 23 40 Z" fill="' + c + '"/>';
+    return '<path d="M24 41 Q28 39 32 40.5 Q36 39 40 41 Q36 45 32 45 Q28 45 24 41 Z" fill="' + c + '"/>';
+  }
+  function glasses(style){
+    if(!style) return '';
+    var frame = '<g fill="none" stroke="' + GLASSES + '" stroke-width="2" stroke-linecap="round"><circle cx="26" cy="32" r="5.5"/><circle cx="38" cy="32" r="5.5"/><line x1="31.5" y1="32" x2="32.5" y2="32"/><line x1="20.5" y1="31" x2="18" y2="30"/><line x1="43.5" y1="31" x2="46" y2="30"/></g>';
+    if(style !== 'sunglasses') return frame;
+    return '<defs><pattern id="tpav-sun" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(45)"><rect width="3" height="3" fill="#2B2B2B"/><rect width="1.5" height="3" fill="#8A8F94"/></pattern></defs>' +
+      '<circle cx="26" cy="32" r="5.2" fill="url(#tpav-sun)"/><circle cx="38" cy="32" r="5.2" fill="url(#tpav-sun)"/>' + frame;
+  }
+  function hat(){ return '<path d="M15.5 25.5 C15.5 13 23 8.5 32 8.5 C41 8.5 48.5 13 48.5 25.5 Z" fill="#0B6E4F"/><path d="M15.6 21.6 C25 18.8 39 18.8 48.4 21.6 L48.5 25 C39 22.4 25 22.4 15.5 25Z" fill="#073B3A"/><ellipse cx="32" cy="25.8" rx="22.5" ry="4" fill="#0B6E4F"/>'; }
+  function render(opts){
+    var o = normalize(opts), mc = MOUTH_BY_SKIN[o.skin] || '#8A5A42', h = hair(o);
+    if(o.hat) h.front = '';
+    return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<defs><clipPath id="tpav4-c"><circle cx="32" cy="32" r="30"/></clipPath></defs>' +
+      '<circle cx="32" cy="32" r="30" fill="' + o.bg + '"/><g clip-path="url(#tpav4-c)">' +
+      h.back +
+      '<circle cx="32" cy="34" r="18" fill="' + o.skin + '"/>' +
+      '<circle cx="26" cy="32" r="2.6" fill="' + o.eyes + '"/><circle cx="38" cy="32" r="2.6" fill="' + o.eyes + '"/>' +
+      mouth(o.mouthType, mc) + h.front + h.ties + glasses(o.glasses) +
+      (o.piercing ? '<circle cx="35.6" cy="37.4" r="1.3" fill="none" stroke="#D9A520" stroke-width="1"/>' : '') +
+      (o.hat ? hat() : '') + '</g></svg>';
+  }
+  root.TPAvatar = { render:render, randomize:randomize, normalize:normalize, DEFAULTS:DEFAULTS, SKIN:SKIN, HAIR_COLORS:HAIR_COLORS, EYE_COLORS:EYE_COLORS, MOUTHS:MOUTHS, BG_COLORS:BG_COLORS, LENGTHS:LENGTHS, STYLES:STYLES, TEXTURES:TEXTURES, FRINGES:FRINGES, mouth:mouth };
+})(typeof window !== 'undefined' ? window : this);
+
+/* The avatar maker: tabs Skin / Hair / Eyes / Mouth / Accessories.
+   TPAvatar.maker(el, { value, onChange(av), labels }) draws it into el and
+   returns { get, set, random }. Used by Menu → Edit avatar and by the
+   sign-up's "Make your avatar" step. */
+(function(A){
+  var EN = { skin:'Skin', hair:'Hair', eyes:'Eyes', mouth:'Mouth', extras:'Accessories', bgc:'Background', style:'Style', bangs:'Bangs', texture:'Texture', length:'Length', colour:'Colour',
+    short:'Short', medium:'Medium', long:'Long', hs_loose:'Loose', hs_ponytail:'Ponytail', hs_pigtails:'Two ponytails', hs_braid:'Braid',
+    tx_straight:'Straight', tx_wavy:'Wavy', tx_curly:'Curly', bg_none:'None', bg_curtain:'Curtain', bg_bangs:'Full', bg_short:'Short', bg_wispy:'Wispy', bg_side:'Side',
+    eyeC:'Colour', mouthS:'Shape', glasses:'Glasses', none:'None', gl:'Glasses', sun:'Sunglasses', more:'More', piercing:'Piercing', hat:'Hat' };
+  function merge(){ var r = {}; for(var i = 0; i < arguments.length; i++){ var o = arguments[i] || {}; for(var k in o) r[k] = o[k]; } return r; }
+  A.maker = function(el, opt){
+    opt = opt || {};
+    var av = A.normalize(opt.value), cat = opt.cat || 'hair', L = merge(EN, opt.labels);
+    function t(k){ return L[k] || k; }
+    function sw(key, list){ return '<div class="avm-sw">' + list.map(function(v){ return '<button type="button" data-av="' + key + '" data-v="' + v + '" class="' + (av[key] === v ? 'on' : '') + '" style="background:' + v + '" aria-label="' + v + '"></button>'; }).join('') + '</div>'; }
+    function chips(key, list){ return '<div class="avm-chips">' + list.map(function(v){ return '<button type="button" data-av="' + key + '" data-v="' + v[0] + '" class="' + (String(av[key]) === String(v[0]) ? 'on' : '') + '">' + v[1] + '</button>'; }).join('') + '</div>'; }
+    function tile(key, v, label, o, on){ return '<button type="button" class="avm-tile' + (on ? ' on' : '') + '" data-av="' + key + '" data-v="' + v + '">' + A.render(merge(av, { glasses:false, hat:false, piercing:false }, o)) + '<span>' + label + '</span></button>'; }
+    function grp(title, body, cls){ return '<div class="avm-grp' + (cls ? ' ' + cls : '') + '"><b>' + title + '</b>' + body + '</div>'; }
+    function draw(){
+      var p = '';
+      if(cat === 'skin') p = grp(t('skin'), sw('skin', A.SKIN)) + grp(t('bgc'), sw('bg', A.BG_COLORS));
+      if(cat === 'hair') p = grp(t('style'), '<div class="avm-tiles">' + A.STYLES.map(function(v){ return tile('hairStyle', v, t('hs_' + v), { hairStyle:v }, av.hairStyle === v); }).join('') + '</div>') +
+        grp(t('bangs'), '<div class="avm-tiles six">' + A.FRINGES.map(function(v){ return tile('fringe', v, t('bg_' + v), { fringe:v }, av.fringe === v); }).join('') + '</div>') +
+        '<div class="avm-two">' + grp(t('texture'), chips('hairTexture', A.TEXTURES.map(function(v){ return [v, t('tx_' + v)]; }))) + grp(t('length'), chips('hairLength', A.LENGTHS.map(function(v){ return [v, t(v)]; }))) + '</div>' +
+        grp(t('colour'), sw('hair', A.HAIR_COLORS));
+      if(cat === 'eyes') p = grp(t('eyeC'), sw('eyes', A.EYE_COLORS));
+      if(cat === 'mouth') p = grp(t('mouthS'), '<div class="avm-tiles">' + A.MOUTHS.map(function(m){ return '<button type="button" class="avm-tile' + (av.mouthType === m ? ' on' : '') + '" data-av="mouthType" data-v="' + m + '"><svg viewBox="18 32 28 18">' + A.mouth(m, '#8A5A42') + '</svg></button>'; }).join('') + '</div>');
+      if(cat === 'extras') p = grp(t('glasses'), '<div class="avm-tiles">' + [['false', t('none'), false], ['glasses', t('gl'), 'glasses'], ['sunglasses', t('sun'), 'sunglasses']].map(function(v){ return tile('glasses', v[0], v[1], { glasses:v[2] }, String(av.glasses) === v[0]); }).join('') + '</div>') +
+        grp(t('more'), '<div class="avm-tiles">' + tile('piercing', '1', t('piercing'), { piercing:true }, av.piercing) + tile('hat', '1', t('hat'), { hat:true }, av.hat) + '</div>');
+      el.innerHTML = '<div class="avm-cats" role="tablist">' + ['skin', 'hair', 'eyes', 'mouth', 'extras'].map(function(k){ return '<button type="button" role="tab" data-cat="' + k + '" class="' + (cat === k ? 'on' : '') + '" aria-selected="' + (cat === k) + '">' + t(k) + '</button>'; }).join('') + '</div><div class="avm-panel">' + p + '</div>';
+    }
+    el.classList.add('avm');
+    el.addEventListener('click', function(e){
+      var b = e.target.closest('[data-cat],[data-av]'); if(!b || !el.contains(b)) return;
+      e.stopPropagation();
+      if(b.hasAttribute('data-cat')){ cat = b.getAttribute('data-cat'); draw(); return; }
+      var k = b.getAttribute('data-av'), v = b.getAttribute('data-v');
+      av[k] = k === 'mouthType' ? +v : k === 'glasses' ? (v === 'false' ? false : v) : (k === 'piercing' || k === 'hat') ? !av[k] : v;
+      draw(); if(opt.onChange) opt.onChange(merge(av));
+    });
+    draw();
+    return {
+      get: function(){ return merge(av); },
+      set: function(v){ av = A.normalize(v); draw(); },
+      random: function(){ var keepBg = av.bg; av = A.randomize(); if(opt.keepBg) av.bg = keepBg; draw(); if(opt.onChange) opt.onChange(merge(av)); return merge(av); }
+    };
+  };
+  A.DICE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/></svg>';
+})(window.TPAvatar);
 </script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,6 +271,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27><rect x=%272%27 y=%272%27 width=%2728%27 height=%2728%27 rx=%278%27 fill=%27%23f7f1ea%27/><path d=%27M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z%27 fill=%27%23ef9a5c%27/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="onboarding.css">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <style>
   /* Vivid/joyful palette — pink, mint, and warm coral lifted from a kawaii-style
@@ -307,7 +528,7 @@
      clean stack of circles. */
   .pill .pill-access-face { position:relative; display:inline-block; width:16px; height:16px; border-radius:50%;
     overflow:hidden; border:1.5px solid var(--card); margin-left:-5px; background:var(--card); opacity:1; }
-  .pill.on .pill-access-face { border-color:#fff; background:#fff; }
+  .pill.on .pill-access-face { border-color:#fff; background:var(--card); }
   .pill-access-face:first-child { margin-left:0; }
   .pill-access-face svg { display:block; width:100%; height:100%; }
   /* Situational awareness, not a badge that changes any actual access —
@@ -541,7 +762,7 @@
        separately find and enable "Background graphics" in the print
        dialog on top of everything else already covered there. */
     * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
-    body { background:#fff; padding:0; }
+    body { background:var(--card); padding:0; }
     html, body { visibility:visible !important; }
     .panel { display:block !important; page-break-after:always; }
     .panel:last-of-type { page-break-after:auto; }
@@ -714,7 +935,7 @@
      from a month tab was already doing that job on its own. */
   .month-segment[data-year-seg] { position:fixed; right:auto; bottom:auto; width:80px;
     z-index:45; box-shadow:0 2px 8px rgba(0,0,0,.15);
-    background-color:#fff; color:var(--ink); }
+    background-color:var(--card); color:var(--ink); }
   .month-segment[data-year-seg] .seg-label { color:var(--ink); }
   /* Right padding only, not symmetric — flex justify-content:center
      centers the label's own OUTER box (padding included) as a whole
@@ -1201,7 +1422,7 @@
 
   [contenteditable="true"] { border-radius:4px; }
   [contenteditable="true"]:hover { background:rgba(217,102,63,.06); }
-  [contenteditable="true"]:focus { outline:1px solid var(--primary); background:#fff; color:var(--ink); }
+  [contenteditable="true"]:focus { outline:1px solid var(--primary); background:var(--card); color:var(--ink); }
 
   .acts li { position:relative; }
   .acts li:hover .photopreview { display:block; }
@@ -1223,7 +1444,7 @@
   .linkpreview-wrap.show { display:block; }
   .linkpreview { display:flex; align-items:flex-start; gap:8px; width:min(30vw, 320px); max-width:80vw; box-sizing:border-box;
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25); text-align:left;
-    border:2px solid var(--card); background:#fff; padding:10px 12px; }
+    border:2px solid var(--card); background:var(--card); padding:10px 12px; }
   /* Round icon chip, same visual language as .map-avatar's circle — leads
      the card the way an actual image would on a photo preview. */
   .linkpreview-icon { flex:0 0 24px; width:24px; height:24px; border-radius:50%;
@@ -1294,7 +1515,7 @@
   .paysplit-email { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .paysplit-amount { width:64px; box-sizing:border-box; border:1px solid var(--line); border-radius:6px;
     padding:3px 6px; font-size:12px; text-align:right; color:var(--ink); background:var(--bg); }
-  .paysplit-amount:focus { outline:1px solid var(--primary); background:#fff; }
+  .paysplit-amount:focus { outline:1px solid var(--primary); background:var(--card); }
 
   /* vertical-align:middle lines the icon's own box up with the chip's,
      but the chip's emoji glyph (its tallest content) sits slightly
@@ -1336,7 +1557,7 @@
      the photo at a natural, appropriately-shaped size. */
   .photoicon .photopreview, .ticketicon .photopreview { display:block; max-width:min(30vw, 420px); max-height:34vh;
     object-fit:contain; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
-    border:2px solid var(--card); background:#fff; }
+    border:2px solid var(--card); background:var(--card); }
   /* A PDF ticket's preview (see buildTicketPreviewWrap/dataUrlToBlobUrl)
      — an <iframe> instead of an <img>, so it needs an explicit width/
      height rather than object-fit sizing off the media's own natural
@@ -1348,7 +1569,7 @@
      which hides Chrome's own toolbar but leaves scrolling intact). */
   .ticketpdf-preview { display:block; width:min(30vw, 420px); height:55vh;
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.25);
-    border:2px solid var(--card); background:#fff; }
+    border:2px solid var(--card); background:var(--card); }
   /* Sits on top of the preview thumbnail itself rather than beside it, so
      the two actions are reachable from the same hover area that reveals
      the thumbnail in the first place — no separate hover target to find. */
@@ -1409,7 +1630,7 @@
   .banner-label:focus { outline:1px solid rgba(255,255,255,.8); background:rgba(255,255,255,.4); }
   .banner-remove { border:none; background:rgba(255,255,255,.4); color:var(--secondary); border-radius:50%;
     width:14px; height:14px; font-size:8px; line-height:14px; padding:0; cursor:pointer; vertical-align:middle; }
-  .banner-remove:hover { background:#fff; }
+  .banner-remove:hover { background:var(--card); }
   .addholiday { display:inline-block; width:auto; margin:0 0 8px; border:1px dashed var(--secondary); background:transparent;
     color:var(--secondary); border-radius:999px; padding:3px 10px; font-size:10px; font-weight:700; cursor:pointer;
     text-transform:uppercase; letter-spacing:.04em; opacity:.75; }
@@ -1677,36 +1898,55 @@
      CSS visibility lets a descendant re-show itself even when an ancestor
      set visibility:hidden, unlike display:none which no descendant rule
      can override. */
-  #authGate { display:none; visibility:visible; position:fixed; inset:0; z-index:9999;
-    align-items:center; justify-content:center; flex-direction:column; gap:14px;
-    background:var(--bg); text-align:center; padding:24px; }
-  #authGate.show { display:flex; }
-  #authGate h1 { font-size:20px; margin:0; display:flex; align-items:center; gap:8px; }
-  #authGate .authMsg { color:var(--muted); font-size:13px; max-width:320px; }
+  /* Sign-in: half a picture of the app (left, see onboarding.js), half the
+     form (right). One column on a phone. */
+  #authGate { display:none; visibility:visible; position:fixed; inset:0; z-index:9999; background:var(--card); color:var(--ink); }
+  #authGate.show { display:grid; grid-template-columns:1fr 1fr; }
+  #authGate .auth-left { position:relative; background:color-mix(in srgb, var(--primary) 18%, var(--card)); display:flex; align-items:center; justify-content:center; padding:84px 40px 90px; overflow:hidden; }
+  #authGate .auth-right { position:relative; display:flex; align-items:center; justify-content:center; padding:70px 40px 40px; overflow:auto; }
+  #authGate .auth-card { width:100%; max-width:400px; display:flex; flex-direction:column; align-items:stretch; gap:12px; text-align:left; }
+  #authGate .auth-logo { position:absolute; left:32px; bottom:28px; display:flex; align-items:center; gap:10px; font-size:19px; font-weight:800; letter-spacing:-.01em; margin:0; color:var(--ink); }
+  #authGate .auth-logo .mark { width:34px; height:34px; border-radius:10px; background:#fff; display:grid; place-items:center; box-shadow:0 2px 8px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.05); }
+  #authGate .auth-logo .mark svg { width:22px; height:22px; }
+  #authGate .auth-lang { position:absolute; right:28px; top:24px; display:flex; align-items:center; gap:6px; color:var(--muted); }
+  #authGate .auth-lang svg { width:18px; height:18px; }
+  #authGate .auth-lang select { border:1px solid var(--line); border-radius:999px; padding:5px 10px; background:var(--card); color:var(--ink); font:inherit; font-weight:700; font-size:13px; }
+  #authGate .auth-title { margin:0; font-size:32px; font-weight:800; line-height:1.12; letter-spacing:-.02em; }
+  #authGate .auth-sub { margin:-4px 0 14px; color:var(--muted); font-weight:600; font-size:15px; line-height:1.5; }
+  #authGate .authMsg { color:var(--muted); font-size:14px; }
   #authGate .authMsg:empty { display:none; }
-  #authGate .authDenied { color:#b3261e; font-size:13px; max-width:320px; }
-  #authGate .authVerify { color:var(--ink); font-size:13px; max-width:320px; }
-  #authGate button { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:10px 20px;
-    border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--ink);
-    font-size:14px; font-weight:700; cursor:pointer; }
-  #authGate button:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
-  #authGate #authOr { display:flex; align-items:center; gap:10px; width:100%; max-width:280px;
-    color:var(--muted); font-size:12px; }
+  #authGate .authDenied { color:#b3261e; font-size:14px; }
+  #authGate .authVerify { color:var(--ink); font-size:14px; line-height:1.5; }
+  #authGate button { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:13px 20px;
+    border-radius:14px; border:1.5px solid var(--line); background:var(--card); color:var(--ink);
+    font:inherit; font-size:15px; font-weight:800; cursor:pointer; }
+  #authGate button:hover { border-color:color-mix(in srgb, var(--ink) 35%, var(--line)); }
+  #authGate .auth-title, #authGate .auth-sub, #authGate .authMsg, #authGate .authDenied, #authGate .authVerify { order:-2; }
+  #authGate #authSignInBtn { order:-1; }
+  #authGate #authOr { order:-1; display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12.5px; font-weight:700; margin:2px 0; }
   #authGate #authOr::before, #authGate #authOr::after { content:''; flex:1; height:1px; background:var(--line); }
-  #authGate .auth-email-form { display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; }
-  #authGate .auth-email-form input { padding:10px 12px; border-radius:8px; border:1px solid var(--line);
-    background:var(--card); color:var(--ink); font-size:14px; }
-  #authGate #authEmailError { color:#b3261e; font-size:12px; min-height:14px; margin:0; text-align:left; }
-  /* The one button someone's actually about to use (they just typed into
-     two fields right above it) gets the app's own accent color, same
-     weight as every other primary action elsewhere (.modal-primary-btn,
-     the share-link copy button) — Google, right below, reads as the
-     lighter-weight alternative by contrast alone, no extra label needed. */
-  #authGate .auth-primary-btn { width:100%; background:var(--primary); color:var(--on-primary, #fff); border-color:var(--primary); }
-  #authGate .auth-email-footer { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; }
+  #authGate .auth-email-form { display:flex; flex-direction:column; gap:10px; }
+  #authGate .auth-email-form input { padding:13px 14px; border-radius:12px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); font:inherit; font-size:15px; font-weight:600; outline:none; }
+  #authGate .auth-email-form input:focus { border-color:var(--ink); }
+  #authGate #authEmailError { color:#b3261e; font-size:12.5px; min-height:0; margin:0; }
+  #authGate #authEmailError:empty { display:none; }
+  #authGate .auth-primary-btn { width:100%; margin-top:6px; background:var(--primary); color:var(--on-primary, #fff); border-color:var(--primary); font-size:16px; padding:15px; }
+  #authGate .auth-primary-btn:hover { border-color:var(--primary); filter:brightness(.97); }
+  #authGate .auth-email-footer { display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; margin-top:4px; flex-wrap:wrap; }
   #authGate .auth-email-footer-sep { color:var(--line); }
-  #authGate .auth-link-btn { border:none; background:none; padding:2px; font-size:12px; font-weight:600;
-    color:var(--muted); text-decoration:underline; box-shadow:none !important; }
+  #authGate .auth-link-btn { border:none; background:none; padding:2px; font-size:13px; font-weight:700; color:var(--muted); text-decoration:none; }
+  #authGate .auth-link-btn:hover { color:var(--ink); border:none; }
+  #authGate .auth-link-btn.strong { color:var(--primary-ink, var(--ink)); }
+  /* "Create account" or "Log in": one primary button, the other way in is a link */
+  #authGate[data-auth="signup"] #authEmailLoginBtn, #authGate[data-auth="signup"] #authForgotBtn, #authGate[data-auth="signup"] .auth-email-footer-sep, #authGate[data-auth="signup"] .auth-login-only,
+  #authGate[data-auth="login"] .auth-signup-only { display:none; }
+  #authGate #authEmailSignupBtn { display:none; }
+  #authGate:not([data-state="signin"]) .auth-title, #authGate:not([data-state="signin"]) .auth-sub, #authGate:not([data-state="signin"]) .auth-email-footer { display:none; }
+  @media (max-width:820px) {
+    #authGate.show { grid-template-columns:1fr; }
+    #authGate .auth-left { display:none; }
+    #authGate .auth-right { padding:70px 20px 30px; }
+  }
   /* Every state-transition element gets listed once per state it should
      stay HIDDEN in — same convention as the original four states, just
      extended to also cover the new email/password form and the
@@ -2139,6 +2379,9 @@
           color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg))) 52%,
           color-mix(in srgb, var(--secondary) 22%, var(--bg)) 100%); }
     :root[data-backdrop="minimal"] body::before, :root[data-backdrop="minimal"] body::after { display:none !important; }
+    /* Flat (the standard): just the theme's page colour. */
+    :root[data-backdrop="flat"]:not(#tp) { --backdrop-color:var(--bg); --backdrop:none; }
+    :root[data-backdrop="flat"] body::before, :root[data-backdrop="flat"] body::after { display:none !important; }
     /* Sits on a coloured page now, so the year heading and the "+" need
        a little more weight than they did on white. */
     .month-segment[data-year-seg] .seg-label-short { color:var(--ink); opacity:.7; }
@@ -2160,6 +2403,11 @@
   .backdrop-dot[data-backdrop-name="magical"] { background:
     radial-gradient(circle at 30% 30%, #fff 0 1.5px, transparent 2.5px), radial-gradient(circle at 68% 62%, #fff 0 1.2px, transparent 2.2px),
     linear-gradient(135deg, color-mix(in srgb, var(--primary) 50%, #fff), color-mix(in srgb, var(--accent) 38%, #fff) 55%, color-mix(in srgb, var(--secondary) 45%, #fff)); }
+  .backdrop-dot[data-backdrop-name="flat"] { background:var(--bg); }
+  .mode-dot { width:30px; height:26px; padding:0; border-radius:8px; border:2px solid transparent; background:var(--bg); color:var(--ink); cursor:pointer; display:inline-grid; place-items:center; }
+  .mode-dot svg { width:15px; height:15px; }
+  .mode-dot:hover { background:var(--line); }
+  .mode-dot.active { border-color:var(--ink); }
   .backdrop-dot[data-backdrop-name="minimal"] { background:linear-gradient(170deg,
     color-mix(in srgb, var(--primary) 16%, var(--bg)), color-mix(in srgb, var(--ink) 16%, var(--bg))); }
   @media screen and (max-width: 720px) { .actionMenuBackdropRow { display:none; } }
@@ -2784,7 +3032,7 @@
        angle; they straighten and lift a touch on hover. */
     #actionMenuBtn, #sideSearch .ss-btn, #sideToggle {
       width:34px !important; height:34px !important; border-radius:50% !important; opacity:1 !important;
-      background-color:#fff !important; border:3px solid #fff !important;
+      background-color:var(--card) !important; border:3px solid #fff !important;
       /* a thick white die-cut edge, a hairline where it was cut, and a
          slightly offset shadow as if it's stuck on and lifting a little */
       box-shadow:0 0 0 1px rgba(61,53,104,.12), 1px 3px 0 -1px rgba(61,53,104,.14), 2px 6px 10px -3px rgba(40,25,60,.32) !important;
@@ -2804,7 +3052,7 @@
   .fabadd-per { display:inline-flex; align-items:center; gap:2px; padding:3px; border-radius:999px; background:var(--bg); flex:none; align-self:center; }
   .fabadd-per[hidden] { display:none; }
   .fabadd-per button { height:30px; padding:0 11px; border:none; border-radius:999px; background:none; color:var(--muted); font:inherit; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; }
-  .fabadd-per button[aria-pressed="true"] { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(30,22,50,.15); }
+  .fabadd-per button[aria-pressed="true"] { background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(30,22,50,.15); }
   .acts > li > .night-share, .acts > li.stay-ghost > .night-share { display:block; font-size:12px; font-weight:700; color:var(--muted); }
   .acts > li.act-span-ghost.stay-ghost > .night-share { opacity:.8; }
   .fabadd-amount-row #fabAddCurrencySelect { flex:0 0 112px; }
@@ -2812,7 +3060,7 @@
   .fabadd-split[hidden] { display:none; }
   .fs-head { display:flex; align-items:center; margin-bottom:6px; }
   .fs-head .fabadd-label { margin:0; flex:1; }
-  .fs-equal { border:none; background:#fff; color:var(--ink); font:inherit; font-size:12px; font-weight:800; border-radius:999px; padding:4px 10px; cursor:pointer; }
+  .fs-equal { border:none; background:var(--card); color:var(--ink); font:inherit; font-size:12px; font-weight:800; border-radius:999px; padding:4px 10px; cursor:pointer; }
   .fs-equal:hover { background:var(--primary); color:var(--on-primary, #fff); }
   .fs-row { display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; }
   .fs-row.off .fs-name, .fs-row.off .fs-face { opacity:.4; }
@@ -2822,12 +3070,12 @@
   .fs-row.off .fs-face { filter:grayscale(1); }
   .fs-colrow .fs-hint { flex:1; align-self:flex-end; font-size:11px; font-weight:700; color:var(--muted); letter-spacing:0; text-transform:none; }
   /* Own checkbox: the plan colour with a white tick. */
-  .fs-row .fs-in { -webkit-appearance:none; appearance:none; width:18px; height:18px; margin:0; flex:none; border-radius:5px; border:2px solid var(--line); background:#fff; cursor:pointer; }
+  .fs-row .fs-in { -webkit-appearance:none; appearance:none; width:18px; height:18px; margin:0; flex:none; border-radius:5px; border:2px solid var(--line); background:var(--card); cursor:pointer; }
   .fs-row .fs-in:checked { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px 16px no-repeat; }
   .fs-face { width:24px; height:24px; border-radius:50%; overflow:hidden; flex:none; }
   .fs-face svg { width:100%; height:100%; display:block; }
   .fs-name { flex:1; min-width:0; font-weight:700; font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .fs-amt { width:96px; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 8px; font:inherit; font-size:14px; color:var(--ink); background:#fff; }
+  .fs-amt { width:96px; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 8px; font:inherit; font-size:14px; color:var(--ink); background:var(--card); }
   .fs-amt:disabled { opacity:.4; }
   .fs-left { font-size:12.5px; font-weight:800; color:var(--muted); margin-top:4px; text-align:right; }
   .fs-left.over { color:#d6455d; }
@@ -2836,7 +3084,7 @@
   @media screen and (min-width: 721px) {
     /* the payments pill stays in the top row, column open or closed */
     #payPill { display:inline-flex; align-items:center; gap:10px; height:30px; padding:0 12px 0 6px; margin-right:10px; border-radius:999px;
-      background:#fff; box-shadow:0 1px 4px rgba(40,25,60,.12); font-size:13px; font-weight:800; color:var(--ink); white-space:nowrap; }
+      background:var(--card); box-shadow:0 1px 4px rgba(40,25,60,.12); font-size:13px; font-weight:800; color:var(--ink); white-space:nowrap; }
     #payPill .pp-item { display:inline-flex; align-items:center; gap:5px; }
     #payPill .pp-face { width:20px; height:20px; border-radius:50%; overflow:hidden; display:inline-block; }
     #payPill .pp-face svg { width:100%; height:100%; display:block; }
@@ -2885,7 +3133,7 @@
   .paysplit-row .paysplit-amount::placeholder { color:var(--muted); font-style:italic; }
 
   #payPill { position:relative; }
-  #payPill .pp-debts { display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:260px; padding:10px 12px; border-radius:14px; background:#fff;
+  #payPill .pp-debts { display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:260px; padding:10px 12px; border-radius:14px; background:var(--card);
     box-shadow:0 12px 30px rgba(40,25,60,.22); flex-direction:column; gap:6px; z-index:6; white-space:nowrap; }
   #payPill:hover .pp-debts { display:flex; }
   #payPill:hover [data-tip]:hover::after { display:none; }
@@ -2904,7 +3152,7 @@
     #fabAddPanel .map-inner { max-height:calc(100vh - 24px); overflow-y:auto; }
   }
 
-  .fs-mode { display:flex; gap:4px; padding:3px; border-radius:999px; background:#fff; margin:2px 0 8px; }
+  .fs-mode { display:flex; gap:4px; padding:3px; border-radius:999px; background:var(--card); margin:2px 0 8px; }
   .fs-mode button { flex:1; border:none; background:none; border-radius:999px; padding:6px 10px; font:inherit; font-size:12.5px; font-weight:800; color:var(--muted); cursor:pointer; white-space:nowrap; }
   .fs-mode button.on { background:var(--primary); color:var(--on-primary, #fff); }
   .paysplit-mode { background:var(--bg); margin:6px 10px; }
@@ -2954,15 +3202,15 @@
   #fabAddPanel .gc-newtag .fabadd-select { height:34px !important; margin:0 !important; font-size:13.5px !important; }
   #fabAddPanel .gc-newtag .nt-icon { width:48px; flex:none; text-align:center; }
   #fabAddPanel .gc-newtag .nt-name { flex:1; min-width:0; }
-  #fabAddPanel .gc-newtag .nt-color { width:34px; height:34px; flex:none; border:1px solid var(--line); border-radius:8px; padding:2px; background:#fff; cursor:pointer; }
+  #fabAddPanel .gc-newtag .nt-color { width:34px; height:34px; flex:none; border:1px solid var(--line); border-radius:8px; padding:2px; background:var(--card); cursor:pointer; }
   #fabAddPanel .gc-newtag .nt-add { flex:none; height:34px; border:none; border-radius:8px; padding:0 12px; background:var(--primary); color:var(--on-primary, #fff); font:inherit; font-weight:800; font-size:13px; cursor:pointer; }
 
   #fabAddPanel .fabadd-split.no-price { display:none; }
 
   #fabAddPanel .tc-native { display:none !important; }
   #fabAddPanel .gc-row { position:relative; }
-  #fabAddPanel .tc-btn { flex:1; min-width:0; text-align:left; cursor:pointer; color:var(--ink); background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px !important; padding-right:28px !important; }
-  #typeComboDD { position:absolute; left:32px; right:0; top:calc(100% + 4px); z-index:10; background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); padding:6px; }
+  #fabAddPanel .tc-btn { flex:1; min-width:0; text-align:left; cursor:pointer; color:var(--ink); background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px !important; padding-right:28px !important; }
+  #typeComboDD { position:absolute; left:32px; right:0; top:calc(100% + 4px); z-index:10; background:var(--card); border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); padding:6px; }
   #typeComboDD[hidden] { display:none; }
   #typeComboDD .tc-q { width:100%; height:34px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 10px; font:inherit; font-size:14px; color:var(--ink); margin-bottom:4px; }
   #typeComboDD .tc-q:focus { outline:none; border-color:var(--primary); }
@@ -2999,7 +3247,7 @@
   #fabAddPanel .gc-clear { flex:none; width:28px; height:28px; border:none; border-radius:50%; background:none; color:var(--muted); font:inherit; font-size:18px; line-height:1; cursor:pointer; }
   #fabAddPanel .gc-clear:hover { background:var(--bg); color:var(--ink); }
 
-  #dayPickDD { position:fixed; z-index:10000; width:280px; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(30,22,50,.22); padding:12px 12px 10px; }
+  #dayPickDD { position:fixed; z-index:10000; width:280px; background:var(--card); border-radius:10px; box-shadow:0 6px 18px rgba(30,22,50,.22); padding:12px 12px 10px; }
   #dayPickDD[hidden] { display:none; }
   #dayPickDD .dp-head { display:flex; align-items:center; gap:4px; margin:0 2px 8px 6px; }
   #dayPickDD .dp-title { flex:1; font-weight:800; font-size:14.5px; color:var(--ink); text-transform:capitalize; }
@@ -3016,9 +3264,9 @@
   #fabAddPanel .dp-btn { text-transform:capitalize; }
 
   .mp-btn { flex:1 1 0; min-width:0; height:40px; box-sizing:border-box; text-align:left; border:1px solid var(--line); border-radius:8px; padding:0 28px 0 12px; font:inherit; font-size:14px; color:var(--ink); cursor:pointer;
-    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px; }
+    background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239a8fbf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 12px 12px; }
   .mp-btn.open { border-color:var(--primary); }
-  .mp-dd { position:fixed; z-index:10001; width:244px; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(30,22,50,.22); padding:12px; }
+  .mp-dd { position:fixed; z-index:10001; width:244px; background:var(--card); border-radius:10px; box-shadow:0 6px 18px rgba(30,22,50,.22); padding:12px; }
   .mp-dd[hidden] { display:none; }
   .mp-dd .dp-head { display:flex; align-items:center; gap:4px; margin:0 2px 8px 6px; }
   .mp-dd .dp-title { flex:1; font-weight:800; font-size:14.5px; color:var(--ink); }
@@ -3031,7 +3279,7 @@
   .mp-m.sel { background:var(--primary); color:var(--on-primary, #fff); font-weight:800; }
 
   /* Every checkbox: the app's own, pink with a white tick. */
-  input[type="checkbox"] { -webkit-appearance:none; appearance:none; width:18px; height:18px; margin:0; flex:none; border-radius:5px; border:2px solid var(--line); background:#fff; cursor:pointer; vertical-align:middle; }
+  input[type="checkbox"] { -webkit-appearance:none; appearance:none; width:18px; height:18px; margin:0; flex:none; border-radius:5px; border:2px solid var(--line); background:var(--card); cursor:pointer; vertical-align:middle; }
   input[type="checkbox"]:checked { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px 16px no-repeat; }
   input[type="checkbox"]:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 
@@ -3070,7 +3318,7 @@
   #printPanel input[type="checkbox"] { accent-color:var(--primary); }
   /* radio buttons in the app's own look: a soft lavender ring, pink when chosen */
   #printPanel input[type="radio"] { appearance:none; -webkit-appearance:none; flex:none; width:18px; height:18px; margin:0; border-radius:50%; cursor:pointer;
-    border:2px solid var(--line); background:#fff; transition:border-color .12s, background .12s; vertical-align:middle; }
+    border:2px solid var(--line); background:var(--card); transition:border-color .12s, background .12s; vertical-align:middle; }
   #printPanel input[type="radio"]:hover { border-color:#d9c8ec; }
   #printPanel input[type="radio"]:checked { border-color:var(--primary); background:radial-gradient(circle, var(--primary) 0 4px, #fff 4.5px); }
   #printPanel input[type="radio"]:focus { outline:none; }
@@ -3084,11 +3332,11 @@
   .notes-page .np-mention.me:hover .np-who { background:#0747a6; }
   .notes-page .np-mention .np-msg { margin-left:4px; color:var(--ink); }
   .notes-page .np-mention:hover .np-msg { text-decoration:underline; text-decoration-color:rgba(66,82,110,.35); text-underline-offset:3px; }
-  #mentionMsg { position:fixed; z-index:10005; width:320px; padding:12px 14px; background:#fff; border-radius:12px; box-shadow:0 10px 26px rgba(30,22,50,.24), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  #mentionMsg { position:fixed; z-index:10005; width:320px; padding:12px 14px; background:var(--card); border-radius:12px; box-shadow:0 10px 26px rgba(30,22,50,.24), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #mentionMsg[hidden] { display:none; }
   #mentionMsg .mm-title { font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--primary-ink, var(--primary)); margin-bottom:8px; }
   #mentionMsg textarea { display:block; width:100%; box-sizing:border-box; resize:none; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; font-weight:600; color:var(--ink); background:var(--bg); outline:none; }
-  #mentionMsg textarea:focus { border-color:var(--primary); background:#fff; }
+  #mentionMsg textarea:focus { border-color:var(--primary); background:var(--card); }
   #mentionMsg .mm-foot { display:flex; align-items:center; gap:10px; margin-top:8px; }
   #mentionMsg .mm-hint { flex:1; font-size:11px; font-weight:700; color:var(--muted); text-align:right; }
   #mentionMsg .mm-ok { border:none; border-radius:8px; padding:7px 14px; background:var(--primary); color:var(--on-primary, #fff); font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
@@ -3096,7 +3344,7 @@
   #mentionMsg .mm-remove[hidden] { display:none; }
   #bellDD .bd-msg { display:block; margin-top:5px; padding:6px 10px; border-left:3px solid var(--primary); border-radius:0 8px 8px 0; background:var(--bg); font-weight:600; }
   @media print { #mentionMsg { display:none !important; } }
-  #mentionDD { position:fixed; z-index:10003; min-width:200px; padding:6px 0; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
+  #mentionDD { position:fixed; z-index:10003; min-width:200px; padding:6px 0; background:var(--card); border-radius:8px; box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
   #mentionDD[hidden], #bellDD[hidden] { display:none; }
   #mentionDD .md-opt { display:flex; align-items:center; gap:9px; padding:7px 14px; font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; }
   #mentionDD .md-opt.act, #mentionDD .md-opt:hover { background:var(--bg); }
@@ -3107,7 +3355,7 @@
   .page-bell:hover { background:rgba(255,255,255,.9); opacity:1; } .page-bell:focus { outline:none; }
   .page-bell svg { width:17px; height:17px; }
   .page-bell .bell-dot { display:none; position:absolute; top:1px; right:0; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px; background:#e5484d; color:#fff; font-size:10px; font-weight:800; line-height:16px; text-align:center; box-shadow:0 0 0 2px #fff; }
-  #bellDD { position:fixed; z-index:10002; width:320px; max-height:70vh; overflow-y:auto; padding:6px 0; background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  #bellDD { position:fixed; z-index:10002; width:320px; max-height:70vh; overflow-y:auto; padding:6px 0; background:var(--card); border-radius:12px; box-shadow:0 14px 34px rgba(30,22,50,.28), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #bellDD .bd-head { display:flex; justify-content:space-between; align-items:center; padding:8px 14px 6px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
   #bellDD .bd-all { border:none; background:none; padding:0; font:inherit; font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; color:var(--primary-ink, var(--primary)); cursor:pointer; }
   #bellDD .bd-item { display:flex; gap:10px; align-items:flex-start; padding:9px 14px; font-size:13.5px; line-height:1.35; cursor:pointer; }
@@ -3117,7 +3365,7 @@
   #bellDD .bd-empty { padding:10px 14px 14px; color:var(--muted); font-weight:600; font-size:13px; line-height:1.4; }
   @media print { .page-bell, #bellDD, #mentionDD { display:none !important; } }
   /* "Feedback": a labelled button floating bottom-left, easy to spot */
-  .page-idea { position:fixed; left:12px; bottom:16px; z-index:900; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 13px 0 10px; border:none; border-radius:999px; background:#fff; color:var(--primary-ink, var(--primary)); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px -3px rgba(40,25,60,.25), 0 0 0 1px rgba(var(--primary-rgb), .25); white-space:nowrap; }
+  .page-idea { position:fixed; left:12px; bottom:16px; z-index:900; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 13px 0 10px; border:none; border-radius:999px; background:var(--card); color:var(--primary-ink, var(--primary)); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px -3px rgba(40,25,60,.25), 0 0 0 1px rgba(var(--primary-rgb), .25); white-space:nowrap; }
   .page-idea:hover { background:#fdf3f8; }
   .page-idea { box-shadow:0 6px 18px -6px rgba(40,25,60,.35), 0 0 0 1px rgba(var(--primary-rgb), .25) !important; }
   @media screen and (max-width:720px) { .page-idea { display:none !important; } }
@@ -3125,7 +3373,7 @@
   .page-idea svg { width:16px; height:16px; }
   #ideaPop { position:fixed; inset:0; z-index:10010; display:flex; align-items:center; justify-content:center; background:rgba(40,25,60,.28); }
   #ideaPop[hidden] { display:none; }
-  #ideaPop .ip-card { width:min(480px, calc(100vw - 32px)); background:#fff; border-radius:18px; padding:22px 24px 20px; box-shadow:0 24px 60px rgba(30,22,50,.3); color:var(--ink); font-family:inherit; }
+  #ideaPop .ip-card { width:min(480px, calc(100vw - 32px)); background:var(--card); border-radius:18px; padding:22px 24px 20px; box-shadow:0 24px 60px rgba(30,22,50,.3); color:var(--ink); font-family:inherit; }
   #ideaPop h3 { margin:0; font-size:19px; font-weight:800; display:flex; align-items:center; gap:8px; }
   #ideaPop h3 svg { width:20px; height:20px; color:var(--primary-ink, var(--primary)); }
   #ideaPop .ip-kinds { display:flex; gap:6px; margin:14px 0 2px; }
@@ -3135,12 +3383,12 @@
   #ideaPop .ip-kinds button.on { background:rgba(var(--primary-rgb), .12); color:var(--primary-ink, var(--primary)); box-shadow:inset 0 0 0 1.5px rgba(var(--primary-rgb), .5); }
   #ideaPop .ip-sub { margin:4px 0 14px; font-size:13.5px; font-weight:600; color:var(--muted); }
   #ideaPop textarea { display:block; width:100%; box-sizing:border-box; min-height:120px; resize:vertical; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font:inherit; font-size:14.5px; font-weight:600; color:var(--ink); background:var(--bg); outline:none; }
-  #ideaPop textarea:focus { border-color:var(--primary); background:#fff; }
+  #ideaPop textarea:focus { border-color:var(--primary); background:var(--card); }
   #ideaPop .ip-imgs { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
   #ideaPop .ip-thumb { position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; box-shadow:0 0 0 1px var(--line); }
   #ideaPop .ip-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
   #ideaPop .ip-thumb button { position:absolute; top:3px; right:3px; width:20px; height:20px; border:none; border-radius:50%; background:rgba(40,25,60,.65); color:#fff; font-size:12px; line-height:20px; padding:0; cursor:pointer; }
-  #ideaPop .ip-add { display:flex; width:100%; align-items:center; justify-content:center; gap:9px; height:58px; margin-top:10px; padding:0 14px; border:1.5px solid var(--line); border-radius:12px; background:#fff; font:inherit; font-size:13.5px; font-weight:800; color:var(--muted); cursor:pointer; text-align:left; }
+  #ideaPop .ip-add { display:flex; width:100%; align-items:center; justify-content:center; gap:9px; height:58px; margin-top:10px; padding:0 14px; border:1.5px solid var(--line); border-radius:12px; background:var(--card); font:inherit; font-size:13.5px; font-weight:800; color:var(--muted); cursor:pointer; text-align:left; }
   #ideaPop .ip-add[hidden] { display:none; }
   #ideaPop .ip-add:hover { color:var(--ink); border-color:#d8cbe9; }
   #ideaPop .ip-add svg { width:17px; height:17px; }
@@ -3203,7 +3451,7 @@
   .wx.avg.first { background:var(--card); }
   .cellhead > .wx.avg.sm { padding:0 2px; margin-left:4px; }
   /* the hover card: hour by hour */
-  #wxCard { position:fixed; z-index:10030; width:330px; background:#fff; border-radius:16px; padding:13px 15px 11px; box-shadow:0 22px 44px -16px rgba(40,25,60,.42), 0 0 0 1px var(--line); color:var(--ink); }
+  #wxCard { position:fixed; z-index:10030; width:330px; background:var(--card); border-radius:16px; padding:13px 15px 11px; box-shadow:0 22px 44px -16px rgba(40,25,60,.42), 0 0 0 1px var(--line); color:var(--ink); }
   #wxCard[hidden] { display:none; }
   #wxCard .wxc-h { display:flex; align-items:center; gap:6px; font-size:14.5px; font-weight:900; }
   #wxCard .wxc-badge { font-size:9.5px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; border-radius:999px; padding:2px 7px; }
@@ -3294,14 +3542,14 @@
   #dayMap .dm-clip svg { width:100%; height:100%; display:block; overflow:visible; filter:drop-shadow(0 1px .6px rgba(40,25,60,.25)); }
   #dayMap .dm-clip.back { z-index:2; } #dayMap .dm-clip.front { z-index:9; }
   /* travel times on the route */
-  .dm-seg { display:inline-flex; align-items:center; gap:4px; background:#fff; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; color:var(--ink); box-shadow:0 2px 8px rgba(40,25,60,.2); white-space:nowrap; font-family:var(--font); pointer-events:none; }
+  .dm-seg { display:inline-flex; align-items:center; gap:4px; background:var(--card); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; color:var(--ink); box-shadow:0 2px 8px rgba(40,25,60,.2); white-space:nowrap; font-family:var(--font); pointer-events:none; }
   .dm-seg svg { width:12px; height:12px; flex:none; }
   #dayMap .dm-note { position:absolute; z-index:6; left:50%; bottom:22px; transform:translateX(-50%); max-width:calc(100% - 60px); background:rgba(255,255,255,.95); border-radius:12px; padding:7px 12px;
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
   #dayMap .dm-note:empty { display:none; }
   #dayMap .dm-note { bottom:58px; }
   /* search a place, at the foot of the map */
-  #dayMap .dm-search { position:absolute; z-index:7; left:14px; right:14px; bottom:14px; display:flex; align-items:center; gap:8px; height:42px; padding:0 14px; border-radius:12px; background:#fff;
+  #dayMap .dm-search { position:absolute; z-index:7; left:14px; right:14px; bottom:14px; display:flex; align-items:center; gap:8px; height:42px; padding:0 14px; border-radius:12px; background:var(--card);
     box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 1px rgba(61,53,104,.08); font-family:var(--font); color:var(--ink); }
   #dayMap .dm-search > svg { width:17px; height:17px; flex:none; color:var(--muted); }
   #dayMap .dm-search input { flex:1; min-width:0; height:100%; border:none; outline:none; background:none; font:inherit; font-size:14px; font-weight:600; color:var(--ink); padding:0; }
@@ -3311,7 +3559,7 @@
   #dayMap .dm-search:focus-within { width:calc(100% - 24px); }
   #dayMap .dm-search > svg { width:15px; height:15px; }
   #dayMap .dm-search input { font-size:13px; }
-  #dayMap .dm-results { position:absolute; left:0; right:0; bottom:calc(100% + 6px); max-height:280px; overflow:auto; padding:5px 0; border-radius:12px; background:#fff; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
+  #dayMap .dm-results { position:absolute; left:0; right:0; bottom:calc(100% + 6px); max-height:280px; overflow:auto; padding:5px 0; border-radius:12px; background:var(--card); box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   #dayMap .dm-results[hidden] { display:none; }
   #dayMap .dm-res { display:flex; align-items:flex-start; gap:10px; width:100%; padding:7px 12px; border:none; background:none; font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
   #dayMap .dm-res svg { width:15px; height:15px; flex:none; margin-top:2px; color:var(--primary-ink, var(--primary)); }
@@ -3342,7 +3590,7 @@
   :root.map-open.map-focus .panel.on .cell[data-map-day] .acts > li .chip { font-size:12px !important; }
   #dayMap .maplibregl-ctrl-attrib { font-size:9.5px; font-family:var(--font); }
   /* a place picked on the map: our own card, always wholly on the map */
-  #dayMap .dm-card { position:absolute; z-index:6; width:252px; max-width:calc(100% - 20px); max-height:calc(100% - 20px); overflow:auto; background:#fff; border-radius:16px;
+  #dayMap .dm-card { position:absolute; z-index:6; width:252px; max-width:calc(100% - 20px); max-height:calc(100% - 20px); overflow:auto; background:var(--card); border-radius:16px;
     padding:12px 14px; box-shadow:0 14px 30px -12px rgba(40,25,60,.5), 0 0 0 1px rgba(61,53,104,.06); font-family:var(--font); color:var(--ink); }
   .dm-card-x { position:absolute; top:8px; right:8px; z-index:2; width:26px; height:26px; border:none; border-radius:50%; background:rgba(255,255,255,.92); color:var(--muted); font-size:13px; cursor:pointer; display:grid; place-items:center; }
   .dm-card-x:hover { color:var(--ink); }
@@ -3366,12 +3614,12 @@
   :root.map-open .cell:not(.empty) > .cellhead { cursor:pointer; }
   .dm-pinwrap { width:28px; height:28px; cursor:default; }
   .dm-pin { width:28px; height:28px; border-radius:50% 50% 50% 4px; transform:rotate(-45deg); background:var(--primary); border:2px solid #fff; box-shadow:0 3px 8px rgba(40,25,60,.35); display:grid; place-items:center; transition:transform .15s; }
-  .dm-pin.stay { background:#8a6fd1; } .dm-pin.arr { background:#fff; border-color:var(--primary); }
+  .dm-pin.stay { background:#8a6fd1; } .dm-pin.arr { background:var(--card); border-color:var(--primary); }
   .dm-pin span { transform:rotate(45deg); color:#fff; font-size:12px; font-weight:800; font-family:var(--font); } .dm-pin.arr span { color:var(--primary-ink, var(--primary)); }
   .dm-pinwrap.hl .dm-pin { transform:rotate(-45deg) scale(1.25); }
   @media print { #dayMap, .page-map, .acts > li .map-num { display:none !important; } :root.map-open body { padding-right:0 !important; } }
   /* places on the map, and the travel lines between activities */
-  #placeDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+  #placeDD { position:fixed; z-index:10020; background:var(--card); border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
   #placeDD[hidden] { display:none; }
   #placeDD .pd-opt { display:flex; gap:10px; padding:7px 12px; cursor:pointer; }
   #placeDD .pd-opt.act, #placeDD .pd-opt:hover { background:var(--bg); }
@@ -3396,7 +3644,7 @@
   .go-line .go-t > span { overflow:hidden; text-overflow:ellipsis; }
   .go-line .go-off { letter-spacing:2px; opacity:.5; }
   .go-guess { opacity:.6; }
-  #goMenu { position:fixed; z-index:10020; width:250px; background:#fff; border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
+  #goMenu { position:fixed; z-index:10020; width:250px; background:var(--card); border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
   #goMenu[hidden] { display:none; }
   /* your own ways of getting there */
   #goMenu { width:330px !important; max-height:calc(100vh - 16px); overflow:auto; box-sizing:border-box; }
@@ -3406,7 +3654,7 @@
   #goMenu .gm-trt small { display:block; font-size:11.5px; font-weight:700; color:var(--muted); overflow-wrap:anywhere; }
   #goMenu .gm-tools { display:flex; gap:3px; margin-left:auto; opacity:0; transition:opacity .12s; }
   #goMenu .gm-row:hover .gm-tools, #goMenu .gm-row:focus-within .gm-tools { opacity:1; }
-  #goMenu .gm-tools button { width:26px; height:26px; padding:0; border:none; border-radius:7px; background:#fff; color:var(--muted); display:grid; place-items:center; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
+  #goMenu .gm-tools button { width:26px; height:26px; padding:0; border:none; border-radius:7px; background:var(--card); color:var(--muted); display:grid; place-items:center; cursor:pointer; box-shadow:0 0 0 1px var(--line); }
   #goMenu .gm-tools button:hover { color:var(--ink); }
   #goMenu .gm-tools svg { width:13px; height:13px; }
   #goMenu .gm-tr .gm-ext + .gm-tools { margin-left:4px; }
@@ -3419,11 +3667,11 @@
   #goMenu .gm-form { margin:4px 8px 6px; padding:10px; border-radius:12px; background:var(--bg); display:grid; gap:7px; min-width:0; }
   #goMenu .gf-h { font-size:12.5px; font-weight:800; color:var(--ink); }
   #goMenu .gf-types { display:flex; flex-wrap:wrap; gap:4px; }
-  #goMenu .gf-types button { border:1.5px solid transparent; border-radius:999px; padding:3px 9px; background:#fff; color:var(--ink); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+  #goMenu .gf-types button { border:1.5px solid transparent; border-radius:999px; padding:3px 9px; background:var(--card); color:var(--ink); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
   #goMenu .gf-types button.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .1); }
   #goMenu .gf-row { display:flex; align-items:center; gap:7px; min-width:0; color:var(--muted); font-weight:800; }
   #goMenu .gf-row > svg { width:16px; height:16px; flex:none; }
-  #goMenu .gf-row input, #goMenu .gf-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:1.5px solid var(--line); border-radius:9px; background:#fff; padding:0 8px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
+  #goMenu .gf-row input, #goMenu .gf-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:1.5px solid var(--line); border-radius:9px; background:var(--card); padding:0 8px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
   #goMenu .gf-row select { flex:0 0 88px; width:88px; padding:0 4px; }
   #goMenu .gf-row input:focus, #goMenu .gf-row select:focus { outline:none; border-color:var(--primary); }
   #goMenu .gf-time input { height:40px; font-size:15px; font-weight:900; text-align:center; }
@@ -3440,7 +3688,7 @@
   #goMenu .gm-opt svg { width:17px; height:17px; color:var(--muted); flex:none; }
   #goMenu .gm-opt.on, #goMenu .gm-opt.on svg { color:var(--primary-ink, var(--primary)); }
   #goMenu .gm-ext { margin-left:auto; font-size:11px; color:var(--muted); text-decoration:none; white-space:nowrap; padding:3px 6px; border-radius:6px; }
-  #goMenu .gm-tr .gm-ext:hover { background:#fff; color:var(--ink); }
+  #goMenu .gm-tr .gm-ext:hover { background:var(--card); color:var(--ink); }
   #goMenu .gm-tr { align-items:flex-start; }
   #goMenu .gm-trt small { display:block; font-size:11.5px; font-weight:600; color:var(--muted); margin-top:1px; }
   #goMenu hr { border:none; border-top:1px solid var(--line); margin:6px 0; }
@@ -3520,7 +3768,7 @@
     .grp-notes-ideas .ib-det { display:flex; flex-direction:column; gap:6px; margin-top:8px; padding:10px; border-radius:12px; background:var(--bg); }
     .grp-notes-ideas .ib-det .ibd-row { display:flex; align-items:center; gap:7px; }
     .grp-notes-ideas .ib-det svg { width:15px; height:15px; color:var(--muted); flex:none; }
-    .grp-notes-ideas .ib-det input { flex:1; min-width:0; height:32px; padding:0 9px !important; margin:0 !important; border:1.5px solid var(--line) !important; border-radius:9px !important; background:#fff !important; font-size:13px !important; font-weight:700; box-shadow:none !important; }
+    .grp-notes-ideas .ib-det input { flex:1; min-width:0; height:32px; padding:0 9px !important; margin:0 !important; border:1.5px solid var(--line) !important; border-radius:9px !important; background:var(--card) !important; font-size:13px !important; font-weight:700; box-shadow:none !important; }
     .grp-notes-ideas .ib-det input[type=time] { flex:1 1 0; width:0; min-width:0; padding:0 6px !important; font-size:12px !important; }
     .grp-notes-ideas .ib-det input:focus { outline:none; border-color:var(--primary) !important; }
     .grp-notes-ideas .ib-det .ibd-cur { font-size:13px; font-weight:800; color:var(--muted); }
@@ -3529,7 +3777,7 @@
     .grp-notes-ideas .ib-where { display:inline-flex; align-items:center; gap:3px; max-width:100%; font-size:11px; font-weight:800; color:var(--ink); opacity:.7; }
     .grp-notes-ideas .ib-where svg { width:11px; height:11px; flex:none; }
     .grp-notes-ideas .ib-where span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    #ideaDD { position:fixed; z-index:10020; background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); color:var(--ink); }
+    #ideaDD { position:fixed; z-index:10020; background:var(--card); border-radius:12px; padding:5px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); color:var(--ink); }
     #ideaDD[hidden] { display:none; }
     #ideaDD .pd-opt { display:flex; gap:10px; padding:7px 12px; cursor:pointer; }
     #ideaDD .pd-opt.act, #ideaDD .pd-opt:hover { background:var(--bg); }
@@ -3538,7 +3786,7 @@
     #ideaDD .pd-opt small { display:block; font-size:12px; font-weight:600; color:var(--muted); }
     #ideaDD .pd-note { padding:8px 12px 6px; font-size:12.5px; font-weight:700; color:var(--muted); }
     #dayMap .dm-pin.idea { background:#f2a93b; }
-    #ibDays { position:fixed; z-index:10030; width:250px; padding:10px; background:#fff; border-radius:14px; box-shadow:0 14px 30px -10px rgba(40,25,60,.45), 0 0 0 1px var(--line); color:var(--ink); }
+    #ibDays { position:fixed; z-index:10030; width:250px; padding:10px; background:var(--card); border-radius:14px; box-shadow:0 14px 30px -10px rgba(40,25,60,.45), 0 0 0 1px var(--line); color:var(--ink); }
     #ibDays[hidden] { display:none; }
     #ibDays .ibd-h { font-size:11px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 6px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     #ibDays .ibd-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; max-height:220px; overflow:auto; }
@@ -3558,7 +3806,7 @@
     .notes-page .np-row { display:flex; align-items:flex-start; gap:10px; min-height:34px; }
     .notes-page .np-text { flex:1; min-width:0; min-height:34px; outline:none; font-size:16px; font-weight:500; line-height:34px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; cursor:text; }
     .notes-page .np-text, .notes-page .np-text:focus, .notes-page .np-text:hover { background:none !important; box-shadow:none !important; border:none !important; outline:none !important; padding:0 !important; border-radius:0 !important; }
-    .notes-page .np-check { display:none; flex:none; width:18px; height:18px; margin-top:8px; padding:0; border:2px solid #d9c8ec; border-radius:5px; background:#fff; cursor:pointer; transition:background .12s, border-color .12s; }
+    .notes-page .np-check { display:none; flex:none; width:18px; height:18px; margin-top:8px; padding:0; border:2px solid #d9c8ec; border-radius:5px; background:var(--card); cursor:pointer; transition:background .12s, border-color .12s; }
     .notes-page .np-check:hover { border-color:var(--primary); }
     .notes-page .np-row[data-todo] .np-check { display:block; }
     .notes-page .np-row[data-todo="done"] .np-check { border-color:var(--primary); background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.6 2.6L12 5.6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
@@ -3574,12 +3822,12 @@
     .notes-page .np-head .np-tool svg { width:15px; height:15px; color:var(--primary-ink, var(--primary)); }
     .notes-page .np-text b { font-weight:800; }
     .notes-page .np-text a { color:var(--primary-ink, var(--primary)); text-decoration:underline; text-decoration-color:rgba(var(--primary-rgb), .45); text-underline-offset:3px; cursor:pointer; }
-    #npLinkPop, #npLinkBubble { position:fixed; z-index:10004; background:#fff; border-radius:10px; box-shadow:0 8px 24px rgba(30,22,50,.24), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
+    #npLinkPop, #npLinkBubble { position:fixed; z-index:10004; background:var(--card); border-radius:10px; box-shadow:0 8px 24px rgba(30,22,50,.24), 0 0 0 1px var(--line); font-family:inherit; color:var(--ink); }
     #npLinkPop[hidden], #npLinkBubble[hidden] { display:none; }
     #npLinkPop { width:300px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
     #npLinkPop label { display:flex; align-items:center; gap:10px; font-size:12px; font-weight:800; color:var(--muted); }
     #npLinkPop input { flex:1; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:14px; font-weight:600; color:var(--ink); background:var(--bg); outline:none; }
-    #npLinkPop input:focus { border-color:var(--primary); background:#fff; }
+    #npLinkPop input:focus { border-color:var(--primary); background:var(--card); }
     #npLinkPop .lp-foot { display:flex; justify-content:flex-end; }
     #npLinkPop .lp-apply { border:none; border-radius:8px; padding:7px 14px; background:var(--primary); color:var(--on-primary, #fff); font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
     #npLinkBubble { display:flex; align-items:center; gap:4px; padding:6px 6px 6px 12px; max-width:360px; }
@@ -3622,9 +3870,9 @@
     #dayGhost, #dragRange, #niceDD, #fieldRemove, #payFloat, #payPill, #typeComboDD, #dayPickDD, #searchPalette,
     .mp-dd, .itemmenu, .monthpop, .tagpop, .linkpop, .page-share, .modal-overlay, .day-ghost-slot,
     .month-sidebar, .pills, .pills-gapfill, .grid.banner-row { display:none !important; }
-    html, body { background:#fff !important; padding:0 !important; margin:0 !important; overflow:visible !important; }
+    html, body { background:var(--card) !important; padding:0 !important; margin:0 !important; overflow:visible !important; }
     body::before, body::after { display:none !important; }
-    .wrap, .panel { background:#fff !important; background-image:none !important; box-shadow:none !important; border:none !important; border-radius:0 !important; padding:0 !important; margin:0 !important; }
+    .wrap, .panel { background:var(--card) !important; background-image:none !important; box-shadow:none !important; border:none !important; border-radius:0 !important; padding:0 !important; margin:0 !important; }
     .wrap::before, .wrap::after, .panel::after { display:none !important; }
     .panel::before { font-family:inherit; color:#3d3568 !important; font-size:20px; margin:0 0 8px; }
     .grid.heads, .grid.heads.stuck { position:static !important; margin:0 !important; padding:0 0 4px !important; border:none !important; background:none !important; box-shadow:none !important; }
@@ -3659,7 +3907,7 @@
   /* holiday periods are no longer part of the app: their bands aren't shown (the data is left as is) */
   .grid.banner-row { display:none !important; }
   /* every dropdown list in the app looks like the type picker's */
-  #niceDD { position:fixed; z-index:10001; background:#fff; border-radius:6px; padding:6px 0; overflow-y:auto; font-family:inherit;
+  #niceDD { position:fixed; z-index:10001; background:var(--card); border-radius:6px; padding:6px 0; overflow-y:auto; font-family:inherit;
     box-shadow:0 6px 18px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   #niceDD[hidden] { display:none; }
   /* no browser-blue ring on a dropdown field; open, it's outlined in the app's pink */
@@ -3781,14 +4029,14 @@
 
   /* option 5: two columns, Share and Paid */
   .fs-row { gap:8px; }
-  .fs-row .fs-sh, .fs-row .fs-amt { width:76px !important; flex:none; height:30px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 8px; font:inherit; font-size:14px; color:var(--ink); background:#fff; text-align:right; -moz-appearance:textfield; }
+  .fs-row .fs-sh, .fs-row .fs-amt { width:76px !important; flex:none; height:30px; box-sizing:border-box; border:1px solid var(--line); border-radius:8px; padding:0 8px; font:inherit; font-size:14px; color:var(--ink); background:var(--card); text-align:right; -moz-appearance:textfield; }
   .fs-row .fs-sh::placeholder { color:var(--muted); font-style:italic; }
   .fs-row .fs-sh::-webkit-outer-spin-button, .fs-row .fs-sh::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
   .fs-colrow { gap:8px; }
   .fs-colrow .fs-col { width:76px !important; text-align:center; }
   /* the "pays" switch; off = left out */
   .fs-row .fs-sw { width:30px; height:18px; flex:none; border:none; padding:0; border-radius:999px; background:#d7cfe6; position:relative; cursor:pointer; transition:background .15s; }
-  .fs-row .fs-sw::after { content:''; position:absolute; left:2px; top:2px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:left .15s; }
+  .fs-row .fs-sw::after { content:''; position:absolute; left:2px; top:2px; width:14px; height:14px; border-radius:50%; background:var(--card); box-shadow:0 1px 3px rgba(0,0,0,.2); transition:left .15s; }
   .fs-row .fs-sw.on { background:var(--primary); }
   .fs-row .fs-sw.on::after { left:14px; }
   .fs-row, .fs-row .fs-face, .fs-row .fs-name { cursor:default; }
@@ -3872,11 +4120,11 @@
   .grp-duelpop .dp-close { display:flex; align-items:center; gap:10px; min-height:36px; margin:10px 0 2px; }
   .grp-duelpop .dp-close .whenpop-check { margin:0 !important; }
   .grp-duelpop .dp-close .mp-btn { height:34px; }
-  .grp-duelpop .dp-field { display:flex; align-items:center; gap:8px; height:40px; padding:0 11px; border:1.5px solid var(--line); border-radius:11px; background:#fff; }
+  .grp-duelpop .dp-field { display:flex; align-items:center; gap:8px; height:40px; padding:0 11px; border:1.5px solid var(--line); border-radius:11px; background:var(--card); }
   .grp-duelpop .dp-field:focus-within { border-color:var(--primary); }
   .grp-duelpop .dp-field svg { width:16px; height:16px; color:var(--muted); flex:none; }
   .grp-duelpop .dp-field input { flex:1; min-width:0; border:none !important; outline:none; background:none !important; padding:0 !important; margin:0 !important; height:100% !important; font-size:14px; font-weight:700; color:var(--ink); box-shadow:none !important; }
-  .grp-duelpop .dp-dd { position:absolute; z-index:5; left:0; right:0; top:calc(100% + 4px); background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 12px 28px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
+  .grp-duelpop .dp-dd { position:absolute; z-index:5; left:0; right:0; top:calc(100% + 4px); background:var(--card); border-radius:12px; padding:5px 0; box-shadow:0 12px 28px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   .grp-duelpop .dp-dd[hidden] { display:none; }
   .grp-duelpop .dp-dd button { display:flex; align-items:flex-start; gap:9px; width:100%; padding:7px 12px; border:none; background:none; font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
   .grp-duelpop .dp-dd button:hover, .grp-duelpop .dp-dd button.act { background:var(--bg); }
@@ -3890,9 +4138,9 @@
   .grp-duelpop .dp-detf { margin-top:8px; padding:10px; border-radius:12px; background:var(--bg); display:grid; gap:7px; }
   .grp-duelpop .dp-row { display:flex; align-items:center; gap:8px; color:var(--muted); font-weight:800; min-width:0; }
   .grp-duelpop .dp-row > svg { width:16px; height:16px; flex:none; }
-  .grp-duelpop .dp-row input, .grp-duelpop .dp-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:none; border-radius:9px; background:#fff; padding:0 9px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
+  .grp-duelpop .dp-row input, .grp-duelpop .dp-row select { flex:1; min-width:0; width:0; height:34px; box-sizing:border-box; border:none; border-radius:9px; background:var(--card); padding:0 9px; font:inherit; font-size:13px; font-weight:700; color:var(--ink); }
   .grp-duelpop .dp-row input:focus, .grp-duelpop .dp-row select:focus { outline:2px solid var(--primary); }
-  .grp-duelpop .dp-cur { flex:none; background:#fff; border-radius:9px; padding:8px 10px; color:var(--ink); font-size:12.5px; }
+  .grp-duelpop .dp-cur { flex:none; background:var(--card); border-radius:9px; padding:8px 10px; color:var(--ink); font-size:12.5px; }
   .grp-duelpop .dp-detfoot { display:flex; justify-content:flex-end; }
   .grp-duelpop .dp-done { border:none; border-radius:9px; background:var(--primary); color:var(--on-primary, #fff); font:inherit; font-size:12.5px; font-weight:800; padding:6px 14px; cursor:pointer; }
   .grp-duelpop .dp-cmp { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); gap:8px; margin-top:12px; align-items:stretch; }
@@ -4150,47 +4398,96 @@
   .grp-newpop .grp-stepper .grp-len { min-width:52px; font-size:12px; }
   @media (max-width:720px) { .grp-demo { bottom:84px; } .grp-ideabtn { display:none; } }
   @media print { .grp-ui { display:none !important; } }
+  /* ---- Dark mode (Menu → Mode): the theme's colours stay; the page,
+     cards, lines and text go dark. !important so it also wins over a
+     theme of your own (set inline on the page). ---- */
+  :root[data-mode="dark"] { --bg:#17181b !important; --card:#222328 !important; --ink:#ececef !important; --muted:#9b9ca4 !important; --line:#34353b !important;
+    --primary-ink:color-mix(in srgb, var(--primary) 70%, #fff) !important; --texture:none !important; --backdrop-color:#111214 !important; --backdrop:none !important; color-scheme:dark; }
+  :root[data-mode="dark"][data-theme="neutral"] { --primary-ink:var(--primary) !important; }
+  :root[data-mode="dark"] body::before, :root[data-mode="dark"] body::after { display:none !important; }
+  :root[data-mode="dark"] body { background:var(--bg); color:var(--ink); }
+  :root[data-mode="dark"] input, :root[data-mode="dark"] textarea, :root[data-mode="dark"] select { background-color:var(--card); color:var(--ink); border-color:var(--line); }
+  :root[data-mode="dark"] .notes-page > .grp-notes-ideas { background:var(--card); }
+  :root[data-mode="dark"] #sideSearch .ss-btn { filter:invert(1) hue-rotate(180deg); }
+  :root[data-mode="dark"] #sideSearch .ss-btn:hover { background-color:rgba(0,0,0,.15); }
+  /* ---- the avatar maker (TPAvatar.maker): Menu → Edit avatar and the sign-up ---- */
+  .avm-cats { display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .avm-cats button { border:none; background:none; padding:9px 10px; font:inherit; font-weight:800; font-size:13.5px; color:var(--muted); cursor:pointer; border-bottom:2.5px solid transparent; margin-bottom:-1px; }
+  .avm-cats button:hover { color:var(--ink); }
+  .avm-cats button.on { color:var(--ink); border-color:var(--ink); }
+  .avm-panel { min-height:228px; }
+  .avm-grp { margin-bottom:12px; }
+  .avm-grp > b { display:block; font-size:11.5px; font-weight:800; color:var(--muted); margin-bottom:7px; letter-spacing:.02em; }
+  .avm-two { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .avm-sw { display:flex; flex-wrap:wrap; gap:7px; }
+  .avm-sw button { width:28px; height:28px; border-radius:50%; border:2px solid var(--card); cursor:pointer; padding:0; box-shadow:0 0 0 1px rgba(0,0,0,.14); }
+  .avm-sw button.on { box-shadow:0 0 0 2.5px var(--ink); }
+  .avm-tiles { display:grid; grid-template-columns:repeat(5, 1fr); gap:7px; }
+  .avm-tiles.six { grid-template-columns:repeat(6, 1fr); gap:6px; }
+  .avm-tile { border:1.5px solid var(--line); background:var(--card); border-radius:12px; padding:5px 2px; cursor:pointer; text-align:center; font:inherit; font-size:11px; font-weight:800; color:var(--muted); }
+  .avm-tile svg { width:42px; height:42px; display:block; margin:0 auto 2px; }
+  .avm-tiles.six .avm-tile svg { width:38px; height:38px; }
+  .avm-tiles.six .avm-tile { font-size:10.5px; }
+  .avm-tile span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .avm-tile:hover { border-color:color-mix(in srgb, var(--ink) 40%, var(--line)); }
+  .avm-tile.on { border-color:var(--ink); color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
+  .avm-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .avm-chips button { border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:6px 12px; font:inherit; font-weight:800; font-size:12.5px; cursor:pointer; }
+  .avm-chips button.on { border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
+  .avm-dice { width:44px; height:44px; flex:none; border-radius:14px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; display:grid; place-items:center; padding:0; transition:transform .15s, border-color .15s; }
+  .avm-dice svg { width:24px; height:24px; }
+  .avm-dice:hover { border-color:var(--ink); transform:rotate(-8deg) scale(1.05); }
+  .avm-dice:active { transform:rotate(12deg) scale(.95); }
+  /* Menu → Edit avatar */
+  .itemmenu.avatar-editor2 { width:min(470px, calc(100vw - 24px)); max-width:none; box-sizing:border-box; padding:16px 18px 14px; max-height:calc(100vh - 24px); overflow:auto; }
+  .avatar-editor2 .ae-head { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+  .avatar-editor2 .ae-face { width:84px; height:84px; flex:none; }
+  .avatar-editor2 .ae-face svg { width:100%; height:100%; display:block; }
+  .avatar-editor2 .ae-name { flex:1; min-width:0; }
+  .avatar-editor2 .ae-name label { display:block; font-size:11.5px; font-weight:800; color:var(--muted); margin-bottom:4px; }
+  .avatar-editor2 .ae-name input { width:100%; box-sizing:border-box; border:none; border-bottom:2px solid var(--primary); background:none; font:inherit; font-size:18px; font-weight:700; color:var(--ink); padding:4px 2px 6px; outline:none; }
+  .avatar-editor2 .ae-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px; }
+  .avatar-editor2 .ae-err { color:#b3261e; font-size:12px; min-height:14px; }
 </style>
 </head>
 <body>
-<div id="authGate">
-  <!-- Same compass mark as the favicon (see the <link rel="icon"> in
-       <head>) — reused inline (not referenced as an <img>) so it's crisp
-       at any size and needs no extra request. -->
-  <h1><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" fill="#ffffff"/><path d="M 16.0,6.0 L 18.47,12.6 L 25.51,12.91 L 19.99,17.3 L 21.88,24.09 L 16.0,20.2 L 10.12,24.09 L 12.01,17.3 L 6.49,12.91 L 13.53,12.6 Z" fill="#ef9a5c"/></svg> Travel Planner</h1>
-  <!-- No default copy here on purpose — with two ways in (email/password
-       below, Google underneath) laid out plainly, a form doesn't need a
-       sentence explaining itself. Actually used for loading/error text,
-       set dynamically (see showAuthGate). -->
-  <p class="authMsg" id="authGateStatus"></p>
-  <p class="authDenied" id="authGateDenied">This account isn't on the list for this plan.</p>
-  <!-- Only ever shown right after a genuinely NEW email/password sign-up
-       or log-in whose email Firebase hasn't confirmed yet — a Google
-       account is always already verified (see the emailVerified check in
-       onAuthStateChanged), so this state never applies to that path. -->
-  <p class="authVerify" id="authGateVerify">Almost there — click the verification link we just sent to <strong id="authVerifyEmail"></strong>, then reload this page.</p>
-  <!-- Email/password first: it's the form someone actually interacts
-       with, so it gets the primary position and the primary button;
-       Google — a single click, nothing to type — sits right below as the
-       lighter-weight alternative. Unlike Google, Firebase never confirms
-       an email/password address is actually yours by itself — that's
-       what the verify-email gate above (and the matching
-       auth.token.email_verified check in the security rules) closes. -->
-  <form id="authEmailForm" class="auth-email-form">
-    <input type="email" id="authEmailInput" data-i18n-placeholder="auth_email_placeholder" placeholder="Email" autocomplete="email" required />
-    <input type="password" id="authPasswordInput" data-i18n-placeholder="auth_password_placeholder" placeholder="Password" autocomplete="current-password" required minlength="6" />
-    <p id="authEmailError"></p>
-    <button type="submit" id="authEmailLoginBtn" class="auth-primary-btn" data-i18n="auth_login_btn">Log in</button>
-    <div class="auth-email-footer">
-      <button type="button" id="authForgotBtn" class="auth-link-btn" data-i18n="auth_forgot_btn">Forgot password?</button>
-      <span class="auth-email-footer-sep" aria-hidden="true">·</span>
-      <button type="button" id="authEmailSignupBtn" class="auth-link-btn" data-i18n="auth_signup_btn">Create account</button>
+<div id="authGate" data-auth="signup">
+  <!-- Left: a little piece of the app to play with (a vote between two
+       places in Florence, see onboarding.js). Right: the way in. -->
+  <div class="auth-left"><div id="authArt"></div>
+    <h1 class="auth-logo"><span class="mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l3.1 8.2 8.8.4-6.9 5.5 2.4 8.5L16 21.8l-7.4 4.8 2.4-8.5-6.9-5.5 8.8-.4z" fill="#ffc561" stroke="#e8a93a" stroke-width="1" stroke-linejoin="round"/></svg></span>Travel Planner</h1></div>
+  <div class="auth-right">
+    <label class="auth-lang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+      <select id="authLang" aria-label="Language"><option value="en">English</option><option value="it">Italiano</option><option value="es">Español</option></select></label>
+    <div class="auth-card">
+      <h2 class="auth-title"><span class="auth-signup-only" data-i18n="auth_welcome">Plan trips together</span><span class="auth-login-only" data-i18n="auth_welcome_back">Welcome back</span></h2>
+      <p class="auth-sub"><span class="auth-signup-only" data-i18n="auth_welcome_sub">Create your account. It takes a minute.</span><span class="auth-login-only" data-i18n="auth_welcome_back_sub">Log in to see your trips.</span></p>
+      <!-- Used for loading/error text, set by showAuthGate. -->
+      <p class="authMsg" id="authGateStatus"></p>
+      <p class="authDenied" id="authGateDenied">This account isn't on the list for this plan.</p>
+      <!-- Only after a NEW email/password sign-up (or a log-in whose email
+           isn't confirmed yet): Google accounts are always verified. -->
+      <p class="authVerify" id="authGateVerify">Almost there: click the verification link we just sent to <strong id="authVerifyEmail"></strong>, then reload this page.</p>
+      <form id="authEmailForm" class="auth-email-form">
+        <input type="email" id="authEmailInput" data-i18n-placeholder="auth_email_placeholder" placeholder="Email" autocomplete="email" required />
+        <input type="password" id="authPasswordInput" data-i18n-placeholder="auth_password_placeholder" placeholder="Password" autocomplete="current-password" required minlength="6" />
+        <p id="authEmailError"></p>
+        <button type="submit" id="authEmailLoginBtn" class="auth-primary-btn" data-i18n="auth_login_btn">Log in</button>
+        <button type="button" id="authCreateBtn" class="auth-primary-btn auth-signup-only" data-i18n="auth_signup_btn">Create account</button>
+        <button type="button" id="authEmailSignupBtn">Create account</button>
+        <div class="auth-email-footer">
+          <span class="auth-signup-only"><span data-i18n="auth_have_account">Already have an account?</span> <button type="button" class="auth-link-btn strong" id="authToLogin" data-i18n="auth_login_btn">Log in</button></span>
+          <button type="button" id="authForgotBtn" class="auth-link-btn" data-i18n="auth_forgot_btn">Forgot password?</button>
+          <span class="auth-email-footer-sep" aria-hidden="true">·</span>
+          <span class="auth-login-only"><span data-i18n="auth_new_here">New here?</span> <button type="button" class="auth-link-btn strong" id="authToSignup" data-i18n="auth_create_link">Create an account</button></span>
+        </div>
+      </form>
+      <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> <span data-i18n="auth_signin">Sign in with Google</span></button>
+      <div class="auth-or" id="authOr"><span data-i18n="auth_or">or</span></div>
+      <button type="button" id="authResendVerifyBtn" data-i18n="auth_resend_verify_btn">Resend verification email</button>
+      <button type="button" id="authSignOutBtn" data-i18n="auth_signout">Sign out and try another account</button>
     </div>
-  </form>
-  <div class="auth-or" id="authOr"><span data-i18n="auth_or">or</span></div>
-  <button type="button" id="authSignInBtn"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.9-2.26 5.36-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> <span data-i18n="auth_signin">Sign in with Google</span></button>
-  <button type="button" id="authResendVerifyBtn" data-i18n="auth_resend_verify_btn">Resend verification email</button>
-  <button type="button" id="authSignOutBtn" data-i18n="auth_signout">Sign out and try another account</button>
+  </div>
 </div>
 <div id="manageAccessPanel" class="modal-overlay">
   <div class="map-inner">
@@ -4350,8 +4647,14 @@
            desktop-only like the backdrop it switches. -->
       <div class="actionMenuThemeRow actionMenuBackdropRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_background">Background</span>
-        <button type="button" class="backdrop-dot" data-backdrop-name="magical" title="Starry" aria-label="Starry background"></button>
-        <button type="button" class="backdrop-dot" data-backdrop-name="minimal" title="Minimal" aria-label="Minimal background"></button>
+        <button type="button" class="backdrop-dot" data-backdrop-name="flat" data-tip="Flat" aria-label="Flat background"></button>
+        <button type="button" class="backdrop-dot" data-backdrop-name="magical" data-tip="Starry" aria-label="Starry background"></button>
+        <button type="button" class="backdrop-dot" data-backdrop-name="minimal" data-tip="Gradient" aria-label="Gradient background"></button>
+      </div>
+      <div class="actionMenuThemeRow actionMenuModeRow">
+        <span class="actionMenuThemeLabel" data-i18n="menu_mode">Mode</span>
+        <button type="button" class="mode-dot" data-mode-name="light" data-tip="Light" aria-label="Light mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+        <button type="button" class="mode-dot" data-mode-name="dark" data-tip="Dark" aria-label="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
       </div>
       <div class="actionMenuThemeRow actionMenuFontRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_font">Font</span>
@@ -5041,7 +5344,7 @@
     en: {
       menu_save: 'Save', menu_download: 'Download', menu_manage: 'Participants', menu_print: 'Print',
       menu_archive: 'Archive', archive_title: 'Archived', archive_empty: 'Nothing archived yet.', archive_unarchive: 'Unarchive',
-      menu_theme: 'Theme', menu_background: 'Background', menu_font: 'Font', menu_collapse_years: 'Collapse other years', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
+      menu_theme: 'Theme', menu_background: 'Background', menu_mode: 'Mode', menu_font: 'Font', menu_collapse_years: 'Collapse other years', menu_language: 'Language', menu_currency: 'Currency', menu_signout: 'Sign out',
       manage_title: 'Participants', manage_invite_placeholder: 'Invite by email', manage_invite_btn: 'Invite',
       manage_role_owner: 'owner', manage_role_invited: 'invited', manage_make_owner: 'Make owner',
       manage_delete_member: 'Delete member',
@@ -5076,7 +5379,7 @@
       emptyplan_cta: '+ Create your first month',
       payment_overview: 'Payment overview', payment_unassigned: 'Unassigned',
       budget_overview: 'Budget overview', photo_delete: 'Delete photo',
-      auth_signin: 'Sign in with Google', auth_signout: 'Sign out and try another account',
+      auth_signin: 'Continue with Google', auth_welcome: 'Plan trips together', auth_welcome_sub: 'Create your account. It takes a minute.', auth_welcome_back: 'Welcome back', auth_welcome_back_sub: 'Log in to see your trips.', auth_have_account: 'Already have an account?', auth_new_here: 'New here?', auth_create_link: 'Create an account', auth_signout: 'Sign out and try another account',
       cleardaytk_title: 'Clear this day?',
       cleardaytk_msg: 'This day has a photo or ticket attached. Clearing it will delete those too. Type 1111 to confirm.',
       cleardaytk_confirm: 'Clear day',
@@ -5093,7 +5396,7 @@
     it: {
       menu_save: 'Salva', menu_download: 'Scarica', menu_manage: 'Partecipanti', menu_print: 'Stampa',
       menu_archive: 'Archivio', archive_title: 'Archiviati', archive_empty: 'Ancora niente di archiviato.', archive_unarchive: 'Ripristina',
-      menu_theme: 'Tema', menu_background: 'Sfondo', menu_font: 'Carattere', menu_collapse_years: 'Comprimi gli altri anni', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
+      menu_theme: 'Tema', menu_background: 'Sfondo', menu_mode: 'Modalità', menu_font: 'Carattere', menu_collapse_years: 'Comprimi gli altri anni', menu_language: 'Lingua', menu_currency: 'Valuta', menu_signout: 'Esci',
       manage_title: 'Partecipanti', manage_invite_placeholder: 'Invita via email', manage_invite_btn: 'Invita',
       manage_role_owner: 'proprietario', manage_role_invited: 'invitato', manage_make_owner: 'Rendi proprietario',
       manage_delete_member: 'Elimina membro',
@@ -5128,7 +5431,7 @@
       emptyplan_cta: '+ Crea il tuo primo mese',
       payment_overview: 'Riepilogo pagamenti', payment_unassigned: 'Non assegnato',
       budget_overview: 'Riepilogo budget', photo_delete: 'Elimina foto',
-      auth_signin: 'Accedi con Google', auth_signout: 'Esci e prova un altro account',
+      auth_signin: 'Continua con Google', auth_welcome: 'Organizzate i viaggi insieme', auth_welcome_sub: 'Crea il tuo account. Ci vuole un minuto.', auth_welcome_back: 'Bentornato', auth_welcome_back_sub: 'Accedi per vedere i tuoi viaggi.', auth_have_account: 'Hai già un account?', auth_new_here: 'Prima volta?', auth_create_link: 'Crea un account', auth_signout: 'Esci e prova un altro account',
       cleardaytk_title: 'Svuotare questo giorno?',
       cleardaytk_msg: 'Questo giorno ha una foto o un biglietto allegato. Svuotandolo verranno eliminati anche quelli. Digita 1111 per confermare.',
       cleardaytk_confirm: 'Svuota giorno',
@@ -5145,7 +5448,7 @@
     es: {
       menu_save: 'Guardar', menu_download: 'Descargar', menu_manage: 'Participantes', menu_print: 'Imprimir',
       menu_archive: 'Archivo', archive_title: 'Archivados', archive_empty: 'Nada archivado todavía.', archive_unarchive: 'Restaurar',
-      menu_theme: 'Tema', menu_background: 'Fondo', menu_font: 'Fuente', menu_collapse_years: 'Contraer los otros años', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
+      menu_theme: 'Tema', menu_background: 'Fondo', menu_mode: 'Modo', menu_font: 'Fuente', menu_collapse_years: 'Contraer los otros años', menu_language: 'Idioma', menu_currency: 'Moneda', menu_signout: 'Cerrar sesión',
       manage_title: 'Participantes', manage_invite_placeholder: 'Invitar por correo', manage_invite_btn: 'Invitar',
       manage_role_owner: 'propietario', manage_role_invited: 'invitado', manage_make_owner: 'Nombrar propietario',
       manage_delete_member: 'Eliminar miembro',
@@ -5180,7 +5483,7 @@
       emptyplan_cta: '+ Crear tu primer mes',
       payment_overview: 'Resumen de pagos', payment_unassigned: 'Sin asignar',
       budget_overview: 'Resumen de presupuesto', photo_delete: 'Eliminar foto',
-      auth_signin: 'Iniciar sesión con Google', auth_signout: 'Cerrar sesión y probar otra cuenta',
+      auth_signin: 'Continuar con Google', auth_welcome: 'Planead los viajes juntos', auth_welcome_sub: 'Crea tu cuenta. Lleva un minuto.', auth_welcome_back: 'Hola de nuevo', auth_welcome_back_sub: 'Entra para ver tus viajes.', auth_have_account: '¿Ya tienes cuenta?', auth_new_here: '¿Primera vez?', auth_create_link: 'Crear una cuenta', auth_signout: 'Cerrar sesión y probar otra cuenta',
       cleardaytk_title: '¿Vaciar este día?',
       cleardaytk_msg: 'Este día tiene una foto o un billete adjunto. Vaciarlo también los eliminará. Escribe 1111 para confirmar.',
       cleardaytk_confirm: 'Vaciar día',
@@ -5355,13 +5658,28 @@
         }
       }
       function setAuthEmailBusy(busy){
-        [emailInput, passwordInput, emailLoginBtn, emailSignupBtn, forgotBtn].forEach(function(el){
+        [emailInput, passwordInput, emailLoginBtn, emailSignupBtn, forgotBtn, document.getElementById('authCreateBtn')].forEach(function(el){
           if(el) el.disabled = busy;
         });
       }
 
+      // One primary button: "Create account" for someone new on this
+      // browser, "Log in" once anyone has signed in here before.
+      var createBtn = document.getElementById('authCreateBtn');
+      function setAuthMode(mode){ if(authGateEl) authGateEl.setAttribute('data-auth', mode); if(passwordInput) passwordInput.autocomplete = mode === 'signup' ? 'new-password' : 'current-password'; }
+      try { setAuthMode(localStorage.getItem('tpHasSignedIn') ? 'login' : 'signup'); } catch(e){ setAuthMode('signup'); }
+      var toLogin = document.getElementById('authToLogin'), toSignup = document.getElementById('authToSignup');
+      if(toLogin) toLogin.addEventListener('click', function(){ setAuthMode('login'); if(emailErrorEl) emailErrorEl.textContent = ''; });
+      if(toSignup) toSignup.addEventListener('click', function(){ setAuthMode('signup'); if(emailErrorEl) emailErrorEl.textContent = ''; });
+      if(createBtn) createBtn.addEventListener('click', function(){ if(emailSignupBtn) emailSignupBtn.click(); });
+      var authLang = document.getElementById('authLang');
+      if(authLang){
+        authLang.value = currentLang;
+        authLang.addEventListener('change', function(){ applyLanguage(authLang.value); });
+      }
       if(emailForm) emailForm.addEventListener('submit', function(e){
         e.preventDefault();
+        if(authGateEl && authGateEl.getAttribute('data-auth') === 'signup'){ if(emailSignupBtn) emailSignupBtn.click(); return; }
         if(emailErrorEl) emailErrorEl.textContent = '';
         var email = emailInput.value.trim();
         var password = passwordInput.value;
@@ -5505,6 +5823,7 @@
         }
         VIEW_ONLY = false;
         document.body.classList.remove('view-only');
+        try { localStorage.setItem('tpHasSignedIn', '1'); } catch(e){}
         currentUserEmail = user.email || '';
         currentUserKey = sanitizeEmailKey(currentUserEmail);
         // Only ever reads this signed-in user's own membership entry — the
@@ -5539,6 +5858,9 @@
           // what the security rules actually allow each role to write.
           initMemberPanel();
           updateActionMenuAvatar();
+          // New here? The sign-up steps (name, avatar, style) and the first-trip guide: see onboarding.js.
+          var created = user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : 0;
+          setTimeout(function(){ if(window.TPOnb) window.TPOnb.afterSignIn({ created: created, owner: role === 'owner' }); }, 300);
         }).catch(function(err){
           console.warn('Membership lookup failed', err);
           showAuthGate('error', 'Couldn’t check access — check your connection and reload.');
@@ -5577,10 +5899,8 @@
   // ---- member avatars: a small cartoon face per email. Hair color is a
   // hash of the address (so a not-yet-customized person still gets a
   // stable, distinct look rather than every uncustomized face being
-  // identical); skin tone, eye color, mouth, hair length, and background
-  // otherwise default to one fixed look (AVATAR_DEFAULT_*, below) rather
-  // than a hash-derived one, so an uncustomized face reads as a
-  // deliberate, consistent default, not a random assortment of features.
+  // identical); everything else defaults to TPAvatar.DEFAULTS, so an
+  // uncustomized face reads as a deliberate, consistent default.
   // Every one of these can be overridden per person via openAvatarEditor
   // — saved to /avatars (keyed the same sanitized way as /members) so a
   // customization is visible to every collaborator, not just whoever set
@@ -5597,176 +5917,20 @@
     '#E8E3D8', '#B8B0A8', '#D9B877', '#E5A15C', '#D96B5C', '#A85432', '#5B3A29', '#2B2B2B', // white, grey, blonde, ginger, red, auburn, dark brown, black
     '#E8A0C4', '#7AB88A', '#5DA0D9', '#8B6FC9' // pink, green, blue, purple
   ];
-  // Lightest to darkest, black included alongside the natural range.
-  var AVATAR_EYE_COLORS = ['#8A8F94', '#4A89C9', '#4F8A5B', '#8A7043', '#6B4423', '#2B2B2B'];
-  // 4 = a downward/frown curve — mouthPathFor's default case (asymmetric
-  // half-smile) stays reachable as a 5th, distinct shape rather than
-  // being replaced by it. 5/6/7 = open "surprised" oval, big open grin,
-  // wavy/unsure line — see mouthPathFor.
-  var AVATAR_MOUTH_TYPES = [0, 1, 2, 4, 3, 5, 6, 7];
-  // Light/medium/dark — three fixed swatches (not a hash-derived open
-  // palette like hair/eyes) since skin tone is picking a real attribute
-  // of the person, not a decorative variation.
-  var AVATAR_SKIN_TONES = ['#F0D3AC', '#C68B59', '#7A4B2E'];
-  // A handful of pastel options, same family as the app's own palette —
-  // unset (the default) keeps the outer ring matching whichever theme
-  // the viewer has selected (see :root's --bg) rather than locking it to
-  // one fixed color for everyone.
-  var AVATAR_BG_COLORS = ['#FDE8EF', '#E8F3FD', '#FFF6DC', '#E9F7EC', '#F1E9FB', '#F6F1FB'];
-  var AVATAR_MOUTH_COLOR = '#8A5A42';
-  // One fixed mouth color read fine against the two lighter skin tones,
-  // but was too close in both hue and lightness to the darkest one to
-  // actually be visible — a mouth that all but disappeared into the
-  // face. Keyed by the exact AVATAR_SKIN_TONES value (not derived/
-  // computed) so each is a deliberately-checked, sufficiently darker
-  // shade rather than a formula that might not always land right.
-  var AVATAR_MOUTH_COLORS_BY_SKIN = {
-    '#F0D3AC': '#8A5A42',
-    '#C68B59': '#5C3A28',
-    '#7A4B2E': '#2B1810'
-  };
-  function mouthColorFor(skinColor){
-    return AVATAR_MOUTH_COLORS_BY_SKIN[skinColor] || AVATAR_MOUTH_COLOR;
-  }
-  // An uncustomized face defaults to this fixed look for every trait
-  // except hair color (still hash-derived — see avatarSvgFor — so two
-  // uncustomized people aren't identical), rather than the old
-  // hash-derived randomness for skin/eyes/mouth/length too.
-  var AVATAR_DEFAULT_SKIN = AVATAR_SKIN_TONES[0];
-  var AVATAR_DEFAULT_EYE = '#6B4423';
-  var AVATAR_DEFAULT_MOUTH = 0;
-  var AVATAR_DEFAULT_HAIRLEN = 'medium';
   function hashEmailForAvatar(email){
     var h = 0;
     for(var i = 0; i < email.length; i++){ h = (h * 31 + email.charCodeAt(i)) >>> 0; }
     return h;
   }
-  // mouthColor optional — defaults to the fixed AVATAR_MOUTH_COLOR, which
-  // is fine for the editor's own small picker-row icons (a neutral card
-  // background, not an actual face), but a real face passes mouthColorFor
-  // (skinColor) instead, so the mouth stays visible against whichever
-  // skin tone it's actually drawn on (see AVATAR_MOUTH_COLORS_BY_SKIN).
-  function mouthPathFor(mouthType, mouthColor){
-    var mc = mouthColor || AVATAR_MOUTH_COLOR;
-    if(mouthType === 0) return '<path d="M 25 41 Q 32 47 39 41" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    if(mouthType === 1) return '<path d="M 26 42 L 38 42" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    if(mouthType === 2) return '<path d="M 26 40 A 6 5 0 0 0 38 40 Z" fill="' + mc + '"/>';
-    // Same curve as mouthType 0's smile, mirrored — control point pulled
-    // *up* above the corners instead of down below them, so it reads as
-    // a downward, frowning mouth rather than a smile.
-    if(mouthType === 4) return '<path d="M 25 43 Q 32 37 39 43" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    // 3 — asymmetric half-smile, the original default/fallback shape,
-    // now reachable explicitly rather than by falling through.
-    if(mouthType === 3) return '<path d="M 27 41 Q 33 44 39 39" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    // 5 — a smirk: flat across most of its width, one corner kicked up,
-    // distinct from every symmetric shape here (0/1/2/3/4/6/7).
-    if(mouthType === 5) return '<path d="M 25 42 L 34 42 Q 37 42 39 39" stroke="' + mc + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-    // 6 — a wide open grin: outer smile curve plus an inner curve close
-    // behind it, so the sliver between them reads as an open mouth
-    // (teeth showing) rather than a plain thick line.
-    if(mouthType === 6) return '<path d="M 23 40 Q 32 50 41 40 Q 32 45 23 40 Z" fill="' + mc + '"/>';
-    // 7 — fuller lips: a shallow cupid's-bow dip at the top center
-    // (two small peaks meeting in the middle, not one plain curve) over
-    // a single rounded bottom edge — filled, like 2/6, not stroked like
-    // most of the others here.
-    return '<path d="M 24 41 Q 28 39 32 40.5 Q 36 39 40 41 Q 36 45 32 45 Q 28 45 24 41 Z" fill="' + mc + '"/>';
-  }
-  // Which side-lock path (if any) a given hair length draws, keyed by the
-  // same 'short'/'medium'/'long' strings the editor and stored overrides
-  // use — 'short' has no locks at all (just the cap path further down),
-  // 'medium' reaches to about jaw level, 'long' past the shoulder.
-  var AVATAR_HAIRLEN_SVG = {
-    medium: function(c){
-      return '<path d="M 16 27 C 9 31 7 38 8 44 C 8.5 47 11 49 14 48 C 15.5 47.5 16 45 15 42 C 13.5 37 14 31 18 27 Z" fill="' + c + '"/>' +
-        '<path d="M 48 27 C 55 31 57 38 56 44 C 55.5 47 53 49 50 48 C 48.5 47.5 48 45 49 42 C 50.5 37 50 31 46 27 Z" fill="' + c + '"/>';
-    },
-    long: function(c){
-      return '<path d="M 16 27 C 8 32 5 42 6 52 C 6.5 57 10 60 14 59 C 16 58.5 17 55 15.5 51 C 13 44 13 33 18 27 Z" fill="' + c + '"/>' +
-        '<path d="M 48 27 C 56 32 59 42 58 52 C 57.5 57 54 60 50 59 C 48 58.5 47 55 48.5 51 C 51 44 51 33 46 27 Z" fill="' + c + '"/>';
-    }
-  };
-  // A simple round-frame overlay, drawn after the eyes so it sits on top
-  // of them — off by default (never on unless explicitly picked) since
-  // an accessory silently appearing on people who never opted in would
-  // read as a bug, not a feature. 'glasses' keeps the original clear-lens
-  // look (frame only, eyes still visible through it); 'sunglasses' fills
-  // the same lenses with a tiled diagonal stripe instead of one flat
-  // color, standing in for a reflective lens — a plain solid fill just
-  // read as a black blob at avatar scale. A plain `true` a saved
-  // override might still carry from before sunglasses existed is treated
-  // the same as 'glasses' (see normalizeGlassesStyle, used here and by
-  // the picker row that offers this choice).
-  var AVATAR_GLASSES_COLOR = '#4A4A4A';
-  // A fixed id, not one generated per call — this used to be unique per
-  // call (avsg0, avsg1, ...) on the theory that a fixed id would have
-  // every instance silently render whichever pattern happened to be
-  // first in the document. That reasoning missed that the pattern's own
-  // content never varies by person, so any instance resolving to any
-  // other instance's <defs> was always harmless — but the *counter*
-  // restarting at 0 on every fresh page load wasn't: a freshly-generated
-  // low id could coincidentally collide with the same id baked into
-  // *saved* markup from a previous session (participant avatars are
-  // part of the saved activity HTML), and once whichever instance
-  // happened to "own" that id in the DOM was later replaced by its own
-  // fresh re-render (picking a new counter value), every other instance
-  // still pointing at the now-gone id went blank — sunglasses that
-  // "disappeared after a bit" with no visible cause. A fixed id sidesteps
-  // this entirely: every instance still carries its own redundant copy
-  // of the identical <defs>, so as long as at least one sunglasses
-  // avatar exists anywhere on the page, all of them keep resolving.
-  var AVATAR_SUNGLASSES_PATTERN_ID = 'avatar-sunglasses-lens';
-  function normalizeGlassesStyle(v){ return v === true ? 'glasses' : (v || false); }
-  function glassesSvgFor(style){
-    style = normalizeGlassesStyle(style);
-    if(!style) return '';
-    var frame = '<g fill="none" stroke="' + AVATAR_GLASSES_COLOR + '" stroke-width="2" stroke-linecap="round">' +
-      '<circle cx="26" cy="32" r="5.5"/><circle cx="38" cy="32" r="5.5"/>' +
-      '<line x1="31.5" y1="32" x2="32.5" y2="32"/><line x1="20.5" y1="31" x2="18" y2="30"/><line x1="43.5" y1="31" x2="46" y2="30"/>' +
-      '</g>';
-    if(style !== 'sunglasses') return frame;
-    return '<defs><pattern id="' + AVATAR_SUNGLASSES_PATTERN_ID + '" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(45)">' +
-        '<rect width="3" height="3" fill="#2B2B2B"/><rect width="1.5" height="3" fill="#8A8F94"/>' +
-      '</pattern></defs>' +
-      '<circle cx="26" cy="32" r="5.2" fill="url(#' + AVATAR_SUNGLASSES_PATTERN_ID + ')"/>' +
-      '<circle cx="38" cy="32" r="5.2" fill="url(#' + AVATAR_SUNGLASSES_PATTERN_ID + ')"/>' +
-      frame;
-  }
-  // override (optional): { skin, hair, eyes, mouthType, hairLength,
-  // glasses, bg } — any field left unset falls back to a fixed default
-  // (AVATAR_DEFAULT_*), except hair color, which stays hash-derived (see
-  // above) so two uncustomized people aren't identical, and glasses/bg,
-  // which are off/unset until explicitly picked (see glassesSvgFor).
-  // hairLength used to be a plain longHair boolean (true=long,
-  // false=short) before "medium" was added — a saved override from
-  // before that shipped still has that field instead of hairLength, so
-  // it's read here as a fallback rather than losing anyone's existing
-  // choice.
   function avatarSvgFor(email, override){
-    var h = hashEmailForAvatar(email);
-    var skinColor = (override && override.skin) || AVATAR_DEFAULT_SKIN;
-    // Hair color is the one trait that stays hash-derived — every other
-    // default is fixed (see AVATAR_DEFAULT_*), but a face with no
-    // customization at all should still look distinct from the next
-    // uncustomized face, not identical to it.
-    var hairColor = (override && override.hair) || AVATAR_HAIR_COLORS[h % AVATAR_HAIR_COLORS.length];
-    var eyeColor = (override && override.eyes) || AVATAR_DEFAULT_EYE;
-    var mouthType = (override && override.mouthType != null) ? override.mouthType : AVATAR_DEFAULT_MOUTH;
-    var hairLength;
-    if(override && override.hairLength) hairLength = override.hairLength;
-    else if(override && override.longHair != null) hairLength = override.longHair ? 'long' : 'short';
-    else hairLength = AVATAR_DEFAULT_HAIRLEN;
-    var hairLenSvg = AVATAR_HAIRLEN_SVG[hairLength] ? AVATAR_HAIRLEN_SVG[hairLength](hairColor) : '';
-    var bgColor = (override && override.bg) || 'var(--bg)';
-    return '<svg viewBox="0 0 64 64" aria-hidden="true">' +
-      '<circle cx="32" cy="32" r="30" fill="' + bgColor + '"/>' +
-      hairLenSvg +
-      '<circle cx="32" cy="34" r="18" fill="' + skinColor + '"/>' +
-      '<circle cx="26" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
-      '<circle cx="38" cy="32" r="2.6" fill="' + eyeColor + '"/>' +
-      mouthPathFor(mouthType, mouthColorFor(skinColor)) +
-      '<path d="M 13 34 A 19 22 0 0 1 51 34 Q 44 24 32 27 Q 20 24 13 34 Z" fill="' + hairColor + '"/>' +
-      glassesSvgFor(override && override.glasses) +
-      '</svg>';
+    // Drawn by TPAvatar (top of the page): hair styles, bangs, textures,
+    // accessories. Hair colour stays hash-derived until it's picked, and
+    // the background follows the theme until a colour is picked.
+    var o = {};
+    Object.keys(override || {}).forEach(function(k){ o[k] = override[k]; });
+    if(!o.hair) o.hair = AVATAR_HAIR_COLORS[hashEmailForAvatar(email) % AVATAR_HAIR_COLORS.length];
+    if(!o.bg) o.bg = 'var(--bg)';
+    return TPAvatar.render(o);
   }
   // A member is only ever *identified* by email (that's what Google auth
   // actually grants access to, and what the invite form and /members are
@@ -5860,176 +6024,59 @@
       console.warn('Reset avatar customization failed', err);
     }
   }
-  // Click the avatar in the list to open this. Every choice saves and
-  // re-renders immediately (both the popover's own preview and the
-  // row's avatar in the list behind it) rather than waiting for a
-  // confirm step, so trying a few combinations is just clicking around.
+  // Click the avatar in the list to open this. The same maker as the
+  // sign-up (TPAvatar.maker: tabs, hair styles, bangs, accessories, the
+  // dice); every choice saves and re-renders straight away.
   function openAvatarEditor(email, key, rowAvatarEl, initialOverride){
     closePop();
-    var current = {
-      name: initialOverride && initialOverride.name,
-      skin: initialOverride && initialOverride.skin,
-      hair: initialOverride && initialOverride.hair,
-      eyes: initialOverride && initialOverride.eyes,
-      mouthType: initialOverride && initialOverride.mouthType,
-      // Same legacy longHair-boolean fallback as avatarSvgFor, so the
-      // Hair length row starts on the right option for an override saved
-      // before "medium" existed.
-      hairLength: initialOverride && (initialOverride.hairLength ||
-        (initialOverride.longHair != null ? (initialOverride.longHair ? 'long' : 'short') : undefined)),
-      glasses: initialOverride && initialOverride.glasses,
-      bg: initialOverride && initialOverride.bg
-    };
+    var current = {};
+    Object.keys(initialOverride || {}).forEach(function(k){ current[k] = initialOverride[k]; });
     var pop = document.createElement('div');
-    pop.className = 'itemmenu avatar-editor';
-
-    var preview = document.createElement('div');
-    preview.className = 'avatar-editor-preview';
-    pop.appendChild(preview);
-
-    var errorEl = document.createElement('div');
-    errorEl.className = 'avatar-editor-error';
-    pop.appendChild(errorEl);
-
-    function refresh(){
-      var svg = avatarSvgFor(email, current);
-      preview.innerHTML = svg;
-      rowAvatarEl.innerHTML = svg;
-    }
-    refresh();
-
-    // A person is only ever *identified* by email — this is purely a
-    // friendlier label saved alongside the rest of the customization
-    // (see displayNameFor) — so it's a free-text field, not another row
-    // of buttons like every other trait here. Committed on blur/Enter
-    // rather than on every keystroke, so it doesn't write to Firebase on
-    // every character typed.
-    var nameRow = document.createElement('div');
-    nameRow.className = 'avatar-editor-row';
-    var nameLab = document.createElement('span');
-    nameLab.className = 'avatar-editor-label';
-    nameLab.textContent = 'Display name';
-    nameRow.appendChild(nameLab);
-    var nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.className = 'avatar-editor-name-input';
+    pop.className = 'itemmenu avatar-editor2';
+    pop.innerHTML = '<div class="ae-head"><div class="ae-face"></div><div class="ae-name"><label>Display name</label><input type="text" maxlength="30"></div><button type="button" class="avm-dice" title="Surprise me" aria-label="Surprise me">' + TPAvatar.DICE + '</button></div>' +
+      '<div class="ae-maker"></div><div class="ae-foot"><span class="ae-err"></span><button type="button" class="avatar-editor-reset">Reset to default</button></div>';
+    var face = pop.querySelector('.ae-face'), errorEl = pop.querySelector('.ae-err'), nameInput = pop.querySelector('.ae-name input');
     nameInput.placeholder = email;
     nameInput.value = current.name || '';
+    function refresh(){
+      var svg = avatarSvgFor(email, current);
+      face.innerHTML = svg;
+      if(rowAvatarEl) rowAvatarEl.innerHTML = svg;
+    }
+    function save(){
+      errorEl.textContent = '';
+      saveAvatarOverride(key, current, function(err){ errorEl.textContent = 'Couldn’t save: ' + ((err && err.message) || 'try again') + '.'; });
+    }
+    // The background stays "follow the theme" until a colour is picked.
+    var start = {}; Object.keys(current).forEach(function(k){ start[k] = current[k]; });
+    if(!start.hair) start.hair = AVATAR_HAIR_COLORS[hashEmailForAvatar(email) % AVATAR_HAIR_COLORS.length];
+    var maker = TPAvatar.maker(pop.querySelector('.ae-maker'), { value: start, keepBg: true, onChange: function(av){
+      var name = current.name, bg = current.bg;
+      current = av; current.name = name;
+      current.bg = av.bg !== TPAvatar.DEFAULTS.bg || bg ? av.bg : undefined;
+      delete current.longHair;
+      refresh(); save();
+    } });
+    pop.querySelector('.avm-dice').addEventListener('click', function(e){ e.stopPropagation(); maker.random(); });
     nameInput.addEventListener('click', function(e){ e.stopPropagation(); });
     function commitName(){
       var v = nameInput.value.trim();
       if(v === (current.name || '')) return;
-      pick('name', v || undefined);
+      current.name = v || undefined;
+      save();
     }
     nameInput.addEventListener('blur', commitName);
-    nameInput.addEventListener('keydown', function(e){
-      if(e.key === 'Enter'){ e.preventDefault(); nameInput.blur(); }
-    });
-    nameRow.appendChild(nameInput);
-    pop.appendChild(nameRow);
-
-    // Every option button registers a check here instead of only getting
-    // its "active" class at build time — picking a new hair color (say)
-    // needs the ring to move off the old swatch and onto the new one,
-    // not just update the preview, so this re-evaluates all of them
-    // after every pick rather than rebuilding the whole popover.
-    var activeTrackers = [];
-    function refreshActiveStates(){
-      activeTrackers.forEach(function(tr){ tr.btn.classList.toggle('active', tr.check()); });
-    }
-
-    function pick(field, value){
-      current[field] = value;
-      errorEl.textContent = '';
-      refresh();
-      refreshActiveStates();
-      saveAvatarOverride(key, current, function(err){
-        errorEl.textContent = 'Couldn’t save — ' + ((err && err.message) || 'try again') + '.';
-      });
-    }
-
-    function row(label, items, activeCheck, onPick){
-      var r = document.createElement('div');
-      r.className = 'avatar-editor-row';
-      var lab = document.createElement('span');
-      lab.className = 'avatar-editor-label';
-      lab.textContent = label;
-      r.appendChild(lab);
-      var opts = document.createElement('div');
-      opts.className = 'avatar-editor-opts';
-      items.forEach(function(item){
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'avatar-editor-opt';
-        item.build(btn);
-        btn.addEventListener('click', function(e){ e.stopPropagation(); onPick(item); });
-        opts.appendChild(btn);
-        activeTrackers.push({ btn: btn, check: function(){ return activeCheck(item); } });
-      });
-      r.appendChild(opts);
-      pop.appendChild(r);
-    }
-
-    row('Skin tone', AVATAR_SKIN_TONES.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
-      function(item){ return item.value === current.skin; },
-      function(item){ pick('skin', item.value); });
-
-    row('Hair color', AVATAR_HAIR_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
-      function(item){ return item.value === current.hair; },
-      function(item){ pick('hair', item.value); });
-
-    row('Eye color', AVATAR_EYE_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; }),
-      function(item){ return item.value === current.eyes; },
-      function(item){ pick('eyes', item.value); });
-
-    row('Mouth', AVATAR_MOUTH_TYPES.map(function(mt){ return { value: mt, build: function(btn){ btn.innerHTML = '<svg viewBox="18 32 28 18" width="22" height="14">' + mouthPathFor(mt) + '</svg>'; } }; }),
-      function(item){ return item.value === current.mouthType; },
-      function(item){ pick('mouthType', item.value); });
-
-    row('Hair length', [
-        { value: 'short', build: function(btn){ btn.textContent = 'Short'; } },
-        { value: 'medium', build: function(btn){ btn.textContent = 'Medium'; } },
-        { value: 'long', build: function(btn){ btn.textContent = 'Long'; } }
-      ],
-      function(item){ return item.value === current.hairLength; },
-      function(item){ pick('hairLength', item.value); });
-
-    row('Glasses', [
-        { value: false, build: function(btn){ btn.textContent = 'No glasses'; } },
-        { value: 'glasses', build: function(btn){ btn.textContent = 'Glasses'; } },
-        { value: 'sunglasses', build: function(btn){ btn.textContent = 'Sunglasses'; } }
-      ],
-      function(item){ return normalizeGlassesStyle(item.value) === normalizeGlassesStyle(current.glasses); },
-      function(item){ pick('glasses', item.value); });
-
-    // "Default" (unset) keeps the ring matching whichever theme the
-    // viewer has selected, same as never having touched this row —
-    // included as its own option (not just "pick a color to leave this")
-    // so there's an explicit way back to it, same as every other row.
-    row('Background', [{ value: undefined, build: function(btn){ btn.textContent = 'Default'; } }]
-        .concat(AVATAR_BG_COLORS.map(function(c){ return { value: c, build: function(btn){ btn.className += ' avatar-swatch'; btn.style.background = c; } }; })),
-      function(item){ return item.value === current.bg; },
-      function(item){ pick('bg', item.value); });
-
-    refreshActiveStates();
-
-    var resetRow = document.createElement('div');
-    resetRow.className = 'avatar-editor-row';
-    var resetBtn = document.createElement('button');
-    resetBtn.type = 'button';
-    resetBtn.className = 'avatar-editor-reset';
-    resetBtn.textContent = 'Reset to default';
-    resetBtn.addEventListener('click', function(e){
+    nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); nameInput.blur(); } });
+    pop.querySelector('.avatar-editor-reset').addEventListener('click', function(e){
       e.stopPropagation();
-      current = { name: undefined, skin: undefined, hair: undefined, eyes: undefined, mouthType: undefined, hairLength: undefined, glasses: undefined, bg: undefined };
+      current = {};
       nameInput.value = '';
       refresh();
       removeAvatarOverride(key);
       closePop();
     });
-    resetRow.appendChild(resetBtn);
-    pop.appendChild(resetRow);
-
+    pop.addEventListener('click', function(e){ e.stopPropagation(); });
+    refresh();
     positionPopover(pop, rowAvatarEl);
   }
 
@@ -6085,7 +6132,7 @@
         // The page's own row of faces (see renderPageHead) shows the
         // whole avatar, exactly like the menu button does.
         FULL_AVATAR_SVG[key] = svg;
-        svg = svg.replace(/<circle cx="32" cy="32" r="30"[^>]*\/>/, '');
+        svg = svg.replace(/<circle cx="32" cy="32" r="30" fill=[^>]*\/>/, '');
         svg = svg.replace('viewBox="0 0 64 64"', 'viewBox="10 11 44 44"');
         face.innerHTML = svg;
         faces.appendChild(face);
@@ -14380,7 +14427,8 @@
   var BACKDROP_KEY = 'travelPlannerBackdrop';
   function applyBackdrop(name){
     if(name === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
-    else { name = 'magical'; document.documentElement.removeAttribute('data-backdrop'); }
+    else if(name === 'magical') document.documentElement.removeAttribute('data-backdrop');
+    else { name = 'flat'; document.documentElement.setAttribute('data-backdrop', 'flat'); }
     document.querySelectorAll('.backdrop-dot').forEach(function(d){
       d.classList.toggle('active', d.getAttribute('data-backdrop-name') === name);
     });
@@ -14390,10 +14438,23 @@
     dot.addEventListener('click', function(){ applyBackdrop(dot.getAttribute('data-backdrop-name')); });
   });
   (function initBackdrop(){
-    var saved = 'magical';
-    try { saved = localStorage.getItem(BACKDROP_KEY) || 'magical'; } catch(e){}
+    var saved = 'flat';
+    try { saved = localStorage.getItem(BACKDROP_KEY) || 'flat'; } catch(e){}
     applyBackdrop(saved);
   })();
+  // Light or dark: the theme's colours stay, the page, cards and text turn dark.
+  var MODE_KEY = 'travelPlannerMode';
+  function applyMode(name){
+    name = name === 'dark' ? 'dark' : 'light';
+    if(name === 'dark') document.documentElement.setAttribute('data-mode', 'dark'); else document.documentElement.removeAttribute('data-mode');
+    document.querySelectorAll('.mode-dot').forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-mode-name') === name); });
+    try { localStorage.setItem(MODE_KEY, name); } catch(e){}
+  }
+  document.querySelectorAll('.mode-dot').forEach(function(dot){
+    dot.addEventListener('click', function(){ applyMode(dot.getAttribute('data-mode-name')); });
+  });
+  (function(){ var saved = 'light'; try { saved = localStorage.getItem(MODE_KEY) || 'light'; } catch(e){} applyMode(saved); })();
+
   // Themes of your own: the "+" opens a small editor (five colours, a name),
   // the page follows each colour as it's picked, Save keeps it (on this
   // device) as a dot next to the others; clicking your active one edits it.
@@ -14509,6 +14570,8 @@
     if(saveBtnLabelEl) saveBtnLabelEl.textContent = IS_HOSTED ? t('menu_download') : t('menu_save');
     var langSelectEl = document.getElementById('langSelect');
     if(langSelectEl) langSelectEl.value = currentLang;
+    var authLangEl = document.getElementById('authLang');
+    if(authLangEl) authLangEl.value = currentLang;
     // Only actually open when an owner has the panel up — harmless no-op
     // otherwise, and avoids a stray Firebase read on every language switch.
     if(manageList && manageList.children.length) renderMemberList();
@@ -14658,7 +14721,7 @@
       closeActionMenu();
       function place(){
         // just under the avatar button, above the top row, scrolling if it's taller than the window
-        var ed = document.querySelector('.avatar-editor'); if(!ed) return;
+        var ed = document.querySelector('.avatar-editor2'); if(!ed) return;
         var b = actionMenuBtn.getBoundingClientRect(), top = b.bottom + 8;
         ed.style.position = 'fixed'; ed.style.left = Math.max(8, b.left) + 'px'; ed.style.top = top + 'px';
         ed.style.maxHeight = (window.innerHeight - top - 12) + 'px'; ed.style.overflowY = 'auto'; ed.style.zIndex = '10002';
@@ -20862,6 +20925,75 @@
       renderDemoSwitcher();
     } finally { grpRendering = false; }
   }
+
+  // ---- window.TP: what onboarding.js (sign-up steps, the first-trip
+  // guide, the owner's cheat corner) needs from the app ----------------
+  window.TP = {
+    hosted: IS_HOSTED,
+    me: function(){ var k = meKey(); return { key: k, email: currentUserEmail || (k ? String(k).replace(/,/g, '.') : ''), owner: !IS_HOSTED || currentUserRole === 'owner', name: k ? grpName(k) : '' }; },
+    lang: function(){ return currentLang; },
+    avatar: function(email, override){ return avatarSvgFor(email || '', override); },
+    myAvatar: function(){
+      var k = meKey(); if(!k) return Promise.resolve(null);
+      if(!IS_HOSTED) return Promise.resolve(((window.__memberData || {}).avatars || {})[k] || null);
+      return firebase.database().ref('avatars/' + k).once('value').then(function(s){ return s.val(); });
+    },
+    saveAvatar: function(override){
+      var k = meKey(), clean = {};
+      Object.keys(override || {}).forEach(function(x){ if(override[x] !== undefined && override[x] !== null && override[x] !== '') clean[x] = override[x]; });
+      if(!IS_HOSTED || !k){
+        if(k){ var d = window.__memberData || (window.__memberData = { members: [], avatars: {} }); d.avatars = d.avatars || {}; d.avatars[k] = clean; renderGroup(); }
+        return Promise.resolve();
+      }
+      return firebase.database().ref('avatars/' + k).set(clean).then(refreshAllAvatarDisplays);
+    },
+    theme: function(){ var v = 'neutral'; try { v = localStorage.getItem(THEME_KEY) || 'neutral'; } catch(e){} return v; },
+    applyTheme: applyTheme, applyFont: applyFont, applyMode: applyMode, applyBackdrop: applyBackdrop, applyLanguage: applyLanguage,
+    toast: function(m){ grpToast(m); },
+    travelCall: travelCall,
+    // A new plan, the same way "+ New trip" makes one. dates: { from:{year,month,day}, to:{...}, exact }
+    createTrip: function(name, dates, invite){
+      var created = createOption(dates.from.year, dates.from.month);
+      if(!created) return null;
+      applyAltDates(created, dates);
+      renderHoliday(created);
+      var pid = optOf(created), me = meKey();
+      created.setAttribute('data-plan', pid);
+      created.setAttribute('data-plan-name', String(name || t('default_plan_name')).toUpperCase());
+      setOptionName(created, t('default_alt_name') + ' 1');
+      var keys = [];
+      (invite || []).forEach(function(email){
+        email = String(email).trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
+        if(IS_HOSTED && manageInput && manageForm){ manageInput.value = email; if(manageForm.requestSubmit) manageForm.requestSubmit(); else manageForm.dispatchEvent(new Event('submit', { cancelable: true })); }
+        keys.push(sanitizeEmailKey(email));
+      });
+      if(currentUserKey){ var mb = [currentUserKey]; keys.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
+      if(keys.length) GROUP.plans[pid] = { who: (me ? [me] : []).concat(keys) };
+      planChanged();
+      activatePillByOpt(pid);
+      grpChanged();
+      return pid;
+    },
+    // How far along a plan is: for the "Get started" list.
+    planStats: function(pid){
+      var panel = document.getElementById('panel-' + pid);
+      if(!panel || !GROUP) return null;
+      return { acts: panel.querySelectorAll('.acts > li').length, ideas: grpIdeas(pid).length, duels: grpDuels(pid).length,
+        people: (getOptionMembers(panel) || []).length, shared: Object.keys(GROUP.plans[pid] || {}).length > 0 && ((GROUP.plans[pid].who || []).length > 1) };
+    },
+    addIdea: function(pid, a){ if(!GROUP) return; grpAddIdea(pid, a, []); grpChanged(); },
+    activePlan: function(){ var p = document.querySelector('.panel.on'); return p ? optOf(p) : null; },
+    openPlan: function(pid){ activatePillByOpt(pid); },
+    openNewTrip: function(){ openNewTripForm(); },
+    openNotes: function(){ openNotesPage(); },
+    // The bell, with a made-up message for yourself (the cheat corner).
+    sampleNotification: function(){
+      var me = meKey(); if(!me) return Promise.reject(new Error('not signed in'));
+      var note = { from: me, fromName: 'Travel Planner (test)', kind: 'assign', plan: 'Florence', act: 'Duomo climb', at: IS_HOSTED ? firebase.database.ServerValue.TIMESTAMP : Date.now(), seen: false, msg: 'A sample notification from the cheat corner.' };
+      if(!IS_HOSTED) return Promise.reject(new Error('local mode: the bell only reads the database'));
+      return firebase.database().ref('notifications/' + me).push(note);
+    }
+  };
   // Item menu rows (see openItemMenu).
   grpItemMenuRows = function(li, row, icon, anchorEl){
     var me = meKey(), panel = li.closest('.panel');
@@ -20892,5 +21024,6 @@
   }
 })();
 </script>
+<script src="onboarding.js"></script>
 </body>
 </html>
