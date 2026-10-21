@@ -3452,9 +3452,15 @@
     background:var(--ink); color:var(--card); font-weight:800; font-size:14px; padding:10px 16px; border-radius:12px; transition:opacity .2s, transform .2s; }
   .grp-toast.show { opacity:1; transform:translate(-50%, 0); }
   /* shared stars: faces hang under the ribbon */
-  .grp-starfaces { position:fixed; z-index:2; display:flex; flex-direction:column; align-items:center; width:32px; gap:0; }
-  .grp-starfaces .grp-face { width:24px; height:24px; box-shadow:0 2px 6px rgba(61,53,104,.18); }
+  .grp-starfaces { position:fixed; z-index:3; display:flex; flex-direction:column; align-items:center; width:32px; gap:0; pointer-events:none; }
+  .grp-starfaces .grp-face { width:20px; height:20px; border-width:1.5px; box-shadow:0 1px 3px rgba(61,53,104,.25); }
   .grp-starfaces .grp-face + .grp-face { margin-top:-6px; }
+  @media screen and (min-width: 721px) {
+    .page-bookmark { height:calc(62px + var(--faces-h, 0px)); }
+    .page-bookmark:hover { height:calc(70px + var(--faces-h, 0px)); }
+    .page-bookmark[data-state="on"] { height:calc(86px + var(--faces-h, 0px)); }
+    .page-bookmark[data-state="on"]:hover { height:calc(92px + var(--faces-h, 0px)); }
+  }
   @media screen and (max-width: 720px) { .grp-starfaces { display:none !important; } }
   /* who's in, under each activity */
   .acts li > .grp-in { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:3px; font-size:11px; font-weight:700; color:var(--muted); }
@@ -3516,6 +3522,16 @@
   .grp-rm { border:0; background:none; color:var(--muted); cursor:pointer; padding:4px; font-size:12px; border-radius:6px; }
   .grp-rm:hover { color:var(--ink); background:var(--bg); }
   .grp-empty { color:var(--muted); font-weight:600; font-size:13px; margin:8px 0; }
+  /* This or that: why the vote, and why each pick */
+  .grp-duelpop .grp-duel-q { width:100%; box-sizing:border-box; margin:0 0 10px; padding:8px 10px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:13px; color:var(--ink); background:var(--card); resize:vertical; }
+  .grp-duelpop .grp-duel-q:focus { outline:none; border-color:var(--primary); }
+  .grp-duel-q-show { display:flex; align-items:flex-start; gap:7px; margin:2px 0 8px; padding:7px 9px; border-left:3px solid var(--primary); border-radius:0 10px 10px 0; background:var(--card); font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.35; overflow-wrap:anywhere; }
+  .grp-duel-q-show .grp-face { width:18px; height:18px; border:none; }
+  .grp-why-line { display:flex; align-items:flex-start; gap:6px; margin:4px 2px 2px 8px; font-size:12px; font-weight:600; color:var(--ink); line-height:1.35; overflow-wrap:anywhere; }
+  .grp-why-line .grp-face { width:16px; height:16px; border:none; margin-top:1px; }
+  .grp-why-line b { font-weight:800; }
+  .grp-duel .grp-why { width:100%; box-sizing:border-box; margin:8px 0 2px; padding:6px 9px; border:1.5px dashed rgba(var(--primary-rgb), .45); border-radius:9px; background:var(--card); font:inherit; font-size:12.5px; color:var(--ink); }
+  .grp-duel .grp-why:focus { outline:none; border-style:solid; border-color:var(--primary); }
   /* date poll: banner on the plan, and the full sheet */
   .panel > .grp-pollbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px; padding:10px 14px; border-radius:14px;
     background:rgba(var(--secondary-rgb), .1); border:1.5px dashed rgba(var(--secondary-rgb), .6); color:var(--ink); }
@@ -8175,9 +8191,11 @@
       if(tabColor) btn.style.setProperty('--bookmark-color', tabColor);
       faces.innerHTML = who.map(function(k){ return '<span class="grp-face" title="' + (memberNameOf(k) || '').replace(/"/g, '&quot;') + '">' + memberFaceOf(k) + '</span>'; }).join('');
       faces.style.display = cur && who.length ? '' : 'none';
-      var br = btn.getBoundingClientRect();
-      faces.style.left = btn.style.left;   // under the ribbon, wherever it hangs
-      faces.style.top = (br.bottom + 6) + 'px';
+      // The faces sit inside the ribbon, under the star; the ribbon grows to hold them.
+      var fh = cur && who.length ? 20 + (who.length - 1) * 14 + 8 : 0;
+      btn.style.setProperty('--faces-h', fh + 'px');
+      faces.style.left = btn.style.left;
+      faces.style.top = ((parseFloat(getComputedStyle(btn).top) || btn.getBoundingClientRect().top) + 30) + 'px';
       // Option ids are generated ("option-12"); anything else is skipped
       // rather than written into a selector.
       var all = GROUP ? GROUP.stars : {};
@@ -14586,7 +14604,9 @@
     }
     function render(){
       pop.innerHTML = '<div class="bd-head"><span>Notifications</span>' + (items.some(function(x){ return !x.seen; }) ? '<button type="button" class="bd-all">Mark all as read</button>' : '') + '</div>' +
-        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b>' + (x.kind === 'assign' ? ' assigned you <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : x.kind === 'askdone' ? ' checked <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : ' mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes') + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
+        (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b>' + (x.kind === 'assign' ? ' assigned you <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>'
+          : x.kind === 'duel' ? ' started a vote in <b>' + npEsc(x.plan || 'a plan') + '</b>: <b>' + npEsc(x.act || '') + '</b>'
+          : x.kind === 'datepoll' ? ' asks when you’re free for <b>' + npEsc(x.plan || 'a new plan') + '</b>' : x.kind === 'askdone' ? ' checked <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : ' mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes') + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
           : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, or assigns you an activity, it shows up here.</div>');
     }
     function markSeen(list){ list.forEach(function(x){ if(!x.seen && x.id && IS_HOSTED && currentUserKey) firebase.database().ref('notifications/' + currentUserKey + '/' + x.id + '/seen').set(true).catch(function(){}); x.seen = true; }); paint(); }
@@ -14596,6 +14616,7 @@
       if(e.target.closest('.bd-all')){ markSeen(items); return; }
       var it = e.target.closest('.bd-item'); if(!it) return; var x = items[+it.dataset.i]; markSeen([x]); pop.hidden = true;
       if((x.kind === 'assign' || x.kind === 'askdone') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day, x.act || '')) return;
+      if((x.kind === 'duel' || x.kind === 'datepoll') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day || '', '')) return;
       var target = [].filter.call(document.querySelectorAll('.panel'), function(p){ return planIdOf(p) === x.planId; })[0];
       if(target){ if(!target.classList.contains('on')) activatePillByOpt(optOf(target)); setTimeout(openNotesPage, 60); }
     });
@@ -15113,6 +15134,8 @@
       var vw = window.innerWidth, w = Math.round(Math.max(260, Math.min(500, vw * .28)));
       var root = document.documentElement;
       var wrap = document.querySelector('.wrap'), pills = document.querySelector('.pills');
+      // One day at a time: the day and its map share the book half and half.
+      if(root.classList.contains('map-focus') && wrap){ var lm = Math.max(12, Math.round(wrap.getBoundingClientRect().left)); w = Math.max(260, Math.round((vw - 2 * lm) / 2)); }
       if(wrap){
         var r = wrap.getBoundingClientRect(), top = Math.max(r.top, pills ? pills.getBoundingClientRect().bottom - 1 : 0);
         // the same margin on the right as the calendar has on the left
@@ -16131,7 +16154,9 @@
     if(!p.classList.contains('on')) activatePillByOpt(opt);
     setTimeout(function(){
       var hit = null; p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === +dn) c.querySelectorAll(':scope > .acts > li:not(.act-span-ghost)').forEach(function(li){ var t = li.querySelector(':scope > .title'); if(!hit && t && t.textContent.trim() === title) hit = li; }); });
-      if(hit){ hit.scrollIntoView({ block:'center' }); setTimeout(function(){ openActivityEditor(hit); }, 250); }
+      if(hit){ hit.scrollIntoView({ block:'center' }); setTimeout(function(){ openActivityEditor(hit); }, 250); return; }
+      if(!dn){ var poll = typeof grpPollOf === 'function' ? grpPollOf(p) : null; if(poll && !poll.lk) openPoll(p); return; }
+      p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(c){ if(dayNumOfCell(c) === +dn) c.scrollIntoView({ block:'center' }); });
     }, 120);
     return true;
   }
@@ -17502,9 +17527,15 @@
     // restores the links from it.
     var planMirror = {};
     model.options.forEach(function(o){ if(o.pl) planMirror[o.id] = [o.pl, o.pn || '']; });
+    // Assignments get the same kind of mirror (an older copy drops the
+    // activity's ak): option → "day|name" → ak.
+    var askMirror = {};
+    model.options.forEach(function(o){ Object.keys(o.d || {}).forEach(function(dn){ (o.d[dn].a || []).forEach(function(a){
+      if(a.ak){ (askMirror[o.id] = askMirror[o.id] || {})[dn + '|' + String(a.t || '').trim()] = a.ak; } }); }); });
     var notesOut = {};
-    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group') notesOut[k] = MONTH_NOTES[k]; });
+    Object.keys(MONTH_NOTES).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks') notesOut[k] = MONTH_NOTES[k]; });
     if(Object.keys(planMirror).length) notesOut.__plans = planMirror;
+    if(Object.keys(askMirror).length) notesOut.__asks = askMirror;
     if(grpHasData()) notesOut.__group = JSON.parse(JSON.stringify(GROUP));
     if(Object.keys(notesOut).length) model.notes = notesOut;
     return model;
@@ -17625,8 +17656,12 @@
     // a month's notes — keep it out of MONTH_NOTES.
     var planMirror = (model.notes && model.notes.__plans && typeof model.notes.__plans === 'object') ? model.notes.__plans : {};
     MONTH_NOTES = {};
-    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group') MONTH_NOTES[k] = model.notes[k]; });
+    Object.keys(model.notes || {}).forEach(function(k){ if(k !== '__plans' && k !== '__group' && k !== '__asks') MONTH_NOTES[k] = model.notes[k]; });
     GROUP = grpNormalize(model.notes && model.notes.__group);
+    // an assignment an older copy dropped comes back from its mirror
+    var askMirror = (model.notes && model.notes.__asks) || {};
+    model.options.forEach(function(o){ var m = askMirror[o.id]; if(!m) return; Object.keys(o.d || {}).forEach(function(dn){ (o.d[dn].a || []).forEach(function(a){
+      if(!a.ak && m[dn + '|' + String(a.t || '').trim()]) a.ak = m[dn + '|' + String(a.t || '').trim()]; }); }); });
     var wrap = document.querySelector('.wrap');
     var pillsWrap = document.querySelector('.pills');
     var budgetList = document.querySelector('.budget ul');
@@ -18350,6 +18385,25 @@
     el.textContent = msg; el.classList.add('show');
     clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
   }
+  // Tells people about something in a plan they're in: a bell, and (with
+  // email) an email through the script. Never yourself.
+  function grpNotify(keys, note, email){
+    var me = meKey(); keys = (keys || []).filter(function(k, i, all){ return k && k !== me && all.indexOf(k) === i; });
+    if(!keys.length || !IS_HOSTED || !currentUserKey) return;
+    var fromName = memberNameOf(currentUserKey);
+    note.from = currentUserKey; note.fromName = fromName; note.at = firebase.database.ServerValue.TIMESTAMP; note.seen = false;
+    Object.keys(note).forEach(function(k){ if(note[k] === undefined || note[k] === '') delete note[k]; });
+    keys.forEach(function(k){ firebase.database().ref('notifications/' + k).push(note).catch(function(err){ console.warn('Notification not saved (database rules?)', err); }); });
+    if(!email || !EMAIL_HOOK_URL) return;
+    var u = firebase.auth().currentUser; if(!u) return;
+    u.getIdToken().then(function(tok){
+      keys.forEach(function(k){
+        var body = { idToken: tok, to: k, from: fromName }; Object.keys(email).forEach(function(x){ body[x] = email[x]; });
+        fetch(EMAIL_HOOK_URL, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify(body) }).catch(function(){});
+      });
+    }).catch(function(){});
+  }
+  function grpChipText(a){ return a ? ((a.i ? a.i + ' ' : '') + (a.n || '')).trim() : ''; }
   function grpPlaceActivity(panel, dn, a){
     var cell = grpCellOf(panel, dn);
     if(!cell) return null;
@@ -18550,6 +18604,7 @@
     var tagOpts = TAGS.map(function(tg, i){ return '<option value="' + i + '">' + grpEsc(tg.icon + ' ' + tg.name) + '</option>'; }).join('');
     pop.innerHTML = '<div class="rangepop-title">This or that?</div>' +
       '<p class="grp-hint">Put <b>' + grpEsc(a.t || 'this activity') + '</b> to a vote against something else for ' + grpEsc(grpDayLabel(panel, dayNumOfCell(cell))) + '. The loser goes to the idea box.</p>' +
+      '<textarea class="grp-duel-q" rows="2" maxlength="300" placeholder="Why the vote? (optional), e.g. Only time for one, the salt mine is cheaper"></textarea>' +
       (ideas.length ? '<div class="whenpop-label">Pick from the idea box</div><div class="grp-duel-ideas">' + ideas.map(function(it){ return '<button type="button" class="grp-duel-idea" data-id="' + it.id + '">' + grpChipHtml(it.a) + ' ' + grpEsc(it.a.t || '') + '</button>'; }).join('') + '</div><div class="whenpop-label">or something new</div>' : '<div class="whenpop-label">Against</div>') +
       '<div class="whenpop-row"><input type="text" class="grp-duel-t" placeholder="e.g. Salt mine tour"><select class="grp-duel-tag" aria-label="Type">' + tagOpts + '</select></div>' +
       '<button type="button" class="addbtn">Start the vote</button>';
@@ -18558,8 +18613,14 @@
     pop.addEventListener('click', function(e){ e.stopPropagation(); });
     function start(b, fromIdea){
       var me = meKey();
-      grpDuels(opt).push({ id: grpId(), d: dayNumOfCell(cell), a: a, b: b, v: {}, by: me || '' });
+      var q = pop.querySelector('.grp-duel-q').value.trim(), dn = dayNumOfCell(cell), duel = { id: grpId(), d: dn, a: a, b: b, v: {}, by: me || '' };
+      if(q) duel.q = q;
+      grpDuels(opt).push(duel);
       if(fromIdea) GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== fromIdea; });
+      // everyone in the alternative hears about it
+      var plan = planNameOf(panel), when = grpDayLabel(panel, dn);
+      grpNotify(grpEligible(panel), { kind:'duel', plan: plan, planId: planIdOf(panel), opt: opt, day: dn, act: (a.t || '') + ' or ' + (b.t || ''), msg: q },
+        { kind:'duel', plan: plan, a: a.t || '', b: b.t || '', tagA: grpChipText(a), tagB: grpChipText(b), when: when, msg: q, url: location.origin + location.pathname + '?act=' + encodeURIComponent(opt + '|' + dn + '|') });
       li.remove(); recomputeCell(cell); renderActivitySpans(panel);
       closePop(); playStampSound(); grpChanged();
     }
@@ -18587,6 +18648,8 @@
     grpChanged();
   }
   function renderDuels(panel){
+    // keep what you're typing as your reason across a re-render
+    var typing = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('grp-why') ? { id: document.activeElement.dataset.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
     panel.querySelectorAll('.grp-duel').forEach(function(n){ n.remove(); });
     var opt = optOf(panel), me = meKey(), people = grpEligible(panel);
     grpDuels(opt).slice().forEach(function(duel){
@@ -18598,11 +18661,23 @@
         var x = duel[k], fans = Object.keys(v).filter(function(p){ return v[p] === k; }), mine = me && v[me] === k;
         var pct = people.length ? Math.round(fans.length / people.length * 100) : 0;
         return '<button type="button" class="grp-side' + (mine ? ' on' : '') + '" data-k="' + k + '" aria-pressed="' + !!mine + '"><span class="grp-side-fill" style="width:' + pct + '%"></span>' +
-          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (fans.length ? grpFaces(fans) : '') + '</button>';
+          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (fans.length ? grpFaces(fans) : '') + '</button>' +
+          // why each of them picked it
+          fans.filter(function(p){ return r[p]; }).map(function(p){ return '<div class="grp-why-line">' + grpFace(p) + '<span><b>' + grpEsc(p === me ? 'You' : grpName(p)) + '</b> ' + grpEsc(r[p]) + '</span></div>'; }).join('');
       }
+      var r = duel.r || {}, myVote = me && v[me];
       card.innerHTML = '<div class="grp-duel-head"><span>This or that?</span><span class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted</span></div>' +
+        (duel.q ? '<div class="grp-duel-q-show">' + (duel.by ? grpFace(duel.by) : '') + '<span>' + grpEsc(duel.q) + '</span></div>' : '') +
         side('a') + '<span class="grp-or">or</span>' + side('b') +
+        (myVote ? '<input type="text" class="grp-why" maxlength="200" data-id="' + grpEsc(duel.id) + '" placeholder="Why ' + grpEsc((duel[myVote].t || 'this').slice(0, 30)) + '? (optional)" value="' + grpEsc(r[me] || '') + '">' : '') +
         '<div class="grp-duel-foot">' + (voted.length ? '<button type="button" class="grp-link" data-do="decide">Decide now</button>' : '') + '<button type="button" class="grp-link" data-do="cancel">Cancel vote</button></div>';
+      var why = card.querySelector('.grp-why');
+      if(why){
+        var saveWhy = function(){ var t = why.value.trim(); duel.r = duel.r || {}; if((duel.r[me] || '') === t) return; if(t) duel.r[me] = t; else delete duel.r[me]; grpChanged(); };
+        why.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); saveWhy(); why.blur(); } });
+        why.addEventListener('change', saveWhy);
+        why.addEventListener('blur', saveWhy);
+      }
       card.addEventListener('click', function(e){ e.stopPropagation(); });
       card.querySelectorAll('.grp-side').forEach(function(b){
         b.addEventListener('click', function(){ if(!me) return; duel.v = duel.v || {}; if(duel.v[me] === b.dataset.k) delete duel.v[me]; else { duel.v[me] = b.dataset.k; playCheckSound(); } grpChanged(); });
@@ -18613,6 +18688,7 @@
       var acts = cell.querySelector(':scope > .acts');
       if(acts) acts.insertAdjacentElement('afterend', card);
       else { var head = cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead'); if(head) head.insertAdjacentElement('afterend', card); else cell.appendChild(card); }
+      if(why && typing && typing.id === duel.id){ why.value = typing.v; why.focus(); try { why.setSelectionRange(typing.s, typing.s); } catch(e){} }
     });
   }
 
@@ -18869,7 +18945,12 @@
       setOptionName(created, t('default_alt_name') + ' 1');
       if(currentUserKey){ var mb = [currentUserKey]; picked.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
       if(picked.length) GROUP.plans[pid] = { who: (me ? [me] : []).concat(picked.filter(function(k){ return k !== me; })) };
-      if(poll) GROUP.polls[pid] = poll;
+      if(poll){
+        GROUP.polls[pid] = poll;
+        var pplan = (name || t('default_plan_name')), pnote = { kind:'datepoll', plan: pplan, planId: pid, opt: pid };
+        if(poll.dl) pnote.msg = 'Answers by ' + poll.dl;
+        grpNotify(grpPollPeople(created), pnote, { kind:'datepoll', plan: pplan, len: String(poll.len || ''), dl: poll.dl || '', url: location.origin + location.pathname + '?act=' + encodeURIComponent(pid + '||') });
+      }
       planChanged();
       activatePillByOpt(pid);
       grpChanged();
