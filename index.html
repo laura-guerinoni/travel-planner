@@ -3240,8 +3240,6 @@
     .grp-notes-ideas .ib-board { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:18px 12px; margin-top:12px; padding:4px 2px 6px; }
     .grp-notes-ideas .ib-note { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-height:116px; padding:20px 11px 10px; border-radius:3px; background:var(--nc); box-shadow:0 10px 18px -12px rgba(60,30,60,.55); transform:rotate(var(--r)); }
     .grp-notes-ideas .ib-note::before { content:''; position:absolute; top:-9px; left:50%; width:56px; height:18px; margin-left:-28px; background:var(--tape); transform:rotate(-4deg); pointer-events:none; }
-    .grp-notes-ideas .ib-note.fav { box-shadow:0 0 0 2px var(--accent), 0 10px 18px -12px rgba(60,30,60,.55); }
-    .grp-notes-ideas .ib-note.fav::after { content:'★'; position:absolute; top:3px; right:7px; color:var(--accent); font-size:15px; }
     .grp-notes-ideas .ib-note .grp-chip { font-size:10.5px; }
     .grp-notes-ideas .ib-t { font-family:Caveat, cursive; font-size:22px; font-weight:700; line-height:1.05; color:var(--ink); overflow-wrap:anywhere; }
     .grp-notes-ideas .ib-meta { font-size:11px; font-weight:700; color:var(--ink); opacity:.55; }
@@ -19123,7 +19121,6 @@
     var draft = box.querySelector('#grpIdeaTitle'); draft = draft ? draft.value : '';
     // In Notes: sticky notes taped on the page (the chosen design), two per row.
     var NOTE_BG = ['#fff3bf', '#ffd9e6', '#dff5ec', '#e8e1fb'], NOTE_TAPE = ['rgba(236,106,156,.35)', 'rgba(63,191,148,.35)', 'rgba(242,136,77,.35)', 'rgba(155,143,192,.4)'];
-    var favN = list.filter(function(x){ return (x.h || []).length === top; }).length;
     if(inNotes) box.innerHTML = '<div class="ib-title"><h3>Idea box</h3>' + (list.length ? '<span class="ib-cnt">' + list.length + '</span>' : '') + '</div>' +
       '<form class="grp-ideaform ib-add"><input id="grpIdeaTitle" placeholder="@ for places" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="ib-plus" aria-label="Add the idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></form>' +
       (ideaDraft.open ? '<div class="ib-det">' +
@@ -19133,8 +19130,8 @@
           '<div class="ibd-foot"><button type="button" class="ibd-done" data-x="det">Done</button></div></div>'
         : '<button type="button" class="ib-more" data-x="det">+ Time, price, notes…' + (ideaDetTxt() ? ' <span>' + grpEsc(ideaDetTxt()) + '</span>' : '') + '</button>') +
       (list.length ? '<div class="ib-board">' + list.map(function(it, n){
-        var hs = it.h || [], mine = !!me && hs.indexOf(me) !== -1, fav = list.length > 1 && top > 0 && hs.length === top && favN === 1;   // the group favourite: the one idea with the most hearts
-        return '<div class="grp-idea ib-note' + (fav ? ' fav' : '') + '" data-id="' + it.id + '" style="--nc:' + NOTE_BG[n % 4] + ';--tape:' + NOTE_TAPE[n % 4] + ';--r:' + (n % 2 ? '1.3deg' : '-1.2deg') + '"' + (fav ? ' title="Group favourite"' : '') + '>' +
+        var hs = it.h || [], mine = !!me && hs.indexOf(me) !== -1;
+        return '<div class="grp-idea ib-note" data-id="' + it.id + '" style="--nc:' + NOTE_BG[n % 4] + ';--tape:' + NOTE_TAPE[n % 4] + ';--r:' + (n % 2 ? '1.3deg' : '-1.2deg') + '">' +
           '<button type="button" class="grp-rm" aria-label="Remove idea" title="Remove idea">✕</button>' + grpChipHtml(it.a) + '<div class="ib-t">' + grpEsc(it.a.t || 'Untitled') + '</div>' +
           (parseGeo(it.a.gp || '') ? '<div class="ib-where" title="On the map">' + IB_PIN + '<span>' + grpEsc((it.a.sp || it.a.pl || '') && (it.a.sp || it.a.pl) !== it.a.t ? (it.a.sp || it.a.pl) : 'On the map') + '</span></div>' : '') +
           (function(){ var m = [grpTimeOf(it.a), it.a.p || '', it.by ? grpName(it.by) : ''].filter(function(x){ return x && x !== 'time'; }); return m.length ? '<div class="ib-meta"' + ((it.a.l || []).length ? ' title="' + grpEsc((it.a.l || []).filter(function(x){ return !/🕒/.test(x); }).join('\n')) + '"' : '') + '>' + grpEsc(m.join(' · ')) + '</div>' : ''; })() +
