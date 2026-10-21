@@ -3017,7 +3017,7 @@
   #wxCard .wxc-note { font-size:10.5px; font-weight:700; color:var(--muted); text-align:right; margin-top:2px; }
   #wxCard .wxc-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:9px; padding-top:8px; border-top:1px solid var(--line); font-size:11px; font-weight:700; color:var(--muted); }
   #wxCard .wxc-foot a { color:var(--primary); font-weight:900; text-decoration:none; white-space:nowrap; }
-  @media print { .wx, .page-wx, #wxCard { display:none !important; } }
+  @media print { .wx, #wxCard { display:none !important; } }
   /* The map is the right-hand page of the open notebook: it joins the
      calendar's page at a soft fold, and the map itself is taped on it
      like a photo, with the day's kraft tag clipped to its top edge. */
@@ -15930,8 +15930,7 @@
   // what the weather was. Hovering opens the day (or the week) hour by
   // hour, with a link to the full forecast.
   (function(){
-    var WX_ON_KEY = 'tp-weather', SLOTS = [8, 10, 12, 14, 16, 18, 20, 22];
-    function wxOn(){ try { return localStorage.getItem(WX_ON_KEY) !== '0'; } catch(e){ return true; } }
+    var SLOTS = [8, 10, 12, 14, 16, 18, 20, 22];
     function lsGet(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){ return null; } }
     function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
     function pad2(n){ return String(n).padStart(2, '0'); }
@@ -16107,10 +16106,8 @@
         el.__wx = { kind:'usual', city:bl.city, g:r.g, u:r.u, from:from, to:to }; el.hidden = false;
       }).catch(function(){});
     }
-    function clear(){ document.querySelectorAll('.wx').forEach(function(x){ x.remove(); }); if(card) card.hidden = true; }
     function render(){
       var panel = document.querySelector('.panel.on'); if(!panel) return;
-      if(!wxOn()){ clear(); return; }
       // each day, and the cities it shows weather for
       var list = [];
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
@@ -16138,19 +16135,7 @@
         else dayChip(x.host, x.cell, x.city, x.t, x.small, x.before);
       });
     }
-    // the sun button in the top bar shows or hides it (on by default)
-    var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-    function ensureBtn(){
-      var head = document.getElementById('pageHead'); if(!head) return;
-      var b = head.querySelector('.page-wx');
-      if(!b){ b = document.createElement('button'); b.type = 'button'; b.className = 'page-map page-wx'; b.innerHTML = SUN;
-        b.addEventListener('click', function(e){ e.stopPropagation(); try { localStorage.setItem(WX_ON_KEY, wxOn() ? '0' : '1'); } catch(x){} sync(); render(); });
-        var map = head.querySelector('.page-map:not(.page-wx)'), bell = head.querySelector('.page-bell'), share = head.querySelector('.page-share');
-        head.insertBefore(b, map || bell || share || null); }
-      function sync(){ var on = wxOn(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.title = on ? 'Hide the weather' : 'Show the weather'; b.setAttribute('aria-label', b.title); }
-      sync();
-    }
-    setInterval(function(){ ensureBtn(); render(); }, 1200);
+    setInterval(render, 1200);
   })();
 
   // ---------- An older copy left open ----------
