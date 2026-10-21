@@ -4121,7 +4121,7 @@
       </div>
       <!-- Laid out like Google Calendar's quick add: the name as a big
            underlined field, then one compact row per detail with an icon. -->
-      <div id="fabAddTitleInput" class="fabadd-select gc-title" contenteditable="true" role="textbox" aria-label="What" spellcheck="true" data-ph="Add a name · @ for a place"></div>
+      <div id="fabAddTitleInput" class="fabadd-select gc-title" contenteditable="true" role="textbox" aria-label="What" spellcheck="true" data-ph="Activity name · @ to add it to the map"></div>
       <div class="gc-row"><svg class="gc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><select id="fabAddTagSelect" class="fabadd-select" aria-label="Type"></select></div>
       <div id="fabAddNewTag" class="gc-newtag" hidden>
         <input type="text" class="fabadd-select nt-icon" maxlength="4" placeholder="🎟️" aria-label="Emoji">
@@ -15933,8 +15933,15 @@
       // the list shows straight away ("Searching…"), so it never feels dead
       forInp = inp; list = []; act = 0; note = 'Searching…'; draw();
       timer = setTimeout(function(){
-        var my = ++seq, n = near();
-        placeSearch(v, n).then(function(res){
+        var my = ++seq, n = near(), ctx = title ? atCtx : null;
+        // words after the caret may not all be the place ("@wawel castle with Ana"):
+        // when nothing is found, drop the last word and try again
+        function find(q){ return placeSearch(q, n).then(function(res){
+          var w = q.split(/[\s\u00a0]+/), shorter = w.slice(0, -1).join(' ');
+          if(my !== seq || !ctx || (res && res.places && res.places.length) || w.length < 2 || shorter.length < Math.max(2, ctx.typed)) return res;
+          return find(shorter).then(function(r2){ if(r2 && r2.places && r2.places.length){ ctx.q = shorter; ctx.end = ctx.start + 1 + shorter.length; } return (r2 && r2.places && r2.places.length) ? r2 : res; });
+        }); }
+        find(v).then(function(res){
           if(my !== seq || document.activeElement !== inp) return;
           forInp = inp; list = (res && res.places) || []; act = 0;
           note = list.length ? '' : (res && res.error && res.error !== 'not found' ? 'Place search isn’t available right now' : 'No places found'); draw();
@@ -15949,6 +15956,13 @@
         var ctx = atCtx; close(); atCtx = null; if(!ctx || !ctx.node.isConnected) return;
         if(i === 'keep'){ var r0 = document.createRange(); r0.setStart(ctx.node, ctx.start); r0.setEnd(ctx.node, ctx.start + 1); r0.deleteContents(); return; }   // just drop the @
         var q = list[i], pl = document.getElementById('fabAddPlace');
+        // words that were already after the @ go into the chip only while they
+        // are part of the place's name ("@wawel castle with Ana" keeps "with Ana")
+        if(ctx.q.length > ctx.typed){
+          var norm = function(x){ return x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }, nm = norm(q.name), re = /[^\s\u00a0]+/g, w, keep = ctx.typed;
+          while((w = re.exec(ctx.q))){ var wEnd = w.index + w[0].length; if(wEnd <= ctx.typed || nm.indexOf(norm(w[0])) >= 0) keep = Math.max(keep, wEnd); else if(w.index >= ctx.typed) break; }
+          ctx.end = ctx.start + 1 + keep;
+        }
         var r = document.createRange(); r.setStart(ctx.node, ctx.start); r.setEnd(ctx.node, Math.min(ctx.end, ctx.node.nodeValue.length)); r.deleteContents();
         titleChip(q.name, r);
         if(pl){ pl.value = q.name; pl._geo = { lat:q.lat, lon:q.lon, name:q.name, spot:!!q.spot, city:q.city || '', town:!!q.town }; pl._fromChip = true; placeTouched = true; }
@@ -15965,7 +15979,11 @@
       var sel = window.getSelection(); if(!sel.rangeCount) return null; var n = sel.anchorNode;
       if(!n || n.nodeType !== 3 || !t.contains(n)) return null;
       var before = n.nodeValue.slice(0, sel.anchorOffset), m = /(^|[\s\u00a0(])@([^@\n]{0,40})$/.exec(before);
-      return m ? { node:n, start: sel.anchorOffset - m[2].length - 1, end: sel.anchorOffset, q: m[2] } : null;
+      if(!m) return null;
+      // an @ typed in front of words already there takes them too ("@|wawel castle"),
+      // up to a punctuation mark; a space right after the @ means no place yet
+      var after = n.nodeValue.slice(sel.anchorOffset), a = (m[2] || !/^[\s\u00a0]/.test(after)) ? /^[^@\n,.;:!?()\u2013\u2014·|]{0,40}/.exec(after)[0].replace(/[\s\u00a0]+$/, '') : '';
+      return { node:n, start: sel.anchorOffset - m[2].length - 1, end: sel.anchorOffset + a.length, q: m[2] + a, typed: m[2].length };
     }
     document.addEventListener('input', function(e){ var t = e.target; if(t && (t.id === 'fabAddPlace' || t.id === 'fabAddPlaceTo')){ placeMark(t); search(t); }
       else if(t && t.id === 'fabAddTitleInput'){
