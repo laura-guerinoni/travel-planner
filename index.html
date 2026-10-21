@@ -20236,8 +20236,8 @@
     fromIn.value = grpIso(d.year, d.month, 1); toIn.value = grpIso(d.year, d.month, Math.min(5, daysInMonth(d.year, d.month)));
     dlIn.value = grpIso(dl.getFullYear(), dl.getMonth() + 1, dl.getDate());
     function people(){
-      var ms = grpPeople().filter(function(m){ return m.key !== me; });
-      invited.forEach(function(k){ if(!ms.some(function(m){ return m.key === k; })) ms.push({ key: k }); });
+      // only you, and whoever you invite here: other people's faces would look like they can see it
+      var ms = invited.filter(function(k){ return k !== me; }).map(function(k){ return { key: k }; });
       var box = pop.querySelector('.grp-people');
       box.innerHTML = (me ? '<span class="grp-person on">' + grpFace(me) + grpEsc(grpName(me)) + ' <span class="grp-muted">(you)</span></span>' : '') +
         ms.map(function(m){ var on = !!who[m.key]; return '<button type="button" class="grp-person' + (on ? ' on' : '') + '" data-k="' + grpEsc(m.key) + '" aria-pressed="' + on + '">' + grpFace(m.key) + grpEsc(grpName(m.key)) + (on ? ' ✓' : '') + '</button>'; }).join('');
