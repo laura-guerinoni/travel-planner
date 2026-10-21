@@ -3066,6 +3066,7 @@
   /* Month | Day, by the map button (only while the map is open) */
   .page-focus { display:none; align-items:center; gap:2px; padding:3px; margin-right:6px; border-radius:999px; background:rgba(255,255,255,.75); box-shadow:0 0 0 1px var(--line); }
   :root.map-open .page-focus { display:inline-flex; }
+  :root.map-open body.notes-mode .page-focus { display:none; }
   .page-focus button { height:26px; padding:0 11px; border:none; border-radius:999px; background:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
   .page-focus button[aria-pressed="true"] { background:var(--primary); color:#fff; }
   .page-focus button:not([aria-pressed="true"]):hover { color:var(--ink); }
@@ -15196,11 +15197,14 @@
     // map is open. Day shows only the map's day, full width; ‹ › on the
     // tag (or the arrow keys) go through the days. ----
     function focusOn(){ try { return localStorage.getItem('tp-map-focus') === '1'; } catch(e){ return false; } }
+    // Notes is never one day at a time: it keeps the month's layout
     function applyFocus(){
-      var on = isOpen() && focusOn(); document.documentElement.classList.toggle('map-focus', on);
+      var on = isOpen() && focusOn() && !document.body.classList.contains('notes-mode'); document.documentElement.classList.toggle('map-focus', on);
       var sw = document.querySelector('.page-focus'); if(sw) sw.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', String((b.dataset.f === 'day') === on)); });
       setTimeout(fitChips, 60);
     }
+    var notesWas = null;
+    new MutationObserver(function(){ var n = document.body.classList.contains('notes-mode'); if(n !== notesWas){ notesWas = n; applyFocus(); if(!n && isOpen()){ sig = ''; draw(false); } } }).observe(document.body, { attributes:true, attributeFilter:['class'] });
     function setFocus(on){ try { localStorage.setItem('tp-map-focus', on ? '1' : ''); } catch(e){} applyFocus(); if(on){ sig = ''; draw(false); window.scrollTo({ top:0 }); } }
     document.addEventListener('keydown', function(e){
       if(!document.documentElement.classList.contains('map-focus') || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.metaKey || e.ctrlKey || e.altKey) return;
