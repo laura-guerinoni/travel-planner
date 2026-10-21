@@ -3081,6 +3081,13 @@
   .go-line .go-b:hover { background:var(--bg); color:var(--ink); }
   .go-line .go-b svg { width:14px; height:14px; flex:none; }
   .go-line .go-b svg:last-child { width:12px; height:12px; }
+  /* In a narrow day the distance drops to a hidden second line instead of
+     spilling out of the day: the time always shows, the rest is in the tooltip. */
+  .acts > .go-line { min-width:0; }
+  .go-line .go-b { flex-wrap:wrap; align-content:flex-start; max-width:100%; min-width:0; height:20px; line-height:16px; overflow:hidden; box-sizing:border-box; }
+  .go-line .go-b > span { white-space:nowrap; }
+  .go-line .go-t { display:inline-flex; align-items:center; gap:5px; min-width:0; overflow:hidden; }
+  .go-line .go-t > span { overflow:hidden; text-overflow:ellipsis; }
   .go-line .go-off { letter-spacing:2px; opacity:.5; }
   .go-guess { opacity:.6; }
   #goMenu { position:fixed; z-index:10020; width:250px; background:#fff; border-radius:12px; padding:6px 0; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); font-family:inherit; }
@@ -15597,7 +15604,7 @@
       el.__ends = ends; keep.push(el);
       var ord = String(2 * i - 1); if(el.getAttribute('data-ord') !== ord) el.setAttribute('data-ord', ord);
       var v = mode === 'transit' ? (d.transit ? [d.transit[0], null] : null) : d[mode], html = d.h ? '<button type="button" class="go-b go-off" title="Show the travel time" aria-label="Show the travel time">···</button>'
-        : '<button type="button" class="go-b" aria-label="Travel time">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (v ? fmtMin(v[0]) + (v[1] != null ? ' · ' + fmtKm(v[1]) : '') : mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + GO_ICONS.caret + '</button>';
+        : '<button type="button" class="go-b" aria-label="Travel time"' + (v && v[1] != null ? ' title="' + fmtMin(v[0]) + ' · ' + fmtKm(v[1]) + '"' : '') + '><span class="go-t">' + GO_ICONS[mode === 'transit' ? 'bus' : mode] + (v ? '<span>' + fmtMin(v[0]) + '</span></span>' + (v[1] != null ? '<span class="go-km">· ' + fmtKm(v[1]) + '</span>' : '') : (mode === 'transit' ? '…' : '<span class="go-guess">≈ ' + fmtMin(goGuess(ends, mode)[0]) + '</span>') + '</span>') + GO_ICONS.caret + '</button>';
       if(el.__html !== html){ el.__html = html; el.innerHTML = html; }
     });
     acts.querySelectorAll(':scope > .go-line').forEach(function(el){ if(keep.indexOf(el) === -1) el.remove(); });
