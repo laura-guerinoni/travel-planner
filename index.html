@@ -2107,6 +2107,12 @@
   /* Neighbouring months' days around the month (desktop): faded, dashed,
      just the date. */
   .cell.empty .out-num { display:none; }
+  /* exact dates: the days before and after the trip, like other months' days */
+  .grid.week[data-off-trip] { display:none !important; }
+  .cell[data-off-trip] { background:none !important; border:1.5px dashed var(--line) !important; box-shadow:none !important; }
+  .cell[data-off-trip] > .cellhead { opacity:.45; }
+  .cell[data-off-trip]:not(:has(> .acts > li)) > :not(.cellhead) { display:none; }
+  @media print { .cell[data-off-trip] { display:none; } }
   @media screen and (min-width: 721px) {
     .cell.empty.out-day { border:1.5px dashed var(--line); background:none; border-radius:12px; padding:10px; min-height:120px; }
     .cell.empty.out-day .out-num { display:block; font-weight:700; font-size:18px; color:var(--muted); opacity:.75; }
@@ -3165,7 +3171,7 @@
   .page-focus { display:none; align-items:center; gap:2px; padding:3px; margin-right:6px; border-radius:999px; background:rgba(255,255,255,.75); box-shadow:0 0 0 1px var(--line); }
   :root.map-open .page-focus { display:inline-flex; }
   :root.map-open body.notes-mode .page-focus { display:none; }
-  .page-focus button { height:26px; padding:0 11px; border:none; border-radius:999px; background:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .page-focus button { height:26px; padding:0 11px; white-space:nowrap; border:none; border-radius:999px; background:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
   .page-focus button[aria-pressed="true"] { background:var(--primary); color:#fff; }
   .page-focus button:not([aria-pressed="true"]):hover { color:var(--ink); }
   /* Day: only the map's day, the full width of the page */
@@ -11760,6 +11766,23 @@
     cell.classList.toggle('holi', inAny && !cell.querySelector(':scope > .loc'));
   }
 
+  // With exact dates, the calendar shows the trip: days before or after it
+  // look like the days of other months, and weeks with none of the trip's
+  // days (and nothing planned) are left out. Display only.
+  function markTripDays(panel){
+    var hs = getHolidays(panel), a = hs.length ? Math.min.apply(null, hs.map(function(h){ return h.start; })) : null, b = hs.length ? Math.max.apply(null, hs.map(function(h){ return h.end; })) : null;
+    panel.querySelectorAll(':scope > .grid.week').forEach(function(row){
+      var keep = false;
+      row.querySelectorAll(':scope > .cell').forEach(function(c){
+        if(c.classList.contains('empty')) return;
+        var dn = dayNumOfCell(c), off = a !== null && dn !== null && (dn < a || dn > b), busy = !!c.querySelector(':scope > .acts > li');
+        if(c.hasAttribute('data-off-trip') !== off){ if(off) c.setAttribute('data-off-trip', ''); else c.removeAttribute('data-off-trip'); }   // an attribute, not a class: never counts as an edit
+        if(!off || busy) keep = true;
+      });
+      if(row.hasAttribute('data-off-trip') === keep){ if(keep) row.removeAttribute('data-off-trip'); else row.setAttribute('data-off-trip', ''); }
+    });
+  }
+  setInterval(function(){ var p = document.querySelector('.panel.on'); if(p) markTripDays(p); }, 500);
   function lastDayOfCalendar(panel){
     var days = [];
     panel.querySelectorAll('.daynum').forEach(function(d){ days.push(parseInt(d.textContent, 10)); });
@@ -15457,7 +15480,7 @@
     function ensureBtn(){
       var head = document.getElementById('pageHead'); if(!head || head.querySelector('.page-map')) return;
       var sw = document.createElement('div'); sw.className = 'page-focus'; sw.setAttribute('role', 'group'); sw.setAttribute('aria-label', 'Calendar view');
-      sw.innerHTML = '<button type="button" data-f="month" title="The whole month">Month</button><button type="button" data-f="day" title="One day at a time, next to its map">Day</button>';
+      sw.innerHTML = '<button type="button" data-f="month" title="All the days of the trip">All days</button><button type="button" data-f="day" title="One day at a time, next to its map">Day</button>';
       sw.addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; e.stopPropagation(); setFocus(b.dataset.f === 'day'); });
       var b = document.createElement('button'); b.type = 'button'; b.className = 'page-map'; b.title = 'Map of the day'; b.setAttribute('aria-label', 'Map of the day'); b.innerHTML = MAP_ICON;
       var bell = head.querySelector('.page-bell'), share = head.querySelector('.page-share'); head.insertBefore(b, bell || share || null);
@@ -15890,7 +15913,7 @@
       return photoCache[key];
     }
     if(!IS_HOSTED) window.__dmPlaceCard = function(lat, lon, props){ placeCard({ lat:lat, lon:lon }, props); };   // local test hook
-    function cells(){ var p = document.querySelector('.panel.on'); return p ? [].slice.call(p.querySelectorAll(':scope > .grid.week > .cell:not(.empty)')) : []; }
+    function cells(){ var p = document.querySelector('.panel.on'); return p ? [].slice.call(p.querySelectorAll(':scope > .grid.week > .cell:not(.empty):not([data-off-trip])')) : []; }
     function itemsOf(cell){   // the day's activities in the order they're shown
       var acts = cell.querySelector(':scope > .acts'); if(!acts) return [];
       return [].slice.call(acts.querySelectorAll(':scope > li:not(.act-span-ghost), :scope > li.stay-ghost'))
@@ -16278,6 +16301,7 @@
       panel.querySelectorAll(':scope > .grid.week > .cell:not(.empty)').forEach(function(cell){
         var date = null; try { date = realDate(panel, dayNumOfCell(cell)); } catch(e){}
         var head = cell.querySelector(':scope > .cellhead'), hw = head && head.querySelector(':scope > .wx');
+        if(cell.hasAttribute('data-off-trip')){ if(hw) hw.remove(); return; }
         cell.querySelectorAll(':scope > .acts > li:not([data-sec]) > .wx').forEach(function(x){ x.remove(); });
         if(!date || !head){ if(hw) hw.remove(); return; }
         var t = utc(date), secs = [].slice.call(cell.querySelectorAll(':scope > .acts > li[data-sec]'));
