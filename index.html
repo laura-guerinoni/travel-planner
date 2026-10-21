@@ -2230,6 +2230,20 @@
     display:flex; align-items:center; justify-content:center; font:inherit; font-size:12px; font-weight:700; line-height:1; }
   #fieldRemove[hidden] { display:none; }
   #fieldRemove:hover { color:#fff; background:var(--accent, #e0563f); }
+  /* the Where field: countries as chips */
+  .cty-wrap { position:relative; }
+  .cty-field { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-height:40px; border:1.5px solid var(--line); border-radius:11px; padding:5px 8px; background:var(--card); cursor:text; }
+  .cty-field:focus-within { border-color:var(--primary); }
+  .cty-field input { flex:1; min-width:90px; height:26px; border:none !important; outline:none; padding:0 !important; margin:0 !important; background:none !important; box-shadow:none !important; font:inherit; font-size:14px; font-weight:700; color:var(--ink); }
+  .cty-chip { display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 4px 0 4px; border-radius:999px; background:rgba(var(--primary-rgb), .12); color:var(--primary); font-size:13px; font-weight:800; }
+  .cty-chip button { border:none; background:none; color:inherit; opacity:.6; cursor:pointer; padding:0 3px; font-size:12px; }
+  .cty-code { display:inline-grid; place-items:center; min-width:24px; height:18px; padding:0 4px; border-radius:5px; background:var(--card); color:var(--ink); font-size:10px; font-weight:900; letter-spacing:.04em; box-shadow:0 0 0 1px var(--line); }
+  .cty-dd { position:absolute; z-index:5; left:0; right:0; top:calc(100% + 4px); background:var(--card); border-radius:12px; padding:5px 0; box-shadow:0 14px 30px rgba(30,22,50,.22), 0 0 0 1px var(--line); max-height:240px; overflow:auto; }
+  .cty-dd[hidden] { display:none; }
+  .cty-dd button { display:flex; align-items:center; gap:9px; width:100%; border:none; background:none; padding:7px 12px; text-align:left; font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer; }
+  .cty-dd button b { font-weight:800; } .cty-dd button i { font-style:normal; font-weight:700; color:var(--muted); }
+  .cty-dd button:hover, .cty-dd button.act { background:var(--bg); }
+  .cty-none { padding:6px 12px; font-size:12.5px; font-weight:700; color:var(--muted); }
   /* The new plan / new alternative form: name, then when. */
   .monthpop.rangepop.whenpop { width:284px; padding:12px; }
   .whenpop-label { display:block; font-size:12px; font-weight:700; color:var(--muted); margin:2px 0 4px; }
@@ -6882,6 +6896,77 @@
     (function keep(){ if(btn.isConnected) seen = true; else if(seen){ dd.remove(); return; } if(dd.hidden) label(); setTimeout(keep, 300); })();
     label();
   }
+  // ---- The countries of a plan ----
+  // A plan (each of its alternatives) can say which countries it's in:
+  // data-countries="PL,SK". Picked in the new plan / alternative form;
+  // the map opens on them until the days have places of their own.
+  var COUNTRY_CODES = ('AD AE AF AG AI AL AM AO AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ ' +
+    'DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GT GU GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP ' +
+    'KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ ' +
+    'OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TG TH TJ TK TL TM TN TO TR TT TV TW TZ ' +
+    'UA UG US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW').split(' ');
+  // each country's own language, so "Polska" or "Magyarország" finds it too
+  var COUNTRY_LANG = {}; ('PL:pl SK:sk HU:hu CZ:cs DE:de AT:de CH:de LI:de IT:it SM:it VA:it FR:fr MC:fr ES:es MX:es AR:es CL:es CO:es PE:es CU:es PT:pt BR:pt GR:el CY:el HR:hr SI:sl RO:ro MD:ro ' +
+    'BG:bg RS:sr ME:sr BA:bs MK:mk AL:sq XK:sq LT:lt LV:lv EE:et FI:fi SE:sv NO:nb DK:da IS:is NL:nl BE:nl LU:lb IE:ga UA:uk BY:be RU:ru TR:tr GE:ka AM:hy AZ:az JP:ja CN:zh TW:zh ' +
+    'KR:ko VN:vi TH:th ID:id MY:ms IL:he EG:ar MA:ar TN:ar AE:ar SA:ar JO:ar LB:ar IR:fa IN:hi PK:ur').split(' ').forEach(function(p){ var x = p.split(':'); COUNTRY_LANG[x[0]] = x[1]; });
+  var countryNamers = {};
+  function regionName(lang, code){ try { var n = countryNamers[lang] || (countryNamers[lang] = new Intl.DisplayNames([lang], { type:'region' })); var v = n.of(code); return v && v !== code ? v : ''; } catch(e){ return ''; } }
+  function countryName(code){ return regionName('en', code) || code; }
+  function fold(s){ return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  var countryIndex = null;
+  function countrySearch(q){
+    if(!countryIndex){ var mine = (navigator.language || 'en').slice(0, 2);
+      countryIndex = COUNTRY_CODES.map(function(c){ var en = countryName(c), names = [en, regionName(mine, c), COUNTRY_LANG[c] ? regionName(COUNTRY_LANG[c], c) : ''].filter(Boolean);
+        return { c:c, en:en, local: names.filter(function(n, i){ return i && n !== en; })[0] || '', keys: names.map(fold).concat([c.toLowerCase()]) }; }); }
+    q = fold(q.trim()); if(!q) return [];
+    // names that start with it first, then a word in them, then anywhere in them
+    var tiers = [[], [], []];
+    countryIndex.forEach(function(x){
+      if(x.keys.some(function(k){ return k.indexOf(q) === 0; })) tiers[0].push(x);
+      else if(x.keys.some(function(k){ return k.split(/[\s-]+/).some(function(w){ return w.indexOf(q) === 0; }); })) tiers[1].push(x);
+      else if(q.length > 2 && x.keys.some(function(k){ return k.indexOf(q) !== -1; })) tiers[2].push(x);
+    });
+    return tiers[0].concat(tiers[1], tiers[2]).slice(0, 7);
+  }
+  function getCountries(panel){ var v = panel && panel.getAttribute('data-countries'); return v ? v.split(',').filter(Boolean) : []; }
+  function setCountries(panel, list){ if(!panel) return; if(list && list.length) panel.setAttribute('data-countries', list.join(',')); else panel.removeAttribute('data-countries'); }
+  // The Where field: type, pick, and each country is a chip (✕ or Backspace removes it).
+  function countryField(host, initial){
+    var sel = (initial || []).slice(), list = [], act = 0;
+    host.className = 'cty-wrap';
+    host.innerHTML = '<div class="cty-field"><input type="text" placeholder="Type a country" aria-label="Countries" autocomplete="off"></div><div class="cty-dd" hidden></div>';
+    var field = host.querySelector('.cty-field'), inp = field.querySelector('input'), dd = host.querySelector('.cty-dd');
+    function code(c){ return '<span class="cty-code">' + c + '</span>'; }
+    function chips(){
+      field.querySelectorAll('.cty-chip').forEach(function(x){ x.remove(); });
+      sel.forEach(function(c){ var el = document.createElement('span'); el.className = 'cty-chip'; el.innerHTML = code(c) + '<span></span><button type="button" aria-label="Remove">✕</button>';
+        el.querySelector('span:not(.cty-code)').textContent = countryName(c);
+        el.querySelector('button').addEventListener('click', function(e){ e.stopPropagation(); sel = sel.filter(function(x){ return x !== c; }); chips(); inp.focus(); });
+        field.insertBefore(el, inp); });
+      inp.placeholder = sel.length ? '' : 'Type a country';
+    }
+    function draw(){
+      if(!inp.value.trim()){ dd.hidden = true; return; }
+      dd.innerHTML = list.length ? list.map(function(x, i){ return '<button type="button" data-c="' + x.c + '" class="' + (i === act ? 'act' : '') + '">' + code(x.c) + '<b></b><i></i></button>'; }).join('') : '<div class="cty-none">No country found</div>';
+      dd.querySelectorAll('button').forEach(function(b, i){ b.querySelector('b').textContent = list[i].en; b.querySelector('i').textContent = list[i].local ? '· ' + list[i].local : '';
+        b.addEventListener('mousedown', function(e){ e.preventDefault(); add(b.dataset.c); }); });
+      dd.hidden = false;
+    }
+    function add(c){ if(sel.indexOf(c) === -1) sel.push(c); inp.value = ''; list = []; dd.hidden = true; chips(); inp.focus(); }
+    inp.addEventListener('input', function(){ list = countrySearch(inp.value).filter(function(x){ return sel.indexOf(x.c) === -1; }); act = 0; draw(); });
+    inp.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ if(list.length && !dd.hidden){ e.preventDefault(); e.stopPropagation(); add(list[act].c); } }
+      else if(e.key === 'Backspace' && !inp.value && sel.length){ sel.pop(); chips(); }
+      else if((e.key === 'ArrowDown' || e.key === 'ArrowUp') && list.length){ e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : list.length - 1)) % list.length; draw(); }
+      else if(e.key === 'Escape' && !dd.hidden){ e.stopPropagation(); dd.hidden = true; }
+    });
+    inp.addEventListener('blur', function(){ setTimeout(function(){ dd.hidden = true; }, 120); });
+    field.addEventListener('click', function(){ inp.focus(); });
+    chips();
+    return { get: function(){ return sel.slice(); } };
+  }
+  // after a new plan or alternative: Month view, with the map on the right
+  function openMapOnNew(){ if(typeof window.tpOpenMapMonth === 'function') setTimeout(window.tpOpenMapMonth, 120); }
   function openWhenForm(anchorEl, o, done){
     closePop();
     var pop = document.createElement('div');
@@ -6896,6 +6981,7 @@
     function iso(p){ return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'); }
     pop.innerHTML = '<div class="rangepop-title"></div>' +
       '<label class="whenpop-label"></label><input type="text" class="whenpop-name">' +
+      '<label class="whenpop-label">Where <span class="whenpop-hint">· optional, one or more countries</span></label><div class="whenpop-where"></div>' +
       '<label class="whenpop-label">When</label>' +
       '<div class="whenpop-row"><select class="whenpop-m1">' + monthOpts(o.from.year, o.from.month) + '</select><span class="whenpop-to">to</span><select class="whenpop-m2">' + monthOpts(o.to.year, o.to.month) + '</select></div>' +
       '<label class="whenpop-check"><input type="checkbox" class="whenpop-exact"> I know the exact dates</label>' +
@@ -6904,6 +6990,7 @@
     pop.querySelector('.rangepop-title').textContent = o.title;
     pop.querySelectorAll('.whenpop-label')[0].innerHTML = o.nameLabel;
     var nameIn = pop.querySelector('.whenpop-name'); nameIn.value = o.name; nameIn.maxLength = o.maxlength;
+    var where = countryField(pop.querySelector('.whenpop-where'), o.countries);
     var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
     var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
     fromIn.value = iso(o.from); toIn.value = iso(o.to);
@@ -6927,6 +7014,7 @@
         w = { from: { year: a1[0], month: a1[1], day: 1 }, to: { year: a2[0], month: a2[1], day: daysInMonth(a2[0], a2[1]) }, exact: false };
       }
       var name = nameIn.value.trim();
+      w.countries = where.get();
       closePop();
       done(name, w);
     });
@@ -6940,7 +7028,7 @@
   function openNewAltForm(anchorEl, panel){
     var r = altDates(panel);
     openWhenForm(anchorEl, { title: t('add_new_alt'), nameLabel: 'Name', name: t('default_alt_name') + ' ' + (panelsOfPlan(panel).length + 1),
-      maxlength: 40, from: r.from, to: r.to, exact: r.exact, button: 'Add alternative' }, function(name, w){
+      maxlength: 40, from: r.from, to: r.to, exact: r.exact, countries: getCountries(panel), button: 'Add alternative' }, function(name, w){
       var id = planIdOf(panel);
       panel.setAttribute('data-plan', id);
       var created = createOption(w.from.year, w.from.month);
@@ -6951,9 +7039,11 @@
       if(named) created.setAttribute('data-plan-name', named);
       setOptionMembers(created, getOptionMembers(panel));
       setOptionName(created, name || (t('default_alt_name') + ' ' + panelsOfPlan(created).length));
+      setCountries(created, w.countries);
       tuckPillIntoPlan(created);
       planChanged();
       activatePillByOpt(optOf(created));
+      openMapOnNew();
     });
   }
   // The same name + when form, filled in, for an alternative that exists.
@@ -6961,8 +7051,9 @@
   function openEditAltForm(anchorEl, panel){
     var r = altDates(panel), pill = pillOfPanel(panel), nameEl = pill && pill.querySelector('.pill-name');
     openWhenForm(anchorEl, { title: 'Edit alternative', nameLabel: 'Name', name: nameEl ? nameEl.textContent.trim() : '',
-      maxlength: 40, from: r.from, to: r.to, exact: r.exact, button: 'Save' }, function(name, w){
+      maxlength: 40, from: r.from, to: r.to, exact: r.exact, countries: getCountries(panel), button: 'Save' }, function(name, w){
       if(name) setOptionName(panel, name);
+      setCountries(panel, w.countries);
       applyAltDates(panel, w);
       planChanged();
       if(typeof renderPlans === 'function') renderPlans();
@@ -12419,7 +12510,7 @@
     pop.className = 'itemmenu';
     var editRow = document.createElement('div');
     editRow.className = 'itemmenu-row';
-    editRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EDIT_NAME + '</span>Edit name and dates';
+    editRow.innerHTML = '<span class="itemmenu-icon">' + ICON_EDIT_NAME + '</span>Edit name, countries and dates';
     editRow.addEventListener('click', function(e){
       e.stopPropagation();
       closePop();
@@ -15504,6 +15595,10 @@
       map = new maplibregl.Map({ container: panel.querySelector('.dm-canvas'), style:'https://tiles.openfreemap.org/styles/positron', center:[12.5, 45], zoom:4, attributionControl:{ compact:true } });
       map.on('load', function(){
         window.tuneMapPlaces(map);
+        // the plan's countries, softly shaded under everything else
+        map.addSource('dm-countries', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+        map.addLayer({ id:'dm-countries-fill', type:'fill', source:'dm-countries', paint:{ 'fill-color':'#ec6a9c', 'fill-opacity':.12 } });
+        map.addLayer({ id:'dm-countries-line', type:'line', source:'dm-countries', paint:{ 'line-color':'#c2477b', 'line-width':1.4, 'line-opacity':.7 } });
         map.addSource('dm-route', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
         map.addLayer({ id:'dm-route-casing', type:'line', source:'dm-route', paint:{ 'line-color':'#fff', 'line-width':7, 'line-opacity':.9 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
         map.addLayer({ id:'dm-route', type:'line', source:'dm-route', paint:{ 'line-color': getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ec6a9c', 'line-width':3.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
@@ -15836,13 +15931,35 @@
       if(fit && coords.length){ var bb = coords.reduce(function(acc, c){ return acc.extend(c); }, new maplibregl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bb, { padding:{ top:120, bottom:70, left:60, right:60 }, maxZoom:15, duration:500 }); }
     }
+    // the countries' outlines (Natural Earth, public domain), loaded once when a plan has countries
+    var shapes = null;
+    function countryShapes(){ if(!shapes) shapes = fetch(new URL('countries.json', location.href).href).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).catch(function(){ shapes = null; return null; }); return shapes; }
+    function showCountries(codes, fitTo){
+      if(!map || !map.getSource('dm-countries')) return;
+      if(!codes.length){ map.getSource('dm-countries').setData({ type:'FeatureCollection', features:[] }); return; }
+      countryShapes().then(function(all){
+        if(!all || !map.getSource('dm-countries')) return;
+        var feats = [], bb = null;
+        codes.forEach(function(c){ var polys = all[c]; if(!polys) return;
+          feats.push({ type:'Feature', properties:{ c:c }, geometry:{ type:'MultiPolygon', coordinates:polys } });
+          polys.forEach(function(poly){ poly[0].forEach(function(pt){ bb = bb ? bb.extend(pt) : new maplibregl.LngLatBounds(pt, pt); }); }); });
+        map.getSource('dm-countries').setData({ type:'FeatureCollection', features:feats });
+        if(fitTo && bb) map.fitBounds(bb, { padding:{ top:120, bottom:60, left:50, right:50 }, maxZoom:7, duration:500 });
+      });
+    }
+    window.tpOpenMapMonth = function(){
+      if(!window.matchMedia('(min-width:721px)').matches) return;
+      setFocus(false); day = null;
+      if(!isOpen()) toggle(true); else { sig = ''; draw(true); }
+    };
     function draw(fit){
       if(!isOpen() || !panel) return;
       if(document.body.classList.contains('notes-mode')){ drawIdeas(fit); return; }
       if(!day || !day.isConnected || day.closest('.panel') !== document.querySelector('.panel.on')) day = pickDefault();
       if(!day) return;
       var stops = stopsOf(day), placed = stops.filter(function(s){ return s.g; });
-      var nsig = dayTitle(day) + '|' + stops.map(function(s){ return (s.g ? fmtGeo(s.g) : '-') + s.name + (s.li.getAttribute('data-go') || ''); }).join('|');
+      var codes = getCountries(day.closest('.panel'));
+      var nsig = dayTitle(day) + '|' + codes.join(',') + '|' + stops.map(function(s){ return (s.g ? fmtGeo(s.g) : '-') + s.name + (s.li.getAttribute('data-go') || ''); }).join('|');
       if(nsig === sig && !fit) return; sig = nsig;
       panel.querySelector('.dm-date').textContent = dayTitle(day);
       var cs = cells(), at = cs.indexOf(day);
@@ -15866,8 +15983,10 @@
       panel.querySelector('.dm-stats').innerHTML = nPlaces ? '<span>' + ICO.pin + nPlaces + (nPlaces === 1 ? ' place' : ' places') + '</span>' +
         (mins ? '<span>' + ICO.clock + fmtMin(mins) + '</span>' : '') + (km >= .05 ? '<span>' + ICO.route + fmtKm(km) + '</span>' : '') : '<span>Nothing on the map yet</span>';
       var missing = stops.filter(function(s){ return s.none; }).length;
-      panel.querySelector('.dm-note').textContent = !placed.length ? (stops.length ? 'No places on the map for this day yet. Search one below, or pick a place when you edit an activity.' : 'Nothing planned this day.')
+      panel.querySelector('.dm-note').textContent = !placed.length ? (codes.length ? '' : stops.length ? 'No places on the map for this day yet. Search one below, or pick a place when you edit an activity.' : 'Nothing planned this day.')
         : missing ? missing + (missing === 1 ? ' activity has' : ' activities have') + ' no place on the map yet.' : '';
+      // nothing on the map yet: the tag names the plan's countries, and the map shows them
+      if(!placed.length && codes.length){ panel.querySelector('.dm-date').textContent = codes.map(countryName).join(' · '); panel.querySelector('.dm-stats').innerHTML = '<span>No places on the map yet</span>'; }
       place();
       if(!map || !map.getSource('dm-route')) return;
       markers.forEach(function(m){ m.remove(); }); markers = []; segs = [];
@@ -15884,6 +16003,7 @@
         markers.push(new maplibregl.Marker({ element:el, anchor:'bottom-left', offset:[-1, 5] }).setLngLat([s.g.lon, s.g.lat]).addTo(map));
       });
       var coords = placed.map(function(s){ return [s.g.lon, s.g.lat]; });
+      showCountries(codes, fit && !coords.length);
       map.getSource('dm-route').setData({ type:'Feature', geometry:{ type:'LineString', coordinates: coords.length > 1 ? coords : [] } });
       if(fit && coords.length){ var bb = coords.reduce(function(acc, c){ return acc.extend(c); }, new maplibregl.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bb, { padding:{ top:120, bottom:70, left:60, right:60 }, maxZoom:15, duration:500 }); }
@@ -18690,7 +18810,7 @@
   // server snapshot that hadn't caught up yet, because nothing told
   // isLocallyBusy an edit was even in progress.
   var MO_OPTS = { childList: true, subtree: true, characterData: true, attributes: true,
-    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to', 'data-price-per', 'data-spot', 'data-spot-to', 'data-geo', 'data-geo-to', 'data-go', 'data-ask'] };
+    attributeFilter: ['style', 'class', 'data-links', 'data-img', 'data-ticket', 'href', 'src', 'data-holidays', 'data-year', 'data-month', 'data-icon', 'data-name', 'data-currency', 'data-pay', 'data-pay-excluded', 'data-paid', 'data-pay-mode', 'data-place', 'data-place-to', 'data-stay-to', 'data-span-to', 'data-price-per', 'data-countries', 'data-spot', 'data-spot-to', 'data-geo', 'data-geo-to', 'data-go', 'data-ask'] };
   var mo = new MutationObserver(function(mutations){
     var relevant = mutations.some(function(m){
       var node = m.target;
@@ -19992,6 +20112,7 @@
     var dl = new Date(); dl.setDate(dl.getDate() + 7);
     pop.innerHTML = '<div class="rangepop-title">' + grpEsc(t('add_new_plan')) + '</div>' +
       '<label class="whenpop-label">Name <span class="whenpop-hint">· on the tab, up to ' + PLAN_NAME_MAX + ' letters</span></label><input type="text" class="whenpop-name" maxlength="' + PLAN_NAME_MAX + '">' +
+      '<label class="whenpop-label">Where <span class="whenpop-hint">· optional, one or more countries</span></label><div class="whenpop-where"></div>' +
       '<label class="whenpop-label">Who\'s coming</label><div class="grp-people"></div>' +
       '<div class="whenpop-row"><input type="email" class="grp-inv" placeholder="Invite by email" aria-label="Invite by email"><button type="button" class="grp-btn ghost grp-invbtn">Invite</button></div>' +
       '<div class="grp-invmsg" hidden></div>' +
@@ -20002,7 +20123,7 @@
       '<label class="whenpop-check grp-askrow"><input type="checkbox" class="grp-ask"> Ask everyone when they\'re free</label>' +
       '<div class="whenpop-row grp-askopts" hidden><span class="grp-stepper"><button type="button" data-len="-1" aria-label="Fewer days">−</button><span class="grp-len">5 days</span><button type="button" data-len="1" aria-label="More days">+</button></span><span class="whenpop-to">answers by</span><input type="date" class="grp-dl"></div>' +
       '<button type="button" class="addbtn">Add plan</button>';
-    var nameIn = pop.querySelector('.whenpop-name');
+    var nameIn = pop.querySelector('.whenpop-name'), where = countryField(pop.querySelector('.whenpop-where'), []);
     var m1 = pop.querySelector('.whenpop-m1'), m2 = pop.querySelector('.whenpop-m2'), exact = pop.querySelector('.whenpop-exact');
     var dates = pop.querySelector('.whenpop-dates'), fromIn = pop.querySelector('.whenpop-from'), toIn = pop.querySelector('.whenpop-until');
     var ask = pop.querySelector('.grp-ask'), askRow = pop.querySelector('.grp-askrow'), askOpts = pop.querySelector('.grp-askopts'), dlIn = pop.querySelector('.grp-dl');
@@ -20061,7 +20182,7 @@
         w = { from: { year: a1[0], month: a1[1], day: 1 }, to: { year: a2[0], month: a2[1], day: daysInMonth(a2[0], a2[1]) }, exact: false };
         if(ask.checked) poll = { len: len, from: a1[0] + '-' + String(a1[1]).padStart(2, '0'), to: a2[0] + '-' + String(a2[1]).padStart(2, '0'), dl: dlIn.value, av: {}, by: me || '' };
       }
-      var name = nameIn.value.trim(), picked = Object.keys(who).filter(function(k){ return who[k]; });
+      var name = nameIn.value.trim(), picked = Object.keys(who).filter(function(k){ return who[k]; }), countries = where.get();
       closePop();
       var created = createOption(w.from.year, w.from.month);
       if(!created) return;
@@ -20071,6 +20192,7 @@
       created.setAttribute('data-plan', pid);
       created.setAttribute('data-plan-name', (name || t('default_plan_name')).toUpperCase());
       setOptionName(created, t('default_alt_name') + ' 1');
+      setCountries(created, countries);
       if(currentUserKey){ var mb = [currentUserKey]; picked.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }
       if(picked.length) GROUP.plans[pid] = { who: (me ? [me] : []).concat(picked.filter(function(k){ return k !== me; })) };
       if(poll){
@@ -20082,7 +20204,7 @@
       planChanged();
       activatePillByOpt(pid);
       grpChanged();
-      if(poll) setTimeout(function(){ openPoll(created); }, 250);
+      if(poll) setTimeout(function(){ openPoll(created); }, 250); else openMapOnNew();
     });
     nameIn.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); btn.click(); } });
     people(); sync();
