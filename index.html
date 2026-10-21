@@ -3067,10 +3067,10 @@
   .acts > li[data-sec]:has(> .wx:not([hidden]))::before { top:-46px; }
   .acts > li[data-sec]:has(> .wx:not([hidden]))::after { top:-45px; }
   .acts > li[data-sec]:not([data-sec-first]):has(> .wx:not([hidden]))::after { top:-68px; }
-  /* far away: the usual weather of the week (dashed, ~, no sky; its first day a little stronger) */
-  .wx.avg { background:none; border:1px dashed var(--muted); padding:0 6px; font-size:11px; font-weight:800; gap:3px; }
+  /* far away: the usual weather of the week (~, no sky; its first day a little stronger) */
+  .wx.avg { background:none; padding:0 2px; font-size:11px; font-weight:800; gap:3px; }
   .wx.avg.first { background:var(--card); }
-  .cellhead > .wx.avg.sm { padding:0 5px; margin-left:4px; }
+  .cellhead > .wx.avg.sm { padding:0 2px; margin-left:4px; }
   /* the hover card: hour by hour */
   #wxCard { position:fixed; z-index:10030; width:330px; background:#fff; border-radius:16px; padding:13px 15px 11px; box-shadow:0 22px 44px -16px rgba(40,25,60,.42), 0 0 0 1px var(--line); color:var(--ink); }
   #wxCard[hidden] { display:none; }
