@@ -3641,6 +3641,50 @@
   .grp-duelpop .grp-duel-q:focus { outline:none; border-color:var(--primary); }
   .grp-duel-q-show { display:flex; align-items:flex-start; gap:7px; margin:2px 0 8px; padding:7px 9px; border-left:3px solid var(--primary); border-radius:0 10px 10px 0; background:var(--card); font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.35; overflow-wrap:anywhere; }
   .grp-duel-q-show .grp-face { width:18px; height:18px; border:none; }
+  .grp-duel { cursor:pointer; }
+  .grp-duel.open { box-shadow:0 0 0 2px var(--primary); }
+  .grp-cmt-btn { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin:8px 0 2px; padding:7px 8px; border:1.5px dashed rgba(var(--primary-rgb), .45); border-radius:10px; background:var(--card); color:var(--primary); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .grp-cmt-btn:hover, .grp-duel.open .grp-cmt-btn { border-style:solid; background:rgba(var(--primary-rgb), .08); }
+  .grp-cmt-btn svg { width:14px; height:14px; flex:none; }
+  #duelSide { position:fixed; z-index:10015; width:340px; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); display:flex; flex-direction:column; box-sizing:border-box; padding:14px 14px 12px; background:var(--card); color:var(--ink); border-radius:18px; box-shadow:0 18px 44px rgba(30,22,50,.3), 0 0 0 1px var(--line); font-family:inherit; }
+  #duelSide[hidden] { display:none; }
+  #duelSide .ds-head { display:flex; align-items:baseline; gap:8px; margin-bottom:10px; }
+  #duelSide .ds-head b { font-size:16px; font-weight:900; }
+  #duelSide .ds-head span { font-size:12px; font-weight:700; color:var(--muted); }
+  #duelSide .ds-x { margin-left:auto; width:28px; height:28px; border:none; border-radius:50%; background:none; color:var(--muted); cursor:pointer; font-size:14px; }
+  #duelSide .ds-x:hover { background:var(--bg); color:var(--ink); }
+  #duelSide .ds-q { display:flex; gap:8px; align-items:flex-start; margin-bottom:10px; padding:8px 10px; border-left:3px solid var(--primary); border-radius:0 12px 12px 0; background:var(--bg); }
+  #duelSide .ds-q .grp-face { width:22px; height:22px; border:none; }
+  #duelSide .ds-q b { display:block; font-size:12px; font-weight:900; }
+  #duelSide .ds-q span { display:block; font-size:13.5px; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
+  #duelSide .ds-opts { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); gap:6px; align-items:stretch; }
+  #duelSide .ds-or { align-self:center; font-size:11.5px; font-weight:900; color:var(--muted); }
+  #duelSide .ds-opt { display:grid; gap:4px; align-content:start; justify-items:start; padding:9px; border:1.5px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); font:inherit; text-align:left; cursor:pointer; min-width:0; }
+  #duelSide .ds-opt b { font-size:13.5px; font-weight:800; line-height:1.25; overflow-wrap:anywhere; }
+  #duelSide .ds-opt small { font-size:11.5px; font-weight:800; color:var(--muted); }
+  #duelSide .ds-opt:hover { border-color:var(--primary); }
+  #duelSide .ds-opt.on { border-color:var(--primary); background:rgba(var(--primary-rgb), .08); }
+  #duelSide .ds-votes { display:flex; align-items:center; gap:5px; margin-top:2px; font-size:11.5px; font-weight:800; color:var(--muted); }
+  #duelSide .ds-votes .grp-face { width:18px; height:18px; }
+  #duelSide .ds-ch { display:flex; align-items:center; gap:6px; margin:14px 0 6px; font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #duelSide .ds-ch svg { width:13px; height:13px; }
+  #duelSide .ds-list { flex:1 1 auto; min-height:40px; overflow:auto; display:grid; gap:10px; align-content:start; padding-right:2px; }
+  #duelSide .ds-c { display:flex; gap:8px; align-items:flex-start; }
+  #duelSide .ds-c .grp-face { width:26px; height:26px; border:none; }
+  #duelSide .ds-c > div { min-width:0; flex:1; background:var(--bg); border-radius:4px 12px 12px 12px; padding:7px 10px; }
+  #duelSide .ds-cm { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  #duelSide .ds-cm b { font-size:12.5px; font-weight:900; }
+  #duelSide .ds-cm small { margin-left:auto; font-size:11px; font-weight:700; color:var(--muted); }
+  #duelSide .ds-pick { font-size:10.5px; font-weight:900; padding:1px 7px; border-radius:999px; background:rgba(var(--primary-rgb), .14); color:var(--primary); }
+  #duelSide .ds-pick.b { background:rgba(138,111,209,.16); color:#7a5fc4; }
+  #duelSide .ds-c p { margin:3px 0 0; font-size:13.5px; font-weight:600; line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; }
+  #duelSide .ds-empty { margin:0; font-size:12.5px; font-weight:700; color:var(--muted); }
+  #duelSide .ds-form { display:flex; align-items:flex-end; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+  #duelSide .ds-form .grp-face { width:26px; height:26px; border:none; margin-bottom:5px; }
+  #duelSide .ds-in { flex:1; min-width:0; min-height:36px; max-height:120px; box-sizing:border-box; resize:none; padding:8px 11px; border:1.5px solid var(--line); border-radius:18px; background:var(--card); font:inherit; font-size:13.5px; font-weight:600; color:var(--ink); line-height:1.35; }
+  #duelSide .ds-in:focus { outline:none; border-color:var(--primary); }
+  #duelSide .ds-send { flex:none; width:36px; height:36px; border:none; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; cursor:pointer; }
+  #duelSide .ds-send svg { width:16px; height:16px; }
   .grp-why-line { display:flex; align-items:flex-start; gap:6px; margin:4px 2px 2px 8px; font-size:12px; font-weight:600; color:var(--ink); line-height:1.35; overflow-wrap:anywhere; }
   .grp-why-line .grp-face { width:16px; height:16px; border:none; margin-top:1px; }
   .grp-why-line b { font-weight:800; }
@@ -14727,6 +14771,7 @@
     function render(){
       pop.innerHTML = '<div class="bd-head"><span>Notifications</span>' + (items.some(function(x){ return !x.seen; }) ? '<button type="button" class="bd-all">Mark all as read</button>' : '') + '</div>' +
         (items.length ? items.map(function(x, i){ return '<div class="bd-item' + (x.seen ? '' : ' new') + '" data-i="' + i + '"><span class="bd-face">' + memberFaceOf(x.from) + '</span><span class="bd-txt"><b>' + npEsc(x.fromName || memberNameOf(x.from)) + '</b>' + (x.kind === 'assign' ? ' assigned you <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>'
+          : x.kind === 'duelc' ? ' commented on the vote <b>' + npEsc(x.act || '') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>'
           : x.kind === 'duel' ? ' started a vote in <b>' + npEsc(x.plan || 'a plan') + '</b>: <b>' + npEsc(x.act || '') + '</b>'
           : x.kind === 'datepoll' ? ' asks when you’re free for <b>' + npEsc(x.plan || 'a new plan') + '</b>' : x.kind === 'askdone' ? ' checked <b>' + npEsc(x.act || 'an activity') + '</b> in <b>' + npEsc(x.plan || 'a plan') + '</b>' : ' mentioned you in <b>' + npEsc(x.plan || 'a plan') + '</b>’s notes') + (x.msg ? '<span class="bd-msg">' + npEsc(x.msg) + '</span>' : '') + '<small>' + ago(x.at) + '</small></span></div>'; }).join('')
           : '<div class="bd-empty">Nothing yet. When someone mentions you with @ in a plan’s notes, or assigns you an activity, it shows up here.</div>');
@@ -14738,7 +14783,7 @@
       if(e.target.closest('.bd-all')){ markSeen(items); return; }
       var it = e.target.closest('.bd-item'); if(!it) return; var x = items[+it.dataset.i]; markSeen([x]); pop.hidden = true;
       if((x.kind === 'assign' || x.kind === 'askdone') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day, x.act || '')) return;
-      if((x.kind === 'duel' || x.kind === 'datepoll') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day || '', '')) return;
+      if((x.kind === 'duel' || x.kind === 'duelc' || x.kind === 'datepoll') && x.opt && window.__openActFromLink && window.__openActFromLink(x.opt, x.day || '', '')) return;
       var target = [].filter.call(document.querySelectorAll('.panel'), function(p){ return planIdOf(p) === x.planId; })[0];
       if(target){ if(!target.classList.contains('on')) activatePillByOpt(optOf(target)); setTimeout(openNotesPage, 60); }
     });
@@ -18905,7 +18950,7 @@
     return prev;
   }
   function grpTimeOf(a){ var t = (a.l || []).filter(function(x){ return /🕒/.test(x); })[0]; return t ? t.replace(/🕒\s*/, '').replace(/\s*-\s*/, '–').trim() : ''; }
-  function grpDetOf(a){ return [grpTimeOf(a), a.p || ''].filter(function(x){ return x && x !== 'time'; }).join(' · '); }
+  function grpDetOf(a){ return [grpTimeOf(a), a.p && parseMoney(a.p) > 0 ? a.p : ''].filter(function(x){ return x && x !== 'time'; }).join(' · '); }
   function openDuelForm(li, anchorEl){
     closePop();
     duelMaps.forEach(function(m){ try { m.remove(); } catch(e){} }); duelMaps = [];
@@ -19042,49 +19087,114 @@
     if(!cancel){ playStampSound(); grpToast((duel[win].t || 'It') + ' won. ' + (duel[lose].t || 'The other') + ' went to the idea box.'); }
     grpChanged();
   }
+  // The comments on a vote: duel.c = [{ k, t, at }] (the older one-reason-
+  // each duel.r is shown as comments too, and folded in on the next one).
+  function grpDuelComments(duel){
+    var c = (duel.c || []).slice();
+    Object.keys(duel.r || {}).forEach(function(k){ if(!c.some(function(x){ return x.k === k && x.t === duel.r[k]; })) c.unshift({ k:k, t:duel.r[k], at:0 }); });
+    return c;
+  }
+  function grpAgo(t){ if(!t) return ''; var s = Math.max(1, Math.round((Date.now() - t) / 1000)); if(s < 60) return 'just now'; var m = Math.round(s / 60); if(m < 60) return m + ' min ago'; var h = Math.round(m / 60); if(h < 24) return h + ' h ago'; var d = Math.round(h / 24); return d + (d === 1 ? ' day ago' : ' days ago'); }
+  var CMT_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+  var duelSide = null;   // { opt, id } of the vote whose comments are open
   function renderDuels(panel){
-    // keep what you're typing as your reason across a re-render
-    var typing = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('grp-why') ? { id: document.activeElement.dataset.id, v: document.activeElement.value, s: document.activeElement.selectionStart } : null;
     panel.querySelectorAll('.grp-duel').forEach(function(n){ n.remove(); });
-    var opt = optOf(panel), me = meKey(), people = grpEligible(panel);
+    var opt = optOf(panel), me = meKey(), people = grpEligible(panel), sideAlive = false;
     grpDuels(opt).slice().forEach(function(duel){
       var cell = grpCellOf(panel, duel.d); if(!cell) return;
       var v = duel.v || {}, voted = Object.keys(v).filter(function(k){ return people.indexOf(k) !== -1; });
       if(people.length && voted.length >= people.length){ grpResolveDuel(panel, duel); return; }
-      var card = document.createElement('div'); card.className = 'grp-ui grp-duel jsctl';
+      var card = document.createElement('div'); card.className = 'grp-ui grp-duel jsctl'; card.dataset.id = duel.id;
       function side(k){
         var x = duel[k], fans = Object.keys(v).filter(function(p){ return v[p] === k; }), mine = me && v[me] === k;
         var pct = people.length ? Math.round(fans.length / people.length * 100) : 0;
         return '<button type="button" class="grp-side' + (mine ? ' on' : '') + '" data-k="' + k + '" aria-pressed="' + !!mine + '"><span class="grp-side-fill" style="width:' + pct + '%"></span>' +
-          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (grpDetOf(x) ? '<span class="grp-side-det">' + grpEsc(grpDetOf(x)) + '</span>' : '') + (fans.length ? grpFaces(fans) : '') + '</button>' +
-          // why each of them picked it
-          fans.filter(function(p){ return r[p]; }).map(function(p){ return '<div class="grp-why-line">' + grpFace(p) + '<span><b>' + grpEsc(p === me ? 'You' : grpName(p)) + '</b> ' + grpEsc(r[p]) + '</span></div>'; }).join('');
+          '<span class="grp-side-t">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b></span>' + (grpDetOf(x) ? '<span class="grp-side-det">' + grpEsc(grpDetOf(x)) + '</span>' : '') + (fans.length ? grpFaces(fans) : '') + '</button>';
       }
-      var r = duel.r || {}, myVote = me && v[me];
+      var cm = grpDuelComments(duel), open = duelSide && duelSide.opt === opt && duelSide.id === duel.id;
+      if(open) sideAlive = true;
+      card.classList.toggle('open', !!open);
       card.innerHTML = '<div class="grp-duel-head"><span>This or that?</span><span class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted</span></div>' +
         (duel.q ? '<div class="grp-duel-q-show">' + (duel.by ? grpFace(duel.by) : '') + '<span>' + grpEsc(duel.q) + '</span></div>' : '') +
         side('a') + '<span class="grp-or">or</span>' + side('b') +
-        (myVote ? '<input type="text" class="grp-why" maxlength="200" data-id="' + grpEsc(duel.id) + '" placeholder="Why ' + grpEsc((duel[myVote].t || 'this').slice(0, 30)) + '? (optional)" value="' + grpEsc(r[me] || '') + '">' : '') +
+        '<button type="button" class="grp-cmt-btn" data-do="side">' + CMT_IC + (cm.length ? cm.length + (cm.length === 1 ? ' comment' : ' comments') : 'Comment') + '</button>' +
         '<div class="grp-duel-foot">' + (voted.length ? '<button type="button" class="grp-link" data-do="decide">Decide now</button>' : '') + '<button type="button" class="grp-link" data-do="cancel">Cancel vote</button></div>';
-      var why = card.querySelector('.grp-why');
-      if(why){
-        var saveWhy = function(){ var t = why.value.trim(); duel.r = duel.r || {}; if((duel.r[me] || '') === t) return; if(t) duel.r[me] = t; else delete duel.r[me]; grpChanged(); };
-        why.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); saveWhy(); why.blur(); } });
-        why.addEventListener('change', saveWhy);
-        why.addEventListener('blur', saveWhy);
-      }
-      card.addEventListener('click', function(e){ e.stopPropagation(); });
-      card.querySelectorAll('.grp-side').forEach(function(b){
-        b.addEventListener('click', function(){ if(!me) return; duel.v = duel.v || {}; if(duel.v[me] === b.dataset.k) delete duel.v[me]; else { duel.v[me] = b.dataset.k; playCheckSound(); } grpChanged(); });
-      });
-      card.querySelectorAll('[data-do]').forEach(function(b){
-        b.addEventListener('click', function(){ grpResolveDuel(panel, duel, b.dataset.do === 'cancel'); });
+      card.addEventListener('click', function(e){
+        e.stopPropagation();
+        var b = e.target.closest('.grp-side');
+        if(b){ if(!me) return; duel.v = duel.v || {}; if(duel.v[me] === b.dataset.k) delete duel.v[me]; else { duel.v[me] = b.dataset.k; playCheckSound(); } grpChanged(); return; }
+        var d = e.target.closest('[data-do]');
+        if(d && (d.dataset.do === 'decide' || d.dataset.do === 'cancel')){ if(open) closeDuelSide(); grpResolveDuel(panel, duel, d.dataset.do === 'cancel'); return; }
+        // anywhere else on the vote: its comments, beside the day
+        if(open && d) closeDuelSide(); else openDuelSide(panel, duel);
       });
       var acts = cell.querySelector(':scope > .acts');
       if(acts) acts.insertAdjacentElement('afterend', card);
       else { var head = cell.querySelector(':scope > .loc') || cell.querySelector(':scope > .cellhead'); if(head) head.insertAdjacentElement('afterend', card); else cell.appendChild(card); }
-      if(why && typing && typing.id === duel.id){ why.value = typing.v; why.focus(); try { why.setSelectionRange(typing.s, typing.s); } catch(e){} }
+      if(open) drawDuelSide(panel, duel, card);
     });
+    if(duelSide && duelSide.opt === opt && !sideAlive) closeDuelSide();
+  }
+  function openDuelSide(panel, duel){ duelSide = { opt: optOf(panel), id: duel.id }; renderDuels(panel); var t = document.querySelector('#duelSide .ds-in'); if(t) setTimeout(function(){ t.focus(); }, 30); }
+  function closeDuelSide(){ duelSide = null; var el = document.getElementById('duelSide'); if(el) el.hidden = true; document.querySelectorAll('.grp-duel.open').forEach(function(c){ c.classList.remove('open'); }); }
+  // The card beside the day: the question, the two options to vote on, and the comments.
+  function drawDuelSide(panel, duel, card){
+    var el = document.getElementById('duelSide');
+    if(!el){
+      el = document.createElement('aside'); el.id = 'duelSide'; el.className = 'grp-ui'; el.hidden = true; document.body.appendChild(el);
+      el.addEventListener('click', function(e){ e.stopPropagation(); });
+      el.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+      document.addEventListener('mousedown', function(e){ if(!el.hidden && !el.contains(e.target) && !e.target.closest('.grp-duel')) closeDuelSide(); });
+      document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !el.hidden){ closeDuelSide(); } });
+      window.addEventListener('resize', function(){ if(!el.hidden && el.__card && el.__card.isConnected) placeDuelSide(el, el.__card); });
+      document.addEventListener('scroll', function(){ if(!el.hidden && el.__card && el.__card.isConnected) placeDuelSide(el, el.__card); }, true);
+    }
+    var me = meKey(), people = grpEligible(panel), v = duel.v || {}, cm = grpDuelComments(duel);
+    var draft = el.querySelector('.ds-in'), keep = draft && el.__id === duel.id ? { v: draft.value, f: document.activeElement === draft, s: draft.selectionStart } : null;
+    function opt(k){
+      var x = duel[k], fans = Object.keys(v).filter(function(p){ return v[p] === k; }), mine = me && v[me] === k;
+      return '<button type="button" class="ds-opt ' + k + (mine ? ' on' : '') + '" data-k="' + k + '">' + grpChipHtml(x) + '<b>' + grpEsc(x.t || '') + '</b>' +
+        (grpDetOf(x) ? '<small>' + grpEsc(grpDetOf(x)) + '</small>' : '') + '<span class="ds-votes">' + (fans.length ? grpFaces(fans) : '') + '<span>' + fans.length + (fans.length === 1 ? ' vote' : ' votes') + (mine ? ' · yours' : '') + '</span></span></button>';
+    }
+    el.__id = duel.id; el.__card = card;
+    el.innerHTML = '<div class="ds-head"><b>This or that?</b><span>' + grpEsc(grpDayLabel(panel, duel.d)) + ' · ' + Object.keys(v).filter(function(k){ return people.indexOf(k) !== -1; }).length + ' of ' + people.length + ' voted</span><button type="button" class="ds-x" aria-label="Close">✕</button></div>' +
+      (duel.q ? '<div class="ds-q">' + (duel.by ? grpFace(duel.by) : '') + '<div><b>' + grpEsc(duel.by === me ? 'You' : grpName(duel.by)) + '</b><span>' + grpEsc(duel.q) + '</span></div></div>' : '') +
+      '<div class="ds-opts">' + opt('a') + '<span class="ds-or">or</span>' + opt('b') + '</div>' +
+      '<div class="ds-ch">' + CMT_IC + 'Comments' + (cm.length ? ' · ' + cm.length : '') + '</div>' +
+      '<div class="ds-list">' + (cm.length ? cm.map(function(c){ var pick = v[c.k];
+          return '<div class="ds-c">' + grpFace(c.k) + '<div><div class="ds-cm"><b>' + grpEsc(c.k === me ? 'You' : grpName(c.k)) + '</b>' + (pick ? '<span class="ds-pick ' + pick + '">for ' + grpEsc((duel[pick].t || '').slice(0, 24)) + '</span>' : '') + '<small>' + grpAgo(c.at) + '</small></div><p>' + grpEsc(c.t) + '</p></div></div>'; }).join('')
+        : '<p class="ds-empty">No comments yet. Why this one, or that one?</p>') + '</div>' +
+      (me ? '<form class="ds-form">' + grpFace(me) + '<textarea class="ds-in" rows="1" maxlength="400" placeholder="Add a comment…" aria-label="Add a comment"></textarea><button type="submit" class="ds-send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></button></form>' : '');
+    el.hidden = false;
+    var list = el.querySelector('.ds-list'); list.scrollTop = list.scrollHeight;
+    var inp = el.querySelector('.ds-in');
+    if(inp){
+      if(keep){ inp.value = keep.v; if(keep.f){ inp.focus(); try { inp.setSelectionRange(keep.s, keep.s); } catch(e){} } }
+      var grow = function(){ inp.style.height = 'auto'; inp.style.height = Math.min(120, inp.scrollHeight) + 'px'; }; grow();
+      inp.addEventListener('input', grow);
+      inp.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } else if(e.key === 'Escape') closeDuelSide(); });
+      el.querySelector('.ds-form').addEventListener('submit', function(e){ e.preventDefault(); send(); });
+    }
+    function send(){
+      var t = inp.value.trim(); if(!t || !me) return;
+      duel.c = grpDuelComments(duel); delete duel.r;
+      duel.c.push({ k: me, t: t, at: Date.now() });
+      inp.value = '';
+      grpChanged();
+      // the others in this vote hear about it (bell only)
+      var who = [duel.by].concat(Object.keys(duel.v || {})).concat(duel.c.map(function(c){ return c.k; }));
+      grpNotify(who, { kind:'duelc', plan: planNameOf(panel), planId: planIdOf(panel), opt: optOf(panel), day: duel.d, act: (duel.a.t || '') + ' or ' + (duel.b.t || ''), msg: t.slice(0, 200) }, null);
+      setTimeout(function(){ var i2 = document.querySelector('#duelSide .ds-in'); if(i2) i2.focus(); }, 0);
+    }
+    el.querySelector('.ds-x').addEventListener('click', closeDuelSide);
+    el.querySelectorAll('.ds-opt').forEach(function(b){ b.addEventListener('click', function(){ if(!me) return; duel.v = duel.v || {}; if(duel.v[me] === b.dataset.k) delete duel.v[me]; else { duel.v[me] = b.dataset.k; playCheckSound(); } grpChanged(); }); });
+    placeDuelSide(el, card);
+  }
+  function placeDuelSide(el, card){
+    var cell = card.closest('.cell') || card, r = cell.getBoundingClientRect(), cr = card.getBoundingClientRect(), W = el.offsetWidth || 340, H = el.offsetHeight || 400;
+    var left = r.right + 10; if(left + W > innerWidth - 12) left = r.left - 10 - W; if(left < 12) left = Math.max(12, (innerWidth - W) / 2);
+    var top = Math.min(Math.max(12, cr.top - 20), innerHeight - H - 12);
+    el.style.left = Math.round(left) + 'px'; el.style.top = Math.round(Math.max(12, top)) + 'px';
   }
 
   // ---- date poll ------------------------------------------------------
