@@ -21,6 +21,22 @@
   try {
     var savedTheme = localStorage.getItem('travelPlannerTheme');
     if (savedTheme === 'classic' || savedTheme === 'bubbles' || savedTheme === 'cool' || savedTheme === 'forest' || savedTheme === 'harbor' || savedTheme === 'earth' || savedTheme === 'dusk') document.documentElement.setAttribute('data-theme', savedTheme);
+    // a theme of your own: its colours become the page's variables
+    window.__tpCustomVars = function(t){
+      var r = document.documentElement.style, rgb = function(h){ h = String(h || '#000000').replace('#', ''); return [0, 2, 4].map(function(i){ return parseInt(h.substr(i, 2), 16) || 0; }).join(','); };
+      var mix = function(a, b, pct){ return 'color-mix(in srgb, ' + a + ' ' + pct + '%, ' + b + ')'; };
+      if(!t){ ['--primary','--primary-rgb','--secondary','--secondary-rgb','--accent','--accent-rgb','--ink','--bg','--card','--muted','--line','--texture','--backdrop-base','--backdrop-color','--backdrop-glow'].forEach(function(k){ r.removeProperty(k); }); return; }
+      r.setProperty('--primary', t.p); r.setProperty('--primary-rgb', rgb(t.p)); r.setProperty('--secondary', t.s); r.setProperty('--secondary-rgb', rgb(t.s));
+      r.setProperty('--accent', t.a); r.setProperty('--accent-rgb', rgb(t.a)); r.setProperty('--ink', t.ink); r.setProperty('--bg', t.bg); r.setProperty('--card', '#ffffff');
+      r.setProperty('--muted', mix(t.ink, t.bg, 50)); r.setProperty('--line', mix(t.ink, t.bg, 11));
+      r.setProperty('--texture', 'repeating-linear-gradient(0deg, rgba(' + rgb(t.ink) + ',.016) 0, rgba(' + rgb(t.ink) + ',.016) 1px, transparent 1px, transparent 5px), repeating-linear-gradient(90deg, rgba(' + rgb(t.ink) + ',.016) 0, rgba(' + rgb(t.ink) + ',.016) 1px, transparent 1px, transparent 5px)');
+      r.setProperty('--backdrop-base', 'linear-gradient(165deg, ' + mix(t.bg, '#ffffff', 60) + ' 0%, ' + t.bg + ' 50%, ' + mix(t.p, t.bg, 22) + ' 100%)');
+      r.setProperty('--backdrop-color', t.bg); r.setProperty('--backdrop-glow', rgb(t.a));
+    };
+    if (savedTheme && savedTheme.indexOf('custom:') === 0) {
+      var own = (JSON.parse(localStorage.getItem('travelPlannerCustomThemes') || '[]') || []).filter(function(x){ return 'custom:' + x.id === savedTheme; })[0];
+      if (own) { document.documentElement.setAttribute('data-theme', 'custom'); window.__tpCustomVars(own); }
+    }
     if (localStorage.getItem('travelPlannerBackdrop') === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
     var savedFont = localStorage.getItem('travelPlannerFont');
     if (savedFont === 'neutral' || savedFont === 'elegant' || savedFont === 'mono' || savedFont === 'dyslexia') document.documentElement.setAttribute('data-font', savedFont);
@@ -87,7 +103,7 @@
     font-family:var(--font); }
   button, input, textarea, select { font-family:inherit; }
   :root { --font:'Nunito',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-  :root[data-font="neutral"] { --font:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  :root[data-font="neutral"] { --font:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   :root[data-font="elegant"] { --font:'Lora',Georgia,'Times New Roman',serif; }
   :root[data-font="mono"] { --font:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace; }
   :root[data-font="dyslexia"] { --font:'OpenDyslexic','Comic Sans MS',sans-serif; }
@@ -1746,6 +1762,25 @@
   .actionMenuThemeRow { display:flex; align-items:center; gap:8px; padding:9px 10px; }
   .actionMenuThemeLabel { flex:1; font-size:13px; font-weight:700; color:var(--ink); }
   .actionMenuThemeRow .theme-dot { width:22px; height:22px; }
+  /* themes: five to a row */
+  .theme-dots { display:grid; grid-template-columns:repeat(5, 22px); gap:8px; }
+  .theme-add { width:22px; height:22px; padding:0; border-radius:50%; border:1.5px dashed var(--muted); background:none; color:var(--muted); font:inherit; font-size:15px; font-weight:800; line-height:1; cursor:pointer; display:grid; place-items:center; }
+  .theme-add:hover, .theme-add.on { border-color:var(--ink); color:var(--ink); }
+  /* the name, shown on hover (fonts and themes) */
+  .font-dot[data-tip], .theme-dot[data-tip], .theme-add[data-tip] { position:relative; }
+  .font-dot[data-tip]:hover::after, .theme-dot[data-tip]:hover::after, .theme-add[data-tip]:hover::after { content:attr(data-tip); position:absolute; left:50%; bottom:calc(100% + 7px); transform:translateX(-50%);
+    padding:4px 9px; border-radius:7px; background:var(--ink); color:var(--card); font-family:'Nunito',sans-serif; font-size:11.5px; font-weight:800; letter-spacing:0; white-space:nowrap; pointer-events:none; z-index:5; }
+  /* make your own theme */
+  .theme-editor { margin:0 6px 6px; padding:10px 12px 12px; border-radius:12px; background:var(--bg); }
+  .theme-editor[hidden] { display:none; }
+  .te-name { width:100%; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; font-size:13px; font-weight:700; margin-bottom:8px; }
+  .te-row { display:flex; align-items:center; gap:10px; padding:3px 0; font-size:12.5px; font-weight:700; color:var(--ink); }
+  .te-row span { flex:1; } .te-row small { color:var(--muted); font-weight:700; }
+  .te-row input[type=color] { width:34px; height:24px; padding:0; border:1px solid var(--line); border-radius:6px; background:none; cursor:pointer; }
+  .te-foot { display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .te-foot .te-del { margin-right:auto; border:none; background:none; color:#d6455d; font:inherit; font-size:12px; font-weight:800; cursor:pointer; padding:0; }
+  .te-foot .te-cancel { border:none; background:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .te-foot .te-save { border:none; border-radius:8px; padding:7px 14px; background:var(--primary); color:#fff; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
   .lang-select { height:26px; padding:0 22px 0 8px; border-radius:999px;
     border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit;
     font-size:12px; font-weight:700; cursor:pointer;
@@ -2029,6 +2064,7 @@
     :root[data-theme="dusk"] { --backdrop-base:linear-gradient(165deg, #fffcf5 0%, #ecebf5 50%, #cfd1ec 100%);
       --backdrop-glow:223,174,161; --backdrop-color:#ecebf5; }
     :root[data-theme="dusk"] body::before, :root[data-theme="dusk"] body::after { display:none; }
+    :root[data-theme="custom"] body::before, :root[data-theme="custom"] body::after { display:none; }
     :root[data-theme="harbor"] { --backdrop-base:linear-gradient(165deg, #eef1f5 0%, #e2e7ee 50%, #c8d2de 100%);
       --backdrop-glow:171,132,101; --backdrop-color:#e2e7ee; }
     :root[data-theme="earth"] { --backdrop-base:linear-gradient(165deg, #f3efe8 0%, #e3ded7 50%, #cfc9b6 100%);
@@ -2080,7 +2116,7 @@
        light in the upper left so it doesn't sit flat. Mixed from the
        theme's variables, so it follows whichever theme is on (a flat
        grey here looked dead next to either palette). */
-    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"], :root[data-backdrop="minimal"][data-theme="cool"], :root[data-backdrop="minimal"][data-theme="forest"], :root[data-backdrop="minimal"][data-theme="harbor"], :root[data-backdrop="minimal"][data-theme="earth"], :root[data-backdrop="minimal"][data-theme="dusk"] {
+    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"], :root[data-backdrop="minimal"][data-theme="cool"], :root[data-backdrop="minimal"][data-theme="forest"], :root[data-backdrop="minimal"][data-theme="harbor"], :root[data-backdrop="minimal"][data-theme="earth"], :root[data-backdrop="minimal"][data-theme="dusk"], :root[data-backdrop="minimal"][data-theme="custom"] {
       --backdrop-color:color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg)));
       --backdrop:
         radial-gradient(1100px 760px at 12% -6%, rgba(255,255,255,.55), transparent 62%),
@@ -2098,7 +2134,7 @@
   .font-dot:hover { background:var(--line); }
   .font-dot.active { border-color:var(--ink); }
   .font-dot[data-font-name="rounded"] { font-family:'Nunito',sans-serif; }
-  .font-dot[data-font-name="neutral"] { font-family:'Inter',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; }
+  .font-dot[data-font-name="neutral"] { font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; }
   .font-dot[data-font-name="elegant"] { font-family:'Lora',Georgia,serif; }
   .font-dot[data-font-name="mono"] { font-family:'IBM Plex Mono',ui-monospace,monospace; }
   .font-dot[data-font-name="dyslexia"] { font-family:'OpenDyslexic','Comic Sans MS',sans-serif; font-size:13px; }
@@ -4267,15 +4303,19 @@
       <div class="actionMenuDivider"></div>
       <div class="actionMenuThemeRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_theme">Theme</span>
-        <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="bubbles" title="Bubbles palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="cool" title="Cool palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="forest" title="Forest palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="harbor" title="Harbor palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="earth" title="Earth palette"></button>
-        <button type="button" class="theme-dot" data-theme-name="dusk" title="Dusk palette"></button>
+        <span class="theme-dots">
+        <button type="button" class="theme-dot" data-theme-name="kawaii" data-tip="Kawaii" aria-label="Kawaii palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="classic" data-tip="Classic" aria-label="Classic palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="bubbles" data-tip="Bubbles" aria-label="Bubbles palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="cool" data-tip="Cool" aria-label="Cool palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="forest" data-tip="Forest" aria-label="Forest palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="harbor" data-tip="Harbor" aria-label="Harbor palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="earth" data-tip="Earth" aria-label="Earth palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="dusk" data-tip="Dusk" aria-label="Dusk palette"></button>
+        <button type="button" class="theme-add" data-tip="Make your own" aria-label="Make your own theme">+</button>
+        </span>
       </div>
+      <div id="themeEditor" class="theme-editor" hidden></div>
       <!-- What the book lies on: the starry pastel wash, or a plain quiet
            one. Separate from Theme (which recolors the plan itself), and
            desktop-only like the backdrop it switches. -->
@@ -4286,11 +4326,11 @@
       </div>
       <div class="actionMenuThemeRow actionMenuFontRow">
         <span class="actionMenuThemeLabel" data-i18n="menu_font">Font</span>
-        <button type="button" class="font-dot" data-font-name="rounded" title="Rounded (Nunito)" aria-label="Rounded font">Aa</button>
-        <button type="button" class="font-dot" data-font-name="neutral" title="Neutral (Inter)" aria-label="Neutral font">Aa</button>
-        <button type="button" class="font-dot" data-font-name="elegant" title="Elegant (Lora)" aria-label="Elegant font">Aa</button>
-        <button type="button" class="font-dot" data-font-name="mono" title="Mono (IBM Plex Mono)" aria-label="Monospaced font">Aa</button>
-        <button type="button" class="font-dot" data-font-name="dyslexia" title="Easier to read with dyslexia (OpenDyslexic)" aria-label="Dyslexia-friendly font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="rounded" data-tip="Rounded · Nunito" aria-label="Rounded font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="neutral" data-tip="Neutral · Plus Jakarta Sans" aria-label="Neutral font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="elegant" data-tip="Elegant · Lora" aria-label="Elegant font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="mono" data-tip="Mono · IBM Plex Mono" aria-label="Monospaced font">Aa</button>
+        <button type="button" class="font-dot" data-font-name="dyslexia" data-tip="Dyslexia-friendly · OpenDyslexic" aria-label="Dyslexia-friendly font">Aa</button>
       </div>
       <label class="actionMenuThemeRow actionMenuYearsRow" hidden style="display:none">
         <span class="actionMenuThemeLabel" data-i18n="menu_collapse_years">Collapse other years</span>
@@ -14249,9 +14289,15 @@
   // [data-theme] attribute the early bootstrap script already checks, so
   // a reload never flashes the other palette first.
   var THEME_KEY = 'travelPlannerTheme';
+  var CUSTOM_THEMES_KEY = 'travelPlannerCustomThemes';
+  function customThemes(){ try { return JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY) || '[]') || []; } catch(e){ return []; } }
+  function saveCustomThemes(list){ try { localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(list)); } catch(e){} }
   function applyTheme(name){
-    if(name === 'classic' || name === 'bubbles' || name === 'cool' || name === 'forest' || name === 'harbor' || name === 'earth' || name === 'dusk') document.documentElement.setAttribute('data-theme', name);
-    else document.documentElement.removeAttribute('data-theme');
+    var own = String(name || '').indexOf('custom:') === 0 ? customThemes().filter(function(x){ return 'custom:' + x.id === name; })[0] : null;
+    if(window.__tpCustomVars) window.__tpCustomVars(own || null);
+    if(own) document.documentElement.setAttribute('data-theme', 'custom');
+    else if(name === 'classic' || name === 'bubbles' || name === 'cool' || name === 'forest' || name === 'harbor' || name === 'earth' || name === 'dusk') document.documentElement.setAttribute('data-theme', name);
+    else { name = 'kawaii'; document.documentElement.removeAttribute('data-theme'); }
     document.querySelectorAll('.theme-dot').forEach(function(d){
       d.classList.toggle('active', d.getAttribute('data-theme-name') === name);
     });
@@ -14287,17 +14333,77 @@
     try { saved = localStorage.getItem(BACKDROP_KEY) || 'magical'; } catch(e){}
     applyBackdrop(saved);
   })();
-  document.querySelectorAll('.theme-dot').forEach(function(dot){
-    dot.addEventListener('click', function(){ applyTheme(dot.getAttribute('data-theme-name')); });
+  // Themes of your own: the "+" opens a small editor (five colours, a name),
+  // the page follows each colour as it's picked, Save keeps it (on this
+  // device) as a dot next to the others; clicking your active one edits it.
+  function curTheme(){ try { return localStorage.getItem(THEME_KEY) || 'kawaii'; } catch(e){ return 'kawaii'; } }
+  function hexOf(v){ v = String(v || '').trim(); if(/^#[0-9a-f]{6}$/i.test(v)) return v; if(/^#[0-9a-f]{3}$/i.test(v)) return '#' + v.slice(1).split('').map(function(c){ return c + c; }).join(''); return null; }
+  function renderCustomDots(){
+    var box = document.querySelector('.theme-dots'), add = box && box.querySelector('.theme-add'); if(!box) return;
+    box.querySelectorAll('.theme-dot.own').forEach(function(d){ d.remove(); });
+    customThemes().forEach(function(t){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'theme-dot own'; b.setAttribute('data-theme-name', 'custom:' + t.id);
+      b.setAttribute('data-tip', (t.name || 'My theme') + ' · click again to edit'); b.setAttribute('aria-label', (t.name || 'My theme') + ' theme');
+      b.style.background = 'conic-gradient(' + t.p + ' 0deg 120deg, ' + t.s + ' 120deg 240deg, ' + t.a + ' 240deg 360deg)';
+      box.insertBefore(b, add);
+    });
+    var cur = curTheme(); box.querySelectorAll('.theme-dot').forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-theme-name') === cur); });
+  }
+  var themeEdit = null;   // { id?, before }
+  function openThemeEditor(t){
+    var ed = document.getElementById('themeEditor'); if(!ed) return;
+    var cs = getComputedStyle(document.documentElement), v = function(k, d){ return hexOf(cs.getPropertyValue(k)) || d; };
+    var c = t || { name:'', p: v('--primary', '#ec6a9c'), s: v('--secondary', '#3fbf94'), a: v('--accent', '#f2884d'), ink: v('--ink', '#3d3568'), bg: v('--bg', '#f6f1fb') };
+    themeEdit = { id: t ? t.id : null, before: curTheme() };
+    var rows = [['p', 'Main', 'tabs, buttons'], ['s', 'Second', ''], ['a', 'Third', ''], ['ink', 'Text', ''], ['bg', 'Background', '']];
+    ed.innerHTML = '<input class="te-name" maxlength="24" placeholder="My theme" aria-label="Theme name">' +
+      rows.map(function(r){ return '<label class="te-row"><span>' + r[1] + (r[2] ? ' <small>' + r[2] + '</small>' : '') + '</span><input type="color" data-k="' + r[0] + '" value="' + c[r[0]] + '"></label>'; }).join('') +
+      '<div class="te-foot">' + (t ? '<button type="button" class="te-del">Delete</button>' : '') + '<button type="button" class="te-cancel">Cancel</button><button type="button" class="te-save">Save</button></div>';
+    ed.querySelector('.te-name').value = t ? (t.name || '') : '';
+    ed.hidden = false; document.querySelector('.theme-add').classList.add('on');
+    function read(){ var o = { name: ed.querySelector('.te-name').value.trim() }; ed.querySelectorAll('[data-k]').forEach(function(i){ o[i.dataset.k] = i.value; }); return o; }
+    function preview(){ window.__tpCustomVars(read()); document.documentElement.setAttribute('data-theme', 'custom'); }
+    ed.querySelectorAll('[data-k]').forEach(function(i){ i.addEventListener('input', preview); });
+    preview();
+    ed.querySelector('.te-cancel').addEventListener('click', function(e){ e.stopPropagation(); closeThemeEditor(true); });
+    ed.querySelector('.te-save').addEventListener('click', function(e){
+      e.stopPropagation();
+      var o = read(), list = customThemes(); o.id = themeEdit.id || String(Date.now()).slice(-8); if(!o.name) o.name = 'My theme';
+      var at = -1; list.forEach(function(x, i){ if(x.id === o.id) at = i; }); if(at === -1) list.push(o); else list[at] = o;
+      saveCustomThemes(list); closeThemeEditor(false); applyTheme('custom:' + o.id); renderCustomDots();
+    });
+    var del = ed.querySelector('.te-del');
+    if(del) del.addEventListener('click', function(e){
+      e.stopPropagation();
+      saveCustomThemes(customThemes().filter(function(x){ return x.id !== themeEdit.id; }));
+      closeThemeEditor(false); applyTheme('kawaii'); renderCustomDots();
+    });
+  }
+  function closeThemeEditor(restore){
+    var ed = document.getElementById('themeEditor'); if(ed){ ed.hidden = true; ed.innerHTML = ''; }
+    var add = document.querySelector('.theme-add'); if(add) add.classList.remove('on');
+    if(restore && themeEdit) applyTheme(themeEdit.before);
+    themeEdit = null;
+  }
+  document.addEventListener('click', function(e){
+    var add = e.target.closest && e.target.closest('.theme-add');
+    if(add){ e.stopPropagation(); if(themeEdit) closeThemeEditor(true); else openThemeEditor(null); return; }
+    var dot = e.target.closest && e.target.closest('.theme-dot'); if(!dot) return;
+    var name = dot.getAttribute('data-theme-name');
+    if(name.indexOf('custom:') === 0 && curTheme() === name && !themeEdit){ openThemeEditor(customThemes().filter(function(x){ return 'custom:' + x.id === name; })[0]); return; }
+    if(themeEdit) closeThemeEditor(false);
+    applyTheme(name); renderCustomDots();
   });
+  // closing the menu while editing puts the theme back
+  setInterval(function(){ var dd = document.getElementById('actionMenuDropdown'); if(themeEdit && dd && !dd.classList.contains('show')) closeThemeEditor(true); }, 400);
   // Font: rounded (Nunito, the original), neutral, elegant, mono or dyslexia-friendly.
-  // Inter, Lora and IBM Plex Mono load once, the first time the menu opens or one is
+  // Plus Jakarta Sans, Lora and IBM Plex Mono load once, the first time the menu opens or one is
   // picked; OpenDyslexic comes with the app (fonts/).
   var FONT_KEY = 'travelPlannerFont';
   function loadExtraFonts(){
     if(document.getElementById('extraFonts')) return;
     var l = document.createElement('link'); l.id = 'extraFonts'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+    l.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
     document.head.appendChild(l);
   }
   function applyFont(name){
@@ -14320,7 +14426,7 @@
   (function initTheme(){
     var saved = 'kawaii';
     try { saved = localStorage.getItem(THEME_KEY) || 'kawaii'; } catch(e){}
-    applyTheme(saved);
+    applyTheme(saved); renderCustomDots();
   })();
 
   // Sweeps every [data-i18n]/[data-i18n-placeholder] element currently in
