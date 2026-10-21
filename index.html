@@ -3197,7 +3197,7 @@
     body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
     body.notes-mode .notes-page { display:block; margin-top:-5px; padding:0 10px 24px; }
     /* the idea box: a column on the right of the notes */
-    body.notes-mode .notes-page:has(> .grp-notes-ideas) { display:grid; grid-template-columns:minmax(0, 1fr) clamp(280px, 28%, 360px); grid-template-rows:auto 1fr; column-gap:26px; }
+    body.notes-mode .notes-page:has(> .grp-notes-ideas) { display:grid; grid-template-columns:minmax(0, 1fr) clamp(300px, 30%, 380px); grid-template-rows:auto 1fr; column-gap:26px; }
     .notes-page > .np-head { grid-column:1; grid-row:1; }
     .notes-page > .np-lines { grid-column:1; grid-row:2; }
     .notes-page > .grp-notes-ideas { grid-column:2; grid-row:1 / span 2; align-self:start; position:sticky; top:12px; display:flex; flex-direction:column; gap:12px; padding:16px 16px 18px; border-radius:16px;
@@ -3205,6 +3205,40 @@
     .notes-page > .grp-notes-ideas[hidden] { display:none; }
     .notes-page > .grp-notes-ideas h3 { margin:0; font-size:18px; font-weight:900; }
     .notes-page > .grp-notes-ideas .grp-drawer-head p { margin:2px 0 0; color:var(--muted); font-weight:700; font-size:13px; }
+    /* idea box in Notes: sticky notes taped on the page */
+    .notes-page > .grp-notes-ideas { background:rgba(255,255,255,.55); }
+    .grp-notes-ideas .ib-title { display:flex; align-items:center; gap:10px; }
+    .grp-notes-ideas .ib-title h3 { margin:0; font-family:Caveat, cursive; font-size:32px; font-weight:700; line-height:1; color:var(--ink); }
+    .grp-notes-ideas .ib-cnt { font-weight:900; font-size:12px; color:#fff; background:var(--accent); border-radius:999px; padding:1px 8px; }
+    .grp-notes-ideas .ib-add { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+    .grp-notes-ideas .ib-add input { flex:1; min-width:0; height:38px; border:none !important; border-bottom:2px solid var(--line) !important; border-radius:0 !important; background:transparent !important; padding:0 2px !important; font-size:14px !important; font-weight:700; }
+    .grp-notes-ideas .ib-add input:focus { outline:none; border-bottom-color:var(--primary) !important; }
+    .grp-notes-ideas .ib-add select { flex:0 1 auto; max-width:110px; height:30px; border:none !important; border-radius:999px !important; background:var(--bg) !important; font-size:12px !important; font-weight:800; padding:0 8px !important; }
+    .grp-notes-ideas .ib-plus { flex:none; width:32px; height:32px; border:none; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; cursor:pointer; }
+    .grp-notes-ideas .ib-plus svg { width:16px; height:16px; }
+    .grp-notes-ideas .ib-board { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:18px 12px; margin-top:12px; padding:4px 2px 6px; }
+    .grp-notes-ideas .ib-note { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-height:116px; padding:20px 11px 10px; border-radius:3px; background:var(--nc); box-shadow:0 10px 18px -12px rgba(60,30,60,.55); transform:rotate(var(--r)); }
+    .grp-notes-ideas .ib-note::before { content:''; position:absolute; top:-9px; left:50%; width:56px; height:18px; margin-left:-28px; background:var(--tape); transform:rotate(-4deg); pointer-events:none; }
+    .grp-notes-ideas .ib-note.fav { box-shadow:0 0 0 2px var(--accent), 0 10px 18px -12px rgba(60,30,60,.55); }
+    .grp-notes-ideas .ib-note.fav::after { content:'★'; position:absolute; top:3px; right:7px; color:var(--accent); font-size:15px; }
+    .grp-notes-ideas .ib-note .grp-chip { font-size:10.5px; }
+    .grp-notes-ideas .ib-t { font-family:Caveat, cursive; font-size:22px; font-weight:700; line-height:1.05; color:var(--ink); overflow-wrap:anywhere; }
+    .grp-notes-ideas .ib-meta { font-size:11px; font-weight:700; color:var(--ink); opacity:.55; }
+    .grp-notes-ideas .ib-row { display:flex; align-items:center; gap:5px; width:100%; margin-top:auto; }
+    .grp-notes-ideas .ib-row .grp-heart { padding:3px 8px; font-size:11.5px; background:rgba(255,255,255,.75); border-color:transparent; }
+    .grp-notes-ideas .ib-row .grp-heart.on { background:var(--primary); color:#fff; }
+    .grp-notes-ideas .ib-plan { display:inline-flex; align-items:center; gap:4px; margin-left:auto; height:25px; padding:0 9px; border:none; border-radius:999px; background:rgba(255,255,255,.75); color:var(--primary); font:inherit; font-size:11.5px; font-weight:900; cursor:pointer; white-space:nowrap; }
+    .grp-notes-ideas .ib-plan svg { width:12px; height:12px; }
+    .grp-notes-ideas .ib-note .grp-rm { position:absolute; top:2px; left:4px; opacity:0; transition:opacity .12s; background:none; }
+    .grp-notes-ideas .ib-note:hover .grp-rm { opacity:.7; }
+    .grp-notes-ideas .ib-empty { margin:10px 0 0; }
+    #ibDays { position:fixed; z-index:10030; width:250px; padding:10px; background:#fff; border-radius:14px; box-shadow:0 14px 30px -10px rgba(40,25,60,.45), 0 0 0 1px var(--line); color:var(--ink); }
+    #ibDays[hidden] { display:none; }
+    #ibDays .ibd-h { font-size:11px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 6px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #ibDays .ibd-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; max-height:220px; overflow:auto; }
+    #ibDays button { height:32px; border:none; border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-weight:800; font-size:12px; cursor:pointer; line-height:1.05; }
+    #ibDays button small { display:block; font-size:8.5px; color:var(--muted); }
+    #ibDays button:hover { background:var(--primary); color:#fff; } #ibDays button:hover small { color:#fff; }
     .pills .pill.notes-tab .nt-ideas { display:inline-flex; align-items:center; gap:3px; margin-left:2px; padding:1px 7px 1px 5px; border-radius:999px; background:rgba(var(--accent-rgb), .16); color:#c4651f; font-size:11.5px; font-weight:900; }
     .pills .pill.notes-tab .nt-ideas svg { width:12px; height:12px; color:inherit; }
     .notes-page .np-head { display:flex; align-items:center; gap:10px; margin:0 0 16px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
@@ -18698,7 +18732,20 @@
     var pill = pillOfPanel(panel), altName = pill && pill.querySelector('.pill-name') ? pill.querySelector('.pill-name').textContent.trim() : '';
     var focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : '';
     var draft = box.querySelector('#grpIdeaTitle'); draft = draft ? draft.value : '';
-    box.innerHTML = '<div class="grp-drawer-head"><div><h3>Idea box</h3><p>' + grpEsc(altName || planNameOf(panel)) + '</p></div>' +
+    // In Notes: sticky notes taped on the page (the chosen design), two per row.
+    var NOTE_BG = ['#fff3bf', '#ffd9e6', '#dff5ec', '#e8e1fb'], NOTE_TAPE = ['rgba(236,106,156,.35)', 'rgba(63,191,148,.35)', 'rgba(242,136,77,.35)', 'rgba(155,143,192,.4)'];
+    var favN = list.filter(function(x){ return (x.h || []).length === top; }).length;
+    if(inNotes) box.innerHTML = '<div class="ib-title"><h3>Idea box</h3>' + (list.length ? '<span class="ib-cnt">' + list.length + '</span>' : '') + '</div>' +
+      '<form class="grp-ideaform ib-add"><input id="grpIdeaTitle" placeholder="Jot an idea, e.g. Kayak on the Vistula" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="ib-plus" aria-label="Add the idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></form>' +
+      (list.length ? '<div class="ib-board">' + list.map(function(it, n){
+        var hs = it.h || [], mine = !!me && hs.indexOf(me) !== -1, fav = top > 0 && hs.length === top && favN === 1;
+        return '<div class="grp-idea ib-note' + (fav ? ' fav' : '') + '" data-id="' + it.id + '" style="--nc:' + NOTE_BG[n % 4] + ';--tape:' + NOTE_TAPE[n % 4] + ';--r:' + (n % 2 ? '1.3deg' : '-1.2deg') + '"' + (fav ? ' title="Group favourite"' : '') + '>' +
+          '<button type="button" class="grp-rm" aria-label="Remove idea" title="Remove idea">✕</button>' + grpChipHtml(it.a) + '<div class="ib-t">' + grpEsc(it.a.t || 'Untitled') + '</div>' +
+          ((it.a.p || it.by) ? '<div class="ib-meta">' + (it.a.p ? grpEsc(it.a.p) + ' · ' : '') + (it.by ? grpEsc(grpName(it.by)) : '') + '</div>' : '') +
+          '<div class="ib-row"><button type="button" class="grp-heart' + (mine ? ' on' : '') + '" aria-pressed="' + mine + '" aria-label="Heart ' + grpEsc(it.a.t || '') + '" title="' + grpEsc(hs.map(grpName).join(', ')) + '">♥ ' + hs.length + '</button>' +
+          '<button type="button" class="ib-plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Plan it</button></div></div>';
+      }).join('') + '</div>' : '<p class="grp-empty ib-empty">No ideas yet. Jot the first one above, or open an activity and choose To ideas.</p>');
+    else box.innerHTML = '<div class="grp-drawer-head"><div><h3>Idea box</h3><p>' + grpEsc(altName || planNameOf(panel)) + '</p></div>' +
       (inNotes ? '' : '<button type="button" class="grp-x" aria-label="Close idea box">✕</button>') + '</div>' +
       '<p class="grp-hint">Things you might do. Heart the ones you like; plan an idea onto a day when it\'s time.</p>' +
       '<form class="grp-ideaform"><input id="grpIdeaTitle" placeholder="Add an idea, e.g. Kayak on the Vistula" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="grp-btn">Add</button></form>' +
@@ -18731,12 +18778,31 @@
         if(k === -1){ it.h.push(me); playStarSound(); } else it.h.splice(k, 1);
         grpChanged();
       });
-      row.querySelector('.grp-plan').addEventListener('change', function(e){
-        var dn = parseInt(e.target.value, 10); if(isNaN(dn)) return;
+      function planOn(dn){
         var li = grpPlaceActivity(panel, dn, it.a);
         if(!li) return;
         GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== it; });
         playStampSound(); grpChanged(); grpToast('Planned on ' + grpDayLabel(panel, dn));
+      }
+      var sel = row.querySelector('.grp-plan');
+      if(sel) sel.addEventListener('change', function(e){ var dn = parseInt(e.target.value, 10); if(!isNaN(dn)) planOn(dn); });
+      // Plan it: the trip's days to pick from
+      var pb = row.querySelector('.ib-plan');
+      if(pb) pb.addEventListener('click', function(e){
+        e.stopPropagation();
+        var dd = document.getElementById('ibDays');
+        if(!dd){ dd = document.createElement('div'); dd.id = 'ibDays'; dd.className = 'grp-ui'; dd.hidden = true; document.body.appendChild(dd);
+          document.addEventListener('mousedown', function(ev){ if(!dd.hidden && !dd.contains(ev.target) && !ev.target.closest('.ib-plan')) dd.hidden = true; });
+          window.addEventListener('scroll', function(){ dd.hidden = true; }, true); }
+        if(!dd.hidden && dd.__for === row.dataset.id){ dd.hidden = true; return; }
+        dd.__for = row.dataset.id;
+        dd.innerHTML = '<div class="ibd-h">Plan “' + grpEsc((it.a.t || '').slice(0, 30)) + '” on</div><div class="ibd-grid">' + days.map(function(dn){ var r = realDate(panel, dn), d = new Date(r.year, r.month - 1, r.day);
+          return '<button type="button" data-dn="' + dn + '"><small>' + WD_ABBR[(d.getDay() + 6) % 7] + '</small>' + r.day + '</button>'; }).join('') + '</div>';
+        dd.querySelectorAll('[data-dn]').forEach(function(b){ b.addEventListener('click', function(){ dd.hidden = true; planOn(+b.dataset.dn); }); });
+        dd.hidden = false;
+        var rr = pb.getBoundingClientRect(), w = dd.offsetWidth, h = dd.offsetHeight;
+        dd.style.left = Math.round(Math.max(8, Math.min(rr.right - w, innerWidth - w - 8))) + 'px';
+        dd.style.top = Math.round(rr.bottom + 6 + h > innerHeight - 8 ? rr.top - 6 - h : rr.bottom + 6) + 'px';
       });
       row.querySelector('.grp-rm').addEventListener('click', function(){
         GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== it; }); playCrumpleSound(); grpChanged();
