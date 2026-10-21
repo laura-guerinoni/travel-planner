@@ -12911,6 +12911,41 @@
     if(hadCache) loadMemberAvatarData(true).then(render);
   }
 
+  // Right-click on a day that has something planned: delete the whole day
+  // (its activities and its place; a multi-day one that started earlier stays).
+  function dayOwnActs(cell){ return [].slice.call(cell.querySelectorAll(':scope > .acts > li')).filter(function(li){ return !li.classList.contains('act-span-ghost'); }); }
+  document.addEventListener('contextmenu', function(e){
+    if(VIEW_ONLY || !e.target.closest) return;
+    var cell = e.target.closest('.panel.on .cell:not(.empty)');
+    if(!cell || e.target.closest('[contenteditable="true"], input, textarea')) return;
+    var acts = dayOwnActs(cell), place = placeOfCell(cell);
+    if(!acts.length && !place) return;
+    e.preventDefault();
+    closePop();
+    var pop = document.createElement('div'); pop.className = 'itemmenu';
+    var row = document.createElement('div'); row.className = 'itemmenu-row danger';
+    row.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>Delete the whole day';
+    row.title = acts.length ? acts.length + (acts.length === 1 ? ' activity' : ' activities') + (place ? ' and the place' : '') : 'The place';
+    row.addEventListener('click', function(ev){
+      ev.stopPropagation(); closePop();
+      var panel = cell.closest('.panel');
+      dayOwnActs(cell).forEach(function(li){ cleanupMediaForSubtree(li); li.remove(); });
+      var loc = cell.querySelector(':scope > .loc'); if(loc) loc.remove();
+      playCrumpleSound();
+      recomputeCell(cell); if(typeof refreshHoliCell === 'function') refreshHoliCell(cell);
+      if(panel) renderActivitySpans(panel);
+      renderPaymentOverview();
+      scheduleAutoSave(); scheduleUndoSnapshot();
+      if(typeof grpToast === 'function') grpToast('Day deleted · Ctrl+Z to undo');
+    });
+    pop.appendChild(row);
+    document.body.appendChild(pop);
+    var w = pop.offsetWidth, h = pop.offsetHeight, left = e.clientX, top = e.clientY;
+    if(left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - w - 8);
+    if(top + h > window.innerHeight - 8) top = Math.max(8, window.innerHeight - h - 8);
+    pop.style.left = (window.scrollX + left) + 'px'; pop.style.top = (window.scrollY + top) + 'px';
+    openPop = pop;
+  });
   document.addEventListener('contextmenu', function(e){
     var pill = e.target.closest('.pill[data-opt]');
     if(!pill) return;
