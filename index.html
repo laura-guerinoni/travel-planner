@@ -13679,6 +13679,8 @@
   // after, on top of whatever synchronous call already ran.
   if(window.document && document.fonts && document.fonts.ready){
     document.fonts.ready.then(function(){ syncBarLayout(); }).catch(function(){});
+    // a font picked later (or still arriving) changes the tabs' height: line the page up again
+    if(document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function(){ syncBarLayout(); });
   }
 
   // A month segment's "⋯" menu — same row/icon/divider language as
@@ -14259,6 +14261,7 @@
     if(name === 'rounded') document.documentElement.removeAttribute('data-font');
     else { if(name !== 'dyslexia') loadExtraFonts(); document.documentElement.setAttribute('data-font', name); }
     document.querySelectorAll('.font-dot').forEach(function(d){ d.classList.toggle('active', d.getAttribute('data-font-name') === name); });
+    if(typeof syncBarLayout === 'function'){ syncBarLayout(); if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ syncBarLayout(); }).catch(function(){}); }
     try { localStorage.setItem(FONT_KEY, name); } catch(e){}
   }
   document.querySelectorAll('.font-dot').forEach(function(dot){
