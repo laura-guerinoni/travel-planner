@@ -20,7 +20,7 @@
   // visibility hide above, just for the theme instead of the content.
   try {
     var savedTheme = localStorage.getItem('travelPlannerTheme');
-    if (savedTheme === 'classic' || savedTheme === 'bubbles') document.documentElement.setAttribute('data-theme', savedTheme);
+    if (savedTheme === 'classic' || savedTheme === 'bubbles' || savedTheme === 'cool' || savedTheme === 'forest' || savedTheme === 'harbor' || savedTheme === 'earth' || savedTheme === 'dusk') document.documentElement.setAttribute('data-theme', savedTheme);
     if (localStorage.getItem('travelPlannerBackdrop') === 'minimal') document.documentElement.setAttribute('data-backdrop', 'minimal');
     var savedFont = localStorage.getItem('travelPlannerFont');
     if (savedFont === 'neutral' || savedFont === 'elegant' || savedFont === 'mono' || savedFont === 'dyslexia') document.documentElement.setAttribute('data-font', savedFont);
@@ -53,6 +53,26 @@
   :root[data-theme="bubbles"] { --bg:#efebfd; --card:#ffffff; --ink:#1e2257; --muted:#8a88b9; --line:#e2ddf8; --primary:#3b4fe0; --primary-rgb:59,79,224; --secondary:#7f8cf3; --secondary-rgb:127,140,243; --accent:#9cc31f; --accent-rgb:156,195,31;
     --texture: repeating-linear-gradient(0deg, rgba(30,34,87,.016) 0, rgba(30,34,87,.016) 1px, transparent 1px, transparent 5px),
       repeating-linear-gradient(90deg, rgba(30,34,87,.016) 0, rgba(30,34,87,.016) 1px, transparent 1px, transparent 5px); }
+  /* Cool: slate, quartz, steel, iron and ink (a quiet, masculine palette) */
+  :root[data-theme="cool"] { --bg:#f1f1ee; --card:#ffffff; --ink:#14293c; --muted:#7d8a93; --line:#dfe3e2; --primary:#14293c; --primary-rgb:20,41,60; --secondary:#667f91; --secondary-rgb:102,127,145; --accent:#7f9585; --accent-rgb:127,149,133;
+    --texture: repeating-linear-gradient(0deg, rgba(20,41,60,.016) 0, rgba(20,41,60,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(20,41,60,.016) 0, rgba(20,41,60,.016) 1px, transparent 1px, transparent 5px); }
+  /* Forest: mossy timberland, ranger station and matsuba greens, murky depth for the text */
+  :root[data-theme="forest"] { --bg:#f0f1ea; --card:#ffffff; --ink:#232a24; --muted:#838a7b; --line:#dfe2d6; --primary:#3f6b3d; --primary-rgb:63,107,61; --secondary:#6c744a; --secondary-rgb:108,116,74; --accent:#474f35; --accent-rgb:71,79,53;
+    --texture: repeating-linear-gradient(0deg, rgba(35,42,36,.016) 0, rgba(35,42,36,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(35,42,36,.016) 0, rgba(35,42,36,.016) 1px, transparent 1px, transparent 5px); }
+  /* Harbor: sail-on blue, deep blue blend and scarab, with light amber and classic bronze */
+  :root[data-theme="harbor"] { --bg:#f0f2f4; --card:#ffffff; --ink:#21322e; --muted:#7f8a92; --line:#dfe4ea; --primary:#344e61; --primary-rgb:52,78,97; --secondary:#4876ae; --secondary-rgb:72,118,174; --accent:#ab8465; --accent-rgb:171,132,101;
+    --texture: repeating-linear-gradient(0deg, rgba(33,50,46,.016) 0, rgba(33,50,46,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(33,50,46,.016) 0, rgba(33,50,46,.016) 1px, transparent 1px, transparent 5px); }
+  /* Earth: charcoal, walnut brown, linen, sage and sand */
+  :root[data-theme="earth"] { --bg:#f5f3ee; --card:#ffffff; --ink:#2f2d2a; --muted:#8f877c; --line:#e6e1d8; --primary:#755c48; --primary-rgb:117,92,72; --secondary:#8a8674; --secondary-rgb:138,134,116; --accent:#2f2d2a; --accent-rgb:47,45,42;
+    --texture: repeating-linear-gradient(0deg, rgba(47,45,42,.016) 0, rgba(47,45,42,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(47,45,42,.016) 0, rgba(47,45,42,.016) 1px, transparent 1px, transparent 5px); }
+  /* Dusk: navy and cloud, with periwinkle, maroon and peach */
+  :root[data-theme="dusk"] { --bg:#f7f5f1; --card:#ffffff; --ink:#2b3363; --muted:#8e8aa6; --line:#e8e4ec; --primary:#374375; --primary-rgb:55,67,117; --secondary:#895159; --secondary-rgb:137,81,89; --accent:#c68f82; --accent-rgb:198,143,130;
+    --texture: repeating-linear-gradient(0deg, rgba(43,51,99,.016) 0, rgba(43,51,99,.016) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(90deg, rgba(43,51,99,.016) 0, rgba(43,51,99,.016) 1px, transparent 1px, transparent 5px); }
   * { box-sizing:border-box; }
   /* Plain white now, not the faint woven-linen crosshatch — that texture
      moved onto .wrap itself (see its own comment below), so it reads as
@@ -1617,6 +1637,11 @@
   .theme-dot.active { border-color:var(--ink); box-shadow:0 0 0 2px var(--card); }
   .theme-dot[data-theme-name="kawaii"] { background: conic-gradient(#ec6a9c 0deg 120deg, #3fbf94 120deg 240deg, #f2884d 240deg 360deg); }
   .theme-dot[data-theme-name="classic"] { background: conic-gradient(#1c6672 0deg 120deg, #1fa896 120deg 240deg, #ef9a5c 240deg 360deg); }
+  .theme-dot[data-theme-name="cool"] { background: conic-gradient(#14293c 0deg 120deg, #667f91 120deg 240deg, #abbaaf 240deg 360deg); }
+  .theme-dot[data-theme-name="forest"] { background: conic-gradient(#3f6b3d 0deg 120deg, #6c744a 120deg 240deg, #262b26 240deg 360deg); }
+  .theme-dot[data-theme-name="harbor"] { background: conic-gradient(#344e61 0deg 120deg, #4876ae 120deg 240deg, #ab8465 240deg 360deg); }
+  .theme-dot[data-theme-name="earth"] { background: conic-gradient(#755c48 0deg 120deg, #a8a396 120deg 240deg, #2f2d2a 240deg 360deg); }
+  .theme-dot[data-theme-name="dusk"] { background: conic-gradient(#374375 0deg 90deg, #babde2 90deg 180deg, #895159 180deg 270deg, #dfaea1 270deg 360deg); }
   .theme-dot[data-theme-name="bubbles"] { background: conic-gradient(#3b4fe0 0deg 120deg, #a3acf7 120deg 240deg, #d9f26a 240deg 360deg); }
 
   /* Sign-in gate. Sits on top of the (visibility:hidden) document, so it
@@ -2001,6 +2026,20 @@
       var(--backdrop-base); }
     /* Classic: sand and sea-mist instead of blush and lilac, and stars in
        its own teal/mint/orange. */
+    :root[data-theme="dusk"] { --backdrop-base:linear-gradient(165deg, #fffcf5 0%, #ecebf5 50%, #cfd1ec 100%);
+      --backdrop-glow:223,174,161; --backdrop-color:#ecebf5; }
+    :root[data-theme="dusk"] body::before, :root[data-theme="dusk"] body::after { display:none; }
+    :root[data-theme="harbor"] { --backdrop-base:linear-gradient(165deg, #eef1f5 0%, #e2e7ee 50%, #c8d2de 100%);
+      --backdrop-glow:171,132,101; --backdrop-color:#e2e7ee; }
+    :root[data-theme="earth"] { --backdrop-base:linear-gradient(165deg, #f3efe8 0%, #e3ded7 50%, #cfc9b6 100%);
+      --backdrop-glow:168,163,150; --backdrop-color:#e3ded7; }
+    :root[data-theme="harbor"] body::before, :root[data-theme="harbor"] body::after, :root[data-theme="earth"] body::before, :root[data-theme="earth"] body::after { display:none; }
+    :root[data-theme="forest"] { --backdrop-base:linear-gradient(165deg, #eef0e5 0%, #dfe4d5 50%, #c2cbb2 100%);
+      --backdrop-glow:42,47,43; --backdrop-color:#dfe4d5; }
+    :root[data-theme="forest"] body::before, :root[data-theme="forest"] body::after { display:none; }
+    :root[data-theme="cool"] { --backdrop-base:linear-gradient(165deg, #efe8de 0%, #e4e6e4 48%, #cfd8d2 100%);
+      --backdrop-glow:171,186,175; --backdrop-color:#e4e6e4; }
+    :root[data-theme="cool"] body::before, :root[data-theme="cool"] body::after { display:none; }   /* no stars: plain and calm */
     :root[data-theme="bubbles"] { --backdrop-base:linear-gradient(160deg, #f1e9ff 0%, #ddd6fc 45%, #a3acf7 100%);
       --backdrop-glow:226,245,122; --backdrop-color:#ddd6fc; }
     :root[data-theme="bubbles"] body::before { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='460'%3E%3Cdefs%3E%3CradialGradient id='b' cx='.35' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='.75'/%3E%3Cstop offset='.55' stop-color='%23ffffff' stop-opacity='.12'/%3E%3Cstop offset='1' stop-color='%238f9cf5' stop-opacity='.28'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='96' cy='118' r='58' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='372' cy='84' r='26' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='430' cy='338' r='82' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3Ccircle cx='190' cy='372' r='20' fill='url%28%23b%29' stroke='%23ffffff' stroke-opacity='.7' stroke-width='1.2'/%3E%3C/svg%3E"); background-position:30px 20px; }
@@ -2041,7 +2080,7 @@
        light in the upper left so it doesn't sit flat. Mixed from the
        theme's variables, so it follows whichever theme is on (a flat
        grey here looked dead next to either palette). */
-    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"] {
+    :root[data-backdrop="minimal"], :root[data-backdrop="minimal"][data-theme="classic"], :root[data-backdrop="minimal"][data-theme="bubbles"], :root[data-backdrop="minimal"][data-theme="cool"], :root[data-backdrop="minimal"][data-theme="forest"], :root[data-backdrop="minimal"][data-theme="harbor"], :root[data-backdrop="minimal"][data-theme="earth"], :root[data-backdrop="minimal"][data-theme="dusk"] {
       --backdrop-color:color-mix(in srgb, var(--primary) 10%, color-mix(in srgb, var(--ink) 5%, var(--bg)));
       --backdrop:
         radial-gradient(1100px 760px at 12% -6%, rgba(255,255,255,.55), transparent 62%),
@@ -4231,6 +4270,11 @@
         <button type="button" class="theme-dot" data-theme-name="kawaii" title="Kawaii palette"></button>
         <button type="button" class="theme-dot" data-theme-name="classic" title="Classic palette"></button>
         <button type="button" class="theme-dot" data-theme-name="bubbles" title="Bubbles palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="cool" title="Cool palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="forest" title="Forest palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="harbor" title="Harbor palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="earth" title="Earth palette"></button>
+        <button type="button" class="theme-dot" data-theme-name="dusk" title="Dusk palette"></button>
       </div>
       <!-- What the book lies on: the starry pastel wash, or a plain quiet
            one. Separate from Theme (which recolors the plan itself), and
@@ -14206,7 +14250,7 @@
   // a reload never flashes the other palette first.
   var THEME_KEY = 'travelPlannerTheme';
   function applyTheme(name){
-    if(name === 'classic' || name === 'bubbles') document.documentElement.setAttribute('data-theme', name);
+    if(name === 'classic' || name === 'bubbles' || name === 'cool' || name === 'forest' || name === 'harbor' || name === 'earth' || name === 'dusk') document.documentElement.setAttribute('data-theme', name);
     else document.documentElement.removeAttribute('data-theme');
     document.querySelectorAll('.theme-dot').forEach(function(d){
       d.classList.toggle('active', d.getAttribute('data-theme-name') === name);
