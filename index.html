@@ -3122,6 +3122,17 @@
     body.notes-mode .wrap { background-image:var(--ruled-fine) !important; }
     body.notes-mode .wrap > .panel, body.notes-mode .wrap > .budget, body.notes-mode .wrap > h2 { display:none !important; }
     body.notes-mode .notes-page { display:block; margin-top:-5px; padding:0 10px 24px; }
+    /* the idea box: a column on the right of the notes */
+    body.notes-mode .notes-page:has(> .grp-notes-ideas) { display:grid; grid-template-columns:minmax(0, 1fr) clamp(280px, 28%, 360px); grid-template-rows:auto 1fr; column-gap:26px; }
+    .notes-page > .np-head { grid-column:1; grid-row:1; }
+    .notes-page > .np-lines { grid-column:1; grid-row:2; }
+    .notes-page > .grp-notes-ideas { grid-column:2; grid-row:1 / span 2; align-self:start; position:sticky; top:12px; display:flex; flex-direction:column; gap:12px; padding:16px 16px 18px; border-radius:16px;
+      background:var(--card); border:1px solid var(--line); box-shadow:0 10px 26px -18px rgba(40,25,60,.45); color:var(--ink); max-height:calc(100vh - 140px); overflow:auto; }
+    .notes-page > .grp-notes-ideas[hidden] { display:none; }
+    .notes-page > .grp-notes-ideas h3 { margin:0; font-size:18px; font-weight:900; }
+    .notes-page > .grp-notes-ideas .grp-drawer-head p { margin:2px 0 0; color:var(--muted); font-weight:700; font-size:13px; }
+    .pills .pill.notes-tab .nt-ideas { display:inline-flex; align-items:center; gap:3px; margin-left:2px; padding:1px 7px 1px 5px; border-radius:999px; background:rgba(var(--accent-rgb), .16); color:#c4651f; font-size:11.5px; font-weight:900; }
+    .pills .pill.notes-tab .nt-ideas svg { width:12px; height:12px; color:inherit; }
     .notes-page .np-head { display:flex; align-items:center; gap:10px; margin:0 0 16px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
     .notes-page .np-head .np-saved { margin-left:auto; letter-spacing:0; text-transform:none; font-weight:700; opacity:0; transition:opacity .3s; }
     .notes-page .np-head .np-saved.on { opacity:1; }
@@ -14576,6 +14587,7 @@
   function openNotesPage(){
     ensureNotesUI(); if(!notesPage) return;
     fillNotesPage();
+    if(typeof mountIdeaBox === 'function') mountIdeaBox();
     document.body.classList.add('notes-mode');
     setTimeout(function(){ var last = notesArea.lastElementChild; if(last) npFocus(last.querySelector('.np-text')); }, 30);
   }
@@ -18336,17 +18348,30 @@
     var panel = li.closest('.panel'); if(!panel) return;
     grpAddIdea(optOf(panel), extractActivity(li), []);
     deleteActivityLi(li);
-    grpChanged(); grpToast('Moved to the idea box');
+    grpChanged(); grpToast('Moved to the idea box, in Notes');
+  }
+  // On a computer the idea box is a column of the Notes page (the Notes
+  // tab opens both); on a phone it is still a drawer.
+  function ideasInNotes(){ return window.matchMedia('(min-width:721px)').matches; }
+  function mountIdeaBox(){
+    if(!ideasInNotes() || !notesPage || !grpPanel()) return;
+    var box = document.getElementById('grpIdeaBox');
+    if(!box){ box = document.createElement('aside'); box.id = 'grpIdeaBox'; box.setAttribute('aria-label', 'Idea box'); box.addEventListener('click', function(e){ e.stopPropagation(); }); }
+    box.className = 'grp-ui grp-notes-ideas';
+    if(box.parentNode !== notesPage) notesPage.appendChild(box);
+    box.hidden = false;
+    renderIdeaBox();
   }
   function openIdeaBox(){
     var panel = grpPanel(); if(!panel) return;
+    if(ideasInNotes()){ openNotesPage(); mountIdeaBox(); var ti = document.getElementById('grpIdeaTitle'); if(ti) setTimeout(function(){ ti.focus(); }, 40); return; }
     var box = document.getElementById('grpIdeaBox');
     if(!box){
-      box = document.createElement('aside'); box.id = 'grpIdeaBox'; box.className = 'grp-ui grp-drawer';
+      box = document.createElement('aside'); box.id = 'grpIdeaBox';
       box.setAttribute('aria-label', 'Idea box');
-      document.body.appendChild(box);
       box.addEventListener('click', function(e){ e.stopPropagation(); });
     }
+    box.className = 'grp-ui grp-drawer'; if(box.parentNode !== document.body) document.body.appendChild(box);
     box.hidden = false; box.classList.add('open');
     renderIdeaBox();
   }
@@ -18355,6 +18380,7 @@
     var box = document.getElementById('grpIdeaBox');
     if(!box || box.hidden) return;
     var panel = grpPanel(); if(!panel){ closeIdeaBox(); return; }
+    var inNotes = box.classList.contains('grp-notes-ideas');
     var opt = optOf(panel), me = meKey();
     var list = grpIdeas(opt).slice().sort(function(x, y){ return (y.h || []).length - (x.h || []).length; });
     var top = list.length ? (list[0].h || []).length : 0;
@@ -18366,7 +18392,7 @@
     var focused = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : '';
     var draft = box.querySelector('#grpIdeaTitle'); draft = draft ? draft.value : '';
     box.innerHTML = '<div class="grp-drawer-head"><div><h3>Idea box</h3><p>' + grpEsc(altName || planNameOf(panel)) + '</p></div>' +
-      '<button type="button" class="grp-x" aria-label="Close idea box">✕</button></div>' +
+      (inNotes ? '' : '<button type="button" class="grp-x" aria-label="Close idea box">✕</button>') + '</div>' +
       '<p class="grp-hint">Things you might do. Heart the ones you like; plan an idea onto a day when it\'s time.</p>' +
       '<form class="grp-ideaform"><input id="grpIdeaTitle" placeholder="Add an idea, e.g. Kayak on the Vistula" aria-label="New idea" autocomplete="off"><select id="grpIdeaTag" aria-label="Type">' + tagOpts + '</select><button type="submit" class="grp-btn">Add</button></form>' +
       '<div class="grp-ideas">' + (list.length ? list.map(function(it){
@@ -18383,7 +18409,7 @@
     var tagSel = box.querySelector('#grpIdeaTag');
     var other = TAGS.findIndex(function(tg){ return tg.name === 'Other'; }); if(other >= 0) tagSel.value = String(other);
     if(focused === 'grpIdeaTitle') titleIn.focus();
-    box.querySelector('.grp-x').addEventListener('click', closeIdeaBox);
+    var bx = box.querySelector('.grp-x'); if(bx) bx.addEventListener('click', closeIdeaBox);
     box.querySelector('.grp-ideaform').addEventListener('submit', function(e){
       e.preventDefault();
       var v = titleIn.value.trim(); if(!v) return;
@@ -18754,19 +18780,16 @@
 
   // ---- the top-right buttons: idea box -------------------------------
   function renderGroupHead(panel){
-    var btn = document.getElementById('grpIdeaBtn');
-    if(!btn){
-      btn = document.createElement('button'); btn.type = 'button'; btn.id = 'grpIdeaBtn'; btn.className = 'grp-ui grp-ideabtn';
-      btn.addEventListener('click', function(e){ e.stopPropagation(); var box = document.getElementById('grpIdeaBox'); if(box && !box.hidden) closeIdeaBox(); else openIdeaBox(); });
-    }
-    var head = document.getElementById('pageHead');
-    if(head && btn.parentElement !== head) head.insertBefore(btn, head.firstChild);
-    var n = panel ? grpIdeas(optOf(panel)).length : 0;
-    var html = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg> Ideas' + (n ? ' <b>' + n + '</b>' : '');
-    if(btn.innerHTML !== html) btn.innerHTML = html;
-    btn.title = 'Idea box'; btn.setAttribute('aria-label', 'Idea box, ' + n + ' ideas');
-    btn.hidden = !panel;
+    var old = document.getElementById('grpIdeaBtn'); if(old) old.remove();
+    var tab = document.querySelector('.pills > .notes-tab'); if(!tab) return;
+    var n = panel ? grpIdeas(optOf(panel)).length : 0, b = tab.querySelector(':scope > .nt-ideas');
+    if(!n){ if(b) b.remove(); return; }
+    if(!b){ b = document.createElement('span'); b.className = 'grp-ui nt-ideas'; tab.appendChild(b); }
+    var html = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>' + n;
+    if(b.innerHTML !== html) b.innerHTML = html;
+    b.title = n + (n === 1 ? ' idea' : ' ideas') + ' in the idea box';
   }
+
 
   // ---- local test helper: who you are -------------------------------
   function renderDemoSwitcher(){
