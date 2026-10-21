@@ -15557,7 +15557,10 @@
     var box = document.getElementById('dragRange');
     if(!box){ box = document.createElement('div'); box.id = 'dragRange'; document.body.appendChild(box); }
     var rows = [];
-    (cells || []).forEach(function(c){ var last = rows[rows.length - 1]; if(last && last.row === c.parentNode) last.cells.push(c); else rows.push({ row:c.parentNode, cells:[c] }); });
+    // one piece per row as it's seen: a short trip shows all its days on one
+    // line even when they belong to two weeks
+    (cells || []).forEach(function(c){ var last = rows[rows.length - 1], t = Math.round(c.getBoundingClientRect().top);
+      if(last && Math.abs(last.top - t) < 4) last.cells.push(c); else rows.push({ top:t, cells:[c] }); });
     var parts = rows.map(function(g){
       var a = g.cells[0].getBoundingClientRect(), b = g.cells[g.cells.length - 1].getBoundingClientRect();
       var h = g.cells[0].querySelector(':scope > .cellhead'), top = (h ? h.getBoundingClientRect().bottom : a.top) + 6;
