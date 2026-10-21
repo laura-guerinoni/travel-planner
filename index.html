@@ -3727,6 +3727,9 @@
   .grp-duelpop { max-width:none; width:min(460px, calc(100vw - 24px)); box-sizing:border-box; max-height:calc(100vh - 24px); overflow:auto; }
   .grp-duelpop .grp-duel-idea.on { box-shadow:0 0 0 2px var(--primary); }
   .grp-duelpop .dp-srch { position:relative; }
+  .grp-duelpop .dp-close { display:flex; align-items:center; gap:10px; min-height:36px; margin:10px 0 2px; }
+  .grp-duelpop .dp-close .whenpop-check { margin:0 !important; }
+  .grp-duelpop .dp-close .mp-btn { height:34px; }
   .grp-duelpop .dp-field { display:flex; align-items:center; gap:8px; height:40px; padding:0 11px; border:1.5px solid var(--line); border-radius:11px; background:#fff; }
   .grp-duelpop .dp-field:focus-within { border-color:var(--primary); }
   .grp-duelpop .dp-field svg { width:16px; height:16px; color:var(--muted); flex:none; }
@@ -15546,7 +15549,7 @@
     function ensureBtn(){
       var head = document.getElementById('pageHead'); if(!head || head.querySelector('.page-map')) return;
       var sw = document.createElement('div'); sw.className = 'page-focus'; sw.setAttribute('role', 'group'); sw.setAttribute('aria-label', 'Calendar view');
-      sw.innerHTML = '<button type="button" data-f="month" title="All the days of the trip">All days</button><button type="button" data-f="day" title="One day at a time, next to its map">Day</button>';
+      sw.innerHTML = '<button type="button" data-f="month" title="All the days of the trip">All</button><button type="button" data-f="day" title="One day at a time, next to its map">Daily</button>';
       sw.addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; e.stopPropagation(); setFocus(b.dataset.f === 'day'); });
       var b = document.createElement('button'); b.type = 'button'; b.className = 'page-map'; b.title = 'Map of the day'; b.setAttribute('aria-label', 'Map of the day'); b.innerHTML = MAP_ICON;
       var bell = head.querySelector('.page-bell'), share = head.querySelector('.page-share'); head.insertBefore(b, bell || share || null);
@@ -16373,9 +16376,13 @@
         var t = utc(date), secs = [].slice.call(cell.querySelectorAll(':scope > .acts > li[data-sec]'));
         if(secs.length){ if(hw) hw.remove(); secs.forEach(function(li){ list.push({ cell:cell, t:t, city:li.getAttribute('data-sec'), host:li }); }); return; }
         var acts = dayActs(cell), city = citiesOf(placeOfCell(cell))[0] || (acts[0] ? liPlace(acts[0]) : '');
-        if(!city){ if(hw) hw.remove(); return; }
         list.push({ cell:cell, t:t, city:city, host:head, small:true, before:head.querySelector(':scope > .wd') });
       });
+      // a day with no city of its own is where you were the day before
+      // (or, before the first city, where you'll be next)
+      var known = list.filter(function(x){ return x.city; }), prevC = null;
+      list.forEach(function(x){ if(x.city){ prevC = x; return; } var src = prevC || known.filter(function(k){ return k.t > x.t; })[0]; if(src){ x.city = src.city; x.cell = src.cell; } });
+      list = list.filter(function(x){ if(x.city) return true; var w = x.host.querySelector(':scope > .wx'); if(w) w.remove(); return false; });
       // the far days, in blocks: a city's days in a row, within one week (Monday to Sunday)
       var last = {};
       list.forEach(function(x){
@@ -19846,6 +19853,9 @@
     var opt = optOf(panel), a = extractActivity(li), ideas = grpIdeas(opt), dn = dayNumOfCell(cell), prev = grpPrevStop(li);
     var pop = document.createElement('div'); pop.className = 'monthpop rangepop grp-ui grp-duelpop';
     var qOpen = false, other = null, fromIdea = null, det = { open:false, tag:'', t1:'', t2:'', p:'', notes:'', u:'' }, q = '', search = '';
+    // an optional day the vote closes on (by default 3 days from now, never after the day itself)
+    var closeOn = '', dayR = realDate(panel, dn), dayIso = grpIso(dayR.year, dayR.month, dayR.day);
+    function defaultClose(){ var t = new Date(); t.setDate(t.getDate() + 3); var v = grpIso(t.getFullYear(), t.getMonth() + 1, t.getDate()); return v > dayIso ? dayIso : v; }
     var defTag = TAGS.findIndex(function(tg){ return tg.name === 'Other'; });
     var PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
     var SRCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
@@ -19894,6 +19904,7 @@
             '<div class="dp-detfoot"><button type="button" class="dp-done" data-x="det">Done</button></div></div>'
           : '<button type="button" class="dp-more" data-x="det">+ Time, price, notes…' + (detTxt ? ' <span>' + grpEsc(detTxt) + '</span>' : '') + '</button>') +
         '<div class="dp-cmp">' + side('a', a, ga) + '<span class="dp-or">or</span>' + (b ? side('b', b, gb) : '<div class="dp-side b dp-empty">Search a place<br>to compare</div>') + '</div>' +
+        '<div class="dp-close"><label class="whenpop-check"><input type="checkbox" class="dp-clk"' + (closeOn ? ' checked' : '') + '> Close the vote on</label>' + (closeOn ? '<input type="date" class="dp-cl" value="' + closeOn + '" max="' + dayIso + '">' : '') + '</div>' +
         '<button type="button" class="addbtn">Start the vote</button>';
       var P = prev ? [{ lat:prev.g.lat, lon:prev.g.lon, c:'#9b8fc0', n:'1' }] : [];
       duelMaps.forEach(function(m){ try { m.remove(); } catch(e){} }); duelMaps = [];
@@ -19902,7 +19913,7 @@
       if(hb) grpMiniMap(hb, gb ? P.concat([{ lat:gb.lat, lon:gb.lon, c:'#8a6fd1', n:'B' }]) : P);
       wire();
     }
-    function keepDet(){ pop.querySelectorAll('[data-d]').forEach(function(x){ det[x.dataset.d] = x.value; }); var qq = pop.querySelector('.grp-duel-q'); if(qq) q = qq.value; }
+    function keepDet(){ pop.querySelectorAll('[data-d]').forEach(function(x){ det[x.dataset.d] = x.value; }); var qq = pop.querySelector('.grp-duel-q'); if(qq) q = qq.value; var cl = pop.querySelector('.dp-cl'); if(cl && cl.value) closeOn = cl.value; }
     var list = [], act = 0, timer = null, seq = 0;
     function wire(){
       var inp = pop.querySelector('.grp-duel-t'), dd = pop.querySelector('.dp-dd');
@@ -19941,6 +19952,9 @@
       pop.querySelectorAll('.grp-duel-idea').forEach(function(btn){
         btn.addEventListener('click', function(){ keepDet(); var it = ideas.filter(function(x){ return x.id === btn.dataset.id; })[0]; if(!it) return; fromIdea = fromIdea === it ? null : it; other = null; draw(); });
       });
+      var clk = pop.querySelector('.dp-clk'), cl = pop.querySelector('.dp-cl');
+      clk.addEventListener('change', function(){ keepDet(); closeOn = clk.checked ? (closeOn || defaultClose()) : ''; draw(); });
+      if(cl){ enhanceDateInput(cl); cl.addEventListener('change', function(){ if(cl.value) closeOn = cl.value > dayIso ? dayIso : cl.value; }); }
       pop.querySelector('.addbtn').addEventListener('click', function(){
         keepDet();
         if(!other && !fromIdea){ var v = inp.value.trim(); if(!v){ inp.focus(); return; } other = { name: v }; }
@@ -19950,6 +19964,7 @@
     pop.addEventListener('click', function(e){ e.stopPropagation(); });
     function start(b, idea){
       var me = meKey(), qv = q.trim(), duel = { id: grpId(), d: dn, a: a, b: b, v: {}, by: me || '' };
+      if(closeOn) duel.cl = closeOn;
       if(qv) duel.q = qv;
       grpDuels(opt).push(duel);
       if(idea) GROUP.ideas[opt] = grpIdeas(opt).filter(function(x){ return x !== idea; });
@@ -19993,6 +20008,8 @@
       var cell = grpCellOf(panel, duel.d); if(!cell) return;
       var v = duel.v || {}, voted = Object.keys(v).filter(function(k){ return people.indexOf(k) !== -1; });
       if(people.length && voted.length >= people.length){ grpResolveDuel(panel, duel); return; }
+      // its closing day is over: the vote closes by itself
+      var nowD = new Date(); if(duel.cl && grpIso(nowD.getFullYear(), nowD.getMonth() + 1, nowD.getDate()) > duel.cl){ grpResolveDuel(panel, duel); return; }
       var card = document.createElement('div'); card.className = 'grp-ui grp-duel jsctl'; card.dataset.id = duel.id;
       function side(k){
         var x = duel[k], fans = Object.keys(v).filter(function(p){ return v[p] === k; }), mine = me && v[me] === k;
@@ -20004,10 +20021,10 @@
       if(open) sideAlive = true;
       card.classList.toggle('open', !!open);
       card.innerHTML = '<div class="grp-duel-head"><span>This or that?</span><button type="button" class="grp-cmt-btn" data-do="side" title="' + (cm.length ? 'See the comments' : 'Comment') + '" aria-label="' + (cm.length ? cm.length + (cm.length === 1 ? ' comment' : ' comments') : 'Comment') + '">' + CMT_IC + (cm.length ? '<b>' + cm.length + '</b>' : '') + '</button></div>' +
-        '<div class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted</div>' +
+        '<div class="grp-duel-n">' + voted.length + ' of ' + people.length + ' voted' + (duel.cl ? ' · closes ' + grpCloseLabel(duel.cl) : '') + '</div>' +
         (duel.q ? '<div class="grp-duel-q-show">' + (duel.by ? grpFace(duel.by) : '') + '<span>' + grpEsc(duel.q) + '</span></div>' : '') +
         side('a') + '<span class="grp-or">or</span>' + side('b') +
-        (voted.length ? '<div class="grp-duel-foot"><button type="button" class="grp-link" data-do="decide">Decide now</button></div>' : '');
+        '<div class="grp-duel-foot"><button type="button" class="grp-link" data-do="decide">Close vote</button></div>';
       card.addEventListener('click', function(e){
         e.stopPropagation();
         var b = e.target.closest('.grp-side');
@@ -20046,7 +20063,7 @@
         (grpDetOf(x) ? '<small>' + grpEsc(grpDetOf(x)) + '</small>' : '') + '<span class="ds-votes">' + (fans.length ? grpFaces(fans) : '') + '<span>' + fans.length + (fans.length === 1 ? ' vote' : ' votes') + (mine ? ' · yours' : '') + '</span></span></button>';
     }
     el.__id = duel.id; el.__card = card;
-    el.innerHTML = '<div class="ds-head"><b>This or that?</b><span>' + grpEsc(grpDayLabel(panel, duel.d)) + ' · ' + Object.keys(v).filter(function(k){ return people.indexOf(k) !== -1; }).length + ' of ' + people.length + ' voted</span><button type="button" class="ds-x" aria-label="Close">✕</button></div>' +
+    el.innerHTML = '<div class="ds-head"><b>This or that?</b><span>' + grpEsc(grpDayLabel(panel, duel.d)) + ' · ' + Object.keys(v).filter(function(k){ return people.indexOf(k) !== -1; }).length + ' of ' + people.length + ' voted' + (duel.cl ? ' · closes ' + grpCloseLabel(duel.cl) : '') + '</span><button type="button" class="ds-x" aria-label="Close">✕</button></div>' +
       (duel.q ? '<div class="ds-q">' + (duel.by ? grpFace(duel.by) : '') + '<div><b>' + grpEsc(duel.by === me ? 'You' : grpName(duel.by)) + '</b><span>' + grpEsc(duel.q) + '</span></div></div>' : '') +
       '<div class="ds-opts">' + opt('a') + '<span class="ds-or">or</span>' + opt('b') + '</div>' +
       '<div class="ds-ch">' + CMT_IC + 'Comments' + (cm.length ? ' · ' + cm.length : '') + '</div>' +
@@ -20094,6 +20111,13 @@
     if(plan && plan.who && plan.who.length) return plan.who.slice();
     return grpPeople().map(function(m){ return m.key; });
   }
+  // a vote whose closing day is over closes by itself, even with the page left open
+  setInterval(function(){
+    var p = document.querySelector('.panel.on'); if(!p || !GROUP) return;
+    var n = new Date(), today = grpIso(n.getFullYear(), n.getMonth() + 1, n.getDate());
+    if(grpDuels(optOf(p)).some(function(d){ return d.cl && today > d.cl; })) renderDuels(p);
+  }, 60000);
+  function grpCloseLabel(iso){ var a = iso.split('-').map(Number); return a[2] + ' ' + MONTH_SHORT[a[1] - 1]; }
   function grpIso(y, m, d){ return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
   function grpPollDays(poll){
     var a = poll.from.split('-').map(Number), b = poll.to.split('-').map(Number), out = [];
@@ -20277,8 +20301,8 @@
     fromIn.value = grpIso(d.year, d.month, 1); toIn.value = grpIso(d.year, d.month, Math.min(5, daysInMonth(d.year, d.month)));
     dlIn.value = grpIso(dl.getFullYear(), dl.getMonth() + 1, dl.getDate());
     function people(){
-      var ms = grpPeople().filter(function(m){ return m.key !== me; });
-      invited.forEach(function(k){ if(!ms.some(function(m){ return m.key === k; })) ms.push({ key: k }); });
+      // only you, and whoever you invite here: other people's faces would look like they can see it
+      var ms = invited.filter(function(k){ return k !== me; }).map(function(k){ return { key: k }; });
       var box = pop.querySelector('.grp-people');
       box.innerHTML = (me ? '<span class="grp-person on">' + grpFace(me) + grpEsc(grpName(me)) + ' <span class="grp-muted">(you)</span></span>' : '') +
         ms.map(function(m){ var on = !!who[m.key]; return '<button type="button" class="grp-person' + (on ? ' on' : '') + '" data-k="' + grpEsc(m.key) + '" aria-pressed="' + on + '">' + grpFace(m.key) + grpEsc(grpName(m.key)) + (on ? ' ✓' : '') + '</button>'; }).join('');
