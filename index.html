@@ -3036,13 +3036,18 @@
   #dayMap .dm-note { position:absolute; z-index:6; left:50%; bottom:22px; transform:translateX(-50%); max-width:calc(100% - 60px); background:rgba(255,255,255,.95); border-radius:12px; padding:7px 12px;
     font-size:12px; font-weight:700; color:var(--muted); text-align:center; box-shadow:0 4px 12px rgba(40,25,60,.15); }
   #dayMap .dm-note:empty { display:none; }
-  #dayMap .dm-note { bottom:70px; }
+  #dayMap .dm-note { bottom:58px; }
   /* search a place, at the foot of the map */
   #dayMap .dm-search { position:absolute; z-index:7; left:14px; right:14px; bottom:14px; display:flex; align-items:center; gap:8px; height:42px; padding:0 14px; border-radius:12px; background:#fff;
     box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 1px rgba(61,53,104,.08); font-family:Nunito, sans-serif; color:var(--ink); }
   #dayMap .dm-search > svg { width:17px; height:17px; flex:none; color:var(--muted); }
   #dayMap .dm-search input { flex:1; min-width:0; height:100%; border:none; outline:none; background:none; font:inherit; font-size:14px; font-weight:600; color:var(--ink); padding:0; }
   #dayMap .dm-search:focus-within { box-shadow:0 8px 22px -10px rgba(40,25,60,.45), 0 0 0 2px var(--primary); }
+  /* a small pill in the corner; it opens out to the map's width while you type */
+  #dayMap .dm-search { right:auto; left:12px; bottom:12px; width:min(210px, calc(100% - 24px)); height:34px; padding:0 12px; gap:7px; border-radius:999px; transition:width .18s ease; }
+  #dayMap .dm-search:focus-within { width:calc(100% - 24px); }
+  #dayMap .dm-search > svg { width:15px; height:15px; }
+  #dayMap .dm-search input { font-size:13px; }
   #dayMap .dm-results { position:absolute; left:0; right:0; bottom:calc(100% + 6px); max-height:280px; overflow:auto; padding:5px 0; border-radius:12px; background:#fff; box-shadow:0 10px 26px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   #dayMap .dm-results[hidden] { display:none; }
   #dayMap .dm-res { display:flex; align-items:flex-start; gap:10px; width:100%; padding:7px 12px; border:none; background:none; font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
@@ -15304,8 +15309,10 @@
       var vw = window.innerWidth, w = Math.round(Math.max(260, Math.min(500, vw * .28)));
       var root = document.documentElement;
       var wrap = document.querySelector('.wrap'), pills = document.querySelector('.pills');
-      // One day at a time: the day and its map share the book half and half.
-      if(root.classList.contains('map-focus') && wrap){ var lm = Math.max(12, Math.round(wrap.getBoundingClientRect().left)); w = Math.max(260, Math.round((vw - 2 * lm) / 2)); }
+      // One day at a time: the two pages swap widths — the day gets the
+      // map's width from the month view, the map gets the calendar's.
+      var focus = root.classList.contains('map-focus') && wrap, w0 = w;
+      if(focus){ var lm = Math.max(12, Math.round(wrap.getBoundingClientRect().left)); w = place.fw && place.vw === vw ? place.fw : Math.max(260, vw - 2 * lm - w); }
       if(wrap){
         var r = wrap.getBoundingClientRect(), top = Math.max(r.top, pills ? pills.getBoundingClientRect().bottom - 1 : 0);
         // the same margin on the right as the calendar has on the left
@@ -15321,6 +15328,14 @@
         if(root.style.getPropertyValue('--map-bottom') !== bottom) root.style.setProperty('--map-bottom', bottom);
         root.style.setProperty('--map-top', Math.round(top) + 'px');
       }
+      // The swap is measured, not guessed: the month view's calendar width
+      // is what the map page gets in Day (nudged until it matches).
+      var mw = panel ? Math.round(panel.getBoundingClientRect().width) : 0;
+      if(!focus && wrap && mw){ place.mapW = mw; place.fw = 0; place.vw = vw; }
+      // opened straight into Day: the month map's width is its set width plus the fold
+      if(focus && mw && (!place.mapW || place.vw !== vw) && place.lastW){ place.mapW = w0 + (mw - place.lastW); place.vw = vw; }
+      place.lastW = w;
+      if(focus && place.mapW && place.vw === vw){ var ww = Math.round(wrap.getBoundingClientRect().width); place.fw = Math.max(260, w + (ww - place.mapW)); }
       var tag = panel.querySelector('.dm-tag');
       if(tag){ var x = tag.offsetLeft + 20 + 'px'; panel.querySelectorAll('.dm-clip').forEach(function(c){ if(c.style.left !== x) c.style.left = x; }); }
     }
