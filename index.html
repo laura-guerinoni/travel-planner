@@ -14923,7 +14923,10 @@
   function suggestPlace(){
     var inp = document.getElementById('fabAddPlace'); if(!inp || placeTouched) return;
     var cell = cellOfDay(fabAddDaySelect.value);
-    if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ inp.value = liPlace(fabAddEditLi); return; }
+    // Editing: once the activity's own place is loaded (its spot, its map
+    // point), it stays — changing the type mustn't swap it for the town,
+    // which on Save looked like a new place and dropped the map point.
+    if(fabAddEditLi && fabAddEditLi.closest('.cell') === cell){ if(!(inp._for === fabAddEditLi && inp._geo)) inp.value = liPlace(fabAddEditLi); return; }
     if(fabAddInsertAfter && fabAddInsertAfter.closest('.cell') === cell){ inp.value = liPlace(fabAddInsertAfter); return; }
     var c = citiesOf(placeOfCell(cell)); inp.value = c[c.length - 1] || ''; inp._geo = null; inp._orig = inp.value; placeMark(inp);
     // a journey on a day with nothing yet leaves from where the day before ended
@@ -15821,8 +15824,9 @@
       var inp = document.getElementById(f[0]); if(!inp) return;
       var g = li && parseGeo(li.getAttribute(f[1])), spot = li && li.getAttribute(f[2]);
       if(li && spot) inp.value = spot;
-      inp._geo = g ? { lat:g.lat, lon:g.lon, name: inp.value.trim(), spot: !!spot, city: li.getAttribute(f[3]) || '' } : null;
-      inp._orig = inp.value; placeMark(inp);
+      // a spot without its town saved belongs to the day's town (never becomes one)
+      inp._geo = g ? { lat:g.lat, lon:g.lon, name: inp.value.trim(), spot: !!spot, city: li.getAttribute(f[3]) || (f[0] === 'fabAddPlace' && spot ? liPlace(li) : '') } : null;
+      inp._orig = inp.value; inp._for = li; placeMark(inp);
     });
   }
   // saving: a picked spot keeps the day's city as the location
