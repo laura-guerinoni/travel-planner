@@ -3576,7 +3576,7 @@
   .grp-duelpop .dp-field { display:flex; align-items:center; gap:8px; height:40px; padding:0 11px; border:1.5px solid var(--line); border-radius:11px; background:#fff; }
   .grp-duelpop .dp-field:focus-within { border-color:var(--primary); }
   .grp-duelpop .dp-field svg { width:16px; height:16px; color:var(--muted); flex:none; }
-  .grp-duelpop .dp-field input { flex:1; min-width:0; border:none !important; outline:none; background:none !important; padding:0 !important; height:100%; font-size:14px; font-weight:700; color:var(--ink); box-shadow:none !important; }
+  .grp-duelpop .dp-field input { flex:1; min-width:0; border:none !important; outline:none; background:none !important; padding:0 !important; margin:0 !important; height:100% !important; font-size:14px; font-weight:700; color:var(--ink); box-shadow:none !important; }
   .grp-duelpop .dp-dd { position:absolute; z-index:5; left:0; right:0; top:calc(100% + 4px); background:#fff; border-radius:12px; padding:5px 0; box-shadow:0 12px 28px rgba(30,22,50,.22), 0 0 0 1px var(--line); }
   .grp-duelpop .dp-dd[hidden] { display:none; }
   .grp-duelpop .dp-dd button { display:flex; align-items:flex-start; gap:9px; width:100%; padding:7px 12px; border:none; background:none; font:inherit; text-align:left; color:var(--ink); cursor:pointer; }
@@ -3609,7 +3609,8 @@
   .grp-duelpop .dp-d svg { width:13px; height:13px; flex:none; }
   .grp-duelpop .dp-mini { position:relative; height:96px; margin-top:4px; border-radius:10px; overflow:hidden; background:#eef0f3; }
   .grp-duelpop .dp-empty { place-items:center; align-content:center; text-align:center; border-style:dashed !important; color:var(--muted); font-weight:800; font-size:12.5px; min-height:120px; }
-  .grp-duelpop .dp-from { margin-top:6px; font-size:12px; font-weight:700; color:var(--muted); }
+  .grp-duelpop .dp-dfrom { margin-top:-2px; font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .grp-duelpop .dp-addq { display:block; margin:0 0 6px; padding:4px 2px; border:none; background:none; color:var(--primary); font:inherit; font-size:13px; font-weight:800; cursor:pointer; text-align:left; }
   .grp-duelpop .addbtn { margin-top:12px; }
   .dm-mini-none { position:absolute; inset:0; display:grid; place-items:center; font-size:11.5px; font-weight:800; color:var(--muted); }
   .dm-mini-pin { width:18px; height:18px; border-radius:50%; border:2px solid #fff; color:#fff; font:900 9.5px/14px Nunito, sans-serif; text-align:center; box-shadow:0 2px 6px rgba(40,25,60,.35); }
@@ -19041,7 +19042,7 @@
     var panel = li.closest('.panel'), cell = li.closest('.cell'); if(!panel || !cell) return;
     var opt = optOf(panel), a = extractActivity(li), ideas = grpIdeas(opt), dn = dayNumOfCell(cell), prev = grpPrevStop(li);
     var pop = document.createElement('div'); pop.className = 'monthpop rangepop grp-ui grp-duelpop';
-    var other = null, fromIdea = null, det = { open:false, tag:'', t1:'', t2:'', p:'', notes:'', u:'' }, q = '', search = '';
+    var qOpen = false, other = null, fromIdea = null, det = { open:false, tag:'', t1:'', t2:'', p:'', notes:'', u:'' }, q = '', search = '';
     var defTag = TAGS.findIndex(function(tg){ return tg.name === 'Other'; });
     var PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
     var SRCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
@@ -19068,7 +19069,7 @@
     }
     function side(k, m, g){
       var dist = '';
-      if(g && prev){ var km = kmBetween(prev.g, g), tr = grpTripTo(km); dist = '<div class="dp-d">' + ROUTE + '<b>' + grpFmtKm(km) + '</b> · ' + GO_ICONS[tr.m] + fmtMin(tr.t) + '</div>'; }
+      if(g && prev){ var km = kmBetween(prev.g, g), tr = grpTripTo(km); dist = '<div class="dp-d">' + ROUTE + '<b>' + grpFmtKm(km) + '</b> · ' + GO_ICONS[tr.m] + fmtMin(tr.t) + '</div><div class="dp-dfrom">from ' + grpEsc(prev.name || 'the activity before') + '</div>'; }
       return '<div class="dp-side ' + k + '">' + grpChipHtml(m) + '<div class="dp-t">' + grpEsc(m.t || '') + '</div>' + (grpDetOf(m) ? '<div class="dp-det">' + grpEsc(grpDetOf(m)) + '</div>' : '') + dist + '<div class="dp-mini" data-k="' + k + '"></div></div>';
     }
     function draw(){
@@ -19076,8 +19077,9 @@
       var tagOpts = TAGS.map(function(tg, i){ return '<option value="' + i + '"' + (String(i) === String(det.tag !== '' ? det.tag : (other && other.tag != null ? other.tag : defTag)) ? ' selected' : '') + '>' + grpEsc(tg.icon + ' ' + tg.name) + '</option>'; }).join('');
       var detTxt = b ? grpDetOf(b) : '';
       pop.innerHTML = '<div class="rangepop-title">This or that?</div>' +
-        '<p class="grp-hint">Put <b>' + grpEsc(a.t || 'this activity') + '</b> to a vote against something else for ' + grpEsc(grpDayLabel(panel, dn)) + '. The loser goes to the idea box.</p>' +
-        '<textarea class="grp-duel-q" rows="2" maxlength="300" placeholder="Why the vote? (optional), e.g. Only time for one in the morning">' + grpEsc(q) + '</textarea>' +
+        '<p class="grp-hint">Put <b>' + grpEsc(a.t || 'this activity') + '</b> to a vote against something else for ' + grpEsc(grpDayLabel(panel, dn)) + '.</p>' +
+        (qOpen || q ? '<textarea class="grp-duel-q" rows="2" maxlength="300" placeholder="Add a comment, e.g. Only time for one in the morning">' + grpEsc(q) + '</textarea>'
+          : '<button type="button" class="dp-addq">+ Add a comment</button>') +
         (ideas.length ? '<div class="whenpop-label">From the idea box</div><div class="grp-duel-ideas">' + ideas.map(function(it){ return '<button type="button" class="grp-duel-idea' + (fromIdea === it ? ' on' : '') + '" data-id="' + it.id + '">' + grpChipHtml(it.a) + ' ' + grpEsc(it.a.t || '') + '</button>'; }).join('') + '</div>' : '') +
         '<div class="whenpop-label">Against</div><div class="dp-srch"><div class="dp-field">' + SRCH + '<input type="text" class="grp-duel-t" placeholder="Search a place, or just type a name" value="' + grpEsc(other ? other.name : fromIdea ? (fromIdea.a.t || '') : search) + '" autocomplete="off"></div><div class="dp-dd" hidden></div></div>' +
         (det.open ? '<div class="dp-detf">' +
@@ -19089,7 +19091,6 @@
             '<div class="dp-detfoot"><button type="button" class="dp-done" data-x="det">Done</button></div></div>'
           : '<button type="button" class="dp-more" data-x="det">+ Time, price, notes…' + (detTxt ? ' <span>' + grpEsc(detTxt) + '</span>' : '') + '</button>') +
         '<div class="dp-cmp">' + side('a', a, ga) + '<span class="dp-or">or</span>' + (b ? side('b', b, gb) : '<div class="dp-side b dp-empty">Search a place<br>to compare</div>') + '</div>' +
-        (prev ? '<div class="dp-from">Distances from ' + grpEsc(prev.name || 'the activity before') + ', the activity before.</div>' : '') +
         '<button type="button" class="addbtn">Start the vote</button>';
       var P = prev ? [{ lat:prev.g.lat, lon:prev.g.lon, c:'#9b8fc0', n:'1' }] : [];
       duelMaps.forEach(function(m){ try { m.remove(); } catch(e){} }); duelMaps = [];
@@ -19131,6 +19132,7 @@
       });
       dd.addEventListener('mousedown', function(e){ e.preventDefault(); var x = e.target.closest('[data-i]'); if(x) choose(x.dataset.i === 'keep' ? 'keep' : +x.dataset.i); });
       inp.addEventListener('blur', function(){ setTimeout(function(){ dd.hidden = true; }, 150); });
+      var aq = pop.querySelector('.dp-addq'); if(aq) aq.addEventListener('click', function(){ keepDet(); qOpen = true; draw(); var t = pop.querySelector('.grp-duel-q'); if(t) t.focus(); });
       pop.querySelectorAll('[data-x="det"]').forEach(function(x){ x.addEventListener('click', function(){ keepDet(); det.open = !det.open; draw(); var f = pop.querySelector('[data-d="t1"]'); if(f) f.focus(); }); });
       pop.querySelectorAll('[data-d]').forEach(function(x){ x.addEventListener('change', function(){ keepDet(); if(!det.open) draw(); }); });
       pop.querySelectorAll('.grp-duel-idea').forEach(function(btn){
