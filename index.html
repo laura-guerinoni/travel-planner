@@ -15261,8 +15261,10 @@
       var vw = window.innerWidth, w = Math.round(Math.max(260, Math.min(500, vw * .28)));
       var root = document.documentElement;
       var wrap = document.querySelector('.wrap'), pills = document.querySelector('.pills');
-      // One day at a time: the day and its map share the book half and half.
-      if(root.classList.contains('map-focus') && wrap){ var lm = Math.max(12, Math.round(wrap.getBoundingClientRect().left)); w = Math.max(260, Math.round((vw - 2 * lm) / 2)); }
+      // One day at a time: the two pages swap widths — the day gets the
+      // map's width from the month view, the map gets the calendar's.
+      var focus = root.classList.contains('map-focus') && wrap, w0 = w;
+      if(focus){ var lm = Math.max(12, Math.round(wrap.getBoundingClientRect().left)); w = place.fw && place.vw === vw ? place.fw : Math.max(260, vw - 2 * lm - w); }
       if(wrap){
         var r = wrap.getBoundingClientRect(), top = Math.max(r.top, pills ? pills.getBoundingClientRect().bottom - 1 : 0);
         // the same margin on the right as the calendar has on the left
@@ -15278,6 +15280,14 @@
         if(root.style.getPropertyValue('--map-bottom') !== bottom) root.style.setProperty('--map-bottom', bottom);
         root.style.setProperty('--map-top', Math.round(top) + 'px');
       }
+      // The swap is measured, not guessed: the month view's calendar width
+      // is what the map page gets in Day (nudged until it matches).
+      var mw = panel ? Math.round(panel.getBoundingClientRect().width) : 0;
+      if(!focus && wrap && mw){ place.mapW = mw; place.fw = 0; place.vw = vw; }
+      // opened straight into Day: the month map's width is its set width plus the fold
+      if(focus && mw && (!place.mapW || place.vw !== vw) && place.lastW){ place.mapW = w0 + (mw - place.lastW); place.vw = vw; }
+      place.lastW = w;
+      if(focus && place.mapW && place.vw === vw){ var ww = Math.round(wrap.getBoundingClientRect().width); place.fw = Math.max(260, w + (ww - place.mapW)); }
       var tag = panel.querySelector('.dm-tag');
       if(tag){ var x = tag.offsetLeft + 20 + 'px'; panel.querySelectorAll('.dm-clip').forEach(function(c){ if(c.style.left !== x) c.style.left = x; }); }
     }
