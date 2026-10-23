@@ -25,7 +25,7 @@
       w1:'Where to?', w1s:'Start typing a city or a village. You can change it later.', w1ph:'Florence, Portugal…', w1load:'Looking…', w1none:'No place with that name. Check the spelling?',
       w2:'When?', w2s:'Pick the days, or a month if it’s not decided yet.', w2a:'I know the dates', w2as:'Pick the first and last day', w2b:'Not sure yet', w2bs:'Pick a month',
       w3:'Who’s coming?', w3s:'They get an email with a link. Or start alone and invite later.', w3ph:'Their email, then Enter', you:'you', justMe:'Just me for now', create:'Create trip', back:'Back',
-      likeT:'What do you like?', likeS:'Pick a few: they go to the idea box, so you can put them on a day later.', likeLoad:'Finding places…', likeAdd:'Add to the idea box', likeSkip:'Skip', ideaAdded1:'place added to the idea box (in Notes)', likeDo:'Things to do', likeSee:'Places', ideaAddedN:'places added to the idea box (in Notes)',
+      likeT:'What do you like?', likeS:'Pick a few: they go to the idea box, so you can put them on a day later.', likeLoad:'Finding places…', likeWait:'Asking the locals…|Finding the best views…|Looking for hidden gems…|Checking what’s worth the trip…|Almost there…', likeAdd:'Add to the idea box', likeSkip:'Skip', ideaAdded1:'place added to the idea box (in Notes)', likeDo:'Things to do', likeSee:'Places', ideaAddedN:'places added to the idea box (in Notes)',
       c1:'Your days', c1p:'Click a day to add the first thing you want to do. @ finds the place and puts it on the map.',
       c2:'Notes and ideas', c2p:'Not sure yet? Drop ideas in the idea box here: everyone can heart them.',
       c3:'Bring the others', c3p:'Share the trip: they see the same plan and can vote with you.', next:'Next', gotIt:'Got it',
@@ -43,7 +43,7 @@
       w1:'Dove si va?', w1s:'Inizia a scrivere una città o un paese. Puoi cambiarlo dopo.', w1ph:'Firenze, Portogallo…', w1load:'Cerco…', w1none:'Nessun posto con questo nome. Controlla come è scritto?',
       w2:'Quando?', w2s:'Scegli i giorni, o un mese se non è ancora deciso.', w2a:'So le date', w2as:'Primo e ultimo giorno', w2b:'Non ancora', w2bs:'Scegli un mese',
       w3:'Chi viene?', w3s:'Ricevono un’email con il link. Oppure inizia da sola e invita dopo.', w3ph:'La sua email, poi Invio', you:'tu', justMe:'Per ora solo io', create:'Crea il viaggio', back:'Indietro',
-      likeT:'Cosa ti piace?', likeS:'Scegline qualcuno: finiscono nella scatola delle idee, da mettere su un giorno più tardi.', likeLoad:'Cerco posti…', likeAdd:'Aggiungi alle idee', likeSkip:'Salta', ideaAdded1:'posto aggiunto alle idee (in Note)', likeDo:'Cose da fare', likeSee:'Posti', ideaAddedN:'posti aggiunti alle idee (in Note)',
+      likeT:'Cosa ti piace?', likeS:'Scegline qualcuno: finiscono nella scatola delle idee, da mettere su un giorno più tardi.', likeLoad:'Cerco posti…', likeWait:'Chiedo a chi ci vive…|Cerco i panorami più belli…|Scovo posti nascosti…|Vedo cosa vale il viaggio…|Quasi fatto…', likeAdd:'Aggiungi alle idee', likeSkip:'Salta', ideaAdded1:'posto aggiunto alle idee (in Note)', likeDo:'Cose da fare', likeSee:'Posti', ideaAddedN:'posti aggiunti alle idee (in Note)',
       c1:'I tuoi giorni', c1p:'Clicca un giorno per aggiungere la prima cosa da fare. @ trova il posto e lo mette sulla mappa.',
       c2:'Note e idee', c2p:'Non sei sicura? Metti le idee nella scatola qui: tutti possono dare un cuore.',
       c3:'Porta gli altri', c3p:'Condividi il viaggio: vedono lo stesso piano e votano con te.', next:'Avanti', gotIt:'Capito',
@@ -61,7 +61,7 @@
       w1:'¿A dónde?', w1s:'Empieza a escribir una ciudad o un pueblo. Puedes cambiarlo luego.', w1ph:'Florencia, Portugal…', w1load:'Buscando…', w1none:'Ningún sitio con ese nombre. ¿Revisas cómo se escribe?',
       w2:'¿Cuándo?', w2s:'Elige los días, o un mes si aún no está decidido.', w2a:'Sé las fechas', w2as:'Primer y último día', w2b:'Aún no', w2bs:'Elige un mes',
       w3:'¿Quién viene?', w3s:'Reciben un email con el enlace. O empieza sola e invita luego.', w3ph:'Su email, luego Intro', you:'tú', justMe:'Solo yo por ahora', create:'Crear viaje', back:'Atrás',
-      likeT:'¿Qué te gusta?', likeS:'Elige algunos: van a la caja de ideas, para ponerlos en un día luego.', likeLoad:'Buscando sitios…', likeAdd:'Añadir a ideas', likeSkip:'Saltar', ideaAdded1:'sitio añadido a ideas (en Notas)', likeDo:'Qué hacer', likeSee:'Sitios', ideaAddedN:'sitios añadidos a ideas (en Notas)',
+      likeT:'¿Qué te gusta?', likeS:'Elige algunos: van a la caja de ideas, para ponerlos en un día luego.', likeLoad:'Buscando sitios…', likeWait:'Preguntando a los locales…|Buscando las mejores vistas…|Descubriendo rincones escondidos…|Viendo qué vale la pena…|Casi listo…', likeAdd:'Añadir a ideas', likeSkip:'Saltar', ideaAdded1:'sitio añadido a ideas (en Notas)', likeDo:'Qué hacer', likeSee:'Sitios', ideaAddedN:'sitios añadidos a ideas (en Notas)',
       c1:'Tus días', c1p:'Haz clic en un día para añadir lo primero que quieres hacer. @ encuentra el sitio y lo pone en el mapa.',
       c2:'Notas e ideas', c2p:'¿No lo tienes claro? Deja ideas en la caja aquí: todos pueden darles un corazón.',
       c3:'Trae a los demás', c3p:'Comparte el viaje: ven el mismo plan y votan contigo.', next:'Siguiente', gotIt:'Entendido',
@@ -400,6 +400,7 @@
     if(w === 'next'){ if(g.q === 0) prefetchLikes(); if(g.q < 2){ g.q++; drawWiz(); } else createTrip(); }
   }
   function createTrip(){
+    if(g.creating) return; g.creating = true;   // a double click or Enter would run the rest twice
     var em = document.querySelector('#tpoEmail'), v = em && em.value.trim().toLowerCase();
     if(v && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) && g.who.indexOf(v) === -1) g.who.push(v);
     var dates;
@@ -427,11 +428,18 @@
     g.sug = { city:city, p:p };
   }
   function showLikes(){
-    var sc = scrim();
-    sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p><div class="tpo-likes-load">' + t('likeLoad') + '</div></div>';
-    var done = false, timer = setTimeout(function(){ if(!done){ done = true; finishWizard(); } }, 9000);
+    var sc = scrim(), msgs = t('likeWait').split('|'), mi = 0;
+    // while it looks: your avatar walks a trail and pins pop up where it passes
+    var me = g.av ? face(g.av) : TP.avatar(TP.me().email, null);
+    sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p>' +
+      '<div class="tpo-hunt" aria-hidden="true"><div class="trail"></div>' + [1, 2, 3, 4].map(function(i){ return '<span class="pin p' + i + '">📍</span>'; }).join('') +
+      '<div class="walker"><div class="bob">' + me + '</div></div></div>' +
+      '<div class="tpo-hunt-msg" role="status">' + esc(msgs[0]) + '</div></div>';
+    var msgT = setInterval(function(){ var el = sc.querySelector('.tpo-hunt-msg'); if(!el){ clearInterval(msgT); return; }
+      mi = (mi + 1) % msgs.length; el.classList.add('out'); setTimeout(function(){ el.textContent = msgs[mi]; el.classList.remove('out'); }, 250); }, 1800);
+    var done = false, timer = setTimeout(function(){ if(!done){ done = true; clearInterval(msgT); finishWizard(); } }, 9000);
     function show(items){
-      if(done) return; done = true; clearTimeout(timer);
+      if(done) return; done = true; clearTimeout(timer); clearInterval(msgT);
       // things to do first (when the guide has some), then places
       items = (items || []).filter(function(x){ return x && x.name; });
       var dos = items.filter(function(x){ return x.type === 'do'; }).slice(0, 6), sees = items.filter(function(x){ return x.type !== 'do'; }).slice(0, 9);
@@ -476,6 +484,7 @@
     if(g.preview && on.length) TP.toast(on.length + ' ' + (on.length === 1 ? t('ideaAdded1') : t('ideaAddedN')));
   }
   function finishWizard(){
+    if(g.finished) return; g.finished = true;   // only once: the pointers never start over an open step
     var sc = scrim(); sc.hidden = true; sc.innerHTML = '';
     if(g.pid && !g.preview) TP.openPlan(g.pid);
     setTimeout(function(){ coach(0); }, 600);
