@@ -437,7 +437,7 @@
       if(!dos.length && !sees.length){ finishWizard(); return; }
       g.likes = dos.concat(sees).map(function(x){ return { item:x, on:false }; });
       var card = function(l, i){ var x = l.item;
-        return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) + '</div><span class="ck">✓</span><div class="tx"><b>' + esc(x.name) + '</b><small>' + esc(x.kind || '') + '</small></div></button>'; };
+        return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) + '</div><span class="ck">✓</span><div class="tx"' + (x.desc ? ' title="' + esc(x.desc) + '"' : '') + '><b>' + esc(x.name) + '</b><small>' + esc((x.kind || '').length > 30 && x.desc ? x.desc : (x.kind || '')) + '</small></div></button>'; };
       var group = function(title, from, to){ return (dos.length ? '<p class="tpo-lab">' + title + '</p>' : '') + '<div class="tpo-likes">' + g.likes.slice(from, to).map(function(l, k){ return card(l, from + k); }).join('') + '</div>'; };
       sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p><div class="tpo-likes-scroll">' +
         (dos.length ? group(t('likeDo'), 0, dos.length) : '') + (sees.length ? group(t('likeSee'), dos.length, g.likes.length) : '') + '</div>' +
