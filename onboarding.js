@@ -440,7 +440,7 @@
     var done = false, timer = setTimeout(function(){ if(!done){ done = true; clearInterval(msgT); finishWizard(); } }, 9000);
     function show(items){
       if(done) return; done = true; clearTimeout(timer); clearInterval(msgT);
-      // things to do first (when the guide has some), then places
+      // places first, then things to do (when the guide has some)
       items = (items || []).filter(function(x){ return x && x.name; });
       // festivals and events only when they're on during the trip; one whose dates aren't known is left out
       var tm = tripMonths();
@@ -451,17 +451,17 @@
       });
       var dos = items.filter(function(x){ return x.type === 'do'; }).slice(0, 6), sees = items.filter(function(x){ return x.type !== 'do'; }).slice(0, 9);
       if(!dos.length && !sees.length){ finishWizard(); return; }
-      g.likes = dos.concat(sees).map(function(x){ return { item:x, on:false }; });
+      g.likes = sees.concat(dos).map(function(x){ return { item:x, on:false }; });
       // a card: the picture (with what it is as a label), the name, and a line about it when there is one
       var card = function(l, i){ var x = l.item, kind = (x.kind || '').length > 30 ? '' : (x.kind || ''), about = x.desc && x.desc !== x.kind ? x.desc : (x.kind || '').length > 30 ? x.kind : '';
         return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) +
           (kind ? '<span class="kd">' + (x.img && x.icon ? x.icon + ' ' : '') + esc(kind) + '</span>' : '') + '</div><span class="ck">✓</span>' +
           '<div class="tx"' + (about ? ' title="' + esc(about) + '"' : '') + '><b>' + esc(x.name) + '</b>' + (about ? '<small>' + esc(about) + '</small>' : '') + '</div></button>'; };
       // two tabs (Things to do / Places) when there are both, instead of one long scroll
-      g.nDo = dos.length; g.ltab = dos.length ? 'do' : 'see';
+      g.nSee = sees.length; g.ltab = sees.length ? 'see' : 'do';   // places first, then things to do
       g.likeCard = card;
       sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p>' +
-        (dos.length && sees.length ? '<div class="tpo-ltabs" role="tablist">' + [['do', t('likeDo')], ['see', t('likeSee')]].map(function(x){ return '<button type="button" role="tab" data-ltab="' + x[0] + '">' + x[1] + '<i></i></button>'; }).join('') + '</div>' : '') +
+        (dos.length && sees.length ? '<div class="tpo-ltabs" role="tablist">' + [['see', t('likeSee')], ['do', t('likeDo')]].map(function(x){ return '<button type="button" role="tab" data-ltab="' + x[0] + '">' + x[1] + '<i></i></button>'; }).join('') + '</div>' : '') +
         '<div class="tpo-likes"></div>' +
         '<div class="foot"><button type="button" class="bk" data-lk="skip">' + t('likeSkip') + '</button><button type="button" class="tpo-go" data-lk="add" disabled>' + t('likeAdd') + '</button></div></div>';
       drawLikeTab();
@@ -472,10 +472,10 @@
   }
   // the open tab's cards; each tab counts its picks
   function drawLikeTab(){
-    var sc = scrim(), from = g.ltab === 'do' ? 0 : g.nDo, to = g.ltab === 'do' ? g.nDo : g.likes.length, grid = sc.querySelector('.tpo-likes');
+    var sc = scrim(), from = g.ltab === 'see' ? 0 : g.nSee, to = g.ltab === 'see' ? g.nSee : g.likes.length, grid = sc.querySelector('.tpo-likes');
     if(grid) grid.innerHTML = g.likes.slice(from, to).map(function(l, k){ return g.likeCard(l, from + k).replace('class="tpo-like"', 'class="tpo-like' + (l.on ? ' on' : '') + '"'); }).join('');
     sc.querySelectorAll('[data-ltab]').forEach(function(b){ var on = b.getAttribute('data-ltab') === g.ltab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
-      var a = b.getAttribute('data-ltab') === 'do' ? 0 : g.nDo, z = b.getAttribute('data-ltab') === 'do' ? g.nDo : g.likes.length, n = g.likes.slice(a, z).filter(function(l){ return l.on; }).length;
+      var a = b.getAttribute('data-ltab') === 'see' ? 0 : g.nSee, z = b.getAttribute('data-ltab') === 'see' ? g.nSee : g.likes.length, n = g.likes.slice(a, z).filter(function(l){ return l.on; }).length;
       b.querySelector('i').textContent = n ? n : ''; });
   }
   // the months the trip covers (1–12)
