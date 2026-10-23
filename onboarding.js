@@ -387,7 +387,8 @@
   }
   function onWizClick(e){
     if(!g) return;
-    var b = e.target.closest('[data-pl],[data-when],[data-m],[data-w],[data-like],[data-lk]'); if(!b) return;
+    var b = e.target.closest('[data-pl],[data-when],[data-m],[data-w],[data-like],[data-lk],[data-ltab]'); if(!b) return;
+    if(b.hasAttribute('data-ltab')){ g.ltab = b.getAttribute('data-ltab'); drawLikeTab(); return; }
     if(b.hasAttribute('data-pl')){ var k = b.getAttribute('data-pl'); pickPlace(k.charAt(0) === '#' ? g.found[+k.slice(1)] : { name:k, full:k }); drawWiz(); return; }
     if(b.hasAttribute('data-when')){ g.when = b.getAttribute('data-when'); drawWiz(); return; }
     if(b.hasAttribute('data-m')){ g.month = b.getAttribute('data-m'); drawWiz(); return; }
@@ -438,16 +439,28 @@
       g.likes = dos.concat(sees).map(function(x){ return { item:x, on:false }; });
       var card = function(l, i){ var x = l.item;
         return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) + '</div><span class="ck">✓</span><div class="tx"' + (x.desc ? ' title="' + esc(x.desc) + '"' : '') + '><b>' + esc(x.name) + '</b><small>' + esc((x.kind || '').length > 30 && x.desc ? x.desc : (x.kind || '')) + '</small></div></button>'; };
-      var group = function(title, from, to){ return (dos.length ? '<p class="tpo-lab">' + title + '</p>' : '') + '<div class="tpo-likes">' + g.likes.slice(from, to).map(function(l, k){ return card(l, from + k); }).join('') + '</div>'; };
-      sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p><div class="tpo-likes-scroll">' +
-        (dos.length ? group(t('likeDo'), 0, dos.length) : '') + (sees.length ? group(t('likeSee'), dos.length, g.likes.length) : '') + '</div>' +
+      // two tabs (Things to do / Places) when there are both, instead of one long scroll
+      g.nDo = dos.length; g.ltab = dos.length ? 'do' : 'see';
+      g.likeCard = card;
+      sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p>' +
+        (dos.length && sees.length ? '<div class="tpo-ltabs" role="tablist">' + [['do', t('likeDo')], ['see', t('likeSee')]].map(function(x){ return '<button type="button" role="tab" data-ltab="' + x[0] + '">' + x[1] + '<i></i></button>'; }).join('') + '</div>' : '') +
+        '<div class="tpo-likes"></div>' +
         '<div class="foot"><button type="button" class="bk" data-lk="skip">' + t('likeSkip') + '</button><button type="button" class="tpo-go" data-lk="add" disabled>' + t('likeAdd') + '</button></div></div>';
+      drawLikeTab();
     }
     if(!TP.hosted){ setTimeout(function(){ show(/florence|firenze|florencia/i.test(g.where) ? MOCK_LIKES : []); }, 500); return; }
     prefetchLikes();
     g.sug.p.then(show);
   }
-  function likeCount(){ var n = g.likes.filter(function(l){ return l.on; }).length, b = document.querySelector('#tpoScrim [data-lk="add"]'); if(b){ b.disabled = !n; b.textContent = t('likeAdd') + (n ? ' (' + n + ')' : ''); } }
+  // the open tab's cards; each tab counts its picks
+  function drawLikeTab(){
+    var sc = scrim(), from = g.ltab === 'do' ? 0 : g.nDo, to = g.ltab === 'do' ? g.nDo : g.likes.length, grid = sc.querySelector('.tpo-likes');
+    if(grid) grid.innerHTML = g.likes.slice(from, to).map(function(l, k){ return g.likeCard(l, from + k).replace('class="tpo-like"', 'class="tpo-like' + (l.on ? ' on' : '') + '"'); }).join('');
+    sc.querySelectorAll('[data-ltab]').forEach(function(b){ var on = b.getAttribute('data-ltab') === g.ltab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+      var a = b.getAttribute('data-ltab') === 'do' ? 0 : g.nDo, z = b.getAttribute('data-ltab') === 'do' ? g.nDo : g.likes.length, n = g.likes.slice(a, z).filter(function(l){ return l.on; }).length;
+      b.querySelector('i').textContent = n ? n : ''; });
+  }
+  function likeCount(){ drawLikeTab(); var n = g.likes.filter(function(l){ return l.on; }).length, b = document.querySelector('#tpoScrim [data-lk="add"]'); if(b){ b.disabled = !n; b.textContent = t('likeAdd') + (n ? ' (' + n + ')' : ''); } }
   // (in a preview they go to the trip that's open, so you can see how they land)
   function addLikes(){
     if(!g.pid) return;
