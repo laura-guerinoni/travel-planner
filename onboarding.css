@@ -169,6 +169,12 @@
 .tpo-like .ck { position:absolute; right:8px; top:8px; width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.9); color:#1d1d1f; display:grid; place-items:center; font-weight:900; font-size:13px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
 .tpo-like.on { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary); }
 .tpo-like.on .ck { background:var(--primary); color:var(--on-primary, #fff); }
+/* the tick only once it's picked: before that, an empty circle */
+.tpo-like:not(.on) .ck { color:transparent; background:rgba(255,255,255,.75); }
+/* things to do and places: two groups, scrolling when long */
+.tpo-wiz .tpo-likes-scroll { max-height:min(56vh, 520px); overflow:auto; margin:0 -4px; padding:0 4px; }
+.tpo-wiz .tpo-lab { margin:12px 0 8px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.tpo-wiz .tpo-likes-scroll .tpo-lab:first-child { margin-top:0; }
 .tpo-likes-load { color:var(--muted); font-weight:700; font-size:14px; padding:30px 0; text-align:center; }
 /* coach marks */
 .tpo-spot { position:fixed; z-index:10002; border-radius:14px; box-shadow:0 0 0 4px var(--primary), 0 0 0 9999px rgba(20,20,22,.32); pointer-events:none; transition:all .25s; }

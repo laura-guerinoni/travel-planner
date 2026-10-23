@@ -25,7 +25,7 @@
       w1:'Where to?', w1s:'Start typing a city or a village. You can change it later.', w1ph:'Florence, Portugal…', w1load:'Looking…', w1none:'No place with that name. Check the spelling?',
       w2:'When?', w2s:'Pick the days, or a month if it’s not decided yet.', w2a:'I know the dates', w2as:'Pick the first and last day', w2b:'Not sure yet', w2bs:'Pick a month',
       w3:'Who’s coming?', w3s:'They get an email with a link. Or start alone and invite later.', w3ph:'Their email, then Enter', you:'you', justMe:'Just me for now', create:'Create trip', back:'Back',
-      likeT:'What do you like?', likeS:'Pick a few: they go to the idea box, so you can put them on a day later.', likeLoad:'Finding places…', likeAdd:'Add to the idea box', likeSkip:'Skip', ideaAdded1:'place added to the idea box (in Notes)', ideaAddedN:'places added to the idea box (in Notes)',
+      likeT:'What do you like?', likeS:'Pick a few: they go to the idea box, so you can put them on a day later.', likeLoad:'Finding places…', likeAdd:'Add to the idea box', likeSkip:'Skip', ideaAdded1:'place added to the idea box (in Notes)', likeDo:'Things to do', likeSee:'Places', ideaAddedN:'places added to the idea box (in Notes)',
       c1:'Your days', c1p:'Click a day to add the first thing you want to do. @ finds the place and puts it on the map.',
       c2:'Notes and ideas', c2p:'Not sure yet? Drop ideas in the idea box here: everyone can heart them.',
       c3:'Bring the others', c3p:'Share the trip: they see the same plan and can vote with you.', next:'Next', gotIt:'Got it',
@@ -43,7 +43,7 @@
       w1:'Dove si va?', w1s:'Inizia a scrivere una città o un paese. Puoi cambiarlo dopo.', w1ph:'Firenze, Portogallo…', w1load:'Cerco…', w1none:'Nessun posto con questo nome. Controlla come è scritto?',
       w2:'Quando?', w2s:'Scegli i giorni, o un mese se non è ancora deciso.', w2a:'So le date', w2as:'Primo e ultimo giorno', w2b:'Non ancora', w2bs:'Scegli un mese',
       w3:'Chi viene?', w3s:'Ricevono un’email con il link. Oppure inizia da sola e invita dopo.', w3ph:'La sua email, poi Invio', you:'tu', justMe:'Per ora solo io', create:'Crea il viaggio', back:'Indietro',
-      likeT:'Cosa ti piace?', likeS:'Scegline qualcuno: finiscono nella scatola delle idee, da mettere su un giorno più tardi.', likeLoad:'Cerco posti…', likeAdd:'Aggiungi alle idee', likeSkip:'Salta', ideaAdded1:'posto aggiunto alle idee (in Note)', ideaAddedN:'posti aggiunti alle idee (in Note)',
+      likeT:'Cosa ti piace?', likeS:'Scegline qualcuno: finiscono nella scatola delle idee, da mettere su un giorno più tardi.', likeLoad:'Cerco posti…', likeAdd:'Aggiungi alle idee', likeSkip:'Salta', ideaAdded1:'posto aggiunto alle idee (in Note)', likeDo:'Cose da fare', likeSee:'Posti', ideaAddedN:'posti aggiunti alle idee (in Note)',
       c1:'I tuoi giorni', c1p:'Clicca un giorno per aggiungere la prima cosa da fare. @ trova il posto e lo mette sulla mappa.',
       c2:'Note e idee', c2p:'Non sei sicura? Metti le idee nella scatola qui: tutti possono dare un cuore.',
       c3:'Porta gli altri', c3p:'Condividi il viaggio: vedono lo stesso piano e votano con te.', next:'Avanti', gotIt:'Capito',
@@ -61,7 +61,7 @@
       w1:'¿A dónde?', w1s:'Empieza a escribir una ciudad o un pueblo. Puedes cambiarlo luego.', w1ph:'Florencia, Portugal…', w1load:'Buscando…', w1none:'Ningún sitio con ese nombre. ¿Revisas cómo se escribe?',
       w2:'¿Cuándo?', w2s:'Elige los días, o un mes si aún no está decidido.', w2a:'Sé las fechas', w2as:'Primer y último día', w2b:'Aún no', w2bs:'Elige un mes',
       w3:'¿Quién viene?', w3s:'Reciben un email con el enlace. O empieza sola e invita luego.', w3ph:'Su email, luego Intro', you:'tú', justMe:'Solo yo por ahora', create:'Crear viaje', back:'Atrás',
-      likeT:'¿Qué te gusta?', likeS:'Elige algunos: van a la caja de ideas, para ponerlos en un día luego.', likeLoad:'Buscando sitios…', likeAdd:'Añadir a ideas', likeSkip:'Saltar', ideaAdded1:'sitio añadido a ideas (en Notas)', ideaAddedN:'sitios añadidos a ideas (en Notas)',
+      likeT:'¿Qué te gusta?', likeS:'Elige algunos: van a la caja de ideas, para ponerlos en un día luego.', likeLoad:'Buscando sitios…', likeAdd:'Añadir a ideas', likeSkip:'Saltar', ideaAdded1:'sitio añadido a ideas (en Notas)', likeDo:'Qué hacer', likeSee:'Sitios', ideaAddedN:'sitios añadidos a ideas (en Notas)',
       c1:'Tus días', c1p:'Haz clic en un día para añadir lo primero que quieres hacer. @ encuentra el sitio y lo pone en el mapa.',
       c2:'Notas e ideas', c2p:'¿No lo tienes claro? Deja ideas en la caja aquí: todos pueden darles un corazón.',
       c3:'Trae a los demás', c3p:'Comparte el viaje: ven el mismo plan y votan contigo.', next:'Siguiente', gotIt:'Entendido',
@@ -415,7 +415,8 @@
   // Apps Script). Skipped without a key, or when nothing comes back.
   var MOCK_LIKES = [
     { name:'Florence Cathedral', kind:'Church', img:'', icon:'⛪' }, { name:'Uffizi Gallery', kind:'Museum', img:'', icon:'🖼' }, { name:'Ponte Vecchio', kind:'Bridge', img:'', icon:'🌉' },
-    { name:'Boboli Gardens', kind:'Garden', img:'', icon:'🌳' }, { name:'Piazzale Michelangelo', kind:'Viewpoint', img:'', icon:'🌅' }, { name:'Mercato Centrale', kind:'Market', img:'', icon:'🍝' }];
+    { name:'Boboli Gardens', kind:'Garden', img:'', icon:'🌳' }, { name:'Piazzale Michelangelo', kind:'Viewpoint', img:'', icon:'🌅' }, { name:'Mercato Centrale', kind:'Market', img:'', icon:'🍝' },
+    { name:'Climb the Duomo', kind:'Hiking', img:'', icon:'🥾', type:'do' }, { name:'Wine tasting in Chianti', kind:'Food & drink', img:'', icon:'🍷', type:'do' }];
   // asked as soon as the place is chosen, so the answer is usually ready by "Create trip"
   function prefetchLikes(){
     var city = g.whereFull || g.where, p;
@@ -430,11 +431,16 @@
     var done = false, timer = setTimeout(function(){ if(!done){ done = true; finishWizard(); } }, 9000);
     function show(items){
       if(done) return; done = true; clearTimeout(timer);
-      items = (items || []).filter(function(x){ return x && x.name; }).slice(0, 9);
-      if(!items.length){ finishWizard(); return; }
-      g.likes = items.map(function(x){ return { item:x, on:false }; });
-      sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p><div class="tpo-likes">' + g.likes.map(function(l, i){ var x = l.item;
-          return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) + '</div><span class="ck">✓</span><div class="tx"><b>' + esc(x.name) + '</b><small>' + esc(x.kind || '') + '</small></div></button>'; }).join('') + '</div>' +
+      // things to do first (when the guide has some), then places
+      items = (items || []).filter(function(x){ return x && x.name; });
+      var dos = items.filter(function(x){ return x.type === 'do'; }).slice(0, 6), sees = items.filter(function(x){ return x.type !== 'do'; }).slice(0, 9);
+      if(!dos.length && !sees.length){ finishWizard(); return; }
+      g.likes = dos.concat(sees).map(function(x){ return { item:x, on:false }; });
+      var card = function(l, i){ var x = l.item;
+        return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) + '</div><span class="ck">✓</span><div class="tx"><b>' + esc(x.name) + '</b><small>' + esc(x.kind || '') + '</small></div></button>'; };
+      var group = function(title, from, to){ return (dos.length ? '<p class="tpo-lab">' + title + '</p>' : '') + '<div class="tpo-likes">' + g.likes.slice(from, to).map(function(l, k){ return card(l, from + k); }).join('') + '</div>'; };
+      sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p><div class="tpo-likes-scroll">' +
+        (dos.length ? group(t('likeDo'), 0, dos.length) : '') + (sees.length ? group(t('likeSee'), dos.length, g.likes.length) : '') + '</div>' +
         '<div class="foot"><button type="button" class="bk" data-lk="skip">' + t('likeSkip') + '</button><button type="button" class="tpo-go" data-lk="add" disabled>' + t('likeAdd') + '</button></div></div>';
     }
     if(!TP.hosted){ setTimeout(function(){ show(/florence|firenze|florencia/i.test(g.where) ? MOCK_LIKES : []); }, 500); return; }
