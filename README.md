@@ -44,7 +44,7 @@ each of the sample people.
   glasses, piercing, hat. Menu → Edit avatar uses the same maker as the sign-up. New fields are saved in `/avatars/{key}`.
 - **Background:** Flat is the standard; Starry and Gradient are in Menu → Background. **Mode:** Light or Dark in the menu.
 - **What's new:** shown once per release to everyone else.
-- **Cheat corner** (the owner, or the local draft): hover the bottom-left corner for 2 seconds. Preview the sign-up, the sign-in page,
+- **Cheat corner** (the owner, or the local draft): hover the bottom-left corner for 2 seconds (a faint dot marks it), or press Ctrl+Shift+K (⌘+Shift+K). Preview the sign-up, the sign-in page,
   the guide or What's new without saving; send yourself a sample notification; reset your preferences.
 
 ## Preview locally
