@@ -22,10 +22,10 @@
       f_neutral:'Neutral', f_rounded:'Rounded', f_elegant:'Elegant', f_mono:'Mono', f_dyslexia:'Dyslexia',
       doneT:'Nice to meet you, ', doneS:'You can change all of this later from the menu.', start:'Start planning', saveErr:'Couldn’t save your avatar. You can set it later from the menu.',
       preview:'Preview: nothing is saved', close:'Close',
-      w1:'Where to?', w1s:'A city, a country, or a few. You can change it later.', w1ph:'Florence, Portugal…',
+      w1:'Where to?', w1s:'Start typing a city or a village. You can change it later.', w1ph:'Florence, Portugal…', w1load:'Looking…', w1none:'No place with that name. Check the spelling?',
       w2:'When?', w2s:'Pick the days, or a month if it’s not decided yet.', w2a:'I know the dates', w2as:'Pick the first and last day', w2b:'Not sure yet', w2bs:'Pick a month',
       w3:'Who’s coming?', w3s:'They get an email with a link. Or start alone and invite later.', w3ph:'Their email, then Enter', you:'you', justMe:'Just me for now', create:'Create trip', back:'Back',
-      likeT:'What do you like?', likeS:'Pick a few: they go to the idea box, so you can put them on a day later.', likeLoad:'Finding places…', likeAdd:'Add to the idea box', likeSkip:'Skip',
+      likeT:'What do you like?', likeS:'Pick a few: they go to the idea box, so you can put them on a day later.', likeLoad:'Finding places…', likeAdd:'Add to the idea box', likeSkip:'Skip', ideaAdded1:'place added to the idea box (in Notes)', ideaAddedN:'places added to the idea box (in Notes)',
       c1:'Your days', c1p:'Click a day to add the first thing you want to do. @ finds the place and puts it on the map.',
       c2:'Notes and ideas', c2p:'Not sure yet? Drop ideas in the idea box here: everyone can heart them.',
       c3:'Bring the others', c3p:'Share the trip: they see the same plan and can vote with you.', next:'Next', gotIt:'Got it',
@@ -40,10 +40,10 @@
       f_neutral:'Neutro', f_rounded:'Tondo', f_elegant:'Elegante', f_mono:'Mono', f_dyslexia:'Dislessia',
       doneT:'Piacere di conoscerti, ', doneS:'Puoi cambiare tutto più tardi dal menu.', start:'Inizia a pianificare', saveErr:'Non sono riuscita a salvare l’avatar. Puoi farlo più tardi dal menu.',
       preview:'Anteprima: non si salva niente', close:'Chiudi',
-      w1:'Dove si va?', w1s:'Una città, un paese, o più di uno. Puoi cambiarlo dopo.', w1ph:'Firenze, Portogallo…',
+      w1:'Dove si va?', w1s:'Inizia a scrivere una città o un paese. Puoi cambiarlo dopo.', w1ph:'Firenze, Portogallo…', w1load:'Cerco…', w1none:'Nessun posto con questo nome. Controlla come è scritto?',
       w2:'Quando?', w2s:'Scegli i giorni, o un mese se non è ancora deciso.', w2a:'So le date', w2as:'Primo e ultimo giorno', w2b:'Non ancora', w2bs:'Scegli un mese',
       w3:'Chi viene?', w3s:'Ricevono un’email con il link. Oppure inizia da sola e invita dopo.', w3ph:'La sua email, poi Invio', you:'tu', justMe:'Per ora solo io', create:'Crea il viaggio', back:'Indietro',
-      likeT:'Cosa ti piace?', likeS:'Scegline qualcuno: finiscono nella scatola delle idee, da mettere su un giorno più tardi.', likeLoad:'Cerco posti…', likeAdd:'Aggiungi alle idee', likeSkip:'Salta',
+      likeT:'Cosa ti piace?', likeS:'Scegline qualcuno: finiscono nella scatola delle idee, da mettere su un giorno più tardi.', likeLoad:'Cerco posti…', likeAdd:'Aggiungi alle idee', likeSkip:'Salta', ideaAdded1:'posto aggiunto alle idee (in Note)', ideaAddedN:'posti aggiunti alle idee (in Note)',
       c1:'I tuoi giorni', c1p:'Clicca un giorno per aggiungere la prima cosa da fare. @ trova il posto e lo mette sulla mappa.',
       c2:'Note e idee', c2p:'Non sei sicura? Metti le idee nella scatola qui: tutti possono dare un cuore.',
       c3:'Porta gli altri', c3p:'Condividi il viaggio: vedono lo stesso piano e votano con te.', next:'Avanti', gotIt:'Capito',
@@ -58,10 +58,10 @@
       f_neutral:'Neutra', f_rounded:'Redonda', f_elegant:'Elegante', f_mono:'Mono', f_dyslexia:'Dislexia',
       doneT:'Encantada, ', doneS:'Puedes cambiarlo todo luego desde el menú.', start:'Empezar a planear', saveErr:'No se pudo guardar tu avatar. Puedes hacerlo luego desde el menú.',
       preview:'Vista previa: no se guarda nada', close:'Cerrar',
-      w1:'¿A dónde?', w1s:'Una ciudad, un país, o varios. Puedes cambiarlo luego.', w1ph:'Florencia, Portugal…',
+      w1:'¿A dónde?', w1s:'Empieza a escribir una ciudad o un pueblo. Puedes cambiarlo luego.', w1ph:'Florencia, Portugal…', w1load:'Buscando…', w1none:'Ningún sitio con ese nombre. ¿Revisas cómo se escribe?',
       w2:'¿Cuándo?', w2s:'Elige los días, o un mes si aún no está decidido.', w2a:'Sé las fechas', w2as:'Primer y último día', w2b:'Aún no', w2bs:'Elige un mes',
       w3:'¿Quién viene?', w3s:'Reciben un email con el enlace. O empieza sola e invita luego.', w3ph:'Su email, luego Intro', you:'tú', justMe:'Solo yo por ahora', create:'Crear viaje', back:'Atrás',
-      likeT:'¿Qué te gusta?', likeS:'Elige algunos: van a la caja de ideas, para ponerlos en un día luego.', likeLoad:'Buscando sitios…', likeAdd:'Añadir a ideas', likeSkip:'Saltar',
+      likeT:'¿Qué te gusta?', likeS:'Elige algunos: van a la caja de ideas, para ponerlos en un día luego.', likeLoad:'Buscando sitios…', likeAdd:'Añadir a ideas', likeSkip:'Saltar', ideaAdded1:'sitio añadido a ideas (en Notas)', ideaAddedN:'sitios añadidos a ideas (en Notas)',
       c1:'Tus días', c1p:'Haz clic en un día para añadir lo primero que quieres hacer. @ encuentra el sitio y lo pone en el mapa.',
       c2:'Notas e ideas', c2p:'¿No lo tienes claro? Deja ideas en la caja aquí: todos pueden darles un corazón.',
       c3:'Trae a los demás', c3p:'Comparte el viaje: ven el mismo plan y votan contigo.', next:'Siguiente', gotIt:'Entendido',
@@ -318,8 +318,8 @@
   function closeGuide(){ var sc = document.getElementById('tpoScrim'); if(sc){ sc.hidden = true; sc.innerHTML = ''; } coach(99); }
   function drawWiz(){
     var sc = scrim(), q = g.q, h = '<div class="prog">' + [0, 1, 2].map(function(i){ return '<i class="' + (i <= q ? 'on' : '') + '"></i>'; }).join('') + '</div>';
-    if(q === 0) h += '<h3>' + t('w1') + '</h3><p>' + t('w1s') + '</p><input class="in" id="tpoWhere" placeholder="' + esc(t('w1ph')) + '" value="' + esc(g.where) + '" autocomplete="off" maxlength="40">' +
-      '<div class="sugg">' + PLACES.map(function(p){ return '<button type="button" data-pl="' + p[1] + '" class="' + (g.where === p[1] ? 'on' : '') + '"><span>' + p[0] + '</span>' + p[1] + '</button>'; }).join('') + '</div>';
+    if(q === 0) h += '<h3>' + t('w1') + '</h3><p>' + t('w1s') + '</p><input class="in" id="tpoWhere" placeholder="' + esc(t('w1ph')) + '" value="' + esc(g.query != null ? g.query : g.where) + '" autocomplete="off" maxlength="40">' +
+      '<div class="tpo-places">' + placesHtml() + '</div>';
     if(q === 1){
       h += '<h3>' + t('w2') + '</h3><p>' + t('w2s') + '</p><div class="two"><button type="button" data-when="exact" class="' + (g.when === 'exact' ? 'on' : '') + '">' + t('w2a') + '<small>' + t('w2as') + '</small></button><button type="button" data-when="month" class="' + (g.when === 'month' ? 'on' : '') + '">' + t('w2b') + '<small>' + t('w2bs') + '</small></button></div>';
       if(g.when === 'exact') h += '<div class="dates"><input class="in" type="date" id="tpoFrom" value="' + g.from + '"><span>–</span><input class="in" type="date" id="tpoTo" value="' + g.to + '"></div>';
@@ -334,24 +334,61 @@
       h += '<h3>' + t('w3') + '</h3><p>' + t('w3s') + '</p><input class="in" id="tpoEmail" type="email" placeholder="' + esc(t('w3ph')) + '">' +
         '<div class="ppl"><span><i>' + (g.av ? face(g.av) : TP.avatar(me.email, null)) + '</i>' + esc(g.name || me.name || '') + ' (' + t('you') + ')</span>' + g.who.map(function(e){ return '<span><i>' + TP.avatar(e, null) + '</i>' + esc(e) + '</span>'; }).join('') + '</div>';
     }
-    var ok = q === 0 ? !!g.where : q === 1 ? (g.when === 'exact' ? g.from && g.to && g.to >= g.from : g.when === 'month' && !!g.month) : true;
+    var ok = q === 0 ? !!g.where && !(g.query && g.query.trim() !== g.where) : q === 1 ? (g.when === 'exact' ? g.from && g.to && g.to >= g.from : g.when === 'month' && !!g.month) : true;
     h += '<div class="foot">' + (q ? '<button type="button" class="bk" data-w="back">' + t('back') + '</button>' : '<button type="button" class="bk" data-w="close">' + t('skip') + '</button>') +
       (q === 2 && !g.who.length ? '<button type="button" class="bk" data-w="next" style="margin-left:auto">' + t('justMe') + '</button>' : '') +
       '<button type="button" class="tpo-go" data-w="next"' + (ok ? '' : ' disabled') + '>' + (q === 2 ? t('create') : t('cont')) + '</button></div>';
     sc.innerHTML = '<div class="tpo-wiz" role="dialog" aria-modal="true">' + h + '</div>';
     var wh = sc.querySelector('#tpoWhere');
-    if(wh){ wh.focus(); wh.addEventListener('input', function(){ g.where = wh.value.replace(/^@/, '').trim(); sc.querySelector('.tpo-go').disabled = !g.where; sc.querySelectorAll('[data-pl]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-pl') === g.where); }); });
-      wh.addEventListener('keydown', function(e){ if(e.key === 'Enter' && g.where){ g.q++; drawWiz(); } }); }
+    if(wh){ wh.focus(); var n = wh.value.length; wh.setSelectionRange(n, n);
+      // typing looks up real places; the trip's place is the one you pick
+      wh.addEventListener('input', function(){ g.query = wh.value.replace(/^@/, ''); g.where = ''; g.whereFull = ''; searchPlaces(); sc.querySelector('.tpo-go').disabled = true; });
+      wh.addEventListener('keydown', function(e){
+        if(e.key !== 'Enter') return; e.preventDefault();
+        if(!g.where && g.found && g.found.length) pickPlace(g.found[0]);
+        if(g.where){ prefetchLikes(); g.q++; drawWiz(); }
+      }); }
     var fi = sc.querySelector('#tpoFrom'), ti = sc.querySelector('#tpoTo');
     function dates(){ g.from = fi.value; g.to = ti.value; if(g.to < g.from){ g.to = g.from; ti.value = g.to; } sc.querySelector('.tpo-go').disabled = !(g.from && g.to); }
     if(fi){ fi.addEventListener('change', dates); ti.addEventListener('change', dates); }
     var em = sc.querySelector('#tpoEmail');
     if(em){ em.focus(); em.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); var v = em.value.trim().toLowerCase(); if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) && g.who.indexOf(v) === -1){ g.who.push(v); drawWiz(); } } }); }
   }
+  // "Where to?": the four quick picks while the box is empty, then real places as you type
+  // (Open-Meteo's place search: free, no key, the same one the weather uses)
+  function flag(cc){ cc = String(cc || '').toUpperCase(); return /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(127397 + cc.charCodeAt(0), 127397 + cc.charCodeAt(1)) : '📍'; }
+  function placesHtml(){
+    var q = (g.query || '').trim();
+    if(!q) return '<div class="sugg">' + PLACES.map(function(p){ return '<button type="button" data-pl="' + p[1] + '" class="' + (g.where === p[1] ? 'on' : '') + '"><span>' + p[0] + '</span>' + p[1] + '</button>'; }).join('') + '</div>';
+    if(!g.found) return '<div class="tpo-res-msg">' + t('w1load') + '</div>';
+    if(!g.found.length) return '<div class="tpo-res-msg">' + t('w1none') + '</div>';
+    return '<div class="tpo-res">' + g.found.map(function(r, i){ return '<button type="button" data-pl="#' + i + '" class="' + (g.whereFull === r.full ? 'on' : '') + '"><span class="fl">' + flag(r.cc) + '</span><b>' + esc(r.name) + '</b><small>' + esc(r.sub) + '</small></button>'; }).join('') + '</div>';
+  }
+  function drawPlaces(){ var el = document.querySelector('#tpoScrim .tpo-places'); if(el) el.innerHTML = placesHtml(); }
+  var placeT = null, placeN = 0;
+  function searchPlaces(){
+    clearTimeout(placeT); var q = (g.query || '').trim(), n = ++placeN;
+    g.found = q.length < 2 ? (q ? [] : null) : null; drawPlaces();
+    if(q.length < 2) return;
+    placeT = setTimeout(function(){
+      fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=' + lang() + '&name=' + encodeURIComponent(q)).then(function(r){ return r.json(); }).then(function(j){
+        if(n !== placeN || !g) return;
+        g.found = (j.results || []).map(function(r){ var sub = [r.admin1 && r.admin1 !== r.name ? r.admin1 : '', r.country].filter(Boolean).join(', ');
+          return { name:r.name, sub:sub, cc:r.country_code, full:r.name + (r.country ? ', ' + r.country : '') }; });
+        drawPlaces();
+      }).catch(function(){
+        // no connection to the place search: take what was typed
+        if(n !== placeN || !g) return; g.found = [{ name:q, sub:'', cc:'', full:q }]; drawPlaces();
+      });
+    }, 250);
+  }
+  function pickPlace(r){
+    if(!r) return; g.where = r.name; g.whereFull = r.full; g.query = r.name; g.found = null;
+  }
   function onWizClick(e){
     if(!g) return;
     var b = e.target.closest('[data-pl],[data-when],[data-m],[data-w],[data-like],[data-lk]'); if(!b) return;
-    if(b.hasAttribute('data-pl')){ g.where = b.getAttribute('data-pl'); drawWiz(); return; }
+    if(b.hasAttribute('data-pl')){ var k = b.getAttribute('data-pl'); pickPlace(k.charAt(0) === '#' ? g.found[+k.slice(1)] : { name:k, full:k }); drawWiz(); return; }
     if(b.hasAttribute('data-when')){ g.when = b.getAttribute('data-when'); drawWiz(); return; }
     if(b.hasAttribute('data-m')){ g.month = b.getAttribute('data-m'); drawWiz(); return; }
     if(b.hasAttribute('data-like')){ var i = +b.getAttribute('data-like'); g.likes[i].on = !g.likes[i].on; b.classList.toggle('on', g.likes[i].on); likeCount(); return; }
@@ -359,7 +396,7 @@
     var w = b.getAttribute('data-w');
     if(w === 'close'){ closeGuide(); return; }
     if(w === 'back'){ g.q--; drawWiz(); return; }
-    if(w === 'next'){ if(g.q < 2){ g.q++; drawWiz(); } else createTrip(); }
+    if(w === 'next'){ if(g.q === 0) prefetchLikes(); if(g.q < 2){ g.q++; drawWiz(); } else createTrip(); }
   }
   function createTrip(){
     var em = document.querySelector('#tpoEmail'), v = em && em.value.trim().toLowerCase();
@@ -379,6 +416,14 @@
   var MOCK_LIKES = [
     { name:'Florence Cathedral', kind:'Church', img:'', icon:'⛪' }, { name:'Uffizi Gallery', kind:'Museum', img:'', icon:'🖼' }, { name:'Ponte Vecchio', kind:'Bridge', img:'', icon:'🌉' },
     { name:'Boboli Gardens', kind:'Garden', img:'', icon:'🌳' }, { name:'Piazzale Michelangelo', kind:'Viewpoint', img:'', icon:'🌅' }, { name:'Mercato Centrale', kind:'Market', img:'', icon:'🍝' }];
+  // asked as soon as the place is chosen, so the answer is usually ready by "Create trip"
+  function prefetchLikes(){
+    var city = g.whereFull || g.where, p;
+    if(!TP.hosted || (g.sug && g.sug.city === city)) return;
+    try { p = TP.travelCall({ kind:'suggest', city:city }).then(function(r){ return r && r.places; }).catch(function(){ return []; }); }
+    catch(e){ p = Promise.resolve([]); }
+    g.sug = { city:city, p:p };
+  }
   function showLikes(){
     var sc = scrim();
     sc.innerHTML = '<div class="tpo-wiz"><h3>' + t('likeT') + '</h3><p>' + t('likeS') + '</p><div class="tpo-likes-load">' + t('likeLoad') + '</div></div>';
@@ -393,14 +438,18 @@
         '<div class="foot"><button type="button" class="bk" data-lk="skip">' + t('likeSkip') + '</button><button type="button" class="tpo-go" data-lk="add" disabled>' + t('likeAdd') + '</button></div></div>';
     }
     if(!TP.hosted){ setTimeout(function(){ show(/florence|firenze|florencia/i.test(g.where) ? MOCK_LIKES : []); }, 500); return; }
-    try { TP.travelCall({ kind:'suggest', city:g.where }).then(function(r){ show(r && r.places); }).catch(function(){ show([]); }); } catch(e){ show([]); }
+    prefetchLikes();
+    g.sug.p.then(show);
   }
   function likeCount(){ var n = g.likes.filter(function(l){ return l.on; }).length, b = document.querySelector('#tpoScrim [data-lk="add"]'); if(b){ b.disabled = !n; b.textContent = t('likeAdd') + (n ? ' (' + n + ')' : ''); } }
+  // (in a preview they go to the trip that's open, so you can see how they land)
   function addLikes(){
-    if(g.preview || !g.pid) return;
-    g.likes.filter(function(l){ return l.on; }).forEach(function(l){ var x = l.item, lines = [];
-      if(x.kind) lines.push(x.kind); if(x.desc) lines.push(x.desc);
+    if(!g.pid) return;
+    var on = g.likes.filter(function(l){ return l.on; });
+    on.forEach(function(l){ var x = l.item, lines = [];
+      if(x.kind) lines.push(x.kind); if(x.desc && x.desc !== x.kind) lines.push(x.desc);
       TP.addIdea(g.pid, { t:x.name, l:lines }); });
+    if(g.preview && on.length) TP.toast(on.length + ' ' + (on.length === 1 ? t('ideaAdded1') : t('ideaAddedN')));
   }
   function finishWizard(){
     var sc = scrim(); sc.hidden = true; sc.innerHTML = '';
@@ -513,7 +562,7 @@
       ['reset', ICON.reset, 'Reset my preferences', 'Theme, font, mode, background, language']];
     p.innerHTML = '<div class="h">Cheat codes<button type="button" data-ch="x" aria-label="Close">✕</button></div>' +
       rows.map(function(r){ return '<button type="button" class="row" data-ch="' + r[0] + '">' + r[1] + '<span>' + r[2] + (r[3] ? '<small>' + r[3] + '</small>' : '') + '</span></button>'; }).join('') +
-      '<div class="note">Previews don’t save anything, except the notification.</div>';
+      '<div class="note">Previews don’t save anything, except the notification and the places you add to the idea box.</div>';
     document.body.appendChild(p);
     p.addEventListener('click', function(e){
       e.stopPropagation();
