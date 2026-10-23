@@ -7075,9 +7075,9 @@
     });
     list.addEventListener('mousedown', function(e){ var x = e.target.closest('.ssr'); if(x){ e.preventDefault(); go(hits[+x.dataset.i]); } });
 
-    // ⌘K / Ctrl+K focuses it, like Notion.
+    // ⌘K / Ctrl+K focuses it, like Notion (with Shift it's the owner's cheat codes, see onboarding.js).
     document.addEventListener('keydown', function(e){
-      if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !(e.target && e.target.closest && e.target.closest('.notes-page'))){
+      if((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'k' && !(e.target && e.target.closest && e.target.closest('.notes-page'))){
         e.preventDefault(); if(pal.hidden) openPal(); else closePal();
       }
     });
@@ -15151,7 +15151,7 @@
       lpop.querySelector('.lp-apply').addEventListener('click', applyLink);
       [lpText, lpUrl].forEach(function(i){ i.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); applyLink(); } else if(e.key === 'Escape'){ e.preventDefault(); closeLinkUI(); notesArea.focus({ preventScroll:true }); } }); });
       notesPage.querySelector('.np-link-btn').addEventListener('click', function(){ openLinkPop(null); });
-      notesArea.addEventListener('keydown', function(e){ if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); openLinkPop(null); } });
+      notesArea.addEventListener('keydown', function(e){ if((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'k'){ e.preventDefault(); openLinkPop(null); } });
       function showBubble(a){
         bubLink = a; lpop.hidden = true;
         var u = lbub.querySelector('.lb-url'); u.href = a.href; u.textContent = a.href.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
