@@ -496,6 +496,11 @@
     hot.addEventListener('mouseenter', function(){ hot.classList.add('arming'); timer = setTimeout(openCheats, 2000); });
     hot.addEventListener('mouseleave', function(){ hot.classList.remove('arming'); clearTimeout(timer); });
   }
+  // the quick way in: Ctrl+Shift+K (or ⌘+Shift+K), owners only
+  document.addEventListener('keydown', function(e){
+    if(!cheatOn || !e.shiftKey || !(e.ctrlKey || e.metaKey) || e.altKey || String(e.key).toLowerCase() !== 'k') return;
+    e.preventDefault(); openCheats();
+  });
   function openCheats(){
     var old = document.getElementById('tpoCheat'); if(old){ old.remove(); return; }
     var p = document.createElement('div'); p.id = 'tpoCheat'; p.className = 'tpo-cheat grp-ui';
