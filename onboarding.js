@@ -445,8 +445,11 @@
       var dos = items.filter(function(x){ return x.type === 'do'; }).slice(0, 6), sees = items.filter(function(x){ return x.type !== 'do'; }).slice(0, 9);
       if(!dos.length && !sees.length){ finishWizard(); return; }
       g.likes = dos.concat(sees).map(function(x){ return { item:x, on:false }; });
-      var card = function(l, i){ var x = l.item;
-        return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) + '</div><span class="ck">✓</span><div class="tx"' + (x.desc ? ' title="' + esc(x.desc) + '"' : '') + '><b>' + esc(x.name) + '</b><small>' + esc((x.kind || '').length > 30 && x.desc ? x.desc : (x.kind || '')) + '</small></div></button>'; };
+      // a card: the picture (with what it is as a label), the name, and a line about it when there is one
+      var card = function(l, i){ var x = l.item, kind = (x.kind || '').length > 30 ? '' : (x.kind || ''), about = x.desc && x.desc !== x.kind ? x.desc : (x.kind || '').length > 30 ? x.kind : '';
+        return '<button type="button" class="tpo-like" data-like="' + i + '"><div class="im"' + (x.img ? ' style="background-image:url(\'' + esc(x.img) + '\')"' : '') + '>' + (x.img ? '' : (x.icon || '📍')) +
+          (kind ? '<span class="kd">' + (x.img && x.icon ? x.icon + ' ' : '') + esc(kind) + '</span>' : '') + '</div><span class="ck">✓</span>' +
+          '<div class="tx"' + (about ? ' title="' + esc(about) + '"' : '') + '><b>' + esc(x.name) + '</b>' + (about ? '<small>' + esc(about) + '</small>' : '') + '</div></button>'; };
       // two tabs (Things to do / Places) when there are both, instead of one long scroll
       g.nDo = dos.length; g.ltab = dos.length ? 'do' : 'see';
       g.likeCard = card;
