@@ -454,7 +454,12 @@
     var on = g.likes.filter(function(l){ return l.on; });
     on.forEach(function(l){ var x = l.item, lines = [];
       if(x.kind) lines.push(x.kind); if(x.desc && x.desc !== x.kind) lines.push(x.desc);
-      TP.addIdea(g.pid, { t:x.name, l:lines }); });
+      // the photo, the booking or guide link, and the map pin come along when there are some
+      var idea = { t:x.name, l:lines };
+      if(x.img) idea.g = x.img;
+      if(x.url || x.wiki) idea.u = [x.url || x.wiki];
+      if(typeof x.lat === 'number' && typeof x.lon === 'number') idea.gp = (Math.round(x.lat * 1e5) / 1e5) + ',' + (Math.round(x.lon * 1e5) / 1e5);
+      TP.addIdea(g.pid, idea); });
     if(g.preview && on.length) TP.toast(on.length + ' ' + (on.length === 1 ? t('ideaAdded1') : t('ideaAddedN')));
   }
   function finishWizard(){
