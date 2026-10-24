@@ -5155,6 +5155,9 @@
     location.search.match(/(?:^|[?&])month=([^&]+)/);
   var VIEW_ONLY_LINK = /(?:^|[?&])view=1(?:&|$)/.test(location.search);
   var VIEW_ONLY_MONTH_KEY = viewOnlyLinkMatch ? decodeURIComponent(viewOnlyLinkMatch[1]) : null;
+  // the trips the link shows (links from before name only the month)
+  var viewTripsMatch = location.search.match(/(?:^|[?&])trips=([^&]+)/);
+  var VIEW_ONLY_TRIPS = viewTripsMatch ? decodeURIComponent(viewTripsMatch[1]).split(',').filter(Boolean) : null;
   var VIEW_ONLY = false;
 
   // ---- language: English/Italian/Spanish for the app's own UI chrome
@@ -5773,7 +5776,7 @@
             showAuthGate('denied', 'This link isn’t active — ask the plan’s owner to turn sharing back on.');
             return;
           }
-          firebase.database().ref('publicViewEnabled/' + VIEW_ONLY_MONTH_KEY).once('value').then(function(snap){
+          (VIEW_ONLY_TRIPS ? Promise.resolve({ val: function(){ return true; } }) : firebase.database().ref('publicViewEnabled/' + VIEW_ONLY_MONTH_KEY).once('value')).then(function(snap){
             if(snap.val() === true){
               VIEW_ONLY = true;
               document.body.classList.add('view-only');
@@ -5815,25 +5818,15 @@
         currentUserEmail = user.email || '';
         currentUserKey = sanitizeEmailKey(currentUserEmail);
         tellSignup(user);
-        // Only ever reads this signed-in user's own membership entry — the
-        // security rules allow that regardless of role (or absence of one),
-        // specifically so a not-yet-invited visitor can still get a real
-        // "you're not on the list" answer instead of a permission error.
+        // Anyone with a confirmed email gets in, to their own trips (the
+        // database rules keep everyone to the trips they're on). The old
+        // member list now only marks the owner (the cheat codes) and the
+        // people from before, who move the old shared plan (moveOldPlan).
         firebase.database().ref('members/' + currentUserKey).once('value').then(function(snap){
           var role = snap.val();
           currentUserRole = role;
-          // Gates a handful of destructive, owner-only controls (see
-          // openMonthSegmentMenu's "Remove month"/.pill-remove) that have
-          // no per-role Firebase rule of their own to fall back on —
-          // /plan's write rule is the same for every member, so this is
-          // UI-level only, same tradeoff already made for per-month
-          // participants.
-          document.body.classList.toggle('owner-mode', role === 'owner');
-          if(role !== 'owner' && role !== 'invited'){
-            hideMemberPanel();
-            showAuthGate('denied', 'Signed in as ' + (currentUserEmail || 'unknown') + ' — that account isn’t on the list for this plan.');
-            return;
-          }
+          // everyone manages their own trips (remove, share a month)
+          document.body.classList.add('owner-mode');
           hideAuthGate();
           startSync();
           if(printBtn) printBtn.classList.add('show');
@@ -6175,28 +6168,17 @@
       renderPaymentOverview();
       return;
     }
-    Promise.all([
-      firebase.database().ref('members').once('value'),
-      firebase.database().ref('avatars').once('value').catch(function(){ return null; })
-    ]).then(function(snaps){
-      renderPillAccessFacesFromData(snaps[0].val() || {}, (snaps[1] && snaps[1].val()) || {});
+    loadPeople().then(function(d){
+      renderPillAccessFacesFromData(d.people, d.avatars);
     }).catch(function(err){ console.warn('Load pill access faces failed', err); });
   }
 
   function renderMemberList(){
     if(!manageList) return;
     if(manageErrorEl) manageErrorEl.textContent = '';
-    Promise.all([
-      firebase.database().ref('members').once('value'),
-      // A missing/permission-denied /avatars read just means nobody's
-      // customized anything yet (or the security rule isn't set up) —
-      // fall back to an empty object rather than let it fail the whole
-      // list load, since the hash-derived default still works fine
-      // either way.
-      firebase.database().ref('avatars').once('value').catch(function(){ return null; })
-    ]).then(function(snaps){
-      var val = snaps[0].val() || {};
-      var avatarOverrides = (snaps[1] && snaps[1].val()) || {};
+    loadPeople().then(function(d){
+      var val = d.people;
+      var avatarOverrides = d.avatars;
       var rows = Object.keys(val).map(function(key){
         return { key: key, email: key.replace(/,/g, '.'), role: val[key] };
       });
@@ -6231,7 +6213,7 @@
         actions.className = 'map-row-actions';
         var roleEl = document.createElement('span');
         roleEl.className = 'map-role';
-        roleEl.textContent = t('manage_role_' + row.role) || row.role;
+        roleEl.textContent = row.role === 'owner' ? (t('manage_role_owner') || 'owner') : '';
         actions.appendChild(roleEl);
         // Same "⋯" menu language as everywhere else in the app (see
         // openItemMenu/openDayMenu) instead of a pair of always-visible
@@ -6245,7 +6227,7 @@
         // alongside the security rules, which independently refuse to
         // ever delete or overwrite an entry whose current value is
         // 'owner', so there's genuinely nothing this menu could offer.
-        if(currentUserRole === 'owner' && row.role !== 'owner'){
+        if(row.key !== currentUserKey){
           var menuBtn = document.createElement('button');
           menuBtn.type = 'button';
           menuBtn.className = 'itemmenu-btn jsctl';
@@ -6294,13 +6276,6 @@
     // special "invite as owner" path — a fresh invite always lands as
     // 'invited' first. Requires the security rules' $memberKey .validate
     // to accept 'owner' as a written value, not just 'invited'.
-    addRow(icon('★') + t('manage_make_owner'), function(){
-      if(manageErrorEl) manageErrorEl.textContent = '';
-      firebase.database().ref('members/' + member.key).set('owner').catch(function(err){
-        if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t update ' + member.email + ' — try again.';
-        console.warn('Promote member failed', err);
-      }).then(renderMemberList);
-    });
     // Reuses the exact same picker offered right after a fresh invite
     // (see openAccessScopeMenu) — the only difference is that this time
     // each row starts checked/unchecked from whatever access the person
@@ -6309,13 +6284,6 @@
     addRow(icon('👁') + t('manage_edit_access'), function(){
       openAccessScopeMenu(member.key, anchorEl);
     });
-    addRow(icon(ICON_TRASH) + t('manage_delete_member'), function(){
-      if(manageErrorEl) manageErrorEl.textContent = '';
-      firebase.database().ref('members/' + member.key).remove().catch(function(err){
-        if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t remove ' + member.email + ' — try again.';
-        console.warn('Remove member failed', err);
-      }).then(renderMemberList);
-    }, true);
     pop._anchorEl = anchorEl;
     anchorEl.style.visibility = 'visible';
     anchorEl.classList.add('open');
@@ -6557,21 +6525,30 @@
   var monthShareWired = false;
   var pendingShareKey = null;
 
+  // the link names the month and its trips (mine), so it never shows
+  // anyone else's trips in that month
+  function monthTrips(key){
+    var ids = [];
+    document.querySelectorAll('.panel').forEach(function(p){
+      var d = getPanelDate(p), t = planIdOf(p);
+      if(monthKey(d.year, d.month) === key && TRIPS[t] && TRIPS[t].data && ids.indexOf(t) === -1) ids.push(t);
+    });
+    return ids;
+  }
   function monthShareUrl(key){
-    return location.origin + location.pathname + '?view=1&month=' + encodeURIComponent(key);
+    return location.origin + location.pathname + '?view=1&month=' + encodeURIComponent(key) + '&trips=' + encodeURIComponent(monthTrips(key).join(','));
   }
 
   function openMonthShare(year, month){
-    if(currentUserRole !== 'owner' || !monthSharePanel) return;
+    if(!currentUserKey || !monthSharePanel) return;
     pendingShareKey = monthKey(year, month);
     if(monthShareTitle) monthShareTitle.textContent = 'Share ' + formatMonthLabel(year, month, 1);
     if(monthShareInput) monthShareInput.value = monthShareUrl(pendingShareKey);
-    firebase.database().ref('publicViewEnabled/' + pendingShareKey).once('value').then(function(snap){
-      var on = snap.val() === true;
-      if(monthShareToggle) monthShareToggle.checked = on;
-      if(monthShareCopyRow) monthShareCopyRow.classList.toggle('show', on);
-      if(monthShareHint) monthShareHint.classList.toggle('show', on);
-    }).catch(function(err){ console.warn('Couldn’t read sharing state', err); });
+    var ids = monthTrips(pendingShareKey);
+    var on = ids.length > 0 && ids.every(function(t){ return TRIPS[t].pub; });
+    if(monthShareToggle) monthShareToggle.checked = on;
+    if(monthShareCopyRow) monthShareCopyRow.classList.toggle('show', on);
+    if(monthShareHint) monthShareHint.classList.toggle('show', on);
     monthSharePanel.classList.add('show');
   }
 
@@ -6582,7 +6559,7 @@
       monthSharePanel.classList.remove('show');
     });
     monthShareToggle.addEventListener('change', function(){
-      if(currentUserRole !== 'owner' || !pendingShareKey){ monthShareToggle.checked = !monthShareToggle.checked; return; }
+      if(!currentUserKey || !pendingShareKey){ monthShareToggle.checked = !monthShareToggle.checked; return; }
       var on = monthShareToggle.checked;
       // null (not false) once off — a plain object under
       // /publicViewEnabled, so an off month just isn't a key in it at
@@ -6590,14 +6567,15 @@
       // per-key map field in this app already work.
       // the month's trips that I'm on become readable by the link (trips/<t>/public),
       // listed under publicMonths/<month> for the link to find them
-      var up = {}, mk = pendingShareKey;
-      up['publicViewEnabled/' + mk] = on ? true : null;
-      document.querySelectorAll('.panel').forEach(function(p){
-        var d = getPanelDate(p), t = planIdOf(p);
-        if(monthKey(d.year, d.month) !== mk || !TRIPS[t] || !TRIPS[t].data) return;
+      // (links from before only name the month: those still work for the
+      // people from before, through publicViewEnabled and publicMonths)
+      var up = {}, mk = pendingShareKey, old = !!currentUserRole;
+      if(old) up['publicViewEnabled/' + mk] = on ? true : null;
+      monthTrips(mk).forEach(function(t){
         up['trips/' + t + '/public'] = on ? true : null;
-        up['publicMonths/' + mk + '/' + t] = on ? true : null;
+        if(old) up['publicMonths/' + mk + '/' + t] = on ? true : null;
       });
+      if(monthShareInput) monthShareInput.value = monthShareUrl(mk);
       firebase.database().ref().update(up).then(function(){
         if(monthShareCopyRow) monthShareCopyRow.classList.toggle('show', on);
         if(monthShareHint) monthShareHint.classList.toggle('show', on);
@@ -6634,27 +6612,14 @@
     if(manageForm) manageForm.addEventListener('submit', function(e){
       e.preventDefault();
       var email = (manageInput.value || '').trim().toLowerCase();
-      if(!email) return;
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
       if(manageErrorEl) manageErrorEl.textContent = '';
-      // Always writes 'invited' — the security rules reject anything else
-      // from this path anyway, so there's no way to grant owner status
-      // through this UI, only through the one-time manual console step.
+      // Inviting = adding them to trips (picked next); they see those
+      // trips once they sign up with this email.
       var newKey = sanitizeEmailKey(email);
-      firebase.database().ref('members/' + newKey).set('invited').then(function(){
-        manageInput.value = '';
-        renderMemberList();
-        // Right after the invite succeeds, not before — a brand-new
-        // month's own data-members list (see createOption) only ever has
-        // its creator in it, so without this step the newly invited
-        // person would sign in and see nothing at all until the owner
-        // separately opened every month they should have and added them
-        // there one at a time.
-        var inviteBtn = manageForm.querySelector('button[type="submit"]');
-        if(inviteBtn) openAccessScopeMenu(newKey, inviteBtn);
-      }).catch(function(err){
-        if(manageErrorEl) manageErrorEl.textContent = 'Couldn’t invite ' + email + ' — try again.';
-        console.warn('Invite failed', err);
-      });
+      manageInput.value = '';
+      var inviteBtn = manageForm.querySelector('button[type="submit"]');
+      if(inviteBtn) openAccessScopeMenu(newKey, inviteBtn);
     });
   }
 
@@ -7360,7 +7325,7 @@
     });
   }
   function removePlan(panels, label){
-    if(currentUserRole !== 'owner') return;
+    if(IS_HOSTED && !currentUserKey) return;
     var opts = panels.map(optOf);
     if(opts.length >= document.querySelectorAll('.pill[data-opt]').length){
       window.alert(t('deletemonth_only_left'));
@@ -9383,19 +9348,10 @@
       // resolves into the .catch() fallback below instead of leaving the
       // picker stuck on "Loading…" with an uncaught exception.
       var fetchPromise;
-      try {
-        fetchPromise = Promise.all([
-          firebase.database().ref('members').once('value'),
-          firebase.database().ref('avatars').once('value').catch(function(){ return null; })
-        ]);
-      } catch(err){
-        fetchPromise = Promise.reject(err);
-      }
-      memberAvatarDataPromise = fetchPromise.then(function(snaps){
-        var val = snaps[0].val() || {};
-        var avatarsVal = (snaps[1] && snaps[1].val()) || {};
-        var members = Object.keys(val).map(function(key){ return { key: key, email: key.replace(/,/g, '.'), role: val[key] }; });
-        return { members: members, avatars: avatarsVal };
+      try { fetchPromise = loadPeople(); } catch(err){ fetchPromise = Promise.reject(err); }
+      memberAvatarDataPromise = fetchPromise.then(function(d){
+        var members = Object.keys(d.people).map(function(key){ return { key: key, email: key.replace(/,/g, '.'), role: d.people[key] }; });
+        return { members: members, avatars: d.avatars };
       }).catch(function(err){
         console.warn('Load member/avatar data failed', err);
         return { members: [], avatars: {} };
@@ -9403,6 +9359,21 @@
     }
     memberAvatarDataPromise.then(function(d){ if(d && d.members){ cachedMembers = d.members; window.__memberData = d; } });
     return memberAvatarDataPromise;
+  }
+  // The people I can see: everyone on my trips (and me), never the whole
+  // list of accounts. Their avatars are read one by one, for the same reason.
+  function myPeople(){
+    var w = {};
+    Object.keys(TRIPS).forEach(function(t){ Object.keys(TRIPS[t].members || {}).forEach(function(k){ w[k] = 'member'; }); });
+    document.querySelectorAll('.panel').forEach(function(p){ getOptionMembers(p).forEach(function(k){ w[k] = w[k] || 'member'; }); });
+    if(currentUserKey) w[currentUserKey] = currentUserRole === 'owner' ? 'owner' : 'member';
+    return w;
+  }
+  function loadPeople(){
+    var people = myPeople(), avatars = {};
+    return Promise.all(Object.keys(people).map(function(k){
+      return firebase.database().ref('avatars/' + k).once('value').then(function(s){ if(s.val()) avatars[k] = s.val(); }).catch(function(){});
+    })).then(function(){ return { people: people, avatars: avatars }; });
   }
   function renderParticipants(li){
     var keys = getParticipants(li);
@@ -12955,7 +12926,10 @@
     // Deleting: the plan's owner, whoever created this alternative, or
     // anyone in the local (no sign-in) copy.
     var pillPanel = document.getElementById('panel-' + pill.getAttribute('data-opt'));
-    if(currentUserRole === 'owner' || !IS_HOSTED || (pillPanel && currentUserKey && getOptionCreator(pillPanel) === currentUserKey)){
+    // (an alternative on a shared trip: only whoever made it, since it goes for everyone)
+    var pillTrip = pillPanel && TRIPS[planIdOf(pillPanel)];
+    var aloneOnIt = !pillTrip || !Object.keys(pillTrip.members || {}).some(function(k){ return k !== currentUserKey; });
+    if(!IS_HOSTED || (currentUserKey && (aloneOnIt || getOptionCreator(pillPanel) === currentUserKey))){
       var delRow = document.createElement('div');
       delRow.className = 'itemmenu-row danger';
       delRow.innerHTML = '<span class="itemmenu-icon">' + ICON_TRASH + '</span>' + t('pillmenu_delete');
@@ -13107,17 +13081,16 @@
       form.addEventListener('click', function(e){ e.stopPropagation(); });
       form.addEventListener('submit', function(e){
         e.preventDefault();
-        var email = (inp.value || '').trim().toLowerCase(); if(!email) return;
+        var email = (inp.value || '').trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
         err.textContent = '';
         var newKey = sanitizeEmailKey(email);
-        firebase.database().ref('members/' + newKey).set('invited').then(function(){
-          // A plan open to everyone already includes them; otherwise add
-          // them to this plan's own list (and only this plan's).
-          var arr = getOptionMembers(panel);
-          if(arr.length && arr.indexOf(newKey) === -1){ arr.push(newKey); setPlanMembers(panel, arr); afterChange(); }
-          inp.value = '';
-          loadMemberAvatarData(true).then(render);
-        }).catch(function(er){ err.textContent = 'Couldn’t invite ' + email + ' — try again.'; console.warn('Invite failed', er); });
+        // On this plan's own list (and only this plan's); they see it once
+        // they sign up with this email.
+        var arr = getOptionMembers(panel);
+        if(!arr.length && currentUserKey) arr.push(currentUserKey);
+        if(arr.indexOf(newKey) === -1){ arr.push(newKey); setPlanMembers(panel, arr); afterChange(); }
+        inp.value = '';
+        loadMemberAvatarData(true).then(render);
       });
       pop.appendChild(form);
       positionPopover(pop, anchorEl);
@@ -13565,7 +13538,7 @@
     // owner-mode gets toggled), not enforced by a Firebase rule, but
     // there's no reason to skip the equally-cheap client-side check here
     // too.
-    if(currentUserRole !== 'owner') return;
+    if(IS_HOSTED && !currentUserKey) return;
     var opts = [];
     var panels = [];
     document.querySelectorAll('.panel').forEach(function(panel){
@@ -13916,7 +13889,7 @@
     // Sharing and removing are both owner-only — see openMonthShare/
     // removeMonth's own checks (this is UI-level only, belt and
     // suspenders; the security rules independently enforce both).
-    if(currentUserRole === 'owner'){
+    if(!IS_HOSTED || currentUserKey){
       row(icon(SHARE_ICON) + 'Share link', function(){ openMonthShare(s.year, s.month); });
       row(icon(ICON_TRASH) + 'Delete plan', function(){ removePlan(s.panels, s.label); }, true);
     }
@@ -19844,6 +19817,7 @@
       var data = v.data || null, members = v.members || {};
       var membersChanged = JSON.stringify(members) !== JSON.stringify(rec.members || {});
       rec.members = members;
+      if(!VIEW_ONLY) rec.pub = !!v.public;
       tripPresence[t] = v.presence || null; renderTripPresence();
       var first = !rec.answered; rec.answered = true;
       // a trip added after the first load (shared with me just now) shows up right away
@@ -19908,6 +19882,9 @@
       syncBarLayout();
       markShownAsSaved();
       migrateEmbeddedMediaToDb().catch(function(err){ console.warn('Media migration to /media failed (non-fatal — retried on next load)', err); });
+    } else if(VIEW_ONLY){
+      document.documentElement.style.visibility = '';
+      showAuthGate('denied', 'This link isn’t active — ask the plan’s owner to turn sharing back on.');
     } else {
       // no trips yet (a new person, or every trip removed): an empty start,
       // never the sample content this file opens with
@@ -19978,7 +19955,12 @@
     setTimeout(function(){ document.documentElement.style.visibility = ''; syncBarLayout(); }, 4000);
     var db = firebase.database();
     if(VIEW_ONLY){
-      // a share link: the trips of the shared month that are public
+      // a share link: the trips it names (or, an older link, the month's public trips)
+      if(VIEW_ONLY_TRIPS){
+        myTripIds = {}; VIEW_ONLY_TRIPS.forEach(function(t){ myTripIds[t] = true; listenTrip(t); });
+        checkTripsReady();
+        return;
+      }
       db.ref('publicMonths/' + VIEW_ONLY_MONTH_KEY).once('value').then(function(s){
         myTripIds = s.val() || {};
         Object.keys(myTripIds).forEach(listenTrip);
@@ -19987,7 +19969,7 @@
       return;
     }
     var me = currentUserKey;
-    (currentUserRole ? moveOldPlan() : Promise.resolve(false)).then(function(){
+    (currentUserRole === 'owner' ? moveOldPlan() : Promise.resolve(false)).then(function(){
       return db.ref('userTags/' + me).once('value').then(function(s){ myTagsJson = s.val(); }).catch(function(){});
     }).then(function(){
       db.ref('userTrips/' + me).on('value', function(s){
@@ -21127,7 +21109,6 @@
       var keys = [];
       (invite || []).forEach(function(email){
         email = String(email).trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
-        if(IS_HOSTED && manageInput && manageForm){ manageInput.value = email; if(manageForm.requestSubmit) manageForm.requestSubmit(); else manageForm.dispatchEvent(new Event('submit', { cancelable: true })); }
         keys.push(sanitizeEmailKey(email));
       });
       if(currentUserKey){ var mb = [currentUserKey]; keys.forEach(function(k){ if(mb.indexOf(k) === -1) mb.push(k); }); setOptionMembers(created, mb); }

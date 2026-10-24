@@ -62,6 +62,18 @@ writing only the trips that changed. The old `/plan` is moved into trips once (`
 whoever on the member list opens the new version first, and then kept untouched as a backup.
 The rules are in `database.rules.json` (paste them in Firebase console → Realtime Database → Rules).
 
+## Open sign-up (October 2026)
+
+Anyone with a confirmed email can sign in and make their own trips. They see only the trips they're on.
+
+- `/members` no longer decides who gets in. It only marks the owner (cheat codes, the one-time move)
+  and the people from before. Only the owner can read or change it.
+- The people shown in the app (Participants, faces, pickers) are the people on your own trips, never the
+  whole list of accounts. Avatars are read one person at a time.
+- Inviting someone adds their email to a trip. They see it once they sign up with that email.
+- A month's share link names its trips (`?view=1&month=…&trips=…`), so it never shows anyone else's
+  trips in that month. Older links (month only) still work through `publicViewEnabled`/`publicMonths`.
+
 ## Preview locally
 
 Opening `index.html` from disk runs it in local (non-synced) mode. To serve it over http without the sign-in gate
