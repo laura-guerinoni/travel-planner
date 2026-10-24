@@ -5814,6 +5814,7 @@
         try { localStorage.setItem('tpHasSignedIn', '1'); } catch(e){}
         currentUserEmail = user.email || '';
         currentUserKey = sanitizeEmailKey(currentUserEmail);
+        tellSignup(user);
         // Only ever reads this signed-in user's own membership entry — the
         // security rules allow that regardless of role (or absence of one),
         // specifically so a not-yet-invited visitor can still get a real
@@ -5858,6 +5859,21 @@
       console.warn('Firebase Auth init failed', e);
       showAuthGate('error', 'Couldn’t load sign-in — check your connection and reload.');
     }
+  }
+
+  // A brand-new account (made in the last two days): the Apps Script emails
+  // the owner about it, once per person (it keeps track; this only saves
+  // asking again from the same browser).
+  function tellSignup(user){
+    var created = user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : 0, k = 'tpSignupSent:' + sanitizeEmailKey(user.email || '');
+    if(!IS_HOSTED || !window.TP_SCRIPT_URL || !created || Date.now() - created > 2 * 864e5) return;
+    try { if(localStorage.getItem(k)) return; } catch(e){}
+    // a fresh token, so it already says the email is confirmed (the link may have been clicked a minute ago)
+    user.getIdToken(true).then(function(tok){
+      return fetch(window.TP_SCRIPT_URL, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ idToken: tok, kind:'signup', name: user.displayName || '' }) });
+    }).then(function(r){ return r.text(); }).then(function(res){
+      if(res === 'sent' || res === 'already told'){ try { localStorage.setItem(k, '1'); } catch(e){} }
+    }).catch(function(){});
   }
 
   // ---- "Participants" panel: view/invite for everyone, promote/remove
