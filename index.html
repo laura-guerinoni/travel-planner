@@ -2517,19 +2517,6 @@
     #sideToggle:hover, #sideToggle:focus-visible { background:rgba(255,255,255,.9); opacity:1; outline:none; }
     #sideToggle svg { width:18px; height:18px; }
     :root.side-closed .month-sidebar { display:none !important; }
-    /* Closing by itself when you start editing: the column slides away and
-       the page widens smoothly (instead of jumping). */
-    :root.side-anim body, :root.side-anim .pills { transition:padding-left .38s cubic-bezier(.3,.7,.2,1); }
-    :root.side-leaving .month-sidebar, :root.side-leaving #sideSearch, :root.side-leaving #actionMenu { transform:translateX(-110%); opacity:0; transition:transform .26s ease-in, opacity .26s ease-in; }
-    /* Peek: the left edge brings the column back over the page while the
-       mouse is on it (the page doesn't move). */
-    #sidePeek { display:none; }
-    :root.side-closed #sidePeek { display:block; position:fixed; left:0; top:0; bottom:0; width:16px; z-index:68; }
-    :root.side-closed.side-peek .month-sidebar { display:flex !important; z-index:66 !important; left:0 !important; background:var(--bg); border-radius:0 18px 18px 0; padding-right:12px; padding-bottom:12px;
-      box-shadow:0 18px 50px -12px rgba(30,25,45,.35), 0 0 0 1px var(--line); animation:sidePeekIn .24s cubic-bezier(.2,.8,.2,1) both; }
-    /* while it floats, the year rows and the open plan's tab sit in their place like the other tabs */
-    :root.side-peek .month-segment.current, :root.side-peek .month-segment[data-year-seg] { position:absolute !important; top:0 !important; bottom:0 !important; left:6px !important; right:0 !important; width:auto !important; }
-    @keyframes sidePeekIn { from { transform:translateX(-100%); opacity:.4; } to { transform:none; opacity:1; } }
     /* Same visible margin on both sides: the page's stacked sheets stick
        out 8px on the right, so the left gap is 8px less. */
     :root.side-closed body { padding-left:26px !important; }
@@ -6970,41 +6957,10 @@
       e.stopPropagation();
       closed = !document.documentElement.classList.contains('side-closed');
       try { localStorage.setItem(KEY, closed ? '1' : '0'); } catch(e2){}
-      root.classList.remove('side-peek');
-      // opened by hand while editing this plan: it stays open for this plan
-      if(!closed) pinnedFor = curPlan();
       apply(closed);
     });
     document.body.appendChild(btn);
     apply(closed);
-    // Editing a plan closes the column by itself (smoothly), unless it was
-    // reopened by hand for this plan. It isn't remembered: the next visit
-    // starts as you left it with the button.
-    var root = document.documentElement, pinnedFor = null;
-    function curPlan(){ var p = document.querySelector('.panel.on'); return p && typeof planIdOf === 'function' ? planIdOf(p) : null; }
-    // only your own edits count (not the first load, not someone else's change arriving)
-    var lastAct = 0;
-    ['pointerdown', 'keydown'].forEach(function(t){ document.addEventListener(t, function(e){ if(e.isTrusted) lastAct = Date.now(); }, true); });
-    window.tpAutoCloseSide = function(){
-      if(!lastAct || Date.now() - lastAct > 4000) return;
-      if(!window.matchMedia('(min-width:721px)').matches || root.classList.contains('side-closed') || root.classList.contains('side-leaving')) return;
-      if(pinnedFor && pinnedFor === curPlan()) return;
-      root.classList.add('side-anim', 'side-leaving');
-      setTimeout(function(){ root.classList.remove('side-leaving'); apply(true); setTimeout(function(){ root.classList.remove('side-anim'); }, 420); }, 250);
-    };
-    var zone = document.createElement('div'); zone.id = 'sidePeek'; zone.setAttribute('aria-hidden', 'true'); document.body.appendChild(zone);
-    var peekT = null;
-    function peek(on){ clearTimeout(peekT);
-      if(on){ if(!root.classList.contains('side-peek')){ root.classList.add('side-peek'); if(typeof renderMonthSidebar === 'function') renderMonthSidebar();
-        // the year rows and the open plan's tab are pinned in place: measure them again where the column now is
-        [0, 260].forEach(function(ms){ setTimeout(function(){ if(typeof pinCurrentSegment === 'function') pinCurrentSegment(); }, ms); }); } }
-      else peekT = setTimeout(function(){ root.classList.remove('side-peek'); }, 280); }
-    zone.addEventListener('mouseenter', function(){ peek(true); });
-    document.addEventListener('mouseover', function(e){
-      if(!root.classList.contains('side-peek')) return;
-      var inSide = e.target.closest && (e.target.closest('.month-sidebar') || e.target.closest('#sidePeek') || e.target.closest('.itemmenu'));
-      peek(!!inSide);
-    });
   })();
   // Search (top of the plans column): plans, alternatives, places and
   // activities; picking one opens it (and scrolls to the day).
@@ -14655,7 +14611,7 @@
 
   // .pill-dates is worked out from the alternative's own dates, never typed:
   // rewriting it isn't an edit and mustn't trigger a save.
-  var SAVE_EXCLUDE_SEL = '#sidePeek, #actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #dayMap, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .grp-ui, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
+  var SAVE_EXCLUDE_SEL = '#actionMenu, #statusBar, #pageHead, #typeComboDD, #dayPickDD, #payFloat, #dayGhost, #fabAddPanel, #searchPalette, #ticketStitch, #planStitch, #ribbonStitch, #sideToggle, #sideSearch, #sideProfile, #sidePanel, #sideStylePick, #fieldRemove, #dragRange, #niceDD, #mentionDD, #mentionMsg, #bellDD, #dayMap, #placeDD, #goMenu, #ideaPop, #npLinkPop, #npLinkBubble, .grp-ui, .print-pay, .notes-page, .notes-tab, .pill-dates, .tagpop, .linkpop, .monthpop, #tagData';
 
   function buildSaveHtml(){
     persistTags();
@@ -16612,11 +16568,14 @@
     function getJSON(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
     function api(host, g, q){ return 'https://' + host + '?latitude=' + g.lat + '&longitude=' + g.lon + '&timezone=auto&' + q; }
     // a city's name → where it is (cached for good)
+    // A name with several towns in it ("Gdańsk / Sopot", "Gdańsk & Sopot")
+    // isn't a place: then the first town counts.
     function geocode(name){
-      var k = 'tp-wxgeo:' + name.toLowerCase(), c = lsGet(k); if(c) return Promise.resolve(c.lat == null ? null : c);
-      return once(k, function(){ return getJSON('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(name)).then(function(j){
-        var r = j && j.results && j.results[0], g = r ? { lat:r.latitude, lon:r.longitude } : { lat:null };
-        lsSet(k, g); return g.lat == null ? null : g; }); });
+      var k = 'tp-wxgeo2:' + name.toLowerCase(), c = lsGet(k); if(c) return Promise.resolve(c.lat == null ? null : c);
+      var first = String(name).split(/\s*(?:\/|&|\+|,|\band\b|\s-\s)\s*/i)[0].trim();
+      function look(n){ return getJSON('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(n)).then(function(j){ var r = j && j.results && j.results[0]; return r ? { lat:r.latitude, lon:r.longitude } : null; }); }
+      return once(k, function(){ return look(name).then(function(g){ return g || (first && first !== name ? look(first) : null); }).then(function(g){
+        lsSet(k, g || { lat:null }); return g; }); });
     }
     function hoursOf(h, rainKey){   // the API's hourly lists → { 'yyyy-mm-dd': [{ h, t, c, p }] }
       var out = {}; (h && h.time || []).forEach(function(t, i){ var d = t.slice(0, 10); (out[d] || (out[d] = [])).push({ h:+t.slice(11, 13), t:h.temperature_2m[i], c:h.weather_code ? h.weather_code[i] : null, p: rainKey === 'precipitation' ? (h.precipitation[i] >= .1 ? 100 : 0) : h[rainKey] ? h[rainKey][i] : null }); });
@@ -18274,7 +18233,6 @@
     document.getElementById('fabAddTimeInput').dataset.free = '';
   });
   function openFabAdd(){
-    if(window.tpAutoCloseSide) window.tpAutoCloseSide();   // starting to edit: more room for the plan
     var panel = document.querySelector('.panel.on');
     if(!panel || !fabAddDaySelect) return;
     var defaultCell = fabAddForcedCell || findCurrentMobileCell();
@@ -19363,7 +19321,7 @@
     if(restoringHistory) return;
     var snap = captureUndoSnapshot();
     if(snap.content === lastSnapshot.content && snap.tagData === lastSnapshot.tagData) return;
-    if(stampEdited(lastSnapshot.content, snap.content)){ snap = captureUndoSnapshot(); if(typeof renderMonthSidebar === 'function') setTimeout(renderMonthSidebar, 0); if(window.tpAutoCloseSide) window.tpAutoCloseSide(); }
+    if(stampEdited(lastSnapshot.content, snap.content)){ snap = captureUndoSnapshot(); if(typeof renderMonthSidebar === 'function') setTimeout(renderMonthSidebar, 0); }
     undoStack.push(lastSnapshot);
     if(undoStack.length > UNDO_MAX) undoStack.shift();
     lastSnapshot = snap;
