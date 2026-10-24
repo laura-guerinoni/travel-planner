@@ -6588,7 +6588,17 @@
       // /publicViewEnabled, so an off month just isn't a key in it at
       // all, matching how the RTDB rule (hasChildren()) and every other
       // per-key map field in this app already work.
-      firebase.database().ref('publicViewEnabled/' + pendingShareKey).set(on ? true : null).then(function(){
+      // the month's trips that I'm on become readable by the link (trips/<t>/public),
+      // listed under publicMonths/<month> for the link to find them
+      var up = {}, mk = pendingShareKey;
+      up['publicViewEnabled/' + mk] = on ? true : null;
+      document.querySelectorAll('.panel').forEach(function(p){
+        var d = getPanelDate(p), t = planIdOf(p);
+        if(monthKey(d.year, d.month) !== mk || !TRIPS[t] || !TRIPS[t].data) return;
+        up['trips/' + t + '/public'] = on ? true : null;
+        up['publicMonths/' + mk + '/' + t] = on ? true : null;
+      });
+      firebase.database().ref().update(up).then(function(){
         if(monthShareCopyRow) monthShareCopyRow.classList.toggle('show', on);
         if(monthShareHint) monthShareHint.classList.toggle('show', on);
       }).catch(function(err){
@@ -7730,8 +7740,7 @@
   // interval; a stale opt just means the highlight lags behind by one
   // switch until the next one, never wrong in a way that keeps growing.
   function updateMyPresenceOpt(){
-    if(!myPresenceRef) return;
-    myPresenceRef.update({ opt: currentActiveOpt() }).catch(function(){});
+    if(typeof placeMyPresence === 'function') placeMyPresence();   // per trip: see the trip store
   }
   // Rings a face in a pill's own face row (see renderPillAccessFacesFromData)
   // while the person it belongs to is actually looking at that specific
@@ -18694,26 +18703,7 @@
     if(!model || !Array.isArray(model.options) || !model.options.length) return null;
     return { contentJson: snap.content, tagDataJson: snap.tagData };
   }
-  function saveToBackend(payload){
-    if(!planRef) return Promise.resolve(false);
-    var write = planRef.set({
-      contentJson: payload.contentJson,
-      tagDataJson: payload.tagDataJson,
-      updatedAt: firebase.database.ServerValue.TIMESTAMP,
-      updatedBy: CLIENT_ID
-    }).then(function(){ return true; }).catch(function(err){
-      console.warn('Save failed', err, 'payload size (chars):', payload.contentJson.length);
-      return false;
-    });
-    // set() only resolves once the server acks the write — genuinely offline
-    // (or a misconfigured project), that ack never arrives and the promise
-    // hangs forever, leaving the status stuck on "Editing…" indefinitely.
-    // Racing a timeout turns "stuck silently" into "told you it failed" —
-    // the write itself is still queued client-side and will still go
-    // through once connectivity returns, this only affects the status text.
-    var timeout = new Promise(function(resolve){ setTimeout(function(){ resolve(false); }, 8000); });
-    return Promise.race([write, timeout]);
-  }
+  // saveToBackend: see the trip store ("Trips, each stored on its own") further down.
 
   async function doSave(){
     var htmlStr = buildSaveHtml();
@@ -19491,6 +19481,7 @@
     if(pendingRemoteUpdate && !isLocallyBusy()){
       var val = pendingRemoteUpdate;
       pendingRemoteUpdate = null;
+      if(val.tripsLater){ var ids = Object.keys(pendingTrips); pendingTrips = {}; if(ids.length) showTrips(ids); return; }
       applyRemoteSnapshot(val);
     }
   }
@@ -19669,150 +19660,347 @@
   // from being re-applied to the DOM, not from raising this floor).
   var lastSeenUpdatedAt = 0;
 
-  // Only ever called once a signed-in, allow-listed Google account is
-  // confirmed (see onAuthStateChanged above) — before that, planRef is
-  // never read from or written to, so an unauthenticated load can't so
-  // much as see the shared plan exists, let alone its content.
-  function startSync(){
-    if(syncStarted || !IS_HOSTED || !planRef) return;
-    syncStarted = true;
-    // Safety net for a signed-in, allowed user whose database read then
-    // hangs (rules misconfigured, network partition mid-flight) — without
-    // this the page would stay invisible forever with no explanation.
-    // Scoped to only ever fire post-auth, unlike the old unconditional
-    // page-load timer this replaced, which would have handed the real
-    // content to anyone who simply waited it out, signed in or not.
-    setTimeout(function(){ document.documentElement.style.visibility = ''; syncBarLayout(); }, 4000);
-    planRef.on('value', function(snapshot){
-      var val = snapshot.val();
-      if(!firstLoadDone){
-        firstLoadDone = true;
-        if(val && (val.contentJson || val.wrapHtml)){
-          if(val.updatedAt) lastSeenUpdatedAt = val.updatedAt;
-          applyRemoteSnapshot(val);
-          mergeDefaultTags();
-          dedupeTagsByName();
-          fixStaleDefaultTagColors();
-          // Nothing past this point needs to block the page actually
-          // becoming visible — migrateEmbeddedMediaToDb below can
-          // take a real moment (each still-unmigrated photo/ticket is a
-          // genuine upload), and the self-heal comparison only matters
-          // for what eventually lands in Firebase, not what's on screen
-          // right now.
-          document.documentElement.style.visibility = '';
-          // renderMonthSidebar (inside applyRemoteSnapshot above) already
-          // synced the bar once, but that ran while the page was still
-          // hidden — visibility:hidden keeps layout/geometry intact (so
-          // that sync wasn't measuring garbage), but re-running it now,
-          // right as the page actually becomes visible, is a cheap,
-          // idempotent safety net against any other subtle reflow
-          // difference between the hidden and visible states this file
-          // isn't aware of (see the fonts.ready listener near
-          // syncBarLayout's own resize listener for one already-confirmed
-          // example: a web font settling in after this first render).
-          syncBarLayout();
-          // One-time migration: any data-img/data-ticket still holding a
-          // raw data: URI predates /media support (see saveMediaToDb's
-          // own comment for why embedding it directly in /plan is
-          // expensive) — move it to /media first, so the self-heal
-          // comparison just below sees (and persists) the shrunk result
-          // rather than only catching it on some later, unrelated edit.
-          migrateEmbeddedMediaToDb().catch(function(err){
-            console.warn('Media migration to /media failed (non-fatal — retried on next load)', err);
-          }).then(function(){
-            // Self-heal old data saved before captureUndoSnapshot() started
-            // stripping per-browser layout styling (padding-top/top) from
-            // what gets stored: if what's now on the page (cleaned) differs
-            // from what was actually stored (possibly still carrying that
-            // junk from a previous version of this file), push the cleaned
-            // version back once, right away — rather than leaving stale,
-            // bloated data sitting in Firebase until someone happens to make
-            // an unrelated edit.
-            var cleaned = captureUndoSnapshot();
-            // Also upgrades old full-HTML data to the compact JSON model on
-            // the first load that sees it, rather than leaving the bloated
-            // blob in place until someone happens to make an edit.
-            if(cleaned.content !== val.contentJson){
-              var serverModel = null;
-              try { serverModel = val.contentJson ? JSON.parse(val.contentJson) : null; } catch(err){ serverModel = null; }
-              var cleanedModel = null;
-              try { cleanedModel = JSON.parse(cleaned.content); } catch(err){ cleanedModel = null; }
-              // This resave is supposed to be a lossless re-derivation of data
-              // that's already on the server, never a real edit — a stale or
-              // buggy client that failed to render some option/day/activity it
-              // didn't recognize must not be allowed to write that gap back.
-              // A read-only share-link visitor has nothing to "self-heal" with —
-              // the rules would reject the write anyway, but skip even trying
-              // so no doomed request/console-error shows up on every load.
-              if(VIEW_ONLY){
-                // no-op: skip self-heal resave for a view-only visitor
-              } else if(modelPreservesStructure(cleanedModel, serverModel)){
-                saveToBackend({ contentJson: cleaned.content, tagDataJson: cleaned.tagData });
-              } else {
-                console.warn('Skipping self-heal resave: re-derived content is missing options/days/activities present on the server.');
-              }
-            }
-          });
-        } else if(!VIEW_ONLY){
-          var seed = getMigrationSeedPayload();
-          // A real local save exists — carry it over exactly as before
-          // (this is still someone's own content, just not synced up
-          // yet). Only a genuinely empty /plan AND no local seed means
-          // nobody has ever saved anything at all here — see
-          // showEmptyPlanState for why that can't just leave the
-          // page's own static scratch content sitting there instead.
-          if(seed) saveToBackend(seed);
-          else showEmptyPlanState();
-          document.documentElement.style.visibility = '';
-          syncBarLayout(); // same safety net as the branch above — see its own comment
-        } else {
-          document.documentElement.style.visibility = '';
-          syncBarLayout();
-        }
+  // ===================================================================
+  // Trips, each stored on its own (so people only ever get the trips
+  // they're on — the database rules enforce it, not just this page):
+  //   trips/<trip>/members/<person>: true     who's on the trip
+  //   trips/<trip>/data: { contentJson, updatedAt, updatedBy }
+  //                       the trip's part of the content model (its
+  //                       alternatives, its notes, its group data)
+  //   trips/<trip>/presence/<client>          who's looking at it now
+  //   trips/<trip>/public: true               a share link can read it
+  //   userTrips/<person>/<trip>: true         the trips to load for someone
+  //   userTags/<person>                       their own tags
+  // A trip is a plan: its alternatives share one id (planIdOf).
+  // The page still shows all of someone's trips together: they're merged
+  // into one content model to show, and split again to save, writing
+  // only the trips that changed. The old single /plan is moved here once
+  // (moveOldPlan) and then left alone, untouched, as a backup.
+  // ===================================================================
+  var TRIPS = {};              // trip -> { data, members, savedJson, unsub }
+  var myTripIds = null;        // the trips listed for me (null until known)
+  var myTagsJson = null;       // my tags as last saved
+  var tripsReady = false;      // every listed trip has answered once
+  var TRIP_NOTE_SKIP = { __plans:1, __group:1, __asks:1, __meta:1 };
+  function tripOf(o){ return o.pl || o.id; }
+  function tripKeyOf(email){ return sanitizeEmailKey(email); }
+  // The model of all my trips -> one model per trip.
+  function splitModel(model){
+    var out = {}, optTrip = {};
+    (model.options || []).forEach(function(o){
+      var t = tripOf(o), c = {}; optTrip[o.id] = t;
+      Object.keys(o).forEach(function(k){ if(k !== 'on') c[k] = o[k]; });   // which one is open is my own business
+      (out[t] = out[t] || { v: 2, options: [] }).options.push(c);
+    });
+    var notes = model.notes || {}, monthFirst = {};
+    (model.options || []).forEach(function(o){ var mk = monthKey(o.y, o.m); if(!monthFirst[mk]) monthFirst[mk] = tripOf(o); });
+    function note(t, k, v){ if(!out[t]) return; var n = out[t].notes = out[t].notes || {}; n[k] = v; }
+    Object.keys(notes).forEach(function(k){
+      if(TRIP_NOTE_SKIP[k]) return;
+      var m = /^plan:(.+)$/.exec(k);
+      if(m) note(m[1], k, notes[k]);
+      else if(/^\d{4}-\d{2}$/.test(k) && monthFirst[k]) note(monthFirst[k], k, notes[k]);   // an older note kept per month
+    });
+    ['__plans', '__meta', '__asks'].forEach(function(mirror){
+      Object.keys(notes[mirror] || {}).forEach(function(opt){ var t = optTrip[opt]; if(!t) return; var n = out[t].notes = out[t].notes || {}; (n[mirror] = n[mirror] || {})[opt] = notes[mirror][opt]; });
+    });
+    var g = notes.__group;
+    // (empty lists don't count: the page makes them just by showing a plan,
+    // and a "change" like that would re-save the trip over someone's edit)
+    function empty(v){ return v == null || (Array.isArray(v) ? !v.length : (typeof v === 'object' && !Object.keys(v).length)); }
+    if(g){
+      ['stars', 'ideas', 'duels'].forEach(function(part){ Object.keys(g[part] || {}).forEach(function(opt){ var t = optTrip[opt]; if(!t || empty(g[part][opt])) return;
+        var n = out[t].notes = out[t].notes || {}, gg = n.__group = n.__group || grpEmpty(); gg[part][opt] = g[part][opt]; }); });
+      ['polls', 'plans'].forEach(function(part){ Object.keys(g[part] || {}).forEach(function(t){ if(!out[t] || empty(g[part][t])) return;
+        var n = out[t].notes = out[t].notes || {}, gg = n.__group = n.__group || grpEmpty(); gg[part][t] = g[part][t]; }); });
+    }
+    return out;
+  }
+  // One model per trip -> the model of all of them (trips in date order).
+  function mergeModels(parts){
+    var ids = Object.keys(parts).filter(function(t){ return parts[t] && (parts[t].options || []).length; });
+    function first(t){ return Math.min.apply(null, parts[t].options.map(function(o){ return o.y * 12 + o.m; })); }
+    ids.sort(function(a, b){ return first(a) - first(b) || (a < b ? -1 : 1); });
+    var model = { v: 2, options: [] }, notes = {}, group = null;
+    ids.forEach(function(t){
+      var p = parts[t];
+      p.options.forEach(function(o){ model.options.push(JSON.parse(JSON.stringify(o))); });
+      var n = p.notes || {};
+      Object.keys(n).forEach(function(k){
+        if(k === '__group'){ group = group || grpEmpty(); var gg = grpNormalize(n[k]); Object.keys(gg).forEach(function(part){ Object.assign(group[part], gg[part]); }); }
+        else if(TRIP_NOTE_SKIP[k]) notes[k] = Object.assign(notes[k] || {}, n[k]);
+        else notes[k] = n[k];
+      });
+    });
+    if(group) notes.__group = group;
+    if(Object.keys(notes).length) model.notes = notes;
+    // Which one is open: mine, remembered on this device.
+    var open = null; try { open = localStorage.getItem('tpOpenOpt'); } catch(e){}
+    var hit = model.options.filter(function(o){ return o.id === open; })[0] || model.options[0];
+    if(hit) hit.on = 1;
+    return model;
+  }
+  // A trip's members are written onto its alternatives (o.mb), so the page
+  // knows who's on it (canSeeOption, the faces); people changed there are
+  // written back to the trip on the next save (tripMembersDiff).
+  function withMembers(part, members){
+    var keys = Object.keys(members || {}).sort();
+    (part.options || []).forEach(function(o){ if(keys.length) o.mb = keys.slice(); });
+    return part;
+  }
+  function tripJson(part){ return JSON.stringify(part); }
+  // After a trip from the database is on the page, what the page now holds
+  // for it counts as saved (the page lays it out its own way), so only a
+  // real change gets written; otherwise two open copies keep re-saving
+  // each other's trips, and one overwrites the other's edit.
+  function markShownAsSaved(ids){
+    var parts = null; try { parts = splitModel(JSON.parse(captureUndoSnapshot().content)); } catch(e){ return; }
+    (ids || Object.keys(TRIPS)).forEach(function(t){ if(TRIPS[t] && parts[t]){ TRIPS[t].savedJson = tripJson(parts[t]); TRIPS[t].shownMb = mbOf(parts[t]); TRIPS[t].onPage = true; } });
+  }
+  // who the page lists on a trip (its alternatives' people and its creator)
+  function mbOf(part){
+    var w = {};
+    (part.options || []).forEach(function(o){ (o.mb || []).forEach(function(k){ w[k] = true; }); if(o.cr) w[o.cr] = true; });
+    return w;
+  }
+  // What all my trips look like now, as the page would apply it.
+  function mergedVal(overrides){
+    var parts = {};
+    Object.keys(TRIPS).forEach(function(t){
+      var d = TRIPS[t].data; if(!d || !d.contentJson) return;
+      try { parts[t] = withMembers(JSON.parse(d.contentJson), TRIPS[t].members); } catch(e){}
+    });
+    Object.keys(overrides || {}).forEach(function(t){ parts[t] = overrides[t]; });
+    var at = 0; Object.keys(TRIPS).forEach(function(t){ var d = TRIPS[t].data; if(d && d.updatedAt > at) at = d.updatedAt; });
+    return { contentJson: JSON.stringify(mergeModels(parts)), tagDataJson: myTagsJson || TAGDATA_EL.textContent, updatedAt: at };
+  }
+
+  // ---- saving: only the trips that changed ----
+  var tripsSaving = Promise.resolve(true);
+  function saveToBackend(payload){
+    if(!IS_HOSTED || VIEW_ONLY || !currentUserKey || myTripIds === null) return Promise.resolve(false);
+    var run = tripsSaving.then(function(){ return saveTrips(payload); });
+    tripsSaving = run.catch(function(){ return false; });
+    var timeout = new Promise(function(resolve){ setTimeout(function(){ resolve(false); }, 8000); });
+    return Promise.race([run, timeout]);
+  }
+  function saveTrips(payload){
+    var model = null; try { model = JSON.parse(payload.contentJson); } catch(e){ return Promise.resolve(false); }
+    try { var open = (model.options || []).filter(function(o){ return o.on; })[0]; if(open) localStorage.setItem('tpOpenOpt', open.id); } catch(e){}
+    var parts = splitModel(model), up = {}, me = currentUserKey, now = firebase.database.ServerValue.TIMESTAMP;
+    Object.keys(parts).forEach(function(t){
+      var part = parts[t], json = tripJson(part), known = TRIPS[t];
+      var listed = mbOf(part);
+      if(!known){
+        // a new trip: it and its people (whoever its alternatives list, and me) in one go;
+        // the rules check the members in the same write
+        listed[me] = true;
+        Object.keys(listed).forEach(function(k){ up['trips/' + t + '/members/' + k] = true; up['userTrips/' + k + '/' + t] = true; });
+        up['trips/' + t + '/data'] = { contentJson: json, updatedAt: now, updatedBy: CLIENT_ID };
+        TRIPS[t] = { data: null, members: listed, savedJson: json, shownMb: listed, pending: true, onPage: true };
         return;
       }
-      if(!val || !(val.contentJson || val.wrapHtml)) return;
-      // A write older than the newest one we've already incorporated is
-      // stale no matter who sent it — ignore it outright rather than let it
-      // clobber more-current content with a rewind.
-      if(val.updatedAt && val.updatedAt < lastSeenUpdatedAt) return;
-      if(val.updatedAt) lastSeenUpdatedAt = val.updatedAt;
-      // Firebase echoes our own writes straight back to this same listener,
-      // often before the debounced local snapshots below have caught up —
-      // without this check, re-applying our own echo via a wholesale .wrap
-      // replace would itself count as a new "relevant" mutation to the
-      // autosave observer, scheduling another write, which echoes back
-      // again, forever. Skipping anything tagged with our own CLIENT_ID
-      // breaks that loop; only a genuinely different client's write reaches
-      // applyRemoteSnapshot below. (lastSeenUpdatedAt is still updated
-      // above even for our own echo, so it keeps acting as an accurate
-      // floor for the next incoming write.)
-      if(val.updatedBy === CLIENT_ID) return;
-      if(val.contentJson && val.contentJson === lastSnapshot.content) return;
-      if(isLocallyBusy()){ pendingRemoteUpdate = val; return; }
-      applyRemoteSnapshot(val);
+      if(json !== known.savedJson && !(known.data && json === known.data.contentJson)){
+        up['trips/' + t + '/data'] = { contentJson: json, updatedAt: now, updatedBy: CLIENT_ID };
+        known.savedJson = json;
+      }
+      // people I added or took off on the page since it was last shown (never
+      // anyone else's change: that comes in from the database instead)
+      var shown = known.shownMb || listed;
+      Object.keys(listed).forEach(function(k){ if(!shown[k]){ up['trips/' + t + '/members/' + k] = true; up['userTrips/' + k + '/' + t] = true; } });
+      Object.keys(shown).forEach(function(k){ if(!listed[k]){ up['trips/' + t + '/members/' + k] = null; up['userTrips/' + k + '/' + t] = null; } });
+      known.shownMb = listed;
     });
-
-    // Lightweight "N viewing" presence — not used for conflict resolution,
-    // just situational awareness. onDisconnect() cleans this client's entry
-    // up automatically (tab close, network drop) with no server code.
-    // key/opt (who, and which alternative they're currently looking at)
-    // ride along on the same tiny record — see updateMyPresenceOpt, called
-    // whenever the active pill changes, and renderPresenceHighlights below,
-    // which uses this to ring a face in a pill's own face row while that
-    // person is actually looking at it.
-    myPresenceRef = firebase.database().ref('presence/' + CLIENT_ID);
-    myPresenceRef.set({ ts: firebase.database.ServerValue.TIMESTAMP, key: currentUserKey || null, opt: currentActiveOpt() });
-    myPresenceRef.onDisconnect().remove();
-    firebase.database().ref('presence').on('value', function(s){
-      var val = s.val();
-      var count = val ? Object.keys(val).length : 1;
-      var el = document.getElementById('presenceCount');
-      if(el) el.textContent = count > 1 ? count + ' viewing' : '';
-      renderPresenceHighlights(val);
+    // trips that were on my page and are gone now: I removed them. The last
+    // one on a trip deletes it; otherwise I just leave it (the others keep
+    // it). A trip that came in but isn't on the page yet doesn't count.
+    Object.keys(TRIPS).forEach(function(t){
+      if(parts[t] || !TRIPS[t].data || !myTripIds[t] || !TRIPS[t].onPage) return;
+      var others = Object.keys(TRIPS[t].members || {}).filter(function(k){ return k !== me; });
+      if(!others.length) up['trips/' + t] = null;
+      else up['trips/' + t + '/members/' + me] = null;
+      up['userTrips/' + me + '/' + t] = null;
+    });
+    if(payload.tagDataJson && payload.tagDataJson !== myTagsJson){ up['userTags/' + me] = payload.tagDataJson; myTagsJson = payload.tagDataJson; }
+    if(!Object.keys(up).length) return Promise.resolve(true);
+    return firebase.database().ref().update(up).then(function(){ return true; }).catch(function(err){
+      console.warn('Save failed', err, Object.keys(up));
+      // let the next save try again with what's really there
+      Object.keys(TRIPS).forEach(function(t){ if(TRIPS[t].pending && !TRIPS[t].data) delete TRIPS[t]; else TRIPS[t].savedJson = TRIPS[t].data ? TRIPS[t].data.contentJson : null; });
+      return false;
     });
   }
 
+  // ---- loading: my list of trips, then each trip ----
+  function listenTrip(t){
+    if(TRIPS[t] && TRIPS[t].unsub) return;
+    var rec = TRIPS[t] = TRIPS[t] || { data: null, members: {}, savedJson: null };
+    rec.answered = false;
+    // (a share link may only read the trip's content, not who's on it)
+    var ref = firebase.database().ref('trips/' + t + (VIEW_ONLY ? '/data' : ''));
+    function onVal(s){
+      var v = VIEW_ONLY ? { data: s.val() } : (s.val() || {});
+      rec.pending = false;
+      var data = v.data || null, members = v.members || {};
+      var membersChanged = JSON.stringify(members) !== JSON.stringify(rec.members || {});
+      rec.members = members;
+      tripPresence[t] = v.presence || null; renderTripPresence();
+      var first = !rec.answered; rec.answered = true;
+      // a trip added after the first load (shared with me just now) shows up right away
+      if(!data){ rec.data = null; if(first && !tripsReady) checkTripsReady(); else onTripsChanged(t, membersChanged); return; }
+      // an older write than one already seen is stale, whoever sent it
+      if(rec.data && data.updatedAt && rec.data.updatedAt && data.updatedAt < rec.data.updatedAt) return;
+      var mine = data.updatedBy === CLIENT_ID;
+      if(!first && !membersChanged && rec.data && rec.data.contentJson === data.contentJson){ rec.data = data; return; }
+      rec.data = data;
+      if(mine){ rec.savedJson = data.contentJson; if(!membersChanged) return; }
+      if(first && !tripsReady) checkTripsReady(); else onTripsChanged(t, membersChanged);
+    }
+    ref.on('value', onVal, function(err){
+      // not (or no longer) on this trip
+      console.warn('Trip not readable', t, err && err.code);
+      rec.answered = true; rec.data = null; rec.denied = true;
+      checkTripsReady(); if(tripsReady) onTripsChanged(t, true);
+    });
+    rec.unsub = function(){ ref.off('value', onVal); };
+  }
+  function dropTrip(t){
+    var rec = TRIPS[t]; if(!rec) return;
+    if(rec.unsub) rec.unsub();
+    delete TRIPS[t]; delete tripPresence[t];
+    if(tripsReady) onTripsChanged(t, true);
+  }
+  function checkTripsReady(){
+    if(tripsReady || myTripIds === null) return;
+    if(Object.keys(myTripIds).some(function(t){ return !(TRIPS[t] && TRIPS[t].answered); })) return;
+    tripsReady = true;
+    firstTripsLoad();
+  }
+  // Someone else changed a trip (or who's on it): show it, keeping what I
+  // haven't saved yet in my other trips.
+  function onTripsChanged(t){
+    if(!tripsReady || !firstLoadDone) return;
+    if(isLocallyBusy()){ pendingTrips[t] = true; pendingRemoteUpdate = TRIPS_LATER; return; }
+    showTrips([t]);
+  }
+  var TRIPS_LATER = { tripsLater: true };
+  // Shows the latest of these trips, keeping what I haven't saved yet in the others.
+  function showTrips(ids){
+    var t = ids[0];
+    var local = null; try { local = splitModel(JSON.parse(captureUndoSnapshot().content)); } catch(e){ local = {}; }
+    var over = {};
+    // (a trip I just made and that isn't saved yet stays too)
+    Object.keys(local).forEach(function(x){ if(ids.indexOf(x) === -1) over[x] = TRIPS[x] && TRIPS[x].data ? withMembers(local[x], TRIPS[x].members) : local[x]; });
+    var val = mergedVal(over);
+    if(val.contentJson === lastSnapshot.content){ markShownAsSaved(ids); return; }
+    applyRemoteSnapshot(val);
+    markShownAsSaved(ids);
+  }
+  var pendingTrips = {};
+  function firstTripsLoad(){
+    firstLoadDone = true;
+    var val = mergedVal();
+    var model = null; try { model = JSON.parse(val.contentJson); } catch(e){}
+    if(model && model.options.length){
+      applyRemoteSnapshot(val);
+      mergeDefaultTags(); dedupeTagsByName(); fixStaleDefaultTagColors();
+      document.documentElement.style.visibility = '';
+      syncBarLayout();
+      markShownAsSaved();
+      migrateEmbeddedMediaToDb().catch(function(err){ console.warn('Media migration to /media failed (non-fatal — retried on next load)', err); });
+    } else {
+      // no trips yet (a new person, or every trip removed): an empty start,
+      // never the sample content this file opens with
+      showEmptyPlanState();
+      document.documentElement.style.visibility = '';
+      syncBarLayout();
+    }
+    if(window.TPOnb && TPOnb.tripsLoaded) TPOnb.tripsLoaded({ count: model ? model.options.length : 0 });
+  }
+
+  // ---- who's looking: per trip ----
+  var tripPresence = {}, myPresenceTrip = null;
+  function renderTripPresence(){
+    var all = {};
+    Object.keys(tripPresence).forEach(function(t){ Object.assign(all, tripPresence[t] || {}); });
+    var count = Object.keys(all).length || 1;
+    var el = document.getElementById('presenceCount');
+    if(el) el.textContent = count > 1 ? count + ' viewing' : '';
+    renderPresenceHighlights(all);
+  }
+  function placeMyPresence(){
+    if(VIEW_ONLY || !currentUserKey) return;
+    var p = document.querySelector('.panel.on'), t = p ? planIdOf(p) : null;
+    if(!t || !TRIPS[t] || !TRIPS[t].data){ if(myPresenceRef){ myPresenceRef.remove().catch(function(){}); myPresenceRef = null; myPresenceTrip = null; } return; }
+    if(t !== myPresenceTrip){
+      if(myPresenceRef) myPresenceRef.remove().catch(function(){});
+      myPresenceTrip = t;
+      myPresenceRef = firebase.database().ref('trips/' + t + '/presence/' + CLIENT_ID);
+      myPresenceRef.onDisconnect().remove();
+    }
+    myPresenceRef.set({ ts: firebase.database.ServerValue.TIMESTAMP, key: currentUserKey, opt: currentActiveOpt() }).catch(function(){});
+  }
+
+  // ---- the old single /plan, moved once into trips ----
+  // Every alternative goes to its trip, with the people who see it today:
+  // its own list, or (no list) everyone on the member list. Runs once for
+  // everybody, by whoever opens the new version first.
+  function moveOldPlan(){
+    var db = firebase.database();
+    return db.ref('migratedPlan').once('value').then(function(s){
+      if(s.val()) return false;
+      return Promise.all([db.ref('plan').once('value'), db.ref('members').once('value')]).then(function(r){
+        var plan = r[0].val(), members = Object.keys(r[1].val() || {});
+        if(!plan || !plan.contentJson){ return db.ref('migratedPlan').set(firebase.database.ServerValue.TIMESTAMP).then(function(){ return false; }); }
+        var model = JSON.parse(plan.contentJson), parts = splitModel(model), up = {};
+        Object.keys(parts).forEach(function(t){
+          var who = {};
+          parts[t].options.forEach(function(o){ (o.mb || []).forEach(function(k){ who[k] = true; }); });
+          if(!Object.keys(who).length) members.forEach(function(k){ who[k] = true; });
+          parts[t].options.forEach(function(o){ if(o.cr) who[o.cr] = true; });
+          Object.keys(who).forEach(function(k){ up['trips/' + t + '/members/' + k] = true; up['userTrips/' + k + '/' + t] = true; });
+          up['trips/' + t + '/data'] = { contentJson: tripJson(parts[t]), updatedAt: firebase.database.ServerValue.TIMESTAMP, updatedBy: 'move' };
+        });
+        if(plan.tagDataJson) members.forEach(function(k){ up['userTags/' + k] = plan.tagDataJson; });
+        up.migratedPlan = firebase.database.ServerValue.TIMESTAMP;
+        console.log('Moving the old plan into', Object.keys(parts).length, 'trips');
+        return db.ref().update(up).then(function(){ return true; });
+      });
+    }).catch(function(err){ console.warn('Moving the old plan failed (tried again next time)', err); return false; });
+  }
+
+  // Only ever called once a signed-in person is confirmed (see
+  // onAuthStateChanged above), or for a share link that's on.
+  function startSync(){
+    if(syncStarted || !IS_HOSTED) return;
+    syncStarted = true;
+    // Safety net: a read that hangs (rules, network) must not leave the page invisible.
+    setTimeout(function(){ document.documentElement.style.visibility = ''; syncBarLayout(); }, 4000);
+    var db = firebase.database();
+    if(VIEW_ONLY){
+      // a share link: the trips of the shared month that are public
+      db.ref('publicMonths/' + VIEW_ONLY_MONTH_KEY).once('value').then(function(s){
+        myTripIds = s.val() || {};
+        Object.keys(myTripIds).forEach(listenTrip);
+        checkTripsReady();
+      }).catch(function(){ myTripIds = {}; checkTripsReady(); });
+      return;
+    }
+    var me = currentUserKey;
+    (currentUserRole ? moveOldPlan() : Promise.resolve(false)).then(function(){
+      return db.ref('userTags/' + me).once('value').then(function(s){ myTagsJson = s.val(); }).catch(function(){});
+    }).then(function(){
+      db.ref('userTrips/' + me).on('value', function(s){
+        var ids = s.val() || {}, was = myTripIds || {};
+        myTripIds = ids;
+        Object.keys(ids).forEach(listenTrip);
+        // taken off a trip: it goes away
+        Object.keys(was).forEach(function(t){ if(!ids[t]) dropTrip(t); });
+        checkTripsReady();
+      });
+    });
+    setInterval(placeMyPresence, 20000);
+  }
 
   // ===================================================================
   // Doing it together: shared stars, who's in, the idea box, "this or

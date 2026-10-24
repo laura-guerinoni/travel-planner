@@ -1,0 +1,101 @@
+{
+  "rules": {
+    "plan": {
+      ".read": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+    },
+    "presence": {
+      ".read": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()",
+      "$c": {
+        ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+      }
+    },
+    "migratedPlan": {
+      ".read": "auth != null && auth.token.email_verified === true",
+      ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && !data.exists()"
+    },
+    "members": {
+      ".read": "auth != null && auth.token.email_verified === true",
+      "$k": {
+        ".write": "auth != null && auth.token.email_verified === true && (root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).val() === 'owner' || (root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && newData.val() === 'invited' && data.val() !== 'owner'))"
+      }
+    },
+    "trips": {
+      "$t": {
+        ".read": "auth != null && auth.token.email_verified === true && (data.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists())",
+        ".write": "auth != null && auth.token.email_verified === true && !newData.exists() && data.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()",
+        "members": {
+          "$k": {
+            ".write": "auth != null && auth.token.email_verified === true && (data.parent().child(auth.token.email.toLowerCase().replace('.', ',')).exists() || (root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && !data.parent().parent().exists() && newData.parent().child(auth.token.email.toLowerCase().replace('.', ',')).exists()) || (!root.child('migratedPlan').exists() && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()))",
+            ".validate": "newData.val() === true"
+          }
+        },
+        "data": {
+          ".read": "data.parent().child('public').val() === true",
+          ".write": "auth != null && auth.token.email_verified === true && (newData.parent().child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() || (!root.child('migratedPlan').exists() && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()))",
+          ".validate": "newData.hasChildren(['contentJson', 'updatedAt'])"
+        },
+        "public": {
+          ".write": "auth != null && auth.token.email_verified === true && data.parent().child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+        },
+        "presence": {
+          "$c": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('trips').child($t).child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "userTrips": {
+      "$u": {
+        ".read": "auth != null && auth.token.email_verified === true && auth.token.email.toLowerCase().replace('.', ',') === $u",
+        "$t": {
+          ".write": "auth != null && auth.token.email_verified === true && (auth.token.email.toLowerCase().replace('.', ',') === $u || root.child('trips').child($t).child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() || newData.parent().parent().parent().child('trips').child($t).child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() || (!root.child('migratedPlan').exists() && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()))",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
+    "userTags": {
+      "$u": {
+        ".read": "auth != null && auth.token.email_verified === true && auth.token.email.toLowerCase().replace('.', ',') === $u",
+        ".write": "auth != null && auth.token.email_verified === true && (auth.token.email.toLowerCase().replace('.', ',') === $u || (!root.child('migratedPlan').exists() && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()))"
+      }
+    },
+    "publicMonths": {
+      "$m": {
+        ".read": "auth != null",
+        "$t": {
+          ".write": "auth != null && auth.token.email_verified === true && root.child('trips').child($t).child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+        }
+      }
+    },
+    "publicViewEnabled": {
+      "$m": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+      }
+    },
+    "avatars": {
+      ".read": "auth != null",
+      "$k": {
+        ".write": "auth != null && auth.token.email_verified === true && auth.token.email.toLowerCase().replace('.', ',') === $k"
+      }
+    },
+    "notifications": {
+      "$k": {
+        ".read": "auth != null && auth.token.email_verified === true && auth.token.email.toLowerCase().replace('.', ',') === $k",
+        "$n": {
+          ".write": "auth != null && auth.token.email_verified === true && (auth.token.email.toLowerCase().replace('.', ',') === $k || !data.exists())"
+        }
+      }
+    },
+    "media": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.email_verified === true"
+      }
+    }
+  }
+}
