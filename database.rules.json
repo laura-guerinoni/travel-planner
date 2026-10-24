@@ -15,9 +15,10 @@
       ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && !data.exists()"
     },
     "members": {
-      ".read": "auth != null && auth.token.email_verified === true",
+      ".read": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).val() === 'owner'",
       "$k": {
-        ".write": "auth != null && auth.token.email_verified === true && (root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).val() === 'owner' || (root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && newData.val() === 'invited' && data.val() !== 'owner'))"
+        ".read": "auth != null && auth.token.email_verified === true && (auth.token.email.toLowerCase().replace('.', ',') === $k || root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).val() === 'owner')",
+        ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).val() === 'owner'"
       }
     },
     "trips": {
@@ -26,7 +27,7 @@
         ".write": "auth != null && auth.token.email_verified === true && !newData.exists() && data.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()",
         "members": {
           "$k": {
-            ".write": "auth != null && auth.token.email_verified === true && (data.parent().child(auth.token.email.toLowerCase().replace('.', ',')).exists() || (root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && !data.parent().parent().exists() && newData.parent().child(auth.token.email.toLowerCase().replace('.', ',')).exists()) || (!root.child('migratedPlan').exists() && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()))",
+            ".write": "auth != null && auth.token.email_verified === true && (data.parent().child(auth.token.email.toLowerCase().replace('.', ',')).exists() || (!data.parent().parent().exists() && newData.parent().child(auth.token.email.toLowerCase().replace('.', ',')).exists()) || (!root.child('migratedPlan').exists() && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()))",
             ".validate": "newData.val() === true"
           }
         },
@@ -67,7 +68,7 @@
       "$m": {
         ".read": "auth != null",
         "$t": {
-          ".write": "auth != null && auth.token.email_verified === true && root.child('trips').child($t).child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
+          ".write": "auth != null && auth.token.email_verified === true && root.child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists() && root.child('trips').child($t).child('members').child(auth.token.email.toLowerCase().replace('.', ',')).exists()"
         }
       }
     },
@@ -78,8 +79,8 @@
       }
     },
     "avatars": {
-      ".read": "auth != null",
       "$k": {
+        ".read": "auth != null",
         ".write": "auth != null && auth.token.email_verified === true && auth.token.email.toLowerCase().replace('.', ',') === $k"
       }
     },
