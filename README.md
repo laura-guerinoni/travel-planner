@@ -47,6 +47,21 @@ each of the sample people.
 - **Cheat corner** (the owner, or the local draft): hover the bottom-left corner for 2 seconds (a faint dot marks it), or press Ctrl+Shift+K (⌘+Shift+K). Preview the sign-up, the sign-in page,
   the guide or What's new without saving; send yourself a sample notification; reset your preferences.
 
+## Each trip stored on its own (October 2026)
+
+Trips used to live together in one record, `/plan`, which every member could read. Now each trip
+(a plan and its alternatives) has its own record, and the database rules only give it to the people on it:
+
+- `trips/<trip>/members/<person>`: who's on the trip (anyone on it can add or take people off).
+- `trips/<trip>/data`: the trip's part of the content model (its alternatives, notes, ideas, votes).
+- `trips/<trip>/presence`: who's looking at it; `trips/<trip>/public`: a share link may read it.
+- `userTrips/<person>/<trip>`: the trips to load for someone; `userTags/<person>`: their own tags.
+
+The page still shows all of someone's trips together: they're merged to show, and split again to save,
+writing only the trips that changed. The old `/plan` is moved into trips once (`moveOldPlan`), by
+whoever on the member list opens the new version first, and then kept untouched as a backup.
+The rules are in `database.rules.json` (paste them in Firebase console → Realtime Database → Rules).
+
 ## Preview locally
 
 Opening `index.html` from disk runs it in local (non-synced) mode. To serve it over http without the sign-in gate
