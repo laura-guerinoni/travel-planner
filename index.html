@@ -16568,11 +16568,14 @@
     function getJSON(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
     function api(host, g, q){ return 'https://' + host + '?latitude=' + g.lat + '&longitude=' + g.lon + '&timezone=auto&' + q; }
     // a city's name → where it is (cached for good)
+    // A name with several towns in it ("Gdańsk / Sopot", "Gdańsk & Sopot")
+    // isn't a place: then the first town counts.
     function geocode(name){
-      var k = 'tp-wxgeo:' + name.toLowerCase(), c = lsGet(k); if(c) return Promise.resolve(c.lat == null ? null : c);
-      return once(k, function(){ return getJSON('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(name)).then(function(j){
-        var r = j && j.results && j.results[0], g = r ? { lat:r.latitude, lon:r.longitude } : { lat:null };
-        lsSet(k, g); return g.lat == null ? null : g; }); });
+      var k = 'tp-wxgeo2:' + name.toLowerCase(), c = lsGet(k); if(c) return Promise.resolve(c.lat == null ? null : c);
+      var first = String(name).split(/\s*(?:\/|&|\+|,|\band\b|\s-\s)\s*/i)[0].trim();
+      function look(n){ return getJSON('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(n)).then(function(j){ var r = j && j.results && j.results[0]; return r ? { lat:r.latitude, lon:r.longitude } : null; }); }
+      return once(k, function(){ return look(name).then(function(g){ return g || (first && first !== name ? look(first) : null); }).then(function(g){
+        lsSet(k, g || { lat:null }); return g; }); });
     }
     function hoursOf(h, rainKey){   // the API's hourly lists → { 'yyyy-mm-dd': [{ h, t, c, p }] }
       var out = {}; (h && h.time || []).forEach(function(t, i){ var d = t.slice(0, 10); (out[d] || (out[d] = [])).push({ h:+t.slice(11, 13), t:h.temperature_2m[i], c:h.weather_code ? h.weather_code[i] : null, p: rainKey === 'precipitation' ? (h.precipitation[i] >= .1 ? 100 : 0) : h[rainKey] ? h[rainKey][i] : null }); });
